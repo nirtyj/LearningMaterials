@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Analytics on S3 — System Design Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0e13;
+    --bg-card: #13161d;
+    --bg-card-hover: #181c25;
+    --bg-code: #0a0c10;
+    --border: #1e2330;
+    --border-accent: #2a3148;
+    --text: #c8cdd8;
+    --text-dim: #6b7280;
+    --text-bright: #e8ecf4;
+    --accent: #3b82f6;
+    --accent-dim: #1e3a5f;
+    --green: #22c55e;
+    --green-dim: #0a3d1e;
+    --red: #ef4444;
+    --red-dim: #3b1111;
+    --amber: #f59e0b;
+    --amber-dim: #3d2a06;
+    --purple: #a78bfa;
+    --purple-dim: #2d2153;
+    --teal: #2dd4bf;
+    --teal-dim: #0d3d36;
+    --serif: 'DM Serif Display', Georgia, serif;
+    --sans: 'Source Sans 3', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --radius: 10px;
+    --glow: 0 0 40px rgba(59, 130, 246, 0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── NAV ─── */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(12, 14, 19, 0.85);
+    backdrop-filter: blur(20px) saturate(1.4);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-brand {
+    font-family: var(--mono);
+    font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .nav-links { display: flex; gap: 1.5rem; }
+  .nav-links a {
+    font-size: 13px; color: var(--text-dim);
+    text-decoration: none; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text-bright); }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 8rem 2rem 4rem;
+    max-width: 900px; margin: 0 auto;
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+  .hero-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    color: var(--text-bright);
+    line-height: 1.15;
+    margin-bottom: 1.2rem;
+    letter-spacing: -0.01em;
+  }
+  .hero .subtitle {
+    font-size: 1.15rem;
+    color: var(--text-dim);
+    max-width: 640px;
+    line-height: 1.7;
+  }
+
+  /* ─── MAIN CONTAINER ─── */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 2rem 6rem;
+  }
+
+  /* ─── SECTION HEADERS ─── */
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin: 4rem 0 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 12px; font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(59,130,246,0.15);
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .section-header h2 {
+    font-family: var(--serif);
+    font-size: 1.75rem;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin: 1rem 0;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .card:hover {
+    border-color: var(--border-accent);
+    box-shadow: var(--glow);
+  }
+  .card h3 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-bright);
+    margin-bottom: 0.6rem;
+  }
+  .card p, .card li {
+    font-size: 0.95rem;
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .card ul { padding-left: 1.2rem; }
+  .card li { margin-bottom: 0.3rem; }
+
+  /* ─── REQUIREMENT GRID ─── */
+  .req-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  @media (max-width: 680px) { .req-grid { grid-template-columns: 1fr; } }
+  .req-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    border-left: 3px solid var(--accent);
+  }
+  .req-card.nfr { border-left-color: var(--teal); }
+  .req-card .req-label {
+    font-family: var(--mono);
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .req-card.nfr .req-label { color: var(--teal); }
+  .req-card .req-text {
+    font-size: 0.92rem;
+    color: var(--text);
+  }
+
+  /* ─── ARCHITECTURE DIAGRAM ─── */
+  .arch-diagram {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+  .arch-diagram pre {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--text);
+    white-space: pre;
+    tab-size: 2;
+  }
+  .arch-diagram .diagram-title {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .arch-diagram .diagram-title::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ─── CODE BLOCKS ─── */
+  .code-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1rem;
+    background: rgba(30, 35, 48, 0.5);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-lang {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .code-copy {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    background: none; border: 1px solid var(--border);
+    border-radius: 4px; padding: 2px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .code-copy:hover { color: var(--text); border-color: var(--border-accent); }
+  .code-block pre {
+    padding: 1rem;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* ─── SYNTAX HIGHLIGHTS (lightweight) ─── */
+  .hl-key { color: #7dd3fc; }
+  .hl-str { color: #86efac; }
+  .hl-comment { color: #4b5563; font-style: italic; }
+  .hl-num { color: #fbbf24; }
+  .hl-bool { color: #c084fc; }
+
+  /* ─── FLOW DIAGRAM (CSS-based) ─── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 1.5rem 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    position: relative;
+    padding: 0.8rem 0;
+  }
+  .flow-step::before {
+    content: '';
+    position: absolute;
+    left: 17px; top: 40px; bottom: -8px;
+    width: 2px;
+    background: var(--border);
+  }
+  .flow-step:last-child::before { display: none; }
+  .flow-num {
+    width: 36px; height: 36px;
+    min-width: 36px;
+    background: var(--accent-dim);
+    border: 1.5px solid rgba(59,130,246,0.3);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    z-index: 1;
+  }
+  .flow-content h4 {
+    font-size: 0.95rem; font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 0.2rem;
+  }
+  .flow-content p {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .flow-content .service-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 500;
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin-right: 4px;
+  }
+  .tag-sagemaker { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(167,139,250,0.2); }
+  .tag-athena { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(59,130,246,0.2); }
+  .tag-s3 { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .tag-lakeformation { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(45,212,191,0.2); }
+  .tag-kms { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+  .tag-vpce { background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
+  .tag-deny { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+  /* ─── MATRIX TABLE ─── */
+  .matrix-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1.5rem 0;
+    font-size: 0.88rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .matrix-table th {
+    background: rgba(30, 35, 48, 0.6);
+    color: var(--text-bright);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .matrix-table td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+  .matrix-table tr:last-child td { border-bottom: none; }
+  .matrix-table tr:hover td { background: rgba(59,130,246,0.03); }
+  .matrix-table .cell-prevent { color: var(--green); }
+  .matrix-table .cell-detect { color: var(--amber); }
+
+  /* ─── COLLAPSIBLE ─── */
+  .collapsible {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 1rem 0;
+    overflow: hidden;
+  }
+  .collapsible-trigger {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: none; border: none;
+    color: var(--text-bright);
+    font-family: var(--sans);
+    font-size: 1rem; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-align: left;
+  }
+  .collapsible-trigger:hover { background: var(--bg-card-hover); }
+  .collapsible-trigger .chevron {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    transition: transform 0.3s;
+  }
+  .collapsible.open .collapsible-trigger .chevron { transform: rotate(180deg); }
+  .collapsible-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .collapsible.open .collapsible-body { max-height: 5000px; }
+  .collapsible-inner { padding: 0 1.25rem 1.25rem; }
+
+  /* ─── REFERENCE LINKS ─── */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  .ref-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.25s;
+  }
+  .ref-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+    transform: translateX(4px);
+  }
+  .ref-icon {
+    width: 32px; height: 32px; min-width: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .ref-icon.aws { background: var(--amber-dim); color: var(--amber); }
+  .ref-icon.github { background: rgba(255,255,255,0.06); color: var(--text); }
+  .ref-icon.blog { background: var(--accent-dim); color: var(--accent); }
+  .ref-icon.doc { background: var(--teal-dim); color: var(--teal); }
+  .ref-details { flex: 1; min-width: 0; }
+  .ref-title {
+    font-size: 0.88rem; font-weight: 600;
+    color: var(--text-bright);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ref-source {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .ref-arrow { color: var(--text-dim); font-size: 14px; transition: transform 0.2s; }
+  .ref-item:hover .ref-arrow { transform: translateX(3px); color: var(--accent); }
+
+  /* ─── INLINE LINKS ─── */
+  a.inline-ref {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(59,130,246,0.3);
+    transition: border-color 0.2s;
+  }
+  a.inline-ref:hover { border-bottom-color: var(--accent); }
+
+  /* ─── COST TABLE ─── */
+  .cost-row-total td {
+    font-weight: 700 !important;
+    color: var(--text-bright) !important;
+    border-top: 2px solid var(--border-accent) !important;
+  }
+
+  /* ─── CALLOUT ─── */
+  .callout {
+    display: flex; gap: 12px;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius);
+    margin: 1.25rem 0;
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+  .callout-icon { font-size: 1.1rem; min-width: 20px; padding-top: 2px; }
+  .callout.info { background: var(--accent-dim); border: 1px solid rgba(59,130,246,0.15); color: #93c5fd; }
+  .callout.warn { background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.15); color: #fcd34d; }
+  .callout.danger { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.15); color: #fca5a5; }
+  .callout.success { background: var(--green-dim); border: 1px solid rgba(34,197,94,0.15); color: #86efac; }
+
+  /* ─── TRADEOFF CARDS ─── */
+  .tradeoff-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    margin: 1rem 0;
+  }
+  @media (max-width: 680px) { .tradeoff-grid { grid-template-columns: 1fr; } }
+  .tradeoff-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+  .tradeoff-card h4 {
+    font-size: 0.92rem; font-weight: 700;
+    color: var(--text-bright);
+    margin-bottom: 0.5rem;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tradeoff-card p {
+    font-size: 0.85rem; color: var(--text-dim); line-height: 1.65;
+  }
+
+  /* ─── TOC SIDEBAR (scroll-spy) ─── */
+  .toc {
+    position: fixed;
+    right: 2rem; top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 6px;
+    z-index: 50;
+  }
+  .toc a {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.3s;
+    position: relative;
+  }
+  .toc a.active { background: var(--accent); box-shadow: 0 0 8px rgba(59,130,246,0.5); }
+  .toc a:hover { background: var(--text-dim); }
+  .toc a .toc-label {
+    position: absolute;
+    right: 18px; top: 50%; transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toc a:hover .toc-label { opacity: 1; }
+  @media (max-width: 1200px) { .toc { display: none; } }
+
+  /* ─── LAYER VISUAL ─── */
+  .layers {
+    display: flex; flex-direction: column; gap: 0;
+    margin: 1.5rem 0;
+  }
+  .layer {
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 1rem;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .layer:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .layer:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+  .layer:not(:last-child) { border-bottom: none; }
+  .layer:hover { background: var(--bg-card-hover); }
+  .layer-num {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    width: 28px; height: 28px; min-width: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+  }
+  .layer-num.l1 { background: var(--red-dim); color: var(--red); }
+  .layer-num.l2 { background: var(--amber-dim); color: var(--amber); }
+  .layer-num.l3 { background: var(--accent-dim); color: var(--accent); }
+  .layer-num.l4 { background: var(--green-dim); color: var(--green); }
+  .layer-num.l5 { background: var(--purple-dim); color: var(--purple); }
+  .layer-num.l6 { background: var(--teal-dim); color: var(--teal); }
+  .layer-content h4 { font-size: 0.9rem; font-weight: 600; color: var(--text-bright); }
+  .layer-content p { font-size: 0.82rem; color: var(--text-dim); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  /* ─── PROSE ─── */
+  .prose { margin: 1rem 0; }
+  .prose p { margin-bottom: 0.9rem; }
+  .prose strong { color: var(--text-bright); }
+  .prose code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.12);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #93c5fd;
+  }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">System Design Study</div>
+  <div class="nav-links">
+    <a href="#overview">Overview</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#network">Network</a>
+    <a href="#policies">Policies</a>
+    <a href="#flow">Query Flow</a>
+    <a href="#defense">Defense Matrix</a>
+    <a href="#references">References</a>
+  </div>
+</nav>
+
+<!-- TOC dots -->
+<div class="toc" id="toc">
+  <a href="#overview"><span class="toc-label">Overview</span></a>
+  <a href="#architecture"><span class="toc-label">Architecture</span></a>
+  <a href="#network"><span class="toc-label">Network</span></a>
+  <a href="#policies"><span class="toc-label">Policies</span></a>
+  <a href="#access"><span class="toc-label">Access Control</span></a>
+  <a href="#flow"><span class="toc-label">Query Flow</span></a>
+  <a href="#defense"><span class="toc-label">Defense Matrix</span></a>
+  <a href="#hardening"><span class="toc-label">Hardening</span></a>
+  <a href="#tradeoffs"><span class="toc-label">Tradeoffs</span></a>
+  <a href="#references"><span class="toc-label">References</span></a>
+</div>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-badge"><span class="dot"></span> Staff-Level System Design</div>
+  <h1>Secure Analytics on Sensitive S3 Data Without Download</h1>
+  <p class="subtitle">A comprehensive AWS architecture for enabling data analysts to query, analyze, and visualize sensitive data — while making exfiltration architecturally impossible. Built on the <a class="inline-ref" href="https://docs.aws.amazon.com/whitepapers/latest/building-a-data-perimeter-on-aws/building-a-data-perimeter-on-aws.html" target="_blank">AWS Data Perimeter</a> model.</p>
+</header>
+
+<main class="container">
+
+  <!-- ═══════════════════════════ SECTION 1: OVERVIEW ═══════════════════════════ -->
+  <div id="overview" class="section-header">
+    <span class="section-num">01</span>
+    <h2>Problem & Requirements</h2>
+  </div>
+
+  <div class="prose">
+    <p>Design a system on AWS that allows data analysts to <strong>view, query, and run programs</strong> on sensitive data stored in Amazon S3, while <strong>preventing them from downloading, copying, or exfiltrating</strong> that data in any form. The core challenge is bringing compute to the data, rather than data to the analyst.</p>
+  </div>
+
+  <div class="callout info">
+    <span class="callout-icon">💡</span>
+    <div>The golden rule from the <a class="inline-ref" href="https://docs.aws.amazon.com/whitepapers/latest/building-a-data-perimeter-on-aws/perimeter-overview.html" target="_blank">AWS Data Perimeter whitepaper</a>: access can only be allowed if <strong>the identity is trusted</strong>, <strong>the resource is trusted</strong>, and <strong>the network is expected</strong>. If any condition is false, access is denied.</div>
+  </div>
+
+  <div class="req-grid">
+    <div class="req-card">
+      <div class="req-label">FR-1 — SQL Queries</div>
+      <div class="req-text">Analysts run SQL against sensitive data in S3 via serverless query engine</div>
+    </div>
+    <div class="req-card">
+      <div class="req-label">FR-2 — Notebook Analysis</div>
+      <div class="req-text">Python/R notebooks for advanced analysis, ML exploration, and visualization</div>
+    </div>
+    <div class="req-card">
+      <div class="req-label">FR-3 — In-Browser Results</div>
+      <div class="req-text">View query results and charts in browser only — no local file creation</div>
+    </div>
+    <div class="req-card">
+      <div class="req-label">FR-4 — Granular Access</div>
+      <div class="req-text">Column-level, row-level, and cell-level security with tag-based policies</div>
+    </div>
+    <div class="req-card nfr">
+      <div class="req-label">NFR-1 — Zero Exfiltration</div>
+      <div class="req-text">No path for raw data to leave the secure environment — architecturally enforced</div>
+    </div>
+    <div class="req-card nfr">
+      <div class="req-label">NFR-2 — Defense in Depth</div>
+      <div class="req-text">Multiple independent layers — network, identity, resource, encryption, detection</div>
+    </div>
+    <div class="req-card nfr">
+      <div class="req-label">NFR-3 — Compliance</div>
+      <div class="req-text">SOC 2, HIPAA, PCI DSS compatible with full audit trail</div>
+    </div>
+    <div class="req-card nfr">
+      <div class="req-label">NFR-4 — Scale</div>
+      <div class="req-text">50–500 concurrent analysts, sub-second interactive queries on up to ~10TB</div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 2: ARCHITECTURE ═══════════════════════════ -->
+  <div id="architecture" class="section-header">
+    <span class="section-num">02</span>
+    <h2>High-Level Architecture</h2>
+  </div>
+
+  <div class="prose">
+    <p>The architecture is organized into four layers: <strong>Identity &amp; Access</strong> (SSO+MFA), <strong>Compute</strong> (SageMaker Studio + AppStream in an isolated VPC), <strong>Data</strong> (Lake Formation + encrypted S3), and <strong>Audit</strong> (CloudTrail, GuardDuty, Macie). All traffic between layers flows through <strong>VPC endpoints</strong> — never the public internet.</p>
+  </div>
+
+  <div class="layers">
+    <div class="layer">
+      <div class="layer-num l1">L1</div>
+      <div class="layer-content">
+        <h4>Identity Layer — <a class="inline-ref" href="https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html" target="_blank">IAM Identity Center</a> (SSO + MFA)</h4>
+        <p>Federated authentication via SAML/OIDC. Temporary credentials. No long-lived access keys. Session time limits enforced.</p>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="layer-num l2">L2</div>
+      <div class="layer-content">
+        <h4>Compute Layer — <a class="inline-ref" href="https://docs.aws.amazon.com/sagemaker/latest/dg/studio.html" target="_blank">SageMaker Studio</a> (VPC-Only) + <a class="inline-ref" href="https://docs.aws.amazon.com/appstream2/latest/developerguide/what-is-appstream.html" target="_blank">AppStream 2.0</a></h4>
+        <p>Browser-based notebooks and managed desktops. Downloads, clipboard, file transfer all disabled. Runs in private subnets with zero internet.</p>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="layer-num l3">L3</div>
+      <div class="layer-content">
+        <h4>Query Layer — <a class="inline-ref" href="https://docs.aws.amazon.com/athena/latest/ug/what-is.html" target="_blank">Amazon Athena</a> + <a class="inline-ref" href="https://docs.aws.amazon.com/glue/latest/dg/what-is-glue.html" target="_blank">Glue Data Catalog</a></h4>
+        <p>Serverless SQL with enforced workgroup limits (row caps, scan caps, cost caps). Results auto-expire in 24 hours.</p>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="layer-num l4">L4</div>
+      <div class="layer-content">
+        <h4>Governance Layer — <a class="inline-ref" href="https://docs.aws.amazon.com/lake-formation/latest/dg/what-is-lake-formation.html" target="_blank">AWS Lake Formation</a></h4>
+        <p>Centralized column-level, row-level, and cell-level security. Tag-based access control (LF-TBAC). Complements IAM.</p>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="layer-num l5">L5</div>
+      <div class="layer-content">
+        <h4>Data Layer — <a class="inline-ref" href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html" target="_blank">Amazon S3</a> + <a class="inline-ref" href="https://docs.aws.amazon.com/kms/latest/developerguide/overview.html" target="_blank">KMS</a></h4>
+        <p>SSE-KMS encryption with restricted key policies. Bucket policy denies all access not from VPC endpoint. Versioning + Object Lock enabled.</p>
+      </div>
+    </div>
+    <div class="layer">
+      <div class="layer-num l6">L6</div>
+      <div class="layer-content">
+        <h4>Audit Layer — <a class="inline-ref" href="https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html" target="_blank">GuardDuty</a> + <a class="inline-ref" href="https://docs.aws.amazon.com/cloudtrail/latest/userguide/cloudtrail-user-guide.html" target="_blank">CloudTrail</a> + <a class="inline-ref" href="https://docs.aws.amazon.com/macie/latest/user/what-is-macie.html" target="_blank">Macie</a></h4>
+        <p>API logging, S3 access logs, VPC flow logs, Athena query logs. Anomaly detection. Alerts via SNS → PagerDuty/Slack.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch-diagram">
+    <div class="diagram-title">High-Level Architecture Diagram</div>
+<pre>
+ CORPORATE NETWORK                        AWS ANALYTICS ACCOUNT
+ ─────────────────                        ─────────────────────
+ ┌──────────┐  SAML/OIDC    ┌─────────────────────────────────────────────────────┐
+ │ Analyst  │──────────────▶│  IAM Identity Center (SSO + MFA)                    │
+ │ Browser  │  Federation   │                                                     │
+ └──────────┘               │  ┌─────────────────────────────────────────────────┐ │
+                            │  │         ANALYTICS VPC  (No IGW, No NAT)         │ │
+                            │  │                                                 │ │
+                            │  │   ┌─────────────────┐   ┌───────────────────┐   │ │
+                            │  │   │ SageMaker Studio │   │ AppStream 2.0    │   │ │
+                            │  │   │ (VPC-Only Mode)  │   │ (Pixel Streaming)│   │ │
+                            │  │   │  • JupyterLab    │   │  • No clipboard  │   │ │
+                            │  │   │  • No downloads  │   │  • No file xfer  │   │ │
+                            │  │   └───────┬─────────┘   └────────┬──────────┘   │ │
+                            │  │           │    Private Subnet     │              │ │
+                            │  │   ────────┴──────────────────────┴──────────    │ │
+                            │  │                      │                          │ │
+                            │  │   ┌──────────────────▼──────────────────────┐   │ │
+                            │  │   │         VPC ENDPOINTS (Private)         │   │ │
+                            │  │   │  S3(GW) │ Athena │ SageMaker │ KMS     │   │ │
+                            │  │   │  Glue   │ CW     │ STS  │ SSM │ CodeArt│   │ │
+                            │  │   └──────────────────┬──────────────────────┘   │ │
+                            │  └──────────────────────┼─────────────────────────┘ │
+                            │                         │ AWS PrivateLink            │
+                            │  ┌──────────────────────▼─────────────────────────┐ │
+                            │  │              LAKE FORMATION                     │ │
+                            │  │  Column-Level │ Row-Level │ Cell-Level │ Tags   │ │
+                            │  └──────────────────────┬─────────────────────────┘ │
+                            │  ┌──────────────────────▼─────────────────────────┐ │
+                            │  │              AMAZON S3 (Encrypted, Locked)      │ │
+                            │  │  Bucket Policy: only vpce-s3 │ SSE-KMS         │ │
+                            │  │  Object Lock: Compliance │ Versioning: On       │ │
+                            │  └────────────────────────────────────────────────┘ │
+                            │                                                     │
+                            │  ┌────────────────────────────────────────────────┐ │
+                            │  │  AUDIT: CloudTrail │ GuardDuty │ Macie │ VPC FL│ │
+                            │  └────────────────────────────────────────────────┘ │
+                            └─────────────────────────────────────────────────────┘
+</pre>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 3: NETWORK ═══════════════════════════ -->
+  <div id="network" class="section-header">
+    <span class="section-num">03</span>
+    <h2>Network Architecture & Routing</h2>
+  </div>
+
+  <div class="prose">
+    <p>The entire design hinges on <strong>network isolation</strong>. The Analytics VPC has <strong>no Internet Gateway</strong>, <strong>no NAT Gateway</strong>, and <strong>no route to <code>0.0.0.0/0</code></strong>. Resources inside this VPC can only reach AWS services through explicitly provisioned VPC endpoints. This makes internet-based exfiltration architecturally impossible — not just policy-blocked, but physically unreachable.</p>
+  </div>
+
+  <div class="callout danger">
+    <span class="callout-icon">🚨</span>
+    <div><strong>Critical pitfall:</strong> An S3 VPC endpoint with the default full-access policy is itself an exfiltration vector. An analyst could copy data to an S3 bucket in their personal AWS account via the endpoint. You <strong>must</strong> attach a restrictive endpoint policy limiting access to your org's buckets. See <a class="inline-ref" href="https://www.claranet.com/uk/blog/how-to-stop-data-exfiltration-private-subnets-on-aws/" target="_blank">Claranet's analysis</a> for details.</div>
+  </div>
+
+  <div class="arch-diagram">
+    <div class="diagram-title">Route Table Configuration</div>
+<pre>
+ Route Table: rt-private-analytics
+ ══════════════════════════════════
+
+ ┌──────────────────────┬─────────────────────┬──────────────────────────────┐
+ │  Destination         │  Target             │  Notes                       │
+ ├──────────────────────┼─────────────────────┼──────────────────────────────┤
+ │  10.0.0.0/16         │  local              │  VPC-internal traffic        │
+ │  pl-xxxxxxxx  (S3)   │  vpce-s3-gw         │  S3 Gateway Endpoint         │
+ │                      │                     │                              │
+ │  ⛔ NO 0.0.0.0/0     │                     │  No internet route exists    │
+ │  ⛔ NO nat-xxxxx      │                     │  No NAT Gateway exists       │
+ │  ⛔ NO igw-xxxxx      │                     │  No Internet Gateway exists  │
+ └──────────────────────┴─────────────────────┴──────────────────────────────┘
+
+ The S3 prefix list (pl-xxxxxxxx) is automatically managed by AWS.
+ It contains the IP ranges for S3 in this region.
+ The Gateway Endpoint routes S3 traffic through AWS backbone, never the internet.
+</pre>
+  </div>
+
+  <div class="arch-diagram">
+    <div class="diagram-title">Security Groups & NACLs</div>
+<pre>
+ SG: sg-sagemaker (attached to SageMaker ENIs)
+ ───────────────────────────────────────────────
+ Inbound:   443/tcp  from sg-vpce-endpoints
+ Outbound:  443/tcp  to   sg-vpce-endpoints
+            443/tcp  to   pl-xxxxxxxx (S3 prefix list)
+
+ SG: sg-vpce-endpoints (attached to Interface Endpoint ENIs)
+ ────────────────────────────────────────────────────────────
+ Inbound:   443/tcp  from sg-sagemaker
+            443/tcp  from sg-appstream
+ Outbound:  (stateful — return traffic only)
+
+ SG: sg-appstream (attached to AppStream fleet instances)
+ ────────────────────────────────────────────────────────
+ Inbound:   443/tcp  from corporate CIDR (streaming protocol)
+ Outbound:  443/tcp  to   sg-vpce-endpoints
+            443/tcp  to   pl-xxxxxxxx (S3 prefix list)
+
+ NACL: acl-private (all private subnets)
+ ────────────────────────────────────────
+ Inbound:   Allow  10.0.0.0/16  (all ports)
+ Outbound:  Allow  10.0.0.0/16  (all ports)
+            Allow  pl-xxxxxxxx   (443)
+ Default:   DENY ALL
+</pre>
+  </div>
+
+  <div class="card">
+    <h3>Why No Bastion / Jump Host</h3>
+    <div class="prose">
+      <p>A traditional bastion host is <strong>intentionally omitted</strong>. SSH access would create exfiltration vectors — <code>scp</code>, SSH tunnels, or using the bastion as an internet hop. Instead:</p>
+      <ul>
+        <li><strong>Analysts</strong> access via <a class="inline-ref" href="https://docs.aws.amazon.com/sagemaker/latest/dg/studio.html" target="_blank">SageMaker Studio</a> streaming sessions (HTTPS, browser-only) or <a class="inline-ref" href="https://docs.aws.amazon.com/appstream2/latest/developerguide/what-is-appstream.html" target="_blank">AppStream 2.0</a> pixel streaming</li>
+        <li><strong>Admins</strong> use <a class="inline-ref" href="https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html" target="_blank">AWS Systems Manager Session Manager</a> via the SSM VPC endpoint — no SSH keys, no open inbound ports, full CloudTrail audit logging</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="arch-diagram">
+    <div class="diagram-title">Analyst vs Admin Access Paths</div>
+<pre>
+  ANALYST (No SSH, No Bastion):
+
+  ┌──────────┐  HTTPS   ┌──────────────────┐  ENI in VPC  ┌────────────────┐
+  │ Analyst  │────────▶│  SageMaker       │────────────▶│ JupyterLab    │
+  │ Browser  │  (TLS)  │  Presigned URL   │  (Private)  │ Kernel in VPC │
+  └──────────┘         └──────────────────┘             └───────┬────────┘
+                                                                │
+                                                         ┌──────▼───────┐
+                                                         │ S3 via VPCE  │
+                                                         │ (vpce-s3)    │
+                                                         └──────────────┘
+
+  ADMIN (No Bastion):
+
+  ┌──────────┐  HTTPS   ┌──────────────────┐  SSM VPCE   ┌───────────────┐
+  │ Admin    │────────▶│  Console / CLI   │───────────▶│ Session Mgr  │
+  │ Browser  │  (MFA)  │  (IAM Auth)      │  (Private) │ (Audited)    │
+  └──────────┘         └──────────────────┘            └───────────────┘
+</pre>
+  </div>
+
+  <div class="card">
+    <h3>Required VPC Endpoints</h3>
+    <div class="prose">
+      <p>Each endpoint creates a private path to an AWS service that would otherwise require internet access. These are the <strong>only services reachable</strong> from the VPC:</p>
+    </div>
+    <table class="matrix-table">
+      <thead>
+        <tr><th>Service</th><th>Endpoint Type</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>com.amazonaws.region.s3</code></td><td>Gateway</td><td>Read data, write Athena results</td></tr>
+        <tr><td><code>com.amazonaws.region.athena</code></td><td>Interface</td><td>Submit and retrieve queries</td></tr>
+        <tr><td><code>com.amazonaws.region.sagemaker.api</code></td><td>Interface</td><td>SageMaker control plane</td></tr>
+        <tr><td><code>com.amazonaws.region.sagemaker.runtime</code></td><td>Interface</td><td>Model inference (if needed)</td></tr>
+        <tr><td><code>com.amazonaws.region.glue</code></td><td>Interface</td><td>Data Catalog metadata</td></tr>
+        <tr><td><code>com.amazonaws.region.kms</code></td><td>Interface</td><td>Decrypt SSE-KMS objects</td></tr>
+        <tr><td><code>com.amazonaws.region.sts</code></td><td>Interface</td><td>Assume roles, get temp creds</td></tr>
+        <tr><td><code>com.amazonaws.region.logs</code></td><td>Interface</td><td>CloudWatch Logs</td></tr>
+        <tr><td><code>com.amazonaws.region.monitoring</code></td><td>Interface</td><td>CloudWatch Metrics</td></tr>
+        <tr><td><code>com.amazonaws.region.ssm</code></td><td>Interface</td><td>Admin access via Session Manager</td></tr>
+        <tr><td><code>com.amazonaws.region.codeartifact.api</code></td><td>Interface</td><td>Curated Python/R packages</td></tr>
+        <tr><td><code>com.amazonaws.region.codeartifact.repo</code></td><td>Interface</td><td>Package download</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 4: POLICIES ═══════════════════════════ -->
+  <div id="policies" class="section-header">
+    <span class="section-num">04</span>
+    <h2>Key Policies (Anti-Exfiltration)</h2>
+  </div>
+
+  <div class="prose">
+    <p>Three policies work together to form the data perimeter. This follows the <a class="inline-ref" href="https://github.com/aws-samples/data-perimeter-policy-examples" target="_blank">AWS Data Perimeter Policy Examples</a> pattern: <strong>SCPs</strong> constrain what identities can do, <strong>bucket policies</strong> constrain who can access resources, and <strong>VPC endpoint policies</strong> constrain what the network can reach.</p>
+  </div>
+
+  <!-- S3 VPC Endpoint Policy -->
+  <div class="collapsible open">
+    <button class="collapsible-trigger" onclick="toggleCollapsible(this)">
+      <span>🔒 S3 Gateway Endpoint Policy — Prevent copying to external buckets</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <div>This is the <strong>most critical single policy</strong> in the entire design. Without it, the S3 gateway endpoint allows full access to any S3 bucket — including buckets in an attacker's personal AWS account. See <a class="inline-ref" href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html" target="_blank">AWS docs on S3 Gateway Endpoints</a>.</div>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">JSON — VPC Endpoint Policy</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre>{
+  <span class="hl-key">"Version"</span>: <span class="hl-str">"2012-10-17"</span>,
+  <span class="hl-key">"Statement"</span>: [
+    {
+      <span class="hl-key">"Sid"</span>: <span class="hl-str">"AllowOnlyOrgBuckets"</span>,
+      <span class="hl-key">"Effect"</span>: <span class="hl-str">"Allow"</span>,
+      <span class="hl-key">"Principal"</span>: <span class="hl-str">"*"</span>,
+      <span class="hl-key">"Action"</span>: [
+        <span class="hl-str">"s3:GetObject"</span>,
+        <span class="hl-str">"s3:ListBucket"</span>,
+        <span class="hl-str">"s3:GetBucketLocation"</span>
+      ],
+      <span class="hl-key">"Resource"</span>: <span class="hl-str">"*"</span>,
+      <span class="hl-key">"Condition"</span>: {
+        <span class="hl-key">"StringEquals"</span>: {
+          <span class="hl-key">"aws:PrincipalOrgID"</span>: <span class="hl-str">"o-yourorgid1234"</span>
+        }
+      }
+    },
+    {
+      <span class="hl-key">"Sid"</span>: <span class="hl-str">"DenyWriteToExternalBuckets"</span>,
+      <span class="hl-key">"Effect"</span>: <span class="hl-str">"Deny"</span>,
+      <span class="hl-key">"Principal"</span>: <span class="hl-str">"*"</span>,
+      <span class="hl-key">"Action"</span>: [<span class="hl-str">"s3:PutObject"</span>, <span class="hl-str">"s3:DeleteObject"</span>, <span class="hl-str">"s3:CreateBucket"</span>],
+      <span class="hl-key">"Resource"</span>: <span class="hl-str">"*"</span>,
+      <span class="hl-key">"Condition"</span>: {
+        <span class="hl-key">"StringNotEquals"</span>: {
+          <span class="hl-key">"s3:ResourceAccount"</span>: [<span class="hl-str">"111122223333"</span>]
+        }
+      }
+    },
+    {
+      <span class="hl-key">"Sid"</span>: <span class="hl-str">"AllowAthenaResultWrites"</span>,
+      <span class="hl-key">"Effect"</span>: <span class="hl-str">"Allow"</span>,
+      <span class="hl-key">"Principal"</span>: <span class="hl-str">"*"</span>,
+      <span class="hl-key">"Action"</span>: <span class="hl-str">"s3:PutObject"</span>,
+      <span class="hl-key">"Resource"</span>: <span class="hl-str">"arn:aws:s3:::athena-query-results-111122223333/*"</span>
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 Bucket Policy -->
+  <div class="collapsible">
+    <button class="collapsible-trigger" onclick="toggleCollapsible(this)">
+      <span>🪣 S3 Bucket Policy — Deny all access except from VPC Endpoint</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="prose">
+          <p>This policy uses the <code>aws:sourceVpce</code> condition key to lock the bucket down to a single VPC endpoint. Even an IAM admin with <code>s3:*</code> cannot access this bucket from outside the VPC. Reference: <a class="inline-ref" href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-bucket-policies-vpc-endpoint.html" target="_blank">AWS S3 bucket policy examples for VPC endpoints</a>.</p>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">JSON — Bucket Policy</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre>{
+  <span class="hl-key">"Version"</span>: <span class="hl-str">"2012-10-17"</span>,
+  <span class="hl-key">"Statement"</span>: [{
+    <span class="hl-key">"Sid"</span>: <span class="hl-str">"DenyAccessExceptFromVPCEndpoint"</span>,
+    <span class="hl-key">"Effect"</span>: <span class="hl-str">"Deny"</span>,
+    <span class="hl-key">"Principal"</span>: <span class="hl-str">"*"</span>,
+    <span class="hl-key">"Action"</span>: <span class="hl-str">"s3:*"</span>,
+    <span class="hl-key">"Resource"</span>: [
+      <span class="hl-str">"arn:aws:s3:::company-sensitive-data"</span>,
+      <span class="hl-str">"arn:aws:s3:::company-sensitive-data/*"</span>
+    ],
+    <span class="hl-key">"Condition"</span>: {
+      <span class="hl-key">"StringNotEquals"</span>: {
+        <span class="hl-key">"aws:sourceVpce"</span>: <span class="hl-str">"vpce-0abc123def456789"</span>
+      }
+    }
+  }]
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCP -->
+  <div class="collapsible">
+    <button class="collapsible-trigger" onclick="toggleCollapsible(this)">
+      <span>🏛️ Service Control Policy — Block network escape &amp; public access</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="prose">
+          <p>Applied at the <a class="inline-ref" href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html" target="_blank">AWS Organizations</a> level. Prevents anyone — including admins — from creating internet gateways, NAT gateways, or VPC peering connections that could break isolation.</p>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">JSON — SCP</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre>{
+  <span class="hl-key">"Version"</span>: <span class="hl-str">"2012-10-17"</span>,
+  <span class="hl-key">"Statement"</span>: [
+    {
+      <span class="hl-key">"Sid"</span>: <span class="hl-str">"DenyNetworkEscape"</span>,
+      <span class="hl-key">"Effect"</span>: <span class="hl-str">"Deny"</span>,
+      <span class="hl-key">"Action"</span>: [
+        <span class="hl-str">"ec2:CreateInternetGateway"</span>,
+        <span class="hl-str">"ec2:AttachInternetGateway"</span>,
+        <span class="hl-str">"ec2:CreateNatGateway"</span>,
+        <span class="hl-str">"ec2:CreateVpcPeeringConnection"</span>
+      ],
+      <span class="hl-key">"Resource"</span>: <span class="hl-str">"*"</span>
+    },
+    {
+      <span class="hl-key">"Sid"</span>: <span class="hl-str">"DenyPublicS3Access"</span>,
+      <span class="hl-key">"Effect"</span>: <span class="hl-str">"Deny"</span>,
+      <span class="hl-key">"Action"</span>: [
+        <span class="hl-str">"s3:PutBucketPolicy"</span>,
+        <span class="hl-str">"s3:PutBucketAcl"</span>,
+        <span class="hl-str">"s3:PutObjectAcl"</span>
+      ],
+      <span class="hl-key">"Resource"</span>: <span class="hl-str">"*"</span>
+    }
+  ]
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KMS Key Policy -->
+  <div class="collapsible">
+    <button class="collapsible-trigger" onclick="toggleCollapsible(this)">
+      <span>🔑 KMS Key Policy — Restrict decryption to service roles</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="prose">
+          <p>Even if an analyst somehow got <code>s3:GetObject</code> permissions, they couldn't read the data without the KMS decryption key. The key policy restricts <code>kms:Decrypt</code> to specific service roles and requires the request come from the VPC endpoint.</p>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">JSON — KMS Key Policy</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre>{
+  <span class="hl-key">"Sid"</span>: <span class="hl-str">"AllowDecryptFromAnalyticsRolesOnly"</span>,
+  <span class="hl-key">"Effect"</span>: <span class="hl-str">"Allow"</span>,
+  <span class="hl-key">"Principal"</span>: {
+    <span class="hl-key">"AWS"</span>: [
+      <span class="hl-str">"arn:aws:iam::111122223333:role/SageMakerExecutionRole"</span>,
+      <span class="hl-str">"arn:aws:iam::111122223333:role/AthenaServiceRole"</span>
+    ]
+  },
+  <span class="hl-key">"Action"</span>: [<span class="hl-str">"kms:Decrypt"</span>, <span class="hl-str">"kms:DescribeKey"</span>],
+  <span class="hl-key">"Resource"</span>: <span class="hl-str">"*"</span>,
+  <span class="hl-key">"Condition"</span>: {
+    <span class="hl-key">"StringEquals"</span>: {
+      <span class="hl-key">"aws:sourceVpce"</span>: <span class="hl-str">"vpce-0abc123def456789"</span>
+    }
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 5: ACCESS CONTROL ═══════════════════════════ -->
+  <div id="access" class="section-header">
+    <span class="section-num">05</span>
+    <h2>Data Access Control — Lake Formation</h2>
+  </div>
+
+  <div class="prose">
+    <p><a class="inline-ref" href="https://docs.aws.amazon.com/lake-formation/latest/dg/what-is-lake-formation.html" target="_blank">AWS Lake Formation</a> provides fine-grained access control that goes far beyond what IAM alone can offer. It supports column-level security, row-level filtering, cell-level security, and tag-based access control (LF-TBAC). This is how <a class="inline-ref" href="https://aws.amazon.com/blogs/industries/part-4-how-bbva-established-the-data-security-strategy-on-global-data-platform/" target="_blank">BBVA built their multi-layer security strategy</a> for petabyte-scale financial data.</p>
+  </div>
+
+  <div class="arch-diagram">
+    <div class="diagram-title">Lake Formation Permissions Model</div>
+<pre>
+ Table: analytics_db.transactions
+ ═════════════════════════════════
+
+ Column               │ All Analysts    │ PII Team     │ Notes
+ ─────────────────────┼─────────────────┼──────────────┼──────────────────
+ transaction_id       │ ✅ SELECT       │ ✅ SELECT    │
+ merchant_name        │ ✅ SELECT       │ ✅ SELECT    │
+ amount               │ ✅ SELECT       │ ✅ SELECT    │
+ transaction_date     │ ✅ SELECT       │ ✅ SELECT    │
+ card_number          │ 🔒 EXCLUDED     │ ✅ SELECT    │ PII — restricted
+ customer_ssn         │ 🔒 EXCLUDED     │ 🔒 EXCLUDED  │ Never exposed
+ customer_name        │ ⚠️  HASHED       │ ✅ SELECT    │ SHA-256 for analysts
+
+ Row Filter (Junior Analysts):  WHERE region = 'US'
+ Row Filter (Senior Analysts):  (none — full access)
+
+ Tag-Based Access Control (LF-TBAC):
+ ────────────────────────────────────
+ Tag: sensitivity = "high"     →  senior analysts + PII team
+ Tag: sensitivity = "medium"   →  all analysts
+ Tag: pii = "true"             →  PII team only
+</pre>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 6: QUERY FLOW ═══════════════════════════ -->
+  <div id="flow" class="section-header">
+    <span class="section-num">06</span>
+    <h2>End-to-End Query Flow</h2>
+  </div>
+
+  <div class="prose">
+    <p>This is the complete data path from an analyst writing a query to seeing results — and every control that fires along the way:</p>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-content">
+        <h4>Authenticate via SSO + MFA</h4>
+        <p>Analyst signs in through <span class="service-tag tag-sagemaker">IAM Identity Center</span> with SAML federation and hardware MFA. Temporary session credentials issued (1-hour TTL).</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-content">
+        <h4>Open JupyterLab in Browser</h4>
+        <p><span class="service-tag tag-sagemaker">SageMaker Studio</span> streams a JupyterLab session. Configured in <strong>VPC-Only mode</strong> — all traffic routes through ENIs in the private subnet. Downloads and clipboard are disabled via <a class="inline-ref" href="https://aws.amazon.com/blogs/publicsector/customizing-isolated-jupyterlab-environments-in-amazon-sagemaker-studio/" target="_blank">lifecycle configuration</a>.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-content">
+        <h4>Submit SQL Query to Athena</h4>
+        <p>Analyst writes SQL in a notebook cell. Query is sent to <span class="service-tag tag-athena">Athena</span> via the VPC Interface Endpoint (never touches the internet).</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-content">
+        <h4>Lake Formation Checks Permissions</h4>
+        <p><span class="service-tag tag-lakeformation">Lake Formation</span> verifies: ✅ user has SELECT on requested columns, ✅ row filter applied if junior analyst, 🔒 PII columns excluded from result set.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-content">
+        <h4>Athena Reads from S3 via Gateway Endpoint</h4>
+        <p><span class="service-tag tag-s3">S3</span> bucket policy confirms request came from <span class="service-tag tag-vpce">vpce-s3</span>. <span class="service-tag tag-kms">KMS</span> key policy confirms decryption request is from an authorized service role.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">6</div>
+      <div class="flow-content">
+        <h4>Results Written to Controlled Bucket</h4>
+        <p>Athena writes results to a dedicated results bucket (auto-expire after 24h). Workgroup enforces: max 10,000 rows, max 1GB result size, max 10GB scan per query.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">7</div>
+      <div class="flow-content">
+        <h4>Results Rendered In-Browser Only</h4>
+        <p>Results returned through VPC endpoint → rendered as tables/charts in JupyterLab. All rendering is server-side. The analyst sees <strong>pixels, not data files</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout success">
+    <span class="callout-icon">✅</span>
+    <div>
+      <strong>Blocked paths at each step:</strong><br>
+      <span class="service-tag tag-deny">s3:GetObject directly</span> IAM denies — only Athena service role has access<br>
+      <span class="service-tag tag-deny">Copy to external bucket</span> VPC endpoint policy restricts to org buckets<br>
+      <span class="service-tag tag-deny">curl data out</span> No internet gateway, no NAT, no route to 0.0.0.0/0<br>
+      <span class="service-tag tag-deny">pip install exfil-tool</span> No PyPI — only CodeArtifact via VPCE<br>
+      <span class="service-tag tag-deny">Clipboard / File download</span> Disabled in session config
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 7: DEFENSE MATRIX ═══════════════════════════ -->
+  <div id="defense" class="section-header">
+    <span class="section-num">07</span>
+    <h2>Defense-in-Depth Matrix</h2>
+  </div>
+
+  <div class="prose">
+    <p>Every exfiltration vector has both a <strong>preventive control</strong> (blocks the attempt) and a <strong>detective control</strong> (alerts if something unusual happens). This table is the heart of the staff-level discussion — it shows you've thought through every attack path:</p>
+  </div>
+
+  <table class="matrix-table">
+    <thead>
+      <tr>
+        <th>Exfiltration Vector</th>
+        <th>Preventive Control</th>
+        <th>Detective Control</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Copy data to external S3 bucket</td>
+        <td class="cell-prevent">VPC Endpoint Policy (restrict to OrgID)</td>
+        <td class="cell-detect">CloudTrail S3 data events</td>
+      </tr>
+      <tr>
+        <td>Download via internet (curl, wget, HTTP)</td>
+        <td class="cell-prevent">No IGW, No NAT, No 0.0.0.0/0 route</td>
+        <td class="cell-detect">VPC Flow Logs</td>
+      </tr>
+      <tr>
+        <td>Direct S3 GetObject</td>
+        <td class="cell-prevent">IAM Deny for analysts + Bucket policy: VPCE only</td>
+        <td class="cell-detect">CloudTrail</td>
+      </tr>
+      <tr>
+        <td>Install exfiltration tool (PyPI/npm)</td>
+        <td class="cell-prevent">No internet → only CodeArtifact VPCE (curated)</td>
+        <td class="cell-detect">CodeArtifact audit logs</td>
+      </tr>
+      <tr>
+        <td>Clipboard copy/paste</td>
+        <td class="cell-prevent">Disabled in SageMaker + AppStream config</td>
+        <td class="cell-detect">AppStream session logs</td>
+      </tr>
+      <tr>
+        <td>File download from notebook</td>
+        <td class="cell-prevent">Save/Export disabled via LCC script</td>
+        <td class="cell-detect">S3 access logs</td>
+      </tr>
+      <tr>
+        <td>SELECT * brute force (all records)</td>
+        <td class="cell-prevent">Athena Workgroup row + cost limits</td>
+        <td class="cell-detect">Athena query logs → anomaly detection</td>
+      </tr>
+      <tr>
+        <td>SSH tunnel / port forward</td>
+        <td class="cell-prevent">No SSH. Only managed streaming sessions.</td>
+        <td class="cell-detect">VPC Flow Logs</td>
+      </tr>
+      <tr>
+        <td>DNS exfiltration (encode data in queries)</td>
+        <td class="cell-prevent"><a class="inline-ref" href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-dns-firewall-getting-started.html" target="_blank">Route 53 DNS Firewall</a> (allowlist)</td>
+        <td class="cell-detect">DNS query logging</td>
+      </tr>
+      <tr>
+        <td>Personal AWS credentials</td>
+        <td class="cell-prevent">SCP: deny if PrincipalOrgID ≠ org</td>
+        <td class="cell-detect">CloudTrail org-wide aggregation</td>
+      </tr>
+      <tr>
+        <td>Screenshot of sensitive data</td>
+        <td class="cell-prevent">Watermarked sessions (detective only)</td>
+        <td class="cell-detect">User behavior analytics</td>
+      </tr>
+    </tbody>
+  </table>
+
+
+  <!-- ═══════════════════════════ SECTION 8: HARDENING ═══════════════════════════ -->
+  <div id="hardening" class="section-header">
+    <span class="section-num">08</span>
+    <h2>SageMaker & Athena Hardening</h2>
+  </div>
+
+  <div class="collapsible">
+    <button class="collapsible-trigger" onclick="toggleCollapsible(this)">
+      <span>📓 SageMaker Studio Domain Configuration (VPC-Only, No Internet)</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="prose">
+          <p>The key setting is <code>AppNetworkAccessType: "VpcOnly"</code>. This forces all Studio traffic through ENIs in your private subnets. Reference: <a class="inline-ref" href="https://docs.aws.amazon.com/sagemaker/latest/dg/remote-access-remote-setup-vpc-subnets-without-internet-access.html" target="_blank">Studio in VPC subnets without internet access</a> and the <a class="inline-ref" href="https://github.com/aws-samples/amazon-sagemaker-studio-vpc-networkfirewall" target="_blank">AWS sample for SageMaker + Network Firewall</a>.</p>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">Python — Domain Config</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre><span class="hl-comment"># SageMaker Studio Domain — key security settings</span>
+sagemaker_domain = {
+    <span class="hl-str">"DomainName"</span>: <span class="hl-str">"secure-analytics-domain"</span>,
+    <span class="hl-str">"AuthMode"</span>: <span class="hl-str">"IAM"</span>,
+    <span class="hl-str">"AppNetworkAccessType"</span>: <span class="hl-str">"VpcOnly"</span>,       <span class="hl-comment"># CRITICAL</span>
+    <span class="hl-str">"VpcId"</span>: <span class="hl-str">"vpc-analytics-xxxxx"</span>,
+    <span class="hl-str">"SubnetIds"</span>: [<span class="hl-str">"subnet-private-a"</span>, <span class="hl-str">"subnet-private-b"</span>],
+    <span class="hl-str">"DefaultUserSettings"</span>: {
+        <span class="hl-str">"SecurityGroups"</span>: [<span class="hl-str">"sg-sagemaker"</span>],
+        <span class="hl-str">"SharingSettings"</span>: {
+            <span class="hl-str">"NotebookOutputOption"</span>: <span class="hl-str">"Disabled"</span>  <span class="hl-comment"># No sharing outputs</span>
+        }
+    }
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <button class="collapsible-trigger" onclick="toggleCollapsible(this)">
+      <span>🔧 Lifecycle Configuration — Disable Downloads in JupyterLab</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="prose">
+          <p>Based on <a class="inline-ref" href="https://aws.amazon.com/blogs/publicsector/customizing-isolated-jupyterlab-environments-in-amazon-sagemaker-studio/" target="_blank">AWS Public Sector's guide to customizing isolated JupyterLab environments</a>. This LCC script disables file export and optionally removes terminal access.</p>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">Bash — Lifecycle Config Script</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre><span class="hl-comment">#!/bin/bash</span>
+<span class="hl-comment"># Applied at domain level to all user profiles</span>
+set -eux
+
+<span class="hl-comment"># Disable "Save and Export Notebook As" menu options</span>
+mkdir -p /home/sagemaker-user/.jupyter/lab/user-settings/\
+@jupyterlab/docmanager-extension/
+
+<span class="hl-comment"># Remove terminal access to prevent curl/wget workarounds</span>
+jupyter labextension disable @jupyterlab/terminal-extension \
+  2>/dev/null || true
+
+<span class="hl-comment"># Only allow packages from CodeArtifact via VPCE</span>
+pip config set global.index-url \
+  https://my-domain-111122223333.d.codeartifact.us-east-1.amazonaws.com/\
+  pypi/curated-packages/simple/</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <button class="collapsible-trigger" onclick="toggleCollapsible(this)">
+      <span>📊 Athena Workgroup Configuration — Query Limits</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="arch-diagram">
+          <div class="diagram-title">Workgroup: analytics-restricted</div>
+<pre>
+ Setting                          │ Value           │ Purpose
+ ─────────────────────────────────┼─────────────────┼──────────────────────────
+ Enforce workgroup settings       │ true            │ Analysts CANNOT override
+ Max bytes scanned per query      │ 10 GB           │ Prevent full-table scans
+ Max concurrent queries per user  │ 5               │ Rate limiting
+ Result encryption                │ SSE-KMS         │ Results encrypted at rest
+ Result retention                 │ 24 hours        │ Auto-expire old results
+ Query result reuse               │ Enabled (60min) │ Reduce redundant scans
+ Publish metrics to CloudWatch    │ Enabled         │ Anomaly detection input
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 9: CLEAN ROOMS ═══════════════════════════ -->
+  <div class="card" style="margin-top: 2rem;">
+    <h3>Alternative: <a class="inline-ref" href="https://aws.amazon.com/clean-rooms/" target="_blank">AWS Clean Rooms</a></h3>
+    <div class="prose">
+      <p>If the use case is purely SQL analytics with aggregation-only output (no notebooks), <strong>AWS Clean Rooms</strong> provides stronger built-in guarantees. The query runner physically cannot write a query that returns individual records — analysis rules enforce minimum group sizes (k-anonymity), column masking, and aggregation requirements at the service level. See the <a class="inline-ref" href="https://aws.amazon.com/clean-rooms/features/" target="_blank">Clean Rooms features page</a> for details on PySpark support.</p>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 10: TRADEOFFS ═══════════════════════════ -->
+  <div id="tradeoffs" class="section-header">
+    <span class="section-num">09</span>
+    <h2>Tradeoffs & Discussion Points</h2>
+  </div>
+
+  <div class="prose">
+    <p>These are the key discussion points a staff-level candidate should be prepared to navigate:</p>
+  </div>
+
+  <div class="tradeoff-grid">
+    <div class="tradeoff-card">
+      <h4>⚖️ Usability vs. Security</h4>
+      <p>Disabling clipboard, terminal, and downloads dramatically impacts analyst workflow. Consider tiered environments: a "high security" zone for PII data and a "standard" zone for anonymized data with relaxed controls.</p>
+    </div>
+    <div class="tradeoff-card">
+      <h4>💰 SageMaker vs. AppStream</h4>
+      <p>SageMaker Studio in VPC-Only mode provides good security at lower cost (~$50/user/mo). AppStream provides stronger DLP via pixel streaming but at ~$100/user/mo and with more friction.</p>
+    </div>
+    <div class="tradeoff-card">
+      <h4>🧹 Clean Rooms vs. Custom VPC</h4>
+      <p>Clean Rooms provides service-level guarantees (query analysis rules) but only supports SQL/PySpark. The custom VPC approach is needed when analysts require notebook/code execution capabilities.</p>
+    </div>
+    <div class="tradeoff-card">
+      <h4>📸 The Screenshot Problem</h4>
+      <p>No technical solution fully prevents photographing a screen. Address via: watermarked sessions (embed analyst identity in the UI), legal/contractual controls, and anomaly detection on access patterns.</p>
+    </div>
+    <div class="tradeoff-card">
+      <h4>🌐 DNS Exfiltration</h4>
+      <p>Often overlooked — an analyst with terminal access could encode data in DNS queries to external resolvers. <a class="inline-ref" href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-dns-firewall-getting-started.html" target="_blank">Route 53 DNS Firewall</a> with an allowlist closes this gap.</p>
+    </div>
+    <div class="tradeoff-card">
+      <h4>📦 Package Management</h4>
+      <p>No internet means no PyPI. <a class="inline-ref" href="https://docs.aws.amazon.com/codeartifact/latest/ug/welcome.html" target="_blank">AWS CodeArtifact</a> via VPC endpoint serves as a curated package mirror. Security team pre-approves packages. Adds operational overhead but closes a major exfil vector.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3>Cost Estimate (50 analysts)</h3>
+    <table class="matrix-table">
+      <thead>
+        <tr><th>Component</th><th>Monthly Cost</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>SageMaker Studio (ml.t3.medium, 8hr/day)</td><td>~$2,500</td></tr>
+        <tr><td>Athena queries (~500GB scanned/day)</td><td>~$750</td></tr>
+        <tr><td>VPC Endpoints (12 interfaces)</td><td>~$900</td></tr>
+        <tr><td>S3 storage (10TB, Intelligent Tiering)</td><td>~$230</td></tr>
+        <tr><td>CloudTrail + S3 Access Logs</td><td>~$200</td></tr>
+        <tr><td>Lake Formation / GuardDuty / Macie</td><td>~$100</td></tr>
+        <tr class="cost-row-total"><td><strong>Total (without AppStream)</strong></td><td><strong>~$4,680/mo</strong></td></tr>
+        <tr><td>+ AppStream 2.0 (if added)</td><td>+$5,000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ═══════════════════════════ SECTION 11: REFERENCES ═══════════════════════════ -->
+  <div id="references" class="section-header">
+    <span class="section-num">10</span>
+    <h2>Reference Architectures & Sources</h2>
+  </div>
+
+  <div class="prose">
+    <p>Golden architectures and official AWS documentation used in this design:</p>
+  </div>
+
+  <div class="ref-grid">
+    <a class="ref-item" href="https://docs.aws.amazon.com/whitepapers/latest/building-a-data-perimeter-on-aws/building-a-data-perimeter-on-aws.html" target="_blank">
+      <div class="ref-icon aws">📄</div>
+      <div class="ref-details">
+        <div class="ref-title">Building a Data Perimeter on AWS</div>
+        <div class="ref-source">AWS Well-Architected Whitepaper</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://github.com/aws-samples/data-perimeter-policy-examples" target="_blank">
+      <div class="ref-icon github">⌨</div>
+      <div class="ref-details">
+        <div class="ref-title">Data Perimeter Policy Examples</div>
+        <div class="ref-source">github.com/aws-samples</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://github.com/aws-samples/amazon-sagemaker-studio-vpc-networkfirewall" target="_blank">
+      <div class="ref-icon github">⌨</div>
+      <div class="ref-details">
+        <div class="ref-title">SageMaker Studio VPC + Network Firewall</div>
+        <div class="ref-source">github.com/aws-samples</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://aws.amazon.com/blogs/publicsector/customizing-isolated-jupyterlab-environments-in-amazon-sagemaker-studio/" target="_blank">
+      <div class="ref-icon blog">📝</div>
+      <div class="ref-details">
+        <div class="ref-title">Customizing Isolated JupyterLab in SageMaker Studio</div>
+        <div class="ref-source">AWS Public Sector Blog</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://aws.amazon.com/blogs/machine-learning/securing-amazon-sagemaker-studio-internet-traffic-using-aws-network-firewall/" target="_blank">
+      <div class="ref-icon blog">📝</div>
+      <div class="ref-details">
+        <div class="ref-title">Securing SageMaker Studio Internet Traffic with Network Firewall</div>
+        <div class="ref-source">AWS ML Blog</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://aws.amazon.com/blogs/industries/part-4-how-bbva-established-the-data-security-strategy-on-global-data-platform/" target="_blank">
+      <div class="ref-icon blog">📝</div>
+      <div class="ref-details">
+        <div class="ref-title">BBVA Multi-Layer Data Security on AWS (Real-World Case Study)</div>
+        <div class="ref-source">AWS Industries Blog</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://www.databricks.com/blog/2021/02/02/data-exfiltration-protection-with-databricks-on-aws.html" target="_blank">
+      <div class="ref-icon blog">📝</div>
+      <div class="ref-details">
+        <div class="ref-title">Data Exfiltration Prevention Architecture (Databricks on AWS)</div>
+        <div class="ref-source">Databricks Blog</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-bucket-policies-vpc-endpoint.html" target="_blank">
+      <div class="ref-icon doc">📖</div>
+      <div class="ref-details">
+        <div class="ref-title">S3 Bucket Policy Examples for VPC Endpoints</div>
+        <div class="ref-source">AWS S3 Documentation</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html" target="_blank">
+      <div class="ref-icon doc">📖</div>
+      <div class="ref-details">
+        <div class="ref-title">Gateway Endpoints for Amazon S3</div>
+        <div class="ref-source">AWS VPC Documentation</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://docs.aws.amazon.com/res/latest/ug/S3-buckets-preventing-exfiltration.html" target="_blank">
+      <div class="ref-icon doc">📖</div>
+      <div class="ref-details">
+        <div class="ref-title">Preventing Data Exfiltration in a Private VPC</div>
+        <div class="ref-source">AWS Research & Engineering Studio Docs</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws/" target="_blank">
+      <div class="ref-icon blog">📝</div>
+      <div class="ref-details">
+        <div class="ref-title">Establishing a Data Perimeter on AWS</div>
+        <div class="ref-source">AWS Security Blog</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://www.claranet.com/uk/blog/how-to-stop-data-exfiltration-private-subnets-on-aws/" target="_blank">
+      <div class="ref-icon blog">📝</div>
+      <div class="ref-details">
+        <div class="ref-title">How to Stop Data Exfiltration from Private Subnets on AWS</div>
+        <div class="ref-source">Claranet Blog</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://docs.aws.amazon.com/sagemaker/latest/dg/mkt-algo-model-internet-free.html" target="_blank">
+      <div class="ref-icon doc">📖</div>
+      <div class="ref-details">
+        <div class="ref-title">SageMaker Network Isolation (Internet-Free Mode)</div>
+        <div class="ref-source">AWS SageMaker Documentation</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/strategy-aws-semicon-workloads/prevent-unauthorized-access.html" target="_blank">
+      <div class="ref-icon doc">📖</div>
+      <div class="ref-details">
+        <div class="ref-title">Preventing Unauthorized Access — Semiconductor Workloads</div>
+        <div class="ref-source">AWS Prescriptive Guidance</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://aws.amazon.com/clean-rooms/features/" target="_blank">
+      <div class="ref-icon aws">📄</div>
+      <div class="ref-details">
+        <div class="ref-title">AWS Clean Rooms — Features & Analysis Rules</div>
+        <div class="ref-source">AWS Product Page</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+    <a class="ref-item" href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-access.html" target="_blank">
+      <div class="ref-icon doc">📖</div>
+      <div class="ref-details">
+        <div class="ref-title">Control Access with VPC Endpoint Policies</div>
+        <div class="ref-source">AWS VPC PrivateLink Documentation</div>
+      </div>
+      <span class="ref-arrow">→</span>
+    </a>
+  </div>
+
+</main>
+
+<footer class="footer">
+  System Design Study Material — Secure Analytics on AWS S3 — Updated Feb 2026
+</footer>
+
+<script>
+function toggleCollapsible(btn) {
+  const c = btn.closest('.collapsible');
+  c.classList.toggle('open');
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+// Scroll spy for TOC dots
+const tocLinks = document.querySelectorAll('.toc a');
+const sections = ['overview','architecture','network','policies','access','flow','defense','hardening','tradeoffs','references'].map(id => document.getElementById(id));
+function updateToc() {
+  let active = 0;
+  sections.forEach((s, i) => {
+    if (s && s.getBoundingClientRect().top < window.innerHeight * 0.4) active = i;
+  });
+  tocLinks.forEach((l, i) => l.classList.toggle('active', i === active));
+}
+window.addEventListener('scroll', updateToc, { passive: true });
+updateToc();
+</script>
+</body>
+</html>
