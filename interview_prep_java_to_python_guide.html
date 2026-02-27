@@ -1,0 +1,2774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python vs Java - Coding Interview Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e4;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4fc3f7, #81c784);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h2 {
+            color: #4fc3f7;
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, #4fc3f7, #81c784);
+            border-radius: 2px;
+        }
+        
+        h3 {
+            color: #81c784;
+            margin: 20px 0 15px 0;
+            font-size: 1.2rem;
+        }
+        
+        /* Compilation Flow Diagram */
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            margin: 30px 0;
+        }
+        
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .flow-label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            min-width: 80px;
+            text-align: right;
+            padding: 8px 15px;
+            border-radius: 8px;
+        }
+        
+        .flow-label.python {
+            background: linear-gradient(135deg, #306998, #FFD43B);
+            color: #fff;
+        }
+        
+        .flow-label.java {
+            background: linear-gradient(135deg, #f89820, #5382a1);
+            color: #fff;
+        }
+        
+        .flow-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid;
+            border-radius: 12px;
+            padding: 15px 20px;
+            text-align: center;
+            min-width: 120px;
+            transition: transform 0.2s;
+        }
+        
+        .flow-box:hover {
+            transform: scale(1.05);
+        }
+        
+        .flow-box.python {
+            border-color: #FFD43B;
+        }
+        
+        .flow-box.java {
+            border-color: #f89820;
+        }
+        
+        .flow-box .icon {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .flow-box .label {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        
+        .flow-arrow {
+            color: #666;
+            font-size: 1.5rem;
+        }
+        
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .comparison-table th {
+            background: rgba(79, 195, 247, 0.2);
+            font-weight: 600;
+        }
+        
+        .comparison-table th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+        
+        .comparison-table th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+        
+        .comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge.python {
+            background: rgba(255, 212, 59, 0.2);
+            color: #FFD43B;
+        }
+        
+        .badge.java {
+            background: rgba(248, 152, 32, 0.2);
+            color: #f89820;
+        }
+        
+        /* Code Comparison */
+        .code-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .code-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .code-block {
+            background: #0d1117;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .code-header {
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .code-header.python {
+            background: linear-gradient(90deg, #306998, #FFD43B);
+            color: #fff;
+        }
+        
+        .code-header.java {
+            background: linear-gradient(90deg, #5382a1, #f89820);
+            color: #fff;
+        }
+        
+        .code-content {
+            padding: 20px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+        
+        .code-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        
+        .keyword { color: #ff79c6; }
+        .string { color: #f1fa8c; }
+        .comment { color: #6272a4; }
+        .function { color: #50fa7b; }
+        .type { color: #8be9fd; }
+        .number { color: #bd93f9; }
+        .operator { color: #ff79c6; }
+        
+        /* Memory Diagram */
+        .memory-diagram {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+        
+        .memory-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 280px;
+        }
+        
+        .memory-title {
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+        }
+        
+        .memory-title.python {
+            border-color: #FFD43B;
+            color: #FFD43B;
+        }
+        
+        .memory-title.java {
+            border-color: #f89820;
+            color: #f89820;
+        }
+        
+        .memory-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin: 8px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .memory-item .var {
+            color: #4fc3f7;
+            font-family: monospace;
+            min-width: 60px;
+        }
+        
+        .memory-item .arrow {
+            color: #666;
+        }
+        
+        .memory-item .value {
+            background: rgba(129, 199, 132, 0.2);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        
+        /* Data Structure Visual */
+        .ds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 25px 0;
+        }
+        
+        .ds-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #4fc3f7;
+        }
+        
+        .ds-card h4 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .ds-row {
+            display: flex;
+            gap: 10px;
+            margin: 12px 0;
+            align-items: center;
+        }
+        
+        .ds-lang {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            min-width: 65px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .ds-lang.python {
+            background: rgba(255, 212, 59, 0.3);
+            color: #FFD43B;
+        }
+        
+        .ds-lang.java {
+            background: rgba(248, 152, 32, 0.3);
+            color: #f89820;
+        }
+        
+        .ds-code {
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 6px;
+            flex: 1;
+        }
+        
+        /* Complexity Chart */
+        .complexity-chart {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .complexity-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .complexity-item .op {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
+        .complexity-item .big-o {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #81c784;
+            font-family: monospace;
+        }
+        
+        /* Tips Box */
+        .tips-box {
+            background: linear-gradient(135deg, rgba(79, 195, 247, 0.1), rgba(129, 199, 132, 0.1));
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .tips-box h4 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tips-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .tips-box li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .tips-box li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #81c784;
+        }
+        
+        /* Visual Comparison Boxes */
+        .visual-compare {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+        
+        .visual-box {
+            text-align: center;
+            padding: 25px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            min-width: 200px;
+        }
+        
+        .visual-box .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .visual-box .title {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .visual-box .desc {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        /* Speed indicator */
+        .speed-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .speed-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .speed-fill.fast {
+            background: linear-gradient(90deg, #81c784, #4caf50);
+        }
+        
+        .speed-fill.medium {
+            background: linear-gradient(90deg, #FFD43B, #f89820);
+        }
+        
+        /* Quick Reference Card */
+        .quick-ref {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .quick-ref-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .quick-ref-card h4 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+        
+        .quick-ref-card code {
+            display: block;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+        }
+        
+        .note {
+            font-size: 0.85rem;
+            color: #888;
+            font-style: italic;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐍 Python vs ☕ Java</h1>
+        <p class="subtitle">A Visual Guide for Coding Interviews</p>
+        
+        <!-- Section 1: Compilation & Execution -->
+        <div class="section">
+            <h2>Compilation & Execution Flow</h2>
+            
+            <div class="flow-diagram">
+                <!-- Python Flow -->
+                <div class="flow-row">
+                    <div class="flow-label python">Python</div>
+                    <div class="flow-box python">
+                        <div class="icon">📄</div>
+                        <div><strong>script.py</strong></div>
+                        <div class="label">Source Code</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box python">
+                        <div class="icon">⚙️</div>
+                        <div><strong>Interpreter</strong></div>
+                        <div class="label">Compiles to bytecode</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box python">
+                        <div class="icon">📦</div>
+                        <div><strong>.pyc</strong></div>
+                        <div class="label">Bytecode (cached)</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box python">
+                        <div class="icon">🖥️</div>
+                        <div><strong>PVM</strong></div>
+                        <div class="label">Python VM executes</div>
+                    </div>
+                </div>
+                
+                <!-- Java Flow -->
+                <div class="flow-row">
+                    <div class="flow-label java">Java</div>
+                    <div class="flow-box java">
+                        <div class="icon">📄</div>
+                        <div><strong>App.java</strong></div>
+                        <div class="label">Source Code</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box java">
+                        <div class="icon">🔨</div>
+                        <div><strong>javac</strong></div>
+                        <div class="label">Compiler</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box java">
+                        <div class="icon">📦</div>
+                        <div><strong>.class</strong></div>
+                        <div class="label">Bytecode</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box java">
+                        <div class="icon">🖥️</div>
+                        <div><strong>JVM + JIT</strong></div>
+                        <div class="label">Runs & optimizes</div>
+                    </div>
+                </div>
+            </div>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th><span class="badge python">Python</span></th>
+                        <th><span class="badge java">Java</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Typing</strong></td>
+                        <td>Dynamic (checked at runtime)</td>
+                        <td>Static (checked at compile time)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Compilation</strong></td>
+                        <td>Interpreted with bytecode caching</td>
+                        <td>Explicit compilation required (javac)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Runtime</strong></td>
+                        <td>CPython interpreter (GIL limits threading)</td>
+                        <td>JVM with JIT compilation (true multithreading)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Speed</strong></td>
+                        <td>Slower execution (interpreted)</td>
+                        <td>Faster execution (JIT optimized)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Memory</strong></td>
+                        <td>Higher overhead per object</td>
+                        <td>More efficient with primitives</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="visual-compare">
+                <div class="visual-box">
+                    <div class="icon">🚀</div>
+                    <div class="title">Development Speed</div>
+                    <div class="speed-bar"><div class="speed-fill fast" style="width: 90%"></div></div>
+                    <div class="desc">Python: Fast to write</div>
+                    <div class="speed-bar"><div class="speed-fill medium" style="width: 60%"></div></div>
+                    <div class="desc">Java: More boilerplate</div>
+                </div>
+                <div class="visual-box">
+                    <div class="icon">⚡</div>
+                    <div class="title">Execution Speed</div>
+                    <div class="speed-bar"><div class="speed-fill medium" style="width: 40%"></div></div>
+                    <div class="desc">Python: Interpreted</div>
+                    <div class="speed-bar"><div class="speed-fill fast" style="width: 85%"></div></div>
+                    <div class="desc">Java: JIT compiled</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 2: Variable & Memory Model -->
+        <div class="section">
+            <h2>Variables & Memory Model</h2>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre><span class="comment"># Everything is an object reference</span>
+x = <span class="number">42</span>          <span class="comment"># x references int object</span>
+y = x           <span class="comment"># y references SAME object</span>
+x = <span class="number">100</span>         <span class="comment"># x now references NEW object</span>
+
+<span class="comment"># No type declarations needed</span>
+name = <span class="string">"Alice"</span>  <span class="comment"># str</span>
+age = <span class="number">25</span>        <span class="comment"># int</span>
+pi = <span class="number">3.14</span>       <span class="comment"># float</span>
+is_valid = <span class="keyword">True</span> <span class="comment"># bool</span>
+
+<span class="comment"># Dynamic typing</span>
+x = <span class="number">10</span>          <span class="comment"># int</span>
+x = <span class="string">"hello"</span>     <span class="comment"># now str (allowed!)</span></pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java</div>
+                    <div class="code-content">
+<pre><span class="comment">// Primitives stored directly on stack</span>
+<span class="type">int</span> x = <span class="number">42</span>;       <span class="comment">// value stored directly</span>
+<span class="type">int</span> y = x;        <span class="comment">// COPY of value</span>
+x = <span class="number">100</span>;          <span class="comment">// only x changes</span>
+
+<span class="comment">// Type declarations required</span>
+<span class="type">String</span> name = <span class="string">"Alice"</span>;
+<span class="type">int</span> age = <span class="number">25</span>;
+<span class="type">double</span> pi = <span class="number">3.14</span>;
+<span class="type">boolean</span> isValid = <span class="keyword">true</span>;
+
+<span class="comment">// Static typing</span>
+<span class="type">int</span> x = <span class="number">10</span>;
+<span class="comment">// x = "hello";  // ERROR! Type mismatch</span></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="memory-diagram">
+                <div class="memory-box">
+                    <div class="memory-title python">Python Memory</div>
+                    <p style="font-size: 0.85rem; color: #888; margin-bottom: 15px;">All variables are references to heap objects</p>
+                    <div class="memory-item">
+                        <span class="var">x</span>
+                        <span class="arrow">→</span>
+                        <span class="value">int(42) @ 0x7f...</span>
+                    </div>
+                    <div class="memory-item">
+                        <span class="var">name</span>
+                        <span class="arrow">→</span>
+                        <span class="value">str("Alice") @ 0x8a...</span>
+                    </div>
+                    <div class="memory-item">
+                        <span class="var">nums</span>
+                        <span class="arrow">→</span>
+                        <span class="value">list([1,2,3]) @ 0x9b...</span>
+                    </div>
+                </div>
+                <div class="memory-box">
+                    <div class="memory-title java">Java Memory</div>
+                    <p style="font-size: 0.85rem; color: #888; margin-bottom: 15px;">Primitives on stack, objects on heap</p>
+                    <div class="memory-item">
+                        <span class="var">x</span>
+                        <span class="arrow">=</span>
+                        <span class="value">42 (stack - primitive)</span>
+                    </div>
+                    <div class="memory-item">
+                        <span class="var">name</span>
+                        <span class="arrow">→</span>
+                        <span class="value">String @ heap</span>
+                    </div>
+                    <div class="memory-item">
+                        <span class="var">nums</span>
+                        <span class="arrow">→</span>
+                        <span class="value">ArrayList @ heap</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tips-box">
+                <h4>💡 Interview Insight: Mutability</h4>
+                <ul>
+                    <li><strong>Python:</strong> Lists are mutable, tuples/strings are immutable</li>
+                    <li><strong>Java:</strong> Arrays are mutable, Strings are immutable</li>
+                    <li>In Python, <code>a = b</code> for lists creates a reference, not a copy!</li>
+                    <li>Use <code>a = b.copy()</code> or <code>a = b[:]</code> for shallow copy</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Section 3: Data Structures Comparison -->
+        <div class="section">
+            <h2>Data Structures Comparison</h2>
+            
+            <div class="ds-grid">
+                <!-- Arrays/Lists -->
+                <div class="ds-card">
+                    <h4>📋 Dynamic Array</h4>
+                    <div class="ds-row">
+                        <span class="ds-lang python">Python</span>
+                        <span class="ds-code">list = [1, 2, 3]</span>
+                    </div>
+                    <div class="ds-row">
+                        <span class="ds-lang java">Java</span>
+                        <span class="ds-code">ArrayList&lt;Integer&gt; list = new ArrayList&lt;&gt;();</span>
+                    </div>
+                    <p class="note">Python lists can hold mixed types; Java requires generics</p>
+                </div>
+                
+                <!-- Fixed Arrays -->
+                <div class="ds-card">
+                    <h4>📊 Fixed Array</h4>
+                    <div class="ds-row">
+                        <span class="ds-lang python">Python</span>
+                        <span class="ds-code">arr = [0] * 10  # or use array module</span>
+                    </div>
+                    <div class="ds-row">
+                        <span class="ds-lang java">Java</span>
+                        <span class="ds-code">int[] arr = new int[10];</span>
+                    </div>
+                    <p class="note">Java primitives arrays are more memory efficient</p>
+                </div>
+                
+                <!-- HashMap/Dict -->
+                <div class="ds-card">
+                    <h4>🗺️ Hash Map</h4>
+                    <div class="ds-row">
+                        <span class="ds-lang python">Python</span>
+                        <span class="ds-code">d = {"key": "value"}</span>
+                    </div>
+                    <div class="ds-row">
+                        <span class="ds-lang java">Java</span>
+                        <span class="ds-code">Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+                    </div>
+                    <p class="note">Python dict maintains insertion order (3.7+)</p>
+                </div>
+                
+                <!-- HashSet/Set -->
+                <div class="ds-card">
+                    <h4>🎯 Hash Set</h4>
+                    <div class="ds-row">
+                        <span class="ds-lang python">Python</span>
+                        <span class="ds-code">s = {1, 2, 3}</span>
+                    </div>
+                    <div class="ds-row">
+                        <span class="ds-lang java">Java</span>
+                        <span class="ds-code">Set&lt;Integer&gt; set = new HashSet&lt;&gt;();</span>
+                    </div>
+                </div>
+                
+                <!-- Stack -->
+                <div class="ds-card">
+                    <h4>📚 Stack (LIFO)</h4>
+                    <div class="ds-row">
+                        <span class="ds-lang python">Python</span>
+                        <span class="ds-code">stack = []  # use append/pop</span>
+                    </div>
+                    <div class="ds-row">
+                        <span class="ds-lang java">Java</span>
+                        <span class="ds-code">Deque&lt;Integer&gt; stack = new ArrayDeque&lt;&gt;();</span>
+                    </div>
+                    <p class="note">In Java, prefer ArrayDeque over Stack class</p>
+                </div>
+                
+                <!-- Queue -->
+                <div class="ds-card">
+                    <h4>🚶 Queue (FIFO)</h4>
+                    <div class="ds-row">
+                        <span class="ds-lang python">Python</span>
+                        <span class="ds-code">from collections import deque<br>q = deque()</span>
+                    </div>
+                    <div class="ds-row">
+                        <span class="ds-lang java">Java</span>
+                        <span class="ds-code">Queue&lt;Integer&gt; q = new LinkedList&lt;&gt;();</span>
+                    </div>
+                </div>
+                
+                <!-- Heap/Priority Queue -->
+                <div class="ds-card">
+                    <h4>⛰️ Min Heap / Priority Queue</h4>
+                    <div class="ds-row">
+                        <span class="ds-lang python">Python</span>
+                        <span class="ds-code">import heapq<br>heapq.heappush(heap, val)</span>
+                    </div>
+                    <div class="ds-row">
+                        <span class="ds-lang java">Java</span>
+                        <span class="ds-code">PriorityQueue&lt;Integer&gt; pq = new PriorityQueue&lt;&gt;();</span>
+                    </div>
+                    <p class="note">Python heapq is min-heap only; negate for max-heap</p>
+                </div>
+                
+                <!-- Sorted Structures -->
+                <div class="ds-card">
+                    <h4>🌳 Sorted Map (TreeMap)</h4>
+                    <div class="ds-row">
+                        <span class="ds-lang python">Python</span>
+                        <span class="ds-code">from sortedcontainers import SortedDict</span>
+                    </div>
+                    <div class="ds-row">
+                        <span class="ds-lang java">Java</span>
+                        <span class="ds-code">TreeMap&lt;K, V&gt; map = new TreeMap&lt;&gt;();</span>
+                    </div>
+                    <p class="note">Python needs external library; Java has built-in</p>
+                </div>
+            </div>
+            
+            <h3>Time Complexity Quick Reference</h3>
+            <div class="complexity-chart">
+                <div class="complexity-item">
+                    <div class="op">List/Array Access</div>
+                    <div class="big-o">O(1)</div>
+                </div>
+                <div class="complexity-item">
+                    <div class="op">List Append</div>
+                    <div class="big-o">O(1)*</div>
+                </div>
+                <div class="complexity-item">
+                    <div class="op">List Insert (middle)</div>
+                    <div class="big-o">O(n)</div>
+                </div>
+                <div class="complexity-item">
+                    <div class="op">Dict/Map Get/Set</div>
+                    <div class="big-o">O(1)</div>
+                </div>
+                <div class="complexity-item">
+                    <div class="op">Set Add/Contains</div>
+                    <div class="big-o">O(1)</div>
+                </div>
+                <div class="complexity-item">
+                    <div class="op">Heap Push/Pop</div>
+                    <div class="big-o">O(log n)</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 3.5: Collection Initialization -->
+        <div class="section">
+            <h2>🏗️ Collection Initialization Patterns</h2>
+            <p style="color: #888; margin-bottom: 25px;">The most common ways to create and initialize each collection — side by side.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre><span class="comment"># ── List ──</span>
+nums = []                          <span class="comment"># empty list</span>
+nums = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]                  <span class="comment"># literal</span>
+nums = [<span class="number">0</span>] * <span class="number">10</span>                   <span class="comment"># 10 zeros</span>
+nums = <span class="function">list</span>(<span class="function">range</span>(<span class="number">5</span>))            <span class="comment"># [0,1,2,3,4]</span>
+nums = [x**<span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">5</span>)]  <span class="comment"># [0,1,4,9,16]</span>
+
+<span class="comment"># ── 2D List (Matrix) ──</span>
+grid = [[<span class="number">0</span>] * cols <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(rows)]
+<span class="comment"># ⚠️ WRONG: [[0]*cols]*rows (shared refs!)</span>
+
+<span class="comment"># ── Dict ──</span>
+d = {}                             <span class="comment"># empty dict</span>
+d = {<span class="string">"a"</span>: <span class="number">1</span>, <span class="string">"b"</span>: <span class="number">2</span>}             <span class="comment"># literal</span>
+d = <span class="function">dict</span>(a=<span class="number">1</span>, b=<span class="number">2</span>)               <span class="comment"># keyword args</span>
+d = {x: x**<span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">5</span>)}  <span class="comment"># comprehension</span>
+d = <span class="function">dict</span>.fromkeys([<span class="string">"a"</span>,<span class="string">"b"</span>], <span class="number">0</span>)   <span class="comment"># {"a":0,"b":0}</span>
+
+<span class="comment"># ── DefaultDict ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict
+dd = defaultdict(<span class="function">int</span>)              <span class="comment"># default 0</span>
+dd = defaultdict(<span class="function">list</span>)             <span class="comment"># default []</span>
+dd = defaultdict(<span class="keyword">lambda</span>: <span class="number">-1</span>)       <span class="comment"># default -1</span>
+
+<span class="comment"># ── Set ──</span>
+s = <span class="function">set</span>()                         <span class="comment"># empty (NOT {}!)</span>
+s = {<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>}                     <span class="comment"># literal</span>
+s = <span class="function">set</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">3</span>])             <span class="comment"># from list → {1,2,3}</span>
+s = {x <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">5</span>)}        <span class="comment"># comprehension</span>
+
+<span class="comment"># ── Stack ──</span>
+stack = []                         <span class="comment"># just a list</span>
+
+<span class="comment"># ── Queue / Deque ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> deque
+q = deque()                        <span class="comment"># empty</span>
+q = deque([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])              <span class="comment"># from list</span>
+q = deque(maxlen=<span class="number">5</span>)               <span class="comment"># bounded queue</span>
+
+<span class="comment"># ── Heap ──</span>
+<span class="keyword">import</span> heapq
+heap = []                          <span class="comment"># empty (just a list)</span>
+nums = [<span class="number">3</span>,<span class="number">1</span>,<span class="number">2</span>]; heapq.heapify(nums) <span class="comment"># in-place</span>
+
+<span class="comment"># ── Counter ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> Counter
+c = Counter([<span class="number">1</span>,<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])            <span class="comment"># from list</span>
+c = Counter(<span class="string">"hello"</span>)              <span class="comment"># from string</span>
+c = Counter({<span class="string">"a"</span>:<span class="number">2</span>, <span class="string">"b"</span>:<span class="number">1</span>})       <span class="comment"># from dict</span>
+
+<span class="comment"># ── Tuple (immutable) ──</span>
+t = ()                             <span class="comment"># empty</span>
+t = (<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>)                     <span class="comment"># literal</span>
+t = (<span class="number">1</span>,)                          <span class="comment"># single elem (need comma!)</span></pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java Equivalent</div>
+                    <div class="code-content">
+<pre><span class="comment">// ── List ──</span>
+List&lt;<span class="type">Integer</span>&gt; nums = <span class="keyword">new</span> ArrayList&lt;&gt;();
+List&lt;<span class="type">Integer</span>&gt; nums = <span class="keyword">new</span> ArrayList&lt;&gt;(Arrays.asList(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>));
+List&lt;<span class="type">Integer</span>&gt; nums = List.of(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>); <span class="comment">// immutable!</span>
+<span class="type">int</span>[] arr = <span class="keyword">new</span> <span class="type">int</span>[<span class="number">10</span>];           <span class="comment">// 10 zeros</span>
+<span class="comment">// No built-in range → use IntStream</span>
+
+<span class="comment">// ── 2D Array ──</span>
+<span class="type">int</span>[][] grid = <span class="keyword">new</span> <span class="type">int</span>[rows][cols];
+<span class="comment">// Or with ArrayList:</span>
+<span class="comment">// List&lt;List&lt;Integer&gt;&gt; grid = new ArrayList&lt;&gt;();</span>
+
+<span class="comment">// ── Map (HashMap) ──</span>
+Map&lt;<span class="type">String</span>,<span class="type">Integer</span>&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();
+Map&lt;<span class="type">String</span>,<span class="type">Integer</span>&gt; map = Map.of(<span class="string">"a"</span>,<span class="number">1</span>,<span class="string">"b"</span>,<span class="number">2</span>); <span class="comment">// immutable</span>
+map.put(<span class="string">"a"</span>, <span class="number">1</span>); map.put(<span class="string">"b"</span>, <span class="number">2</span>);
+<span class="comment">// No dict comprehension equivalent</span>
+<span class="comment">// No built-in fromkeys</span>
+
+<span class="comment">// ── No DefaultDict → use getOrDefault ──</span>
+map.getOrDefault(key, <span class="number">0</span>);
+map.computeIfAbsent(key, k -> <span class="keyword">new</span> ArrayList&lt;&gt;());
+<span class="comment">// or merge: map.merge(key, 1, Integer::sum);</span>
+
+<span class="comment">// ── Set (HashSet) ──</span>
+Set&lt;<span class="type">Integer</span>&gt; set = <span class="keyword">new</span> HashSet&lt;&gt;();
+Set&lt;<span class="type">Integer</span>&gt; set = <span class="keyword">new</span> HashSet&lt;&gt;(Arrays.asList(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>));
+Set&lt;<span class="type">Integer</span>&gt; set = Set.of(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>); <span class="comment">// immutable</span>
+<span class="comment">// No set comprehension</span>
+
+<span class="comment">// ── Stack ──</span>
+Deque&lt;<span class="type">Integer</span>&gt; stack = <span class="keyword">new</span> ArrayDeque&lt;&gt;();
+
+<span class="comment">// ── Queue ──</span>
+Queue&lt;<span class="type">Integer</span>&gt; q = <span class="keyword">new</span> LinkedList&lt;&gt;();
+Queue&lt;<span class="type">Integer</span>&gt; q = <span class="keyword">new</span> ArrayDeque&lt;&gt;();
+<span class="comment">// No built-in bounded queue (use ArrayBlockingQueue)</span>
+
+<span class="comment">// ── Heap (PriorityQueue) ──</span>
+PriorityQueue&lt;<span class="type">Integer</span>&gt; pq = <span class="keyword">new</span> PriorityQueue&lt;&gt;();
+PriorityQueue&lt;<span class="type">Integer</span>&gt; pq = <span class="keyword">new</span> PriorityQueue&lt;&gt;(
+    Arrays.asList(<span class="number">3</span>,<span class="number">1</span>,<span class="number">2</span>));
+
+<span class="comment">// ── No Counter → manual frequency map ──</span>
+Map&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt; freq = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">char</span> c : s.toCharArray())
+    freq.merge(c, <span class="number">1</span>, Integer::sum);
+
+<span class="comment">// ── No tuples → use int[] or custom class ──</span>
+<span class="type">int</span>[] pair = {<span class="number">1</span>, <span class="number">2</span>};
+<span class="comment">// Or: Map.Entry&lt;K,V&gt;, record Pair(int a, int b)</span></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tips-box">
+                <h4>💡 Key Initialization Gotchas</h4>
+                <ul>
+                    <li><code>{}</code> creates an empty <strong>dict</strong> in Python, NOT a set. Use <code>set()</code> for empty sets</li>
+                    <li><code>[[0]*n]*m</code> creates m references to the SAME inner list — use a list comprehension instead</li>
+                    <li>Java's <code>List.of()</code>, <code>Map.of()</code>, <code>Set.of()</code> create <strong>immutable</strong> collections — wrap in <code>new ArrayList&lt;&gt;(List.of(...))</code> if you need mutable</li>
+                    <li>Python's <code>defaultdict</code> is one of the biggest time-savers — no more key-existence checks before inserting</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Section 4: Common Operations -->
+        <div class="section">
+            <h2>Common Interview Operations</h2>
+            
+            <h3>📋 List / ArrayList Operations</h3>
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre>nums = [<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">5</span>]
+
+<span class="comment"># ── Add ──</span>
+nums.append(<span class="number">9</span>)              <span class="comment"># [3,1,4,1,5,9]</span>
+nums.insert(<span class="number">0</span>, <span class="number">7</span>)           <span class="comment"># [7,3,1,4,1,5,9]</span>
+nums.extend([<span class="number">2</span>, <span class="number">6</span>])         <span class="comment"># append multiple</span>
+
+<span class="comment"># ── Access ──</span>
+nums[<span class="number">0</span>]                     <span class="comment"># first → 7</span>
+nums[-<span class="number">1</span>]                    <span class="comment"># last → 6</span>
+nums[<span class="number">1</span>:<span class="number">4</span>]                   <span class="comment"># slice → [3,1,4]</span>
+
+<span class="comment"># ── Remove ──</span>
+nums.pop()                  <span class="comment"># remove last → 6</span>
+nums.pop(<span class="number">0</span>)                 <span class="comment"># remove first → 7</span>
+nums.remove(<span class="number">4</span>)              <span class="comment"># remove first occurrence of 4</span>
+
+<span class="comment"># ── Search ──</span>
+<span class="number">1</span> <span class="keyword">in</span> nums                  <span class="comment"># True (O(n))</span>
+nums.index(<span class="number">1</span>)               <span class="comment"># first index of 1</span>
+nums.count(<span class="number">1</span>)               <span class="comment"># how many 1s</span>
+
+<span class="comment"># ── Sort ──</span>
+nums.sort()                 <span class="comment"># in-place ascending</span>
+nums.sort(reverse=<span class="keyword">True</span>)     <span class="comment"># in-place descending</span>
+sorted(nums)                <span class="comment"># new sorted list</span>
+sorted(nums, key=<span class="keyword">lambda</span> x: -x)  <span class="comment"># custom sort</span>
+
+<span class="comment"># ── Reverse ──</span>
+nums.reverse()              <span class="comment"># in-place</span>
+nums[::-<span class="number">1</span>]                  <span class="comment"># new reversed list</span>
+
+<span class="comment"># ── Size ──</span>
+<span class="function">len</span>(nums)                   <span class="comment"># length</span>
+
+<span class="comment"># ── Comprehension (Python superpower!) ──</span>
+squares = [x**<span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">10</span>)]
+evens = [x <span class="keyword">for</span> x <span class="keyword">in</span> nums <span class="keyword">if</span> x % <span class="number">2</span> == <span class="number">0</span>]
+flat = [x <span class="keyword">for</span> row <span class="keyword">in</span> grid <span class="keyword">for</span> x <span class="keyword">in</span> row]</pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java</div>
+                    <div class="code-content">
+<pre>List&lt;<span class="type">Integer</span>&gt; nums = <span class="keyword">new</span> ArrayList&lt;&gt;(
+    Arrays.asList(<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">5</span>));
+
+<span class="comment">// ── Add ──</span>
+nums.add(<span class="number">9</span>);                <span class="comment">// [3,1,4,1,5,9]</span>
+nums.add(<span class="number">0</span>, <span class="number">7</span>);             <span class="comment">// [7,3,1,4,1,5,9]</span>
+nums.addAll(Arrays.asList(<span class="number">2</span>, <span class="number">6</span>)); <span class="comment">// append multiple</span>
+
+<span class="comment">// ── Access ──</span>
+nums.get(<span class="number">0</span>);                <span class="comment">// first → 7</span>
+nums.get(nums.size()-<span class="number">1</span>);    <span class="comment">// last → 6</span>
+nums.subList(<span class="number">1</span>, <span class="number">4</span>);         <span class="comment">// slice → [3,1,4]</span>
+
+<span class="comment">// ── Remove ──</span>
+nums.remove(nums.size()-<span class="number">1</span>); <span class="comment">// remove last</span>
+nums.remove(<span class="number">0</span>);             <span class="comment">// remove at index 0</span>
+nums.remove(Integer.valueOf(<span class="number">4</span>)); <span class="comment">// remove value 4</span>
+
+<span class="comment">// ── Search ──</span>
+nums.contains(<span class="number">1</span>);           <span class="comment">// true (O(n))</span>
+nums.indexOf(<span class="number">1</span>);            <span class="comment">// first index of 1</span>
+Collections.frequency(nums, <span class="number">1</span>); <span class="comment">// count of 1</span>
+
+<span class="comment">// ── Sort ──</span>
+Collections.sort(nums);     <span class="comment">// in-place ascending</span>
+Collections.sort(nums, Collections.reverseOrder());
+nums.stream().sorted().collect(Collectors.toList());
+nums.sort((a,b) -> b - a);  <span class="comment">// custom sort</span>
+
+<span class="comment">// ── Reverse ──</span>
+Collections.reverse(nums);  <span class="comment">// in-place</span>
+<span class="comment">// No one-liner for new reversed list</span>
+
+<span class="comment">// ── Size ──</span>
+nums.size();                <span class="comment">// length</span>
+
+<span class="comment">// ── Stream API (closest to comprehension) ──</span>
+<span class="type">int</span>[] squares = IntStream.range(<span class="number">0</span>,<span class="number">10</span>)
+    .map(x -> x*x).toArray();
+<span class="comment">// nums.stream().filter(x -> x%2==0).toList();</span></pre>
+                    </div>
+                </div>
+            </div>
+
+            <h3>🗺️ Dict / HashMap Operations</h3>
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre>d = {<span class="string">"apple"</span>: <span class="number">3</span>, <span class="string">"banana"</span>: <span class="number">5</span>}
+
+<span class="comment"># ── Add / Update ──</span>
+d[<span class="string">"cherry"</span>] = <span class="number">7</span>             <span class="comment"># add new key</span>
+d[<span class="string">"apple"</span>] = <span class="number">10</span>              <span class="comment"># update existing</span>
+d.update({<span class="string">"fig"</span>: <span class="number">2</span>})        <span class="comment"># merge another dict</span>
+
+<span class="comment"># ── Access ──</span>
+d[<span class="string">"apple"</span>]                   <span class="comment"># 10 (KeyError if missing!)</span>
+d.get(<span class="string">"grape"</span>, <span class="number">0</span>)            <span class="comment"># 0 (safe with default)</span>
+
+<span class="comment"># ── Remove ──</span>
+<span class="keyword">del</span> d[<span class="string">"banana"</span>]              <span class="comment"># remove key</span>
+d.pop(<span class="string">"cherry"</span>)              <span class="comment"># remove & return value → 7</span>
+d.pop(<span class="string">"missing"</span>, <span class="keyword">None</span>)       <span class="comment"># safe pop → None</span>
+
+<span class="comment"># ── Check ──</span>
+<span class="string">"apple"</span> <span class="keyword">in</span> d                <span class="comment"># True (checks keys, O(1))</span>
+<span class="number">10</span> <span class="keyword">in</span> d.values()            <span class="comment"># check value exists</span>
+
+<span class="comment"># ── Iterate ──</span>
+<span class="keyword">for</span> k <span class="keyword">in</span> d:                 <span class="comment"># keys only</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> d.values():        <span class="comment"># values only</span>
+<span class="keyword">for</span> k, v <span class="keyword">in</span> d.items():      <span class="comment"># key-value pairs</span>
+
+<span class="comment"># ── Size ──</span>
+<span class="function">len</span>(d)                      <span class="comment"># number of keys</span>
+
+<span class="comment"># ── Frequency pattern ──</span>
+freq = {}
+<span class="keyword">for</span> ch <span class="keyword">in</span> <span class="string">"hello"</span>:
+    freq[ch] = freq.get(ch, <span class="number">0</span>) + <span class="number">1</span>
+<span class="comment"># → {'h':1, 'e':1, 'l':2, 'o':1}</span>
+
+<span class="comment"># ── Or just use Counter! ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> Counter
+freq = Counter(<span class="string">"hello"</span>)
+freq.most_common(<span class="number">2</span>)         <span class="comment"># [('l',2),('h',1)]</span></pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java</div>
+                    <div class="code-content">
+<pre>Map&lt;<span class="type">String</span>,<span class="type">Integer</span>&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();
+map.put(<span class="string">"apple"</span>, <span class="number">3</span>); map.put(<span class="string">"banana"</span>, <span class="number">5</span>);
+
+<span class="comment">// ── Add / Update ──</span>
+map.put(<span class="string">"cherry"</span>, <span class="number">7</span>);        <span class="comment">// add new key</span>
+map.put(<span class="string">"apple"</span>, <span class="number">10</span>);        <span class="comment">// update existing</span>
+map.putAll(otherMap);        <span class="comment">// merge another map</span>
+
+<span class="comment">// ── Access ──</span>
+map.get(<span class="string">"apple"</span>);            <span class="comment">// 10 (null if missing)</span>
+map.getOrDefault(<span class="string">"grape"</span>,<span class="number">0</span>); <span class="comment">// 0 (safe with default)</span>
+
+<span class="comment">// ── Remove ──</span>
+map.remove(<span class="string">"banana"</span>);        <span class="comment">// remove key</span>
+map.remove(<span class="string">"cherry"</span>);        <span class="comment">// returns value → 7</span>
+<span class="comment">// No safe-pop; just check null</span>
+
+<span class="comment">// ── Check ──</span>
+map.containsKey(<span class="string">"apple"</span>);   <span class="comment">// true (O(1))</span>
+map.containsValue(<span class="number">10</span>);      <span class="comment">// check value exists</span>
+
+<span class="comment">// ── Iterate ──</span>
+<span class="keyword">for</span> (<span class="type">String</span> k : map.keySet())       <span class="comment">// keys</span>
+<span class="keyword">for</span> (<span class="type">int</span> v : map.values())          <span class="comment">// values</span>
+<span class="keyword">for</span> (var e : map.entrySet())        <span class="comment">// entries</span>
+    e.getKey(); e.getValue();
+
+<span class="comment">// ── Size ──</span>
+map.size();                  <span class="comment">// number of keys</span>
+
+<span class="comment">// ── Frequency pattern ──</span>
+Map&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt; freq = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">char</span> c : <span class="string">"hello"</span>.toCharArray()) {
+    freq.merge(c, <span class="number">1</span>, Integer::sum);
+}
+<span class="comment">// → {h=1, e=1, l=2, o=1}</span>
+
+<span class="comment">// ── No built-in Counter ──</span>
+<span class="comment">// Sort by value manually:</span>
+freq.entrySet().stream()
+    .sorted(Map.Entry.comparingByValue(
+        Comparator.reverseOrder()));</pre>
+                    </div>
+                </div>
+            </div>
+
+            <h3>🎯 Set / HashSet Operations</h3>
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre>a = {<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>}
+b = {<span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>}
+
+<span class="comment"># ── Add / Remove ──</span>
+a.add(<span class="number">7</span>)                    <span class="comment"># {1,2,3,4,7}</span>
+a.remove(<span class="number">7</span>)                 <span class="comment"># KeyError if missing!</span>
+a.discard(<span class="number">99</span>)               <span class="comment"># safe remove (no error)</span>
+
+<span class="comment"># ── Check ──</span>
+<span class="number">3</span> <span class="keyword">in</span> a                     <span class="comment"># True (O(1))</span>
+
+<span class="comment"># ── Set Operations (Python superpower!) ──</span>
+a | b                       <span class="comment"># union → {1,2,3,4,5,6}</span>
+a & b                       <span class="comment"># intersection → {3,4}</span>
+a - b                       <span class="comment"># difference → {1,2}</span>
+a ^ b                       <span class="comment"># symmetric diff → {1,2,5,6}</span>
+a &lt;= b                      <span class="comment"># is subset?</span>
+
+<span class="comment"># ── Iterate ──</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> a:                 <span class="comment"># iterate (unordered)</span>
+
+<span class="comment"># ── Convert ──</span>
+<span class="function">list</span>(a)                     <span class="comment"># set → list</span>
+<span class="function">set</span>([<span class="number">1</span>,<span class="number">2</span>,<span class="number">2</span>,<span class="number">3</span>])              <span class="comment"># list → set (dedup)</span>
+
+<span class="comment"># ── Size ──</span>
+<span class="function">len</span>(a)                      <span class="comment"># 4</span></pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java</div>
+                    <div class="code-content">
+<pre>Set&lt;<span class="type">Integer</span>&gt; a = <span class="keyword">new</span> HashSet&lt;&gt;(Set.of(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>));
+Set&lt;<span class="type">Integer</span>&gt; b = <span class="keyword">new</span> HashSet&lt;&gt;(Set.of(<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>));
+
+<span class="comment">// ── Add / Remove ──</span>
+a.add(<span class="number">7</span>);                    <span class="comment">// {1,2,3,4,7}</span>
+a.remove(<span class="number">7</span>);                 <span class="comment">// returns false if missing</span>
+a.remove(<span class="number">99</span>);                <span class="comment">// safe (returns false)</span>
+
+<span class="comment">// ── Check ──</span>
+a.contains(<span class="number">3</span>);              <span class="comment">// true (O(1))</span>
+
+<span class="comment">// ── Set Operations (more verbose) ──</span>
+Set&lt;<span class="type">Integer</span>&gt; union = <span class="keyword">new</span> HashSet&lt;&gt;(a);
+union.addAll(b);             <span class="comment">// union</span>
+Set&lt;<span class="type">Integer</span>&gt; inter = <span class="keyword">new</span> HashSet&lt;&gt;(a);
+inter.retainAll(b);          <span class="comment">// intersection</span>
+Set&lt;<span class="type">Integer</span>&gt; diff = <span class="keyword">new</span> HashSet&lt;&gt;(a);
+diff.removeAll(b);           <span class="comment">// difference</span>
+<span class="comment">// No built-in symmetric diff or subset operator</span>
+
+<span class="comment">// ── Iterate ──</span>
+<span class="keyword">for</span> (<span class="type">int</span> x : a) { }         <span class="comment">// iterate (unordered)</span>
+
+<span class="comment">// ── Convert ──</span>
+<span class="keyword">new</span> ArrayList&lt;&gt;(a);          <span class="comment">// set → list</span>
+<span class="keyword">new</span> HashSet&lt;&gt;(list);         <span class="comment">// list → set (dedup)</span>
+
+<span class="comment">// ── Size ──</span>
+a.size();                    <span class="comment">// 4</span></pre>
+                    </div>
+                </div>
+            </div>
+
+            <h3>📚 Stack Operations</h3>
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre>stack = []
+
+<span class="comment"># ── Push / Pop / Peek ──</span>
+stack.append(<span class="number">1</span>)              <span class="comment"># push → [1]</span>
+stack.append(<span class="number">2</span>)              <span class="comment"># push → [1,2]</span>
+stack.append(<span class="number">3</span>)              <span class="comment"># push → [1,2,3]</span>
+stack[-<span class="number">1</span>]                    <span class="comment"># peek → 3 (no remove)</span>
+stack.pop()                  <span class="comment"># pop → 3, stack=[1,2]</span>
+
+<span class="comment"># ── Check ──</span>
+<span class="function">len</span>(stack) == <span class="number">0</span>              <span class="comment"># is empty?</span>
+<span class="keyword">not</span> stack                    <span class="comment"># Pythonic empty check</span>
+
+<span class="comment"># ── Common Pattern: Monotonic Stack ──</span>
+stack = []
+<span class="keyword">for</span> i, num <span class="keyword">in</span> <span class="function">enumerate</span>(nums):
+    <span class="keyword">while</span> stack <span class="keyword">and</span> nums[stack[-<span class="number">1</span>]] &lt; num:
+        stack.pop()
+    stack.append(i)</pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java</div>
+                    <div class="code-content">
+<pre>Deque&lt;<span class="type">Integer</span>&gt; stack = <span class="keyword">new</span> ArrayDeque&lt;&gt;();
+
+<span class="comment">// ── Push / Pop / Peek ──</span>
+stack.push(<span class="number">1</span>);               <span class="comment">// push → [1]</span>
+stack.push(<span class="number">2</span>);               <span class="comment">// push → [2,1]</span>
+stack.push(<span class="number">3</span>);               <span class="comment">// push → [3,2,1]</span>
+stack.peek();                <span class="comment">// peek → 3 (no remove)</span>
+stack.pop();                 <span class="comment">// pop → 3</span>
+
+<span class="comment">// ── Check ──</span>
+stack.isEmpty();             <span class="comment">// is empty?</span>
+stack.size();                <span class="comment">// size</span>
+
+<span class="comment">// ── Common Pattern: Monotonic Stack ──</span>
+Deque&lt;<span class="type">Integer</span>&gt; stack = <span class="keyword">new</span> ArrayDeque&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; nums.length; i++) {
+    <span class="keyword">while</span> (!stack.isEmpty() &amp;&amp;
+           nums[stack.peek()] &lt; nums[i])
+        stack.pop();
+    stack.push(i);
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <h3>🚶 Queue / Deque Operations</h3>
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre><span class="keyword">from</span> collections <span class="keyword">import</span> deque
+
+q = deque()
+
+<span class="comment"># ── Enqueue / Dequeue ──</span>
+q.append(<span class="number">1</span>)                  <span class="comment"># right → deque([1])</span>
+q.append(<span class="number">2</span>)                  <span class="comment"># right → deque([1,2])</span>
+q.appendleft(<span class="number">0</span>)              <span class="comment"># left  → deque([0,1,2])</span>
+q.popleft()                  <span class="comment"># dequeue → 0 (O(1)!)</span>
+q.pop()                      <span class="comment"># from right → 2</span>
+
+<span class="comment"># ── Peek ──</span>
+q[<span class="number">0</span>]                         <span class="comment"># front</span>
+q[-<span class="number">1</span>]                        <span class="comment"># back</span>
+
+<span class="comment"># ── BFS Pattern ──</span>
+q = deque([start])
+visited = {start}
+<span class="keyword">while</span> q:
+    node = q.popleft()
+    <span class="keyword">for</span> neighbor <span class="keyword">in</span> graph[node]:
+        <span class="keyword">if</span> neighbor <span class="keyword">not</span> <span class="keyword">in</span> visited:
+            visited.add(neighbor)
+            q.append(neighbor)</pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java</div>
+                    <div class="code-content">
+<pre>Queue&lt;<span class="type">Integer</span>&gt; q = <span class="keyword">new</span> LinkedList&lt;&gt;();
+<span class="comment">// or: Deque&lt;Integer&gt; q = new ArrayDeque&lt;&gt;();</span>
+
+<span class="comment">// ── Enqueue / Dequeue ──</span>
+q.offer(<span class="number">1</span>);                  <span class="comment">// add → [1]</span>
+q.offer(<span class="number">2</span>);                  <span class="comment">// add → [1,2]</span>
+<span class="comment">// q.offerFirst(0);          // Deque only</span>
+q.poll();                    <span class="comment">// dequeue → 1</span>
+<span class="comment">// q.pollLast();             // Deque only</span>
+
+<span class="comment">// ── Peek ──</span>
+q.peek();                    <span class="comment">// front (null if empty)</span>
+<span class="comment">// ((Deque)q).peekLast();    // Deque only</span>
+
+<span class="comment">// ── BFS Pattern ──</span>
+Queue&lt;<span class="type">Integer</span>&gt; q = <span class="keyword">new</span> LinkedList&lt;&gt;();
+q.offer(start);
+Set&lt;<span class="type">Integer</span>&gt; visited = <span class="keyword">new</span> HashSet&lt;&gt;();
+visited.add(start);
+<span class="keyword">while</span> (!q.isEmpty()) {
+    <span class="type">int</span> node = q.poll();
+    <span class="keyword">for</span> (<span class="type">int</span> nb : graph.get(node)) {
+        <span class="keyword">if</span> (visited.add(nb))
+            q.offer(nb);
+    }
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <h3>⛰️ Heap / PriorityQueue Operations</h3>
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre><span class="keyword">import</span> heapq
+
+<span class="comment"># ── Min Heap ──</span>
+heap = []
+heapq.heappush(heap, <span class="number">5</span>)      <span class="comment"># [5]</span>
+heapq.heappush(heap, <span class="number">1</span>)      <span class="comment"># [1,5]</span>
+heapq.heappush(heap, <span class="number">3</span>)      <span class="comment"># [1,5,3]</span>
+heap[<span class="number">0</span>]                      <span class="comment"># peek min → 1</span>
+heapq.heappop(heap)          <span class="comment"># pop min → 1</span>
+
+<span class="comment"># ── Max Heap (negate values!) ──</span>
+heapq.heappush(heap, -val)
+-heapq.heappop(heap)
+
+<span class="comment"># ── Heapify existing list ──</span>
+nums = [<span class="number">5</span>, <span class="number">3</span>, <span class="number">8</span>, <span class="number">1</span>]
+heapq.heapify(nums)          <span class="comment"># O(n), in-place</span>
+
+<span class="comment"># ── Push + Pop combined ──</span>
+heapq.heappushpop(heap, val) <span class="comment"># push then pop min</span>
+heapq.heapreplace(heap, val) <span class="comment"># pop min then push</span>
+
+<span class="comment"># ── Top K Pattern ──</span>
+heapq.nlargest(<span class="number">3</span>, nums)      <span class="comment"># 3 largest</span>
+heapq.nsmallest(<span class="number">3</span>, nums)     <span class="comment"># 3 smallest</span>
+
+<span class="comment"># ── With tuples (priority, data) ──</span>
+heapq.heappush(heap, (<span class="number">2</span>, <span class="string">"low"</span>))
+heapq.heappush(heap, (<span class="number">1</span>, <span class="string">"high"</span>))
+heapq.heappop(heap)          <span class="comment"># (1, "high")</span></pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java</div>
+                    <div class="code-content">
+<pre><span class="comment">// ── Min Heap ──</span>
+PriorityQueue&lt;<span class="type">Integer</span>&gt; pq = <span class="keyword">new</span> PriorityQueue&lt;&gt;();
+pq.offer(<span class="number">5</span>);                 <span class="comment">// [5]</span>
+pq.offer(<span class="number">1</span>);                 <span class="comment">// [1,5]</span>
+pq.offer(<span class="number">3</span>);                 <span class="comment">// [1,5,3]</span>
+pq.peek();                   <span class="comment">// peek min → 1</span>
+pq.poll();                   <span class="comment">// pop min → 1</span>
+
+<span class="comment">// ── Max Heap (pass comparator!) ──</span>
+PriorityQueue&lt;<span class="type">Integer</span>&gt; maxPQ =
+    <span class="keyword">new</span> PriorityQueue&lt;&gt;(Collections.reverseOrder());
+
+<span class="comment">// ── Heapify existing collection ──</span>
+PriorityQueue&lt;<span class="type">Integer</span>&gt; pq =
+    <span class="keyword">new</span> PriorityQueue&lt;&gt;(Arrays.asList(<span class="number">5</span>,<span class="number">3</span>,<span class="number">8</span>,<span class="number">1</span>));
+
+<span class="comment">// ── No push+pop combo ──</span>
+<span class="comment">// Must do manually: pq.offer(val); pq.poll();</span>
+
+
+<span class="comment">// ── No built-in nlargest/nsmallest ──</span>
+<span class="comment">// Use stream: nums.stream().sorted()</span>
+<span class="comment">//   .limit(3).toList();</span>
+
+<span class="comment">// ── With custom objects ──</span>
+PriorityQueue&lt;<span class="type">int</span>[]&gt; pq = <span class="keyword">new</span> PriorityQueue&lt;&gt;(
+    (a,b) -> a[<span class="number">0</span>] - b[<span class="number">0</span>]);     <span class="comment">// sort by first elem</span>
+pq.offer(<span class="keyword">new</span> <span class="type">int</span>[]{<span class="number">2</span>, <span class="number">0</span>});  <span class="comment">// {priority, data}</span>
+pq.offer(<span class="keyword">new</span> <span class="type">int</span>[]{<span class="number">1</span>, <span class="number">1</span>});
+pq.poll();                   <span class="comment">// [1, 1]</span></pre>
+                    </div>
+                </div>
+            </div>
+
+            <h3>📝 String Operations</h3>
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre>s = <span class="string">"hello world"</span>
+
+<span class="comment"># ── Access ──</span>
+s[<span class="number">0</span>]                         <span class="comment"># 'h'</span>
+s[-<span class="number">1</span>]                        <span class="comment"># 'd'</span>
+s[<span class="number">1</span>:<span class="number">5</span>]                       <span class="comment"># 'ello' (slicing)</span>
+
+<span class="comment"># ── Modify (strings are immutable!) ──</span>
+s.upper()                    <span class="comment"># 'HELLO WORLD'</span>
+s.lower()                    <span class="comment"># 'hello world'</span>
+s.strip()                    <span class="comment"># trim whitespace</span>
+s.replace(<span class="string">"hello"</span>, <span class="string">"hi"</span>)    <span class="comment"># 'hi world'</span>
+
+<span class="comment"># ── Split / Join ──</span>
+s.split()                    <span class="comment"># ['hello','world']</span>
+s.split(<span class="string">","</span>)                 <span class="comment"># split on comma</span>
+<span class="string">" "</span>.join([<span class="string">"a"</span>, <span class="string">"b"</span>])        <span class="comment"># "a b"</span>
+
+<span class="comment"># ── Check ──</span>
+s.startswith(<span class="string">"he"</span>)          <span class="comment"># True</span>
+s.endswith(<span class="string">"ld"</span>)             <span class="comment"># True</span>
+s.isdigit()                  <span class="comment"># False</span>
+s.isalpha()                  <span class="comment"># False (has space)</span>
+<span class="string">"ell"</span> <span class="keyword">in</span> s                  <span class="comment"># True (substring check)</span>
+s.find(<span class="string">"lo"</span>)                <span class="comment"># 3 (-1 if not found)</span>
+
+<span class="comment"># ── Reverse ──</span>
+s[::-<span class="number">1</span>]                      <span class="comment"># 'dlrow olleh'</span>
+
+<span class="comment"># ── Build string efficiently ──</span>
+chars = []
+chars.append(<span class="string">"h"</span>)
+chars.append(<span class="string">"i"</span>)
+result = <span class="string">""</span>.join(chars)      <span class="comment"># "hi"</span>
+
+<span class="comment"># ── f-strings ──</span>
+name = <span class="string">"Bob"</span>
+<span class="keyword">f</span><span class="string">"Hello {name}, 2+2={2+2}"</span>  <span class="comment"># "Hello Bob, 2+2=4"</span></pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java</div>
+                    <div class="code-content">
+<pre><span class="type">String</span> s = <span class="string">"hello world"</span>;
+
+<span class="comment">// ── Access ──</span>
+s.charAt(<span class="number">0</span>);                 <span class="comment">// 'h'</span>
+s.charAt(s.length()-<span class="number">1</span>);      <span class="comment">// 'd'</span>
+s.substring(<span class="number">1</span>, <span class="number">5</span>);           <span class="comment">// "ello"</span>
+
+<span class="comment">// ── Modify (strings are immutable!) ──</span>
+s.toUpperCase();             <span class="comment">// "HELLO WORLD"</span>
+s.toLowerCase();             <span class="comment">// "hello world"</span>
+s.trim();                    <span class="comment">// trim whitespace</span>
+s.replace(<span class="string">"hello"</span>, <span class="string">"hi"</span>);   <span class="comment">// "hi world"</span>
+
+<span class="comment">// ── Split / Join ──</span>
+s.split(<span class="string">"\\s+"</span>);              <span class="comment">// ["hello","world"]</span>
+s.split(<span class="string">","</span>);                <span class="comment">// split on comma</span>
+String.join(<span class="string">" "</span>, <span class="string">"a"</span>, <span class="string">"b"</span>); <span class="comment">// "a b"</span>
+
+<span class="comment">// ── Check ──</span>
+s.startsWith(<span class="string">"he"</span>);          <span class="comment">// true</span>
+s.endsWith(<span class="string">"ld"</span>);             <span class="comment">// true</span>
+Character.isDigit(c);        <span class="comment">// per char</span>
+Character.isLetter(c);       <span class="comment">// per char</span>
+s.contains(<span class="string">"ell"</span>);           <span class="comment">// true</span>
+s.indexOf(<span class="string">"lo"</span>);             <span class="comment">// 3 (-1 if not found)</span>
+
+<span class="comment">// ── Reverse ──</span>
+<span class="keyword">new</span> StringBuilder(s).reverse().toString();
+
+<span class="comment">// ── Build string efficiently ──</span>
+StringBuilder sb = <span class="keyword">new</span> StringBuilder();
+sb.append(<span class="string">"h"</span>);
+sb.append(<span class="string">"i"</span>);
+<span class="type">String</span> result = sb.toString(); <span class="comment">// "hi"</span>
+
+<span class="comment">// ── String formatting ──</span>
+<span class="type">String</span> name = <span class="string">"Bob"</span>;
+String.format(<span class="string">"Hello %s, 2+2=%d"</span>, name, <span class="number">4</span>);</pre>
+                    </div>
+                </div>
+            </div>
+
+            <h3>📊 DefaultDict / Counter Operations</h3>
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python</div>
+                    <div class="code-content">
+<pre><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict, Counter
+
+<span class="comment"># ── DefaultDict (auto-creates missing keys) ──</span>
+
+<span class="comment"># Group anagrams pattern</span>
+groups = defaultdict(<span class="function">list</span>)
+<span class="keyword">for</span> word <span class="keyword">in</span> [<span class="string">"eat"</span>,<span class="string">"tea"</span>,<span class="string">"tan"</span>,<span class="string">"ate"</span>,<span class="string">"nat"</span>]:
+    key = <span class="function">tuple</span>(<span class="function">sorted</span>(word))
+    groups[key].append(word)
+<span class="comment"># {('a','e','t'): ['eat','tea','ate'],</span>
+<span class="comment">#  ('a','n','t'): ['tan','nat']}</span>
+
+<span class="comment"># Graph adjacency list</span>
+graph = defaultdict(<span class="function">list</span>)
+<span class="keyword">for</span> u, v <span class="keyword">in</span> edges:
+    graph[u].append(v)
+    graph[v].append(u)         <span class="comment"># undirected</span>
+
+<span class="comment"># Counting with defaultdict</span>
+counts = defaultdict(<span class="function">int</span>)
+<span class="keyword">for</span> x <span class="keyword">in</span> data:
+    counts[x] += <span class="number">1</span>             <span class="comment"># no KeyError!</span>
+
+<span class="comment"># ── Counter ──</span>
+c = Counter(<span class="string">"abracadabra"</span>)
+c.most_common(<span class="number">3</span>)             <span class="comment"># [('a',5),('b',2),('r',2)]</span>
+c[<span class="string">"a"</span>]                       <span class="comment"># 5</span>
+c[<span class="string">"z"</span>]                       <span class="comment"># 0 (no KeyError!)</span>
+
+<span class="comment"># Counter arithmetic</span>
+c1 = Counter(<span class="string">"aab"</span>)
+c2 = Counter(<span class="string">"ab"</span>)
+c1 - c2                      <span class="comment"># Counter({'a': 1})</span>
+c1 & c2                      <span class="comment"># intersection: min of each</span>
+c1 | c2                      <span class="comment"># union: max of each</span></pre>
+                    </div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header java">☕ Java Equivalent</div>
+                    <div class="code-content">
+<pre><span class="comment">// ── No DefaultDict → computeIfAbsent ──</span>
+
+<span class="comment">// Group anagrams pattern</span>
+Map&lt;<span class="type">String</span>, List&lt;<span class="type">String</span>&gt;&gt; groups = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">String</span> word : words) {
+    <span class="type">char</span>[] chars = word.toCharArray();
+    Arrays.sort(chars);
+    <span class="type">String</span> key = <span class="keyword">new</span> String(chars);
+    groups.computeIfAbsent(key,
+        k -> <span class="keyword">new</span> ArrayList&lt;&gt;()).add(word);
+}
+
+<span class="comment">// Graph adjacency list</span>
+Map&lt;<span class="type">Integer</span>, List&lt;<span class="type">Integer</span>&gt;&gt; graph = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">int</span>[] edge : edges) {
+    graph.computeIfAbsent(edge[<span class="number">0</span>],
+        k -> <span class="keyword">new</span> ArrayList&lt;&gt;()).add(edge[<span class="number">1</span>]);
+    graph.computeIfAbsent(edge[<span class="number">1</span>],
+        k -> <span class="keyword">new</span> ArrayList&lt;&gt;()).add(edge[<span class="number">0</span>]);
+}
+
+<span class="comment">// Counting with merge</span>
+Map&lt;<span class="type">Integer</span>,<span class="type">Integer</span>&gt; counts = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">int</span> x : data)
+    counts.merge(x, <span class="number">1</span>, Integer::sum);
+
+<span class="comment">// ── No Counter → manual frequency map ──</span>
+Map&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt; freq = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">char</span> c : <span class="string">"abracadabra"</span>.toCharArray())
+    freq.merge(c, <span class="number">1</span>, Integer::sum);
+
+<span class="comment">// Get most common → sort entries</span>
+freq.entrySet().stream()
+    .sorted(Map.Entry.&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt;
+        comparingByValue().reversed())
+    .limit(<span class="number">3</span>);
+
+<span class="comment">// No Counter arithmetic → manual loop</span></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 5: LeetCode Patterns & Python Shortcuts -->
+        <div class="section">
+            <h2>🧩 LeetCode Patterns & Python Shortcuts</h2>
+            <p style="color: #888; margin-bottom: 10px;">All major patterns from Neetcode 150 / Blind 75 with the Python tricks that make each one concise. Use this as a quick pattern-recognition cheat sheet.</p>
+            
+            <div class="tips-box" style="margin-bottom: 30px;">
+                <h4>🗺️ Pattern Selection Flowchart</h4>
+                <ul>
+                    <li>Input array is <strong>sorted</strong>? → <strong>Binary Search</strong> or <strong>Two Pointers</strong></li>
+                    <li>Asked for all <strong>permutations / combinations / subsets</strong>? → <strong>Backtracking</strong></li>
+                    <li>Given a <strong>tree or graph</strong>? → <strong>DFS / BFS</strong></li>
+                    <li>Given a <strong>linked list</strong>? → <strong>Two Pointers (fast/slow)</strong></li>
+                    <li>Asked for <strong>top/least K items</strong>? → <strong>Heap</strong></li>
+                    <li>Asked for <strong>max/min subarray</strong>? → <strong>DP</strong> or <strong>Kadane's / Sliding Window</strong></li>
+                    <li>Dealing with <strong>contiguous subarray/substring</strong>? → <strong>Sliding Window</strong></li>
+                    <li>Need <strong>O(1) lookup</strong>? → <strong>Hash Map / Set</strong></li>
+                    <li>Finding <strong>connected components</strong>? → <strong>Union Find</strong> or <strong>DFS</strong></li>
+                    <li>Scheduling / <strong>overlapping intervals</strong>? → <strong>Sort + Greedy</strong></li>
+                    <li>Need <strong>prefix string search</strong>? → <strong>Trie</strong></li>
+                    <li><strong>Next greater/smaller</strong> element? → <strong>Monotonic Stack</strong></li>
+                </ul>
+            </div>
+
+            <!-- Pattern 1: Prefix Sum -->
+            <h3>1️⃣ Prefix Sum</h3>
+            <p style="color: #888; margin-bottom: 15px;">Precompute cumulative sums for O(1) range-sum queries. Used in: <em>Subarray Sum Equals K, Range Sum Query, Product of Array Except Self</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Build prefix sum ──</span>
+<span class="keyword">from</span> itertools <span class="keyword">import</span> accumulate
+prefix = <span class="function">list</span>(accumulate(nums, initial=<span class="number">0</span>))
+<span class="comment"># range sum [i, j] = prefix[j+1] - prefix[i]</span>
+
+<span class="comment"># ── Manual prefix sum ──</span>
+prefix = [<span class="number">0</span>] * (<span class="function">len</span>(nums) + <span class="number">1</span>)
+<span class="keyword">for</span> i, n <span class="keyword">in</span> <span class="function">enumerate</span>(nums):
+    prefix[i + <span class="number">1</span>] = prefix[i] + n
+
+<span class="comment"># ── Subarray Sum Equals K (LC 560) ──</span>
+<span class="comment"># Trick: use a dict to count prefix sums seen so far</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict
+<span class="keyword">def</span> <span class="function">subarraySum</span>(nums, k):
+    count = cur = <span class="number">0</span>
+    seen = defaultdict(<span class="function">int</span>)
+    seen[<span class="number">0</span>] = <span class="number">1</span>                          <span class="comment"># ← empty prefix</span>
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+        cur += n
+        count += seen[cur - k]           <span class="comment"># ← O(1) lookup</span>
+        seen[cur] += <span class="number">1</span>
+    <span class="keyword">return</span> count
+
+<span class="comment"># ── Product Except Self (LC 238) ──</span>
+<span class="comment"># Trick: build left and right products in-place</span>
+<span class="keyword">def</span> <span class="function">productExceptSelf</span>(nums):
+    n = <span class="function">len</span>(nums)
+    ans = [<span class="number">1</span>] * n
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, n):
+        ans[i] = ans[i-<span class="number">1</span>] * nums[i-<span class="number">1</span>]     <span class="comment"># left products</span>
+    right = <span class="number">1</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n-<span class="number">1</span>, -<span class="number">1</span>, -<span class="number">1</span>):
+        ans[i] *= right
+        right *= nums[i]                 <span class="comment"># right products</span>
+    <span class="keyword">return</span> ans</pre>
+                </div>
+            </div>
+
+            <!-- Pattern 2: Two Pointers -->
+            <h3>2️⃣ Two Pointers</h3>
+            <p style="color: #888; margin-bottom: 15px;">Opposite ends converging or same-direction pointers on sorted arrays. Used in: <em>Two Sum II, 3Sum, Container With Most Water, Trapping Rain Water, Valid Palindrome</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Template: Opposite-end pointers ──</span>
+l, r = <span class="number">0</span>, <span class="function">len</span>(nums) - <span class="number">1</span>
+<span class="keyword">while</span> l &lt; r:
+    <span class="keyword">if</span> condition:
+        l += <span class="number">1</span>
+    <span class="keyword">else</span>:
+        r -= <span class="number">1</span>
+
+<span class="comment"># ── 3Sum (LC 15) ──</span>
+<span class="comment"># Trick: sort + skip duplicates with while loops</span>
+<span class="keyword">def</span> <span class="function">threeSum</span>(nums):
+    nums.sort()
+    res = []
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(nums) - <span class="number">2</span>):
+        <span class="keyword">if</span> i &gt; <span class="number">0</span> <span class="keyword">and</span> nums[i] == nums[i-<span class="number">1</span>]:
+            <span class="keyword">continue</span>                     <span class="comment"># ← skip duplicates</span>
+        l, r = i + <span class="number">1</span>, <span class="function">len</span>(nums) - <span class="number">1</span>
+        <span class="keyword">while</span> l &lt; r:
+            s = nums[i] + nums[l] + nums[r]
+            <span class="keyword">if</span> s &lt; <span class="number">0</span>: l += <span class="number">1</span>
+            <span class="keyword">elif</span> s &gt; <span class="number">0</span>: r -= <span class="number">1</span>
+            <span class="keyword">else</span>:
+                res.append([nums[i], nums[l], nums[r]])
+                <span class="keyword">while</span> l &lt; r <span class="keyword">and</span> nums[l] == nums[l+<span class="number">1</span>]: l += <span class="number">1</span>
+                l += <span class="number">1</span>; r -= <span class="number">1</span>
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Valid Palindrome (LC 125) ──</span>
+<span class="comment"># Trick: isalnum() + two pointers</span>
+<span class="keyword">def</span> <span class="function">isPalindrome</span>(s):
+    s = [c.lower() <span class="keyword">for</span> c <span class="keyword">in</span> s <span class="keyword">if</span> c.isalnum()]
+    <span class="keyword">return</span> s == s[::-<span class="number">1</span>]                  <span class="comment"># ← one-liner!</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • a, b = b, a       — swap without temp</span>
+<span class="comment"># • s.isalnum()        — checks alphanumeric</span>
+<span class="comment"># • nums.sort()        — in-place O(n log n)</span>
+<span class="comment"># • s == s[::-1]       — palindrome check</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 3: Sliding Window -->
+            <h3>3️⃣ Sliding Window</h3>
+            <p style="color: #888; margin-bottom: 15px;">Expand/shrink a window over contiguous elements. Used in: <em>Best Time to Buy/Sell Stock, Longest Substring Without Repeating Chars, Minimum Window Substring, Permutation in String</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Template: Variable-size window ──</span>
+<span class="keyword">def</span> <span class="function">sliding_window</span>(s):
+    window = defaultdict(<span class="function">int</span>)            <span class="comment"># ← track window state</span>
+    l = res = <span class="number">0</span>
+    <span class="keyword">for</span> r <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(s)):
+        window[s[r]] += <span class="number">1</span>               <span class="comment"># expand</span>
+        <span class="keyword">while</span> window_invalid():           <span class="comment"># shrink</span>
+            window[s[l]] -= <span class="number">1</span>
+            l += <span class="number">1</span>
+        res = <span class="function">max</span>(res, r - l + <span class="number">1</span>)       <span class="comment"># update answer</span>
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Longest Substring Without Repeating (LC 3) ──</span>
+<span class="keyword">def</span> <span class="function">lengthOfLongestSubstring</span>(s):
+    seen = {}                            <span class="comment"># char → last index</span>
+    l = res = <span class="number">0</span>
+    <span class="keyword">for</span> r, c <span class="keyword">in</span> <span class="function">enumerate</span>(s):          <span class="comment"># ← enumerate!</span>
+        <span class="keyword">if</span> c <span class="keyword">in</span> seen <span class="keyword">and</span> seen[c] &gt;= l:
+            l = seen[c] + <span class="number">1</span>
+        seen[c] = r
+        res = <span class="function">max</span>(res, r - l + <span class="number">1</span>)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Minimum Window Substring (LC 76) ──</span>
+<span class="comment"># Trick: Counter for need vs window tracking</span>
+<span class="keyword">def</span> <span class="function">minWindow</span>(s, t):
+    need = Counter(t)
+    missing = <span class="function">len</span>(t)
+    l = start = <span class="number">0</span>; end = <span class="function">float</span>(<span class="string">'inf'</span>)
+    <span class="keyword">for</span> r, c <span class="keyword">in</span> <span class="function">enumerate</span>(s):
+        <span class="keyword">if</span> need[c] &gt; <span class="number">0</span>: missing -= <span class="number">1</span>
+        need[c] -= <span class="number">1</span>
+        <span class="keyword">while</span> missing == <span class="number">0</span>:              <span class="comment"># all chars found</span>
+            <span class="keyword">if</span> r - l &lt; end - start:
+                start, end = l, r
+            need[s[l]] += <span class="number">1</span>
+            <span class="keyword">if</span> need[s[l]] &gt; <span class="number">0</span>: missing += <span class="number">1</span>
+            l += <span class="number">1</span>
+    <span class="keyword">return</span> s[start:end+<span class="number">1</span>] <span class="keyword">if</span> end &lt; <span class="function">float</span>(<span class="string">'inf'</span>) <span class="keyword">else</span> <span class="string">""</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • Counter(t)         — instant frequency map</span>
+<span class="comment"># • defaultdict(int)   — no KeyError on missing keys</span>
+<span class="comment"># • enumerate(s)       — index + char in one shot</span>
+<span class="comment"># • float('inf')       — easy infinity comparison</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 4: Fast & Slow Pointers -->
+            <h3>4️⃣ Fast & Slow Pointers</h3>
+            <p style="color: #888; margin-bottom: 15px;">Detect cycles, find middle of linked list. Used in: <em>Linked List Cycle, Middle of Linked List, Happy Number, Find Duplicate Number</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Detect cycle (LC 141) ──</span>
+<span class="keyword">def</span> <span class="function">hasCycle</span>(head):
+    slow = fast = head
+    <span class="keyword">while</span> fast <span class="keyword">and</span> fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        <span class="keyword">if</span> slow == fast: <span class="keyword">return</span> <span class="keyword">True</span>
+    <span class="keyword">return</span> <span class="keyword">False</span>
+
+<span class="comment"># ── Find middle (LC 876) ──</span>
+<span class="keyword">def</span> <span class="function">middleNode</span>(head):
+    slow = fast = head
+    <span class="keyword">while</span> fast <span class="keyword">and</span> fast.next:
+        slow, fast = slow.next, fast.next.next  <span class="comment"># ← parallel assign!</span>
+    <span class="keyword">return</span> slow
+
+<span class="comment"># ── Happy Number (LC 202) ──</span>
+<span class="comment"># Trick: treat as cycle detection in number sequence</span>
+<span class="keyword">def</span> <span class="function">isHappy</span>(n):
+    <span class="keyword">def</span> <span class="function">next_num</span>(n):
+        <span class="keyword">return</span> <span class="function">sum</span>(<span class="function">int</span>(d)**<span class="number">2</span> <span class="keyword">for</span> d <span class="keyword">in</span> <span class="function">str</span>(n))  <span class="comment"># ← str→digits trick!</span>
+    slow, fast = n, next_num(n)
+    <span class="keyword">while</span> fast != <span class="number">1</span> <span class="keyword">and</span> slow != fast:
+        slow = next_num(slow)
+        fast = next_num(next_num(fast))
+    <span class="keyword">return</span> fast == <span class="number">1</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 5: Binary Search -->
+            <h3>5️⃣ Binary Search</h3>
+            <p style="color: #888; margin-bottom: 15px;">Halve search space each step. Used in: <em>Binary Search, Search in Rotated Array, Find Min in Rotated Array, Koko Eating Bananas, Search 2D Matrix</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Template: standard binary search ──</span>
+<span class="keyword">def</span> <span class="function">binary_search</span>(nums, target):
+    l, r = <span class="number">0</span>, <span class="function">len</span>(nums) - <span class="number">1</span>
+    <span class="keyword">while</span> l &lt;= r:
+        m = (l + r) // <span class="number">2</span>               <span class="comment"># ← no overflow in Python!</span>
+        <span class="keyword">if</span> nums[m] == target: <span class="keyword">return</span> m
+        <span class="keyword">elif</span> nums[m] &lt; target: l = m + <span class="number">1</span>
+        <span class="keyword">else</span>: r = m - <span class="number">1</span>
+    <span class="keyword">return</span> -<span class="number">1</span>
+
+<span class="comment"># ── bisect module (built-in binary search!) ──</span>
+<span class="keyword">from</span> bisect <span class="keyword">import</span> bisect_left, bisect_right, insort
+i = bisect_left(arr, target)         <span class="comment"># leftmost insert point</span>
+i = bisect_right(arr, target)        <span class="comment"># rightmost insert point</span>
+insort(arr, val)                     <span class="comment"># insert keeping sorted</span>
+<span class="comment"># Check if target exists:</span>
+found = i &lt; <span class="function">len</span>(arr) <span class="keyword">and</span> arr[i] == target
+
+<span class="comment"># ── Binary Search on Answer Space (LC 875 Koko) ──</span>
+<span class="comment"># Trick: binary search on the answer, not the array</span>
+<span class="keyword">import</span> math
+<span class="keyword">def</span> <span class="function">minEatingSpeed</span>(piles, h):
+    l, r = <span class="number">1</span>, <span class="function">max</span>(piles)
+    <span class="keyword">while</span> l &lt; r:
+        m = (l + r) // <span class="number">2</span>
+        <span class="keyword">if</span> <span class="function">sum</span>(math.ceil(p / m) <span class="keyword">for</span> p <span class="keyword">in</span> piles) &lt;= h:
+            r = m                        <span class="comment"># ← can eat slower</span>
+        <span class="keyword">else</span>:
+            l = m + <span class="number">1</span>
+    <span class="keyword">return</span> l
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • No integer overflow (Python has big ints!)</span>
+<span class="comment"># • bisect_left/right  — skip writing binary search</span>
+<span class="comment"># • math.ceil(a/b) or -(-a//b)  — ceiling division</span>
+<span class="comment"># • sum(... for ... in ...)  — generator expression</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 6: Linked List -->
+            <h3>6️⃣ Linked List Tricks</h3>
+            <p style="color: #888; margin-bottom: 15px;">Dummy nodes, reversal, merge. Used in: <em>Reverse Linked List, Merge Two Sorted Lists, Remove Nth Node, Reorder List, LRU Cache</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Reverse linked list (LC 206) ──</span>
+<span class="keyword">def</span> <span class="function">reverseList</span>(head):
+    prev, curr = <span class="keyword">None</span>, head
+    <span class="keyword">while</span> curr:
+        curr.next, prev, curr = prev, curr, curr.next  <span class="comment"># ← triple swap!</span>
+    <span class="keyword">return</span> prev
+
+<span class="comment"># ── Dummy node pattern (merge, insert, delete) ──</span>
+dummy = ListNode(<span class="number">0</span>)
+dummy.next = head
+<span class="comment"># ... manipulate list ...</span>
+<span class="keyword">return</span> dummy.next                     <span class="comment"># ← avoids edge cases!</span>
+
+<span class="comment"># ── Merge two sorted lists (LC 21) ──</span>
+<span class="keyword">def</span> <span class="function">mergeTwoLists</span>(l1, l2):
+    dummy = cur = ListNode(<span class="number">0</span>)
+    <span class="keyword">while</span> l1 <span class="keyword">and</span> l2:
+        <span class="keyword">if</span> l1.val &lt; l2.val:
+            cur.next, l1 = l1, l1.next
+        <span class="keyword">else</span>:
+            cur.next, l2 = l2, l2.next
+        cur = cur.next
+    cur.next = l1 <span class="keyword">or</span> l2                 <span class="comment"># ← Python's or returns truthy!</span>
+    <span class="keyword">return</span> dummy.next</pre>
+                </div>
+            </div>
+
+            <!-- Pattern 7: Stack / Monotonic Stack -->
+            <h3>7️⃣ Stack / Monotonic Stack</h3>
+            <p style="color: #888; margin-bottom: 15px;">LIFO for matching, next greater/smaller. Used in: <em>Valid Parentheses, Daily Temperatures, Largest Rectangle in Histogram, Car Fleet</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Valid Parentheses (LC 20) ──</span>
+<span class="keyword">def</span> <span class="function">isValid</span>(s):
+    stack = []
+    pairs = {<span class="string">')'</span>: <span class="string">'('</span>, <span class="string">']'</span>: <span class="string">'['</span>, <span class="string">'}'</span>: <span class="string">'{'</span>}  <span class="comment"># ← dict for O(1) match</span>
+    <span class="keyword">for</span> c <span class="keyword">in</span> s:
+        <span class="keyword">if</span> c <span class="keyword">in</span> pairs:
+            <span class="keyword">if</span> <span class="keyword">not</span> stack <span class="keyword">or</span> stack[-<span class="number">1</span>] != pairs[c]:
+                <span class="keyword">return</span> <span class="keyword">False</span>
+            stack.pop()
+        <span class="keyword">else</span>:
+            stack.append(c)
+    <span class="keyword">return</span> <span class="keyword">not</span> stack                   <span class="comment"># ← Pythonic empty check</span>
+
+<span class="comment"># ── Daily Temperatures (LC 739) — Monotonic stack ──</span>
+<span class="keyword">def</span> <span class="function">dailyTemperatures</span>(temps):
+    ans = [<span class="number">0</span>] * <span class="function">len</span>(temps)
+    stack = []                           <span class="comment"># stores indices</span>
+    <span class="keyword">for</span> i, t <span class="keyword">in</span> <span class="function">enumerate</span>(temps):
+        <span class="keyword">while</span> stack <span class="keyword">and</span> temps[stack[-<span class="number">1</span>]] &lt; t:
+            j = stack.pop()
+            ans[j] = i - j               <span class="comment"># ← days to wait</span>
+        stack.append(i)
+    <span class="keyword">return</span> ans
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • stack[-1]          — peek (no method needed!)</span>
+<span class="comment"># • not stack          — Pythonic "is empty" check</span>
+<span class="comment"># • dict for matching  — O(1) bracket pair lookup</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 8: BFS (Breadth-First Search) -->
+            <h3>8️⃣ BFS (Level-Order / Shortest Path)</h3>
+            <p style="color: #888; margin-bottom: 15px;">Queue-based level traversal for trees/graphs. Used in: <em>Level Order Traversal, Rotting Oranges, Word Ladder, Walls and Gates, Number of Islands</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Template: Tree level-order BFS ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> deque
+<span class="keyword">def</span> <span class="function">levelOrder</span>(root):
+    <span class="keyword">if</span> <span class="keyword">not</span> root: <span class="keyword">return</span> []
+    res, q = [], deque([root])
+    <span class="keyword">while</span> q:
+        level = []
+        <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(q)):         <span class="comment"># ← process one level</span>
+            node = q.popleft()
+            level.append(node.val)
+            <span class="keyword">if</span> node.left:  q.append(node.left)
+            <span class="keyword">if</span> node.right: q.append(node.right)
+        res.append(level)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Template: Graph/Grid BFS ──</span>
+<span class="keyword">def</span> <span class="function">bfs</span>(grid, start):
+    q = deque([start])
+    visited = {start}                    <span class="comment"># ← set for O(1) lookup</span>
+    steps = <span class="number">0</span>
+    <span class="keyword">while</span> q:
+        <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(q)):
+            r, c = q.popleft()           <span class="comment"># ← tuple unpacking</span>
+            <span class="keyword">for</span> dr, dc <span class="keyword">in</span> [(<span class="number">1</span>,<span class="number">0</span>),(-<span class="number">1</span>,<span class="number">0</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,-<span class="number">1</span>)]:  <span class="comment"># ← 4 directions</span>
+                nr, nc = r + dr, c + dc
+                <span class="keyword">if</span> <span class="number">0</span> &lt;= nr &lt; rows <span class="keyword">and</span> <span class="number">0</span> &lt;= nc &lt; cols \
+                   <span class="keyword">and</span> (nr, nc) <span class="keyword">not</span> <span class="keyword">in</span> visited:
+                    visited.add((nr, nc)) <span class="comment"># ← tuple as set element</span>
+                    q.append((nr, nc))
+        steps += <span class="number">1</span>
+    <span class="keyword">return</span> steps
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • deque([start])      — O(1) popleft (list.pop(0) is O(n)!)</span>
+<span class="comment"># • for _ in range(len(q))  — snapshot level size</span>
+<span class="comment"># • (r, c) tuples       — hashable, can go in sets</span>
+<span class="comment"># • 0 &lt;= nr &lt; rows      — chained comparison</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 9: DFS / Tree Traversal -->
+            <h3>9️⃣ DFS / Tree Traversal</h3>
+            <p style="color: #888; margin-bottom: 15px;">Recursive depth-first exploration. Used in: <em>Max Depth, Same Tree, Invert Tree, Diameter, Lowest Common Ancestor, Serialize/Deserialize, Number of Islands</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Max Depth (LC 104) ──</span>
+<span class="keyword">def</span> <span class="function">maxDepth</span>(root):
+    <span class="keyword">if</span> <span class="keyword">not</span> root: <span class="keyword">return</span> <span class="number">0</span>
+    <span class="keyword">return</span> <span class="number">1</span> + <span class="function">max</span>(maxDepth(root.left), maxDepth(root.right))
+
+<span class="comment"># ── Diameter of Binary Tree (LC 543) ──</span>
+<span class="comment"># Trick: nonlocal to track state across recursive calls</span>
+<span class="keyword">def</span> <span class="function">diameterOfBinaryTree</span>(root):
+    res = <span class="number">0</span>
+    <span class="keyword">def</span> <span class="function">dfs</span>(node):
+        <span class="keyword">nonlocal</span> res                    <span class="comment"># ← access outer variable</span>
+        <span class="keyword">if</span> <span class="keyword">not</span> node: <span class="keyword">return</span> <span class="number">0</span>
+        l, r = dfs(node.left), dfs(node.right)
+        res = <span class="function">max</span>(res, l + r)
+        <span class="keyword">return</span> <span class="number">1</span> + <span class="function">max</span>(l, r)
+    dfs(root)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Number of Islands (LC 200) — grid DFS ──</span>
+<span class="keyword">def</span> <span class="function">numIslands</span>(grid):
+    <span class="keyword">def</span> <span class="function">dfs</span>(r, c):
+        <span class="keyword">if</span> r &lt; <span class="number">0</span> <span class="keyword">or</span> r &gt;= rows <span class="keyword">or</span> c &lt; <span class="number">0</span> <span class="keyword">or</span> c &gt;= cols \
+           <span class="keyword">or</span> grid[r][c] != <span class="string">"1"</span>:
+            <span class="keyword">return</span>
+        grid[r][c] = <span class="string">"#"</span>                <span class="comment"># ← mark visited in-place</span>
+        <span class="keyword">for</span> dr, dc <span class="keyword">in</span> [(<span class="number">1</span>,<span class="number">0</span>),(-<span class="number">1</span>,<span class="number">0</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,-<span class="number">1</span>)]:
+            dfs(r + dr, c + dc)
+    rows, cols = <span class="function">len</span>(grid), <span class="function">len</span>(grid[<span class="number">0</span>])
+    count = <span class="number">0</span>
+    <span class="keyword">for</span> r <span class="keyword">in</span> <span class="function">range</span>(rows):
+        <span class="keyword">for</span> c <span class="keyword">in</span> <span class="function">range</span>(cols):
+            <span class="keyword">if</span> grid[r][c] == <span class="string">"1"</span>:
+                dfs(r, c)
+                count += <span class="number">1</span>
+    <span class="keyword">return</span> count
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • nonlocal            — modify enclosing scope variable</span>
+<span class="comment"># • nested def          — closures capture outer vars</span>
+<span class="comment"># • modify grid in-place — no need for visited set</span>
+<span class="comment"># • for dr, dc in [...]  — clean direction iteration</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 10: Backtracking -->
+            <h3>🔟 Backtracking</h3>
+            <p style="color: #888; margin-bottom: 15px;">Explore all combinations/permutations, undo choices. Used in: <em>Subsets, Permutations, Combination Sum, Word Search, N-Queens, Generate Parentheses</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Subsets (LC 78) ──</span>
+<span class="keyword">def</span> <span class="function">subsets</span>(nums):
+    res = []
+    <span class="keyword">def</span> <span class="function">backtrack</span>(start, path):
+        res.append(path[:])              <span class="comment"># ← copy! (path[:] or list(path))</span>
+        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(start, <span class="function">len</span>(nums)):
+            path.append(nums[i])
+            backtrack(i + <span class="number">1</span>, path)
+            path.pop()                   <span class="comment"># ← undo choice (backtrack)</span>
+    backtrack(<span class="number">0</span>, [])
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Permutations (LC 46) ──</span>
+<span class="keyword">def</span> <span class="function">permute</span>(nums):
+    res = []
+    <span class="keyword">def</span> <span class="function">backtrack</span>(path):
+        <span class="keyword">if</span> <span class="function">len</span>(path) == <span class="function">len</span>(nums):
+            res.append(path[:])
+            <span class="keyword">return</span>
+        <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+            <span class="keyword">if</span> n <span class="keyword">not</span> <span class="keyword">in</span> path:            <span class="comment"># ← O(n) but clean for interviews</span>
+                path.append(n)
+                backtrack(path)
+                path.pop()
+    backtrack([])
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Combination Sum (LC 39) ──</span>
+<span class="keyword">def</span> <span class="function">combinationSum</span>(candidates, target):
+    res = []
+    <span class="keyword">def</span> <span class="function">backtrack</span>(start, path, total):
+        <span class="keyword">if</span> total == target:
+            res.append(path[:])
+            <span class="keyword">return</span>
+        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(start, <span class="function">len</span>(candidates)):
+            <span class="keyword">if</span> total + candidates[i] &gt; target:
+                <span class="keyword">break</span>                    <span class="comment"># ← prune (sort first!)</span>
+            path.append(candidates[i])
+            backtrack(i, path, total + candidates[i])  <span class="comment"># i not i+1 (reuse)</span>
+            path.pop()
+    candidates.sort()                    <span class="comment"># ← sort enables pruning</span>
+    backtrack(<span class="number">0</span>, [], <span class="number">0</span>)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • path[:]            — shallow copy of current path</span>
+<span class="comment"># • path.append / pop  — mutate-then-undo pattern</span>
+<span class="comment"># • sort + break       — prune search space</span>
+<span class="comment"># • n not in path      — membership test in list</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 11: Heap / Top-K -->
+            <h3>1️⃣1️⃣ Heap / Top-K / Two Heaps</h3>
+            <p style="color: #888; margin-bottom: 15px;">Priority queue for K-th element, streaming median. Used in: <em>Kth Largest Element, Top K Frequent, Merge K Sorted Lists, Find Median from Data Stream, Task Scheduler</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="keyword">import</span> heapq
+
+<span class="comment"># ── Top K Frequent Elements (LC 347) ──</span>
+<span class="keyword">def</span> <span class="function">topKFrequent</span>(nums, k):
+    count = Counter(nums)                <span class="comment"># ← instant frequency</span>
+    <span class="keyword">return</span> heapq.nlargest(k, count, key=count.get)  <span class="comment"># ← one-liner!</span>
+    <span class="comment"># Alt: return [x for x, _ in count.most_common(k)]</span>
+
+<span class="comment"># ── Kth Largest Element (LC 215) ──</span>
+<span class="keyword">def</span> <span class="function">findKthLargest</span>(nums, k):
+    <span class="keyword">return</span> heapq.nlargest(k, nums)[-<span class="number">1</span>]   <span class="comment"># ← built-in!</span>
+
+<span class="comment"># ── Merge K Sorted Lists (LC 23) ──</span>
+<span class="keyword">def</span> <span class="function">mergeKLists</span>(lists):
+    heap = []
+    <span class="keyword">for</span> i, l <span class="keyword">in</span> <span class="function">enumerate</span>(lists):
+        <span class="keyword">if</span> l:
+            heapq.heappush(heap, (l.val, i, l))  <span class="comment"># ← i breaks ties!</span>
+    dummy = cur = ListNode(<span class="number">0</span>)
+    <span class="keyword">while</span> heap:
+        val, i, node = heapq.heappop(heap)
+        cur.next = node
+        cur = cur.next
+        <span class="keyword">if</span> node.next:
+            heapq.heappush(heap, (node.next.val, i, node.next))
+    <span class="keyword">return</span> dummy.next
+
+<span class="comment"># ── Find Median (LC 295) — Two Heaps ──</span>
+<span class="comment"># small = max-heap (negate!), large = min-heap</span>
+small, large = [], []  <span class="comment"># max-heap (neg), min-heap</span>
+heapq.heappush(small, -num)
+heapq.heappush(large, -heapq.heappop(small))
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • heapq.nlargest(k, ...)  — avoid full sort</span>
+<span class="comment"># • Counter().most_common(k) — top K frequencies</span>
+<span class="comment"># • -val for max-heap       — negate trick</span>
+<span class="comment"># • (val, tiebreaker, obj)  — tuple comparison order</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 12: Intervals -->
+            <h3>1️⃣2️⃣ Intervals</h3>
+            <p style="color: #888; margin-bottom: 15px;">Sort + merge/compare overlapping ranges. Used in: <em>Merge Intervals, Insert Interval, Non-Overlapping Intervals, Meeting Rooms</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Merge Intervals (LC 56) ──</span>
+<span class="keyword">def</span> <span class="function">merge</span>(intervals):
+    intervals.sort()                     <span class="comment"># ← sorts by start (then end)</span>
+    merged = [intervals[<span class="number">0</span>]]
+    <span class="keyword">for</span> start, end <span class="keyword">in</span> intervals[<span class="number">1</span>:]:    <span class="comment"># ← tuple unpacking</span>
+        <span class="keyword">if</span> start &lt;= merged[-<span class="number">1</span>][<span class="number">1</span>]:
+            merged[-<span class="number">1</span>][<span class="number">1</span>] = <span class="function">max</span>(merged[-<span class="number">1</span>][<span class="number">1</span>], end)
+        <span class="keyword">else</span>:
+            merged.append([start, end])
+    <span class="keyword">return</span> merged
+
+<span class="comment"># ── Meeting Rooms II (sweep line) ──</span>
+<span class="comment"># Trick: separate start/end events and sort</span>
+events = []
+<span class="keyword">for</span> s, e <span class="keyword">in</span> intervals:
+    events.append((s, <span class="number">1</span>))               <span class="comment"># meeting starts</span>
+    events.append((e, -<span class="number">1</span>))              <span class="comment"># meeting ends</span>
+events.sort()
+max_rooms = cur = <span class="number">0</span>
+<span class="keyword">for</span> _, delta <span class="keyword">in</span> events:
+    cur += delta
+    max_rooms = <span class="function">max</span>(max_rooms, cur)
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • intervals.sort()    — sorts tuples lexicographically</span>
+<span class="comment"># • for s, e in ...     — tuple unpacking in loops</span>
+<span class="comment"># • merged[-1]          — peek last element of result</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 13: Dynamic Programming -->
+            <h3>1️⃣3️⃣ Dynamic Programming</h3>
+            <p style="color: #888; margin-bottom: 15px;">Optimal substructure + overlapping subproblems. Used in: <em>Climbing Stairs, House Robber, Coin Change, LIS, Longest Common Subsequence, Knapsack, Edit Distance, Word Break</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Top-Down with @cache (Python 3.9+) ──</span>
+<span class="keyword">from</span> functools <span class="keyword">import</span> cache
+<span class="keyword">def</span> <span class="function">climbStairs</span>(n):
+    @cache                               <span class="comment"># ← automatic memoization!</span>
+    <span class="keyword">def</span> <span class="function">dp</span>(i):
+        <span class="keyword">if</span> i &lt;= <span class="number">1</span>: <span class="keyword">return</span> <span class="number">1</span>
+        <span class="keyword">return</span> dp(i-<span class="number">1</span>) + dp(i-<span class="number">2</span>)
+    <span class="keyword">return</span> dp(n)
+
+<span class="comment"># ── For Python &lt; 3.9, use @lru_cache(maxsize=None) ──</span>
+<span class="keyword">from</span> functools <span class="keyword">import</span> lru_cache
+@lru_cache(maxsize=<span class="keyword">None</span>)
+<span class="keyword">def</span> <span class="function">dp</span>(i, j): ...
+
+<span class="comment"># ── Bottom-Up: Coin Change (LC 322) ──</span>
+<span class="keyword">def</span> <span class="function">coinChange</span>(coins, amount):
+    dp = [<span class="function">float</span>(<span class="string">'inf'</span>)] * (amount + <span class="number">1</span>)
+    dp[<span class="number">0</span>] = <span class="number">0</span>
+    <span class="keyword">for</span> a <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, amount + <span class="number">1</span>):
+        <span class="keyword">for</span> c <span class="keyword">in</span> coins:
+            <span class="keyword">if</span> c &lt;= a:
+                dp[a] = <span class="function">min</span>(dp[a], dp[a - c] + <span class="number">1</span>)
+    <span class="keyword">return</span> dp[amount] <span class="keyword">if</span> dp[amount] != <span class="function">float</span>(<span class="string">'inf'</span>) <span class="keyword">else</span> -<span class="number">1</span>
+
+<span class="comment"># ── House Robber (LC 198) — space-optimized ──</span>
+<span class="keyword">def</span> <span class="function">rob</span>(nums):
+    prev, curr = <span class="number">0</span>, <span class="number">0</span>
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+        prev, curr = curr, <span class="function">max</span>(curr, prev + n)  <span class="comment"># ← parallel assign!</span>
+    <span class="keyword">return</span> curr
+
+<span class="comment"># ── LIS (LC 300) — patience sort with bisect ──</span>
+<span class="keyword">from</span> bisect <span class="keyword">import</span> bisect_left
+<span class="keyword">def</span> <span class="function">lengthOfLIS</span>(nums):
+    tails = []
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+        i = bisect_left(tails, n)
+        <span class="keyword">if</span> i == <span class="function">len</span>(tails):
+            tails.append(n)
+        <span class="keyword">else</span>:
+            tails[i] = n                 <span class="comment"># ← O(n log n)!</span>
+    <span class="keyword">return</span> <span class="function">len</span>(tails)
+
+<span class="comment"># ── 2D DP: LCS (LC 1143) ──</span>
+<span class="keyword">def</span> <span class="function">longestCommonSubsequence</span>(s1, s2):
+    dp = [[<span class="number">0</span>] * (<span class="function">len</span>(s2)+<span class="number">1</span>) <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(s1)+<span class="number">1</span>)]
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, <span class="function">len</span>(s1)+<span class="number">1</span>):
+        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, <span class="function">len</span>(s2)+<span class="number">1</span>):
+            <span class="keyword">if</span> s1[i-<span class="number">1</span>] == s2[j-<span class="number">1</span>]:
+                dp[i][j] = dp[i-<span class="number">1</span>][j-<span class="number">1</span>] + <span class="number">1</span>
+            <span class="keyword">else</span>:
+                dp[i][j] = <span class="function">max</span>(dp[i-<span class="number">1</span>][j], dp[i][j-<span class="number">1</span>])
+    <span class="keyword">return</span> dp[-<span class="number">1</span>][-<span class="number">1</span>]                    <span class="comment"># ← dp[-1][-1] = bottom-right</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • @cache / @lru_cache  — FREE memoization decorator</span>
+<span class="comment"># • float('inf')         — clean infinity for min comparisons</span>
+<span class="comment"># • prev, curr = curr, max(...)  — O(1) space DP</span>
+<span class="comment"># • bisect_left          — O(n log n) LIS</span>
+<span class="comment"># • dp[-1][-1]           — negative indexing for last element</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 14: Graph / Topological Sort -->
+            <h3>1️⃣4️⃣ Graph / Topological Sort</h3>
+            <p style="color: #888; margin-bottom: 15px;">Adjacency list traversal, dependency ordering. Used in: <em>Course Schedule, Clone Graph, Pacific Atlantic Water Flow, Alien Dictionary</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Build adjacency list ──</span>
+graph = defaultdict(<span class="function">list</span>)              <span class="comment"># ← auto-creates lists</span>
+<span class="keyword">for</span> u, v <span class="keyword">in</span> edges:
+    graph[u].append(v)
+    graph[v].append(u)                   <span class="comment"># ← if undirected</span>
+
+<span class="comment"># ── Topological Sort — BFS / Kahn's (LC 207) ──</span>
+<span class="keyword">def</span> <span class="function">canFinish</span>(numCourses, prerequisites):
+    graph = defaultdict(<span class="function">list</span>)
+    indegree = [<span class="number">0</span>] * numCourses
+    <span class="keyword">for</span> course, pre <span class="keyword">in</span> prerequisites:
+        graph[pre].append(course)
+        indegree[course] += <span class="number">1</span>
+    q = deque(i <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(numCourses) <span class="keyword">if</span> indegree[i] == <span class="number">0</span>)
+    taken = <span class="number">0</span>                            <span class="comment"># ← generator in deque!</span>
+    <span class="keyword">while</span> q:
+        node = q.popleft()
+        taken += <span class="number">1</span>
+        <span class="keyword">for</span> nei <span class="keyword">in</span> graph[node]:
+            indegree[nei] -= <span class="number">1</span>
+            <span class="keyword">if</span> indegree[nei] == <span class="number">0</span>:
+                q.append(nei)
+    <span class="keyword">return</span> taken == numCourses
+
+<span class="comment"># ── Topological Sort — DFS cycle detection ──</span>
+<span class="keyword">def</span> <span class="function">canFinish_dfs</span>(numCourses, prerequisites):
+    graph = defaultdict(<span class="function">list</span>)
+    <span class="keyword">for</span> c, p <span class="keyword">in</span> prerequisites: graph[p].append(c)
+    WHITE, GRAY, BLACK = <span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>       <span class="comment"># ← state enum</span>
+    color = [WHITE] * numCourses
+    <span class="keyword">def</span> <span class="function">dfs</span>(node):
+        color[node] = GRAY
+        <span class="keyword">for</span> nei <span class="keyword">in</span> graph[node]:
+            <span class="keyword">if</span> color[nei] == GRAY: <span class="keyword">return</span> <span class="keyword">False</span>  <span class="comment"># cycle!</span>
+            <span class="keyword">if</span> color[nei] == WHITE <span class="keyword">and</span> <span class="keyword">not</span> dfs(nei): <span class="keyword">return</span> <span class="keyword">False</span>
+        color[node] = BLACK
+        <span class="keyword">return</span> <span class="keyword">True</span>
+    <span class="keyword">return</span> <span class="function">all</span>(dfs(i) <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(numCourses) <span class="keyword">if</span> color[i] == WHITE)
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • defaultdict(list)   — no KeyError, auto-creates adj list</span>
+<span class="comment"># • deque(generator)    — initialize queue with generator</span>
+<span class="comment"># • all(... for ...)    — short-circuit over all nodes</span>
+<span class="comment"># • WHITE, GRAY, BLACK  — multiple assignment for states</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 15: Trie -->
+            <h3>1️⃣5️⃣ Trie (Prefix Tree)</h3>
+            <p style="color: #888; margin-bottom: 15px;">Efficient prefix/word lookup. Used in: <em>Implement Trie, Word Search II, Design Add and Search Words</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Clean Trie using nested dicts ──</span>
+<span class="keyword">class</span> <span class="type">Trie</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self):
+        self.root = {}
+
+    <span class="keyword">def</span> <span class="function">insert</span>(self, word):
+        node = self.root
+        <span class="keyword">for</span> c <span class="keyword">in</span> word:
+            node = node.setdefault(c, {}) <span class="comment"># ← create if missing!</span>
+        node[<span class="string">'#'</span>] = <span class="keyword">True</span>                  <span class="comment"># ← end-of-word marker</span>
+
+    <span class="keyword">def</span> <span class="function">search</span>(self, word):
+        node = self.root
+        <span class="keyword">for</span> c <span class="keyword">in</span> word:
+            <span class="keyword">if</span> c <span class="keyword">not</span> <span class="keyword">in</span> node: <span class="keyword">return</span> <span class="keyword">False</span>
+            node = node[c]
+        <span class="keyword">return</span> <span class="string">'#'</span> <span class="keyword">in</span> node
+
+    <span class="keyword">def</span> <span class="function">startsWith</span>(self, prefix):
+        node = self.root
+        <span class="keyword">for</span> c <span class="keyword">in</span> prefix:
+            <span class="keyword">if</span> c <span class="keyword">not</span> <span class="keyword">in</span> node: <span class="keyword">return</span> <span class="keyword">False</span>
+            node = node[c]
+        <span class="keyword">return</span> <span class="keyword">True</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • dict.setdefault(k, {})  — get-or-create in one call</span>
+<span class="comment"># • nested dict as trie     — no need for TrieNode class</span>
+<span class="comment"># • '#' as end marker       — any sentinel works</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 16: Union Find -->
+            <h3>1️⃣6️⃣ Union Find (Disjoint Set)</h3>
+            <p style="color: #888; margin-bottom: 15px;">Track connected components efficiently. Used in: <em>Number of Connected Components, Redundant Connection, Accounts Merge, Number of Provinces</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Template: Union Find with path compression + rank ──</span>
+<span class="keyword">class</span> <span class="type">UnionFind</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, n):
+        self.par = <span class="function">list</span>(<span class="function">range</span>(n))       <span class="comment"># ← parent[i] = i initially</span>
+        self.rank = [<span class="number">0</span>] * n
+
+    <span class="keyword">def</span> <span class="function">find</span>(self, x):
+        <span class="keyword">if</span> self.par[x] != x:
+            self.par[x] = self.find(self.par[x])  <span class="comment"># ← path compression</span>
+        <span class="keyword">return</span> self.par[x]
+
+    <span class="keyword">def</span> <span class="function">union</span>(self, x, y):
+        px, py = self.find(x), self.find(y)
+        <span class="keyword">if</span> px == py: <span class="keyword">return</span> <span class="keyword">False</span>         <span class="comment"># already connected</span>
+        <span class="keyword">if</span> self.rank[px] &lt; self.rank[py]:
+            px, py = py, px              <span class="comment"># ← swap trick</span>
+        self.par[py] = px
+        <span class="keyword">if</span> self.rank[px] == self.rank[py]:
+            self.rank[px] += <span class="number">1</span>
+        <span class="keyword">return</span> <span class="keyword">True</span>
+
+<span class="comment"># ── Usage: Number of Connected Components ──</span>
+uf = UnionFind(n)
+<span class="keyword">for</span> u, v <span class="keyword">in</span> edges:
+    uf.union(u, v)
+components = <span class="function">len</span>(<span class="function">set</span>(uf.find(i) <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n)))  <span class="comment"># ← set comp!</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • list(range(n))       — initialize parent array</span>
+<span class="comment"># • recursive find + reassign — path compression</span>
+<span class="comment"># • set(... for ...)     — count unique roots</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 17: Bit Manipulation -->
+            <h3>1️⃣7️⃣ Bit Manipulation</h3>
+            <p style="color: #888; margin-bottom: 15px;">XOR, AND, shift tricks. Used in: <em>Single Number, Counting Bits, Reverse Bits, Missing Number, Sum of Two Integers</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Single Number (LC 136) — XOR all elements ──</span>
+<span class="keyword">from</span> functools <span class="keyword">import</span> reduce
+<span class="keyword">from</span> operator <span class="keyword">import</span> xor
+result = reduce(xor, nums)              <span class="comment"># ← XOR cancels pairs</span>
+
+<span class="comment"># ── Counting Bits (LC 338) ──</span>
+[bin(i).count(<span class="string">'1'</span>) <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n+<span class="number">1</span>)]  <span class="comment"># ← bin() + count!</span>
+
+<span class="comment"># ── Missing Number (LC 268) ──</span>
+<span class="keyword">def</span> <span class="function">missingNumber</span>(nums):
+    <span class="keyword">return</span> <span class="function">len</span>(nums) * (<span class="function">len</span>(nums)+<span class="number">1</span>)//<span class="number">2</span> - <span class="function">sum</span>(nums)  <span class="comment"># ← math!</span>
+    <span class="comment"># Or XOR: reduce(xor, nums + list(range(len(nums)+1)))</span>
+
+<span class="comment"># ── Common bit tricks ──</span>
+n &amp; (n - <span class="number">1</span>)                            <span class="comment"># clear lowest set bit</span>
+n &amp; (-n)                               <span class="comment"># isolate lowest set bit</span>
+n | (n + <span class="number">1</span>)                            <span class="comment"># set lowest clear bit</span>
+bin(n).count(<span class="string">'1'</span>)                      <span class="comment"># popcount (count 1s)</span>
+n &gt;&gt; k &amp; <span class="number">1</span>                             <span class="comment"># check k-th bit</span>
+n ^ (<span class="number">1</span> &lt;&lt; k)                           <span class="comment"># toggle k-th bit</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • reduce(xor, nums)    — XOR all in one line</span>
+<span class="comment"># • bin(n).count('1')    — popcount (no manual loop)</span>
+<span class="comment"># • Python handles negative numbers & big ints natively</span></pre>
+                </div>
+            </div>
+
+            <!-- Pattern 18: Greedy / Kadane's -->
+            <h3>1️⃣8️⃣ Greedy / Kadane's Algorithm</h3>
+            <p style="color: #888; margin-bottom: 15px;">Locally optimal choices, max subarray. Used in: <em>Maximum Subarray, Jump Game, Gas Station, Hand of Straights, Partition Labels</em></p>
+            <div class="code-block" style="margin-bottom: 25px;">
+                <div class="code-header python">🐍 Python Shortcuts</div>
+                <div class="code-content">
+<pre><span class="comment"># ── Maximum Subarray / Kadane's (LC 53) ──</span>
+<span class="keyword">def</span> <span class="function">maxSubArray</span>(nums):
+    cur = res = nums[<span class="number">0</span>]
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums[<span class="number">1</span>:]:
+        cur = <span class="function">max</span>(n, cur + n)            <span class="comment"># ← restart or extend?</span>
+        res = <span class="function">max</span>(res, cur)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Jump Game (LC 55) ──</span>
+<span class="keyword">def</span> <span class="function">canJump</span>(nums):
+    reach = <span class="number">0</span>
+    <span class="keyword">for</span> i, n <span class="keyword">in</span> <span class="function">enumerate</span>(nums):
+        <span class="keyword">if</span> i &gt; reach: <span class="keyword">return</span> <span class="keyword">False</span>
+        reach = <span class="function">max</span>(reach, i + n)
+    <span class="keyword">return</span> <span class="keyword">True</span>
+
+<span class="comment"># ── Partition Labels (LC 763) ──</span>
+<span class="keyword">def</span> <span class="function">partitionLabels</span>(s):
+    last = {c: i <span class="keyword">for</span> i, c <span class="keyword">in</span> <span class="function">enumerate</span>(s)}  <span class="comment"># ← dict comp!</span>
+    start = end = <span class="number">0</span>
+    res = []
+    <span class="keyword">for</span> i, c <span class="keyword">in</span> <span class="function">enumerate</span>(s):
+        end = <span class="function">max</span>(end, last[c])
+        <span class="keyword">if</span> i == end:
+            res.append(end - start + <span class="number">1</span>)
+            start = i + <span class="number">1</span>
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • {c: i for i, c in enumerate(s)}  — last-occurrence map</span>
+<span class="comment"># • max(n, cur + n)     — Kadane's in one expression</span></pre>
+                </div>
+            </div>
+
+            <!-- Summary: All Python Shortcuts Index -->
+            <h3>📚 Python Shortcuts Master Index</h3>
+            <table class="comparison-table" style="margin-bottom: 10px;">
+                <thead>
+                    <tr>
+                        <th>Shortcut</th>
+                        <th>What it does</th>
+                        <th>Used in patterns</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>Counter(iterable)</code></td><td>Instant frequency map</td><td>Sliding Window, Heap, Anagram</td></tr>
+                    <tr><td><code>defaultdict(int/list)</code></td><td>Auto-create missing keys</td><td>Graph, Sliding Window, BFS</td></tr>
+                    <tr><td><code>@cache / @lru_cache</code></td><td>Free memoization</td><td>DP (top-down)</td></tr>
+                    <tr><td><code>bisect_left / insort</code></td><td>Binary search on sorted list</td><td>Binary Search, LIS, Intervals</td></tr>
+                    <tr><td><code>heapq.nlargest(k,...)</code></td><td>Top-K without full sort</td><td>Heap, Top-K</td></tr>
+                    <tr><td><code>-val</code> with <code>heapq</code></td><td>Max-heap via negation</td><td>Two Heaps, Top-K</td></tr>
+                    <tr><td><code>deque / popleft()</code></td><td>O(1) queue operations</td><td>BFS, Sliding Window</td></tr>
+                    <tr><td><code>enumerate(iterable)</code></td><td>Index + value in one loop</td><td>Two Pointers, Sliding Window</td></tr>
+                    <tr><td><code>a, b = b, a</code></td><td>Parallel swap / assign</td><td>Linked List, DP, Two Pointers</td></tr>
+                    <tr><td><code>float('inf')</code></td><td>Infinity for comparisons</td><td>DP, Binary Search, Sliding Window</td></tr>
+                    <tr><td><code>nonlocal var</code></td><td>Modify enclosing scope var</td><td>DFS/Tree (diameter, etc.)</td></tr>
+                    <tr><td><code>s[::-1]</code></td><td>Reverse string/list</td><td>Two Pointers, Palindrome</td></tr>
+                    <tr><td><code>dict.setdefault(k,{})</code></td><td>Get-or-create in one call</td><td>Trie</td></tr>
+                    <tr><td><code>reduce(xor, nums)</code></td><td>XOR all elements</td><td>Bit Manipulation</td></tr>
+                    <tr><td><code>bin(n).count('1')</code></td><td>Count set bits</td><td>Bit Manipulation</td></tr>
+                    <tr><td><code>accumulate(nums)</code></td><td>Running prefix sums</td><td>Prefix Sum</td></tr>
+                    <tr><td><code>path[:] / list(path)</code></td><td>Snapshot copy for backtracking</td><td>Backtracking</td></tr>
+                    <tr><td><code>0 &lt;= r &lt; rows</code></td><td>Chained bound check</td><td>BFS / DFS on grids</td></tr>
+                    <tr><td><code>(val, i, obj)</code> in heap</td><td>Tuple tie-breaking</td><td>Merge K Lists, Dijkstra</td></tr>
+                    <tr><td><code>all() / any()</code></td><td>Short-circuit boolean check</td><td>Graph, Validation</td></tr>
+                    <tr><td><code>math.ceil(a/b)</code> or <code>-(-a//b)</code></td><td>Ceiling division</td><td>Binary Search on answer</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Section 5b: Python-Specific Power Features -->
+        <div class="section">
+            <h2>Python Power Features for Interviews</h2>
+            
+            <div class="quick-ref">
+                <div class="quick-ref-card">
+                    <h4>🔢 Multiple Assignment</h4>
+                    <code>a, b = b, a  # swap</code>
+                    <code>a, b, *rest = [1,2,3,4,5]</code>
+                    <p class="note">No temp variable needed!</p>
+                </div>
+                
+                <div class="quick-ref-card">
+                    <h4>📏 Slicing Magic</h4>
+                    <code>arr[start:end:step]</code>
+                    <code>arr[-1]  # last element</code>
+                    <code>arr[:-1] # all but last</code>
+                    <code>arr[::-1] # reversed</code>
+                </div>
+                
+                <div class="quick-ref-card">
+                    <h4>🔄 Enumerate & Zip</h4>
+                    <code>for i, val in enumerate(arr):</code>
+                    <code>for a, b in zip(list1, list2):</code>
+                    <p class="note">No need for index tracking!</p>
+                </div>
+                
+                <div class="quick-ref-card">
+                    <h4>📊 DefaultDict</h4>
+                    <code>from collections import defaultdict</code>
+                    <code>d = defaultdict(list)</code>
+                    <code>d = defaultdict(int)  # counters</code>
+                    <p class="note">Auto-creates missing keys</p>
+                </div>
+                
+                <div class="quick-ref-card">
+                    <h4>∞ Infinity</h4>
+                    <code>float('inf')   # positive infinity</code>
+                    <code>float('-inf')  # negative infinity</code>
+                    <p class="note">Great for min/max comparisons</p>
+                </div>
+                
+                <div class="quick-ref-card">
+                    <h4>🎭 Any/All</h4>
+                    <code>any(x > 0 for x in nums)</code>
+                    <code>all(x > 0 for x in nums)</code>
+                    <p class="note">Short-circuit evaluation</p>
+                </div>
+                
+                <div class="quick-ref-card">
+                    <h4>🔍 Binary Search</h4>
+                    <code>import bisect</code>
+                    <code>bisect.bisect_left(arr, x)</code>
+                    <code>bisect.insort(arr, x)</code>
+                    <p class="note">Built-in binary search!</p>
+                </div>
+                
+                <div class="quick-ref-card">
+                    <h4>🧮 Math Shortcuts</h4>
+                    <code>divmod(10, 3)  # (3, 1)</code>
+                    <code>pow(2, 10, mod)  # modular exp</code>
+                    <code>math.gcd(a, b)</code>
+                </div>
+            </div>
+            
+            <div class="tips-box">
+                <h4>🎯 Interview Quick Wins with Python</h4>
+                <ul>
+                    <li><strong>Counter</strong> for frequency problems → <code>Counter(arr).most_common(k)</code></li>
+                    <li><strong>heapq.nlargest/nsmallest</strong> for top-K → more efficient than full sort</li>
+                    <li><strong>collections.deque</strong> for BFS/sliding window → O(1) popleft</li>
+                    <li><strong>Tuple as dict key</strong> for 2D coordinates → <code>visited[(row, col)]</code></li>
+                    <li><strong>Set operations</strong> for duplicates/intersection → <code>set1 & set2</code></li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Section 6: Common Gotchas -->
+        <div class="section">
+            <h2>⚠️ Common Gotchas</h2>
+            
+            <div class="ds-grid">
+                <div class="ds-card" style="border-color: #ff6b6b;">
+                    <h4 style="color: #ff6b6b;">Mutable Default Arguments</h4>
+                    <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># ❌ WRONG - list persists between calls!</span>
+<span class="keyword">def</span> <span class="function">add</span>(item, lst=[]):
+    lst.append(item)
+    <span class="keyword">return</span> lst
+
+<span class="comment"># ✅ CORRECT</span>
+<span class="keyword">def</span> <span class="function">add</span>(item, lst=<span class="keyword">None</span>):
+    <span class="keyword">if</span> lst <span class="keyword">is</span> <span class="keyword">None</span>:
+        lst = []
+    lst.append(item)
+    <span class="keyword">return</span> lst</pre>
+                    </div>
+                </div>
+                
+                <div class="ds-card" style="border-color: #ff6b6b;">
+                    <h4 style="color: #ff6b6b;">Integer Division</h4>
+                    <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># Python 3</span>
+<span class="number">7</span> / <span class="number">2</span>   <span class="comment"># = 3.5 (float division)</span>
+<span class="number">7</span> // <span class="number">2</span>  <span class="comment"># = 3   (integer division)</span>
+
+<span class="comment"># Negative numbers - Python floors!</span>
+-<span class="number">7</span> // <span class="number">2</span>  <span class="comment"># = -4 (not -3!)</span>
+
+<span class="comment"># Use int() for truncation toward zero</span>
+<span class="function">int</span>(-<span class="number">7</span> / <span class="number">2</span>)  <span class="comment"># = -3</span></pre>
+                    </div>
+                </div>
+                
+                <div class="ds-card" style="border-color: #ff6b6b;">
+                    <h4 style="color: #ff6b6b;">List Copy vs Reference</h4>
+                    <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># ❌ Reference (same object)</span>
+a = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]
+b = a
+b.append(<span class="number">4</span>)  <span class="comment"># a is also [1,2,3,4]!</span>
+
+<span class="comment"># ✅ Shallow copy</span>
+b = a[:]       <span class="comment"># or a.copy()</span>
+b = <span class="function">list</span>(a)
+
+<span class="comment"># ✅ Deep copy (nested structures)</span>
+<span class="keyword">import</span> copy
+b = copy.deepcopy(a)</pre>
+                    </div>
+                </div>
+                
+                <div class="ds-card" style="border-color: #ff6b6b;">
+                    <h4 style="color: #ff6b6b;">String Immutability</h4>
+                    <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># Strings are immutable in BOTH languages</span>
+s = <span class="string">"hello"</span>
+<span class="comment"># s[0] = "H"  # ERROR!</span>
+
+<span class="comment"># ✅ Create new string</span>
+s = <span class="string">"H"</span> + s[<span class="number">1</span>:]
+
+<span class="comment"># For many modifications, use list</span>
+chars = <span class="function">list</span>(s)
+chars[<span class="number">0</span>] = <span class="string">"H"</span>
+s = <span class="string">""</span>.join(chars)</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section 7: Quick Cheat Sheet -->
+        <div class="section">
+            <h2>📝 Quick Cheat Sheet</h2>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Operation</th>
+                        <th>Python</th>
+                        <th>Java Equivalent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Print</td>
+                        <td><code>print(x)</code></td>
+                        <td><code>System.out.println(x)</code></td>
+                    </tr>
+                    <tr>
+                        <td>String length</td>
+                        <td><code>len(s)</code></td>
+                        <td><code>s.length()</code></td>
+                    </tr>
+                    <tr>
+                        <td>Array/List length</td>
+                        <td><code>len(arr)</code></td>
+                        <td><code>arr.length / list.size()</code></td>
+                    </tr>
+                    <tr>
+                        <td>Char at index</td>
+                        <td><code>s[i]</code></td>
+                        <td><code>s.charAt(i)</code></td>
+                    </tr>
+                    <tr>
+                        <td>Substring</td>
+                        <td><code>s[i:j]</code></td>
+                        <td><code>s.substring(i, j)</code></td>
+                    </tr>
+                    <tr>
+                        <td>String → Int</td>
+                        <td><code>int(s)</code></td>
+                        <td><code>Integer.parseInt(s)</code></td>
+                    </tr>
+                    <tr>
+                        <td>Int → String</td>
+                        <td><code>str(n)</code></td>
+                        <td><code>String.valueOf(n)</code></td>
+                    </tr>
+                    <tr>
+                        <td>Max/Min</td>
+                        <td><code>max(a, b)</code></td>
+                        <td><code>Math.max(a, b)</code></td>
+                    </tr>
+                    <tr>
+                        <td>Absolute value</td>
+                        <td><code>abs(x)</code></td>
+                        <td><code>Math.abs(x)</code></td>
+                    </tr>
+                    <tr>
+                        <td>Power</td>
+                        <td><code>x ** y</code></td>
+                        <td><code>Math.pow(x, y)</code></td>
+                    </tr>
+                    <tr>
+                        <td>Floor division</td>
+                        <td><code>a // b</code></td>
+                        <td><code>Math.floorDiv(a, b)</code></td>
+                    </tr>
+                    <tr>
+                        <td>Check type</td>
+                        <td><code>isinstance(x, int)</code></td>
+                        <td><code>x instanceof Integer</code></td>
+                    </tr>
+                    <tr>
+                        <td>Null/None check</td>
+                        <td><code>x is None</code></td>
+                        <td><code>x == null</code></td>
+                    </tr>
+                    <tr>
+                        <td>Boolean AND/OR</td>
+                        <td><code>and / or</code></td>
+                        <td><code>&& / ||</code></td>
+                    </tr>
+                    <tr>
+                        <td>Not equal</td>
+                        <td><code>!=</code></td>
+                        <td><code>!=</code> (primitives) / <code>!equals()</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="text-align: center; padding: 30px; color: #666; font-size: 0.9rem;">
+            Good luck with your interviews! 🚀
+        </div>
+    </div>
+</body>
+</html>
