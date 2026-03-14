@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon Nova Forge — Staff Interview Prep</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0e13;
+  --surface: #141720;
+  --surface2: #1a1e2a;
+  --border: #262b3a;
+  --text: #e2e4ea;
+  --text-dim: #8b90a0;
+  --accent: #f59e0b;
+  --accent2: #3b82f6;
+  --accent3: #10b981;
+  --accent4: #ef4444;
+  --accent5: #a78bfa;
+  --code-bg: #0f1218;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+}
+::selection { background: var(--accent); color: var(--bg); }
+
+/* NAV */
+.nav {
+  position: fixed; top:0; left:0; width: 280px; height:100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto; z-index:100;
+  padding: 24px 0;
+}
+.nav-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+  color: var(--accent);
+}
+.nav a {
+  display: block;
+  padding: 8px 20px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 13px;
+  transition: all .2s;
+  border-left: 3px solid transparent;
+}
+.nav a:hover, .nav a.active {
+  color: var(--accent);
+  background: rgba(245,158,11,0.05);
+  border-left-color: var(--accent);
+}
+.nav .section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  padding: 16px 20px 6px;
+  font-weight: 700;
+}
+
+/* MAIN */
+.main {
+  margin-left: 280px;
+  max-width: 920px;
+  padding: 48px 48px 120px;
+}
+h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 48px;
+  color: var(--accent);
+  margin-bottom: 8px;
+  line-height: 1.1;
+}
+.subtitle {
+  font-size: 18px;
+  color: var(--text-dim);
+  margin-bottom: 48px;
+  font-weight: 300;
+}
+h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 32px;
+  margin: 56px 0 20px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+}
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 32px 0 12px;
+  color: var(--accent2);
+}
+h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--accent3);
+}
+p { margin-bottom: 14px; }
+strong { color: var(--accent); font-weight: 600; }
+
+/* BOXES */
+.arch-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--text-dim);
+}
+.callout {
+  background: var(--surface2);
+  border-left: 3px solid var(--accent);
+  padding: 16px 20px;
+  margin: 16px 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 14px;
+}
+.callout.blue { border-left-color: var(--accent2); }
+.callout.green { border-left-color: var(--accent3); }
+.callout.red { border-left-color: var(--accent4); }
+.callout.purple { border-left-color: var(--accent5); }
+.callout-title {
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.callout.blue .callout-title { color: var(--accent2); }
+.callout.green .callout-title { color: var(--accent3); }
+.callout.red .callout-title { color: var(--accent4); }
+.callout.purple .callout-title { color: var(--accent5); }
+.callout .callout-title { color: var(--accent); }
+
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+}
+.tag-amber { background: rgba(245,158,11,0.15); color: var(--accent); }
+.tag-blue { background: rgba(59,130,246,0.15); color: var(--accent2); }
+.tag-green { background: rgba(16,185,129,0.15); color: var(--accent3); }
+.tag-red { background: rgba(239,68,68,0.15); color: var(--accent4); }
+.tag-purple { background: rgba(167,139,250,0.15); color: var(--accent5); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+}
+th {
+  background: var(--surface2);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--accent);
+  border-bottom: 2px solid var(--border);
+}
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--code-bg);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--accent3);
+}
+
+ul, ol {
+  margin: 10px 0 14px 20px;
+}
+li { margin-bottom: 6px; }
+
+/* TOGGLE SECTIONS */
+.toggle-group { margin: 12px 0; }
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  color: var(--text);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all .2s;
+}
+.toggle-btn:hover { border-color: var(--accent); }
+.toggle-btn .arrow { transition: transform .2s; font-size: 12px; color: var(--accent); }
+.toggle-btn.open .arrow { transform: rotate(90deg); }
+.toggle-content {
+  display: none;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  margin-top: -1px;
+}
+.toggle-content.open { display: block; }
+
+/* MOBILE */
+@media (max-width: 900px) {
+  .nav { display: none; }
+  .main { margin-left: 0; padding: 24px 20px 80px; }
+  h1 { font-size: 32px; }
+  h2 { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-title">Nova Forge Prep</div>
+  <div class="section-label">Foundations</div>
+  <a href="#overview">What is Nova Forge</a>
+  <a href="#models">Nova Model Family</a>
+  <a href="#architecture">Model Architecture</a>
+  <div class="section-label">Training Pipeline</div>
+  <a href="#training-phases">Training Phases & Checkpoints</a>
+  <a href="#data-mixing">Data Mixing & Anti-Forgetting</a>
+  <a href="#sft">Supervised Fine-Tuning</a>
+  <a href="#rft">Reinforcement Fine-Tuning</a>
+  <a href="#grpo">GRPO Deep Dive</a>
+  <a href="#rl-environments">RL Environments & BYOO</a>
+  <div class="section-label">Infrastructure</div>
+  <a href="#hyperpod">SageMaker HyperPod</a>
+  <a href="#containers">Containers & Recipes</a>
+  <a href="#distributed">Distributed Training</a>
+  <div class="section-label">Inference & Eval</div>
+  <a href="#inference">Inference Architecture</a>
+  <a href="#benchmarking">Benchmarking & Eval</a>
+  <a href="#deployment">Deployment to Bedrock</a>
+  <div class="section-label">Interview Prep</div>
+  <a href="#system-design">System Design Questions</a>
+  <a href="#deep-dives">Likely Deep Dives</a>
+  <a href="#terminology">Key Terminology</a>
+</nav>
+
+<div class="main">
+
+<h1>Amazon Nova Forge</h1>
+<p class="subtitle">Staff-Level Interview Preparation — Fine-Tuning, Inference, Benchmarking & RL Infrastructure</p>
+
+<!-- ==================== SECTION: OVERVIEW ==================== -->
+<h2 id="overview">1. What is Nova Forge</h2>
+
+<p>Nova Forge is Amazon's "open training" platform that allows enterprise customers to build custom frontier models (called <strong>"Novellas"</strong>) using Amazon Nova as the base. Unlike traditional fine-tuning services that only modify a fully-trained model at the end, Nova Forge gives customers access to <strong>intermediate model checkpoints</strong> at pre-training, mid-training, and post-training phases so proprietary data can be injected at the optimal point in the training lifecycle.</p>
+
+<div class="callout">
+  <div class="callout-title">Why It Matters (The Elevator Pitch)</div>
+  <p>Traditional CPT on proprietary data alone causes catastrophic forgetting. Traditional SFT/RLHF operates too late — layering behavior on a frozen knowledge base. Nova Forge solves both: customers blend their data with Amazon-curated datasets at any training phase, preserving foundational capabilities while deeply customizing the model.</p>
+</div>
+
+<h3>Business Context</h3>
+<p>Launched at AWS re:Invent 2025. Priced at ~$100K/year for platform access (compute is additional via SageMaker). Early adopters include Reddit (content moderation), Nimbus Therapeutics (drug discovery), Sony, Booking.com, Nomura Research Institute, and Cosine AI (software agents).</p>
+
+<h3>Key Differentiators vs. Competitors</h3>
+<table>
+  <tr><th>Capability</th><th>Nova Forge</th><th>Typical Fine-Tuning (OpenAI / Others)</th></tr>
+  <tr><td>Checkpoint access</td><td>Pre-train, mid-train, post-train</td><td>Post-train only</td></tr>
+  <tr><td>Data mixing</td><td>Blend with Amazon-curated data</td><td>User data only</td></tr>
+  <tr><td>RL environments</td><td>Remote reward functions via API, BYOO multi-turn</td><td>Simple Lambda / Python rewards</td></tr>
+  <tr><td>Training infra</td><td>SageMaker HyperPod (persistent clusters)</td><td>Serverless / opaque</td></tr>
+  <tr><td>Safety toolkit</td><td>Built-in RAI data, eval benchmarks, CCMS</td><td>Limited / none</td></tr>
+  <tr><td>Deployment</td><td>Bedrock (on-demand + provisioned) or SageMaker Inference</td><td>Vendor-locked API</td></tr>
+</table>
+
+<!-- ==================== SECTION: MODELS ==================== -->
+<h2 id="models">2. Nova Model Family</h2>
+
+<table>
+  <tr><th>Model</th><th>Type</th><th>Context</th><th>Best For</th></tr>
+  <tr><td><span class="tag tag-amber">Nova Micro</span></td><td>Text-only</td><td>128K</td><td>Low-latency, cost-sensitive tasks</td></tr>
+  <tr><td><span class="tag tag-blue">Nova Lite</span></td><td>Multimodal</td><td>300K</td><td>Everyday AI, best for Forge customization</td></tr>
+  <tr><td><span class="tag tag-green">Nova Pro</span></td><td>Multimodal</td><td>300K</td><td>Complex reasoning, best teacher for distillation</td></tr>
+  <tr><td><span class="tag tag-purple">Nova Premier</span></td><td>Multimodal</td><td>1M</td><td>Highest capability, long-context analysis</td></tr>
+  <tr><td><span class="tag tag-red">Nova 2 Lite</span></td><td>Reasoning</td><td>256K</td><td>Built-in chain-of-thought, primary Forge model</td></tr>
+  <tr><td><span class="tag tag-amber">Nova 2 Pro</span></td><td>Reasoning</td><td>—</td><td>Most intelligent, preview for Forge customers</td></tr>
+  <tr><td><span class="tag tag-blue">Nova 2 Omni</span></td><td>Multimodal+Reasoning</td><td>—</td><td>First reasoning model with text+image+video+speech I/O</td></tr>
+  <tr><td><span class="tag tag-green">Nova Sonic</span></td><td>Speech-to-speech</td><td>—</td><td>Real-time conversational AI</td></tr>
+</table>
+
+<!-- ==================== SECTION: ARCHITECTURE ==================== -->
+<h2 id="architecture">3. Model Architecture</h2>
+
+<p>Nova Pro, Lite, and Micro are all based on the <strong>Transformer architecture</strong>. The technical report confirms standard decoder-only transformer design. Training data spans 200+ languages with emphasis on 15 key languages. The training pipeline follows: <strong>Pre-training → SFT → Reward Model Training → RL from human preferences</strong>.</p>
+
+<h3>Multimodal Design</h3>
+<p>For Nova Lite and Pro, multimodal inputs (images, video) are processed through dedicated encoders that produce token embeddings fed into the unified transformer backbone. Nova Canvas uses a diffusion transformer for image generation. Nova Sonic uses a speech encoder/decoder bracketing a core transformer trained through pre-training, SFT, RL, and preference tuning optimized for speech.</p>
+
+<h3>Runtime Performance Metrics</h3>
+<p>Amazon evaluates runtime using three metrics:</p>
+<ul>
+  <li><strong>TTFT</strong> — Time to First Token (latency from API request to first token)</li>
+  <li><strong>OTPS</strong> — Output Tokens Per Second (throughput)</li>
+  <li><strong>Total Response Time</strong> — End-to-end completion latency</li>
+</ul>
+
+<!-- ==================== SECTION: TRAINING PHASES ==================== -->
+<h2 id="training-phases">4. Training Phases & Checkpoints</h2>
+
+<p>Nova Forge provides <strong>three checkpoint categories</strong>, each optimized for different data scenarios:</p>
+
+<div class="arch-box">
+┌─────────────────────────────────────────────────────────────────────┐
+│                    NOVA FORGE TRAINING LIFECYCLE                     │
+├─────────────────┬──────────────────┬────────────────────────────────┤
+│                 │                  │                                │
+│  PRE-TRAINING   │  MID-TRAINING    │  POST-TRAINING                 │
+│  Checkpoints:   │  Checkpoints:    │  Checkpoints:                  │
+│  · Early        │  · Intermediate  │  · Base (pre-SFT)              │
+│  · Mid          │                  │  · Instruction-tuned (GA)      │
+│  · Final        │                  │                                │
+│                 │                  │                                │
+│  High LR        │  Conservative LR │  Task-specific LR              │
+│  Max plasticity │  Balanced        │  Behavioral alignment          │
+│  ──────────▶    │  ──────────▶     │  ──────────▶                   │
+│  + Customer data│  + Customer data │  + Customer labeled data       │
+│  + Nova curated │  + Nova curated  │  + Nova curated                │
+│                 │                  │                                │
+│  Use when:      │  Use when:       │  Use when:                     │
+│  Novel domain   │  Intermediate    │  Behavior change needed        │
+│  not in pre-    │  data volume     │  Task-specific tuning          │
+│  training data  │  Domain shift    │  Thousands of demonstrations   │
+│  Trillions of   │  w/o destabilize │                                │
+│  tokens avail   │                  │                                │
+└─────────────────┴──────────────────┴────────────────────────────────┘
+</div>
+
+<div class="callout blue">
+  <div class="callout-title">Key Insight for Interview</div>
+  <p>The <strong>pre-RAI alignment checkpoints</strong> (PRE-TRAINING-Early, Mid, Final) have NOT undergone safety training. This is important for customers using Customizable Content Moderation Settings (CCMS) — they should start from these raw checkpoints rather than the GA/FINAL checkpoint, because models that haven't been safety-steered are easier to re-align to custom moderation policies.</p>
+</div>
+
+<!-- ==================== SECTION: DATA MIXING ==================== -->
+<h2 id="data-mixing">5. Data Mixing & Anti-Forgetting</h2>
+
+<p>This is Nova Forge's signature innovation. Instead of training only on customer data (which causes catastrophic forgetting), customers <strong>blend their proprietary data with Amazon Nova-curated datasets</strong> at every training phase.</p>
+
+<h3>How Data Mixing Works</h3>
+<ul>
+  <li>Amazon provides curated datasets <strong>categorized by domain</strong> (e.g., code, math, multilingual, general knowledge, RAI)</li>
+  <li>Customers configure <strong>mixing ratios</strong> in their training recipe via a <code>nova_data</code> configuration block</li>
+  <li>The "RAI" category specifically contains responsible AI alignment data</li>
+  <li>Mixing is available at ALL training phases — CPT, mid-training, SFT, and RFT</li>
+</ul>
+
+<h3>Why This Prevents Catastrophic Forgetting</h3>
+<p>During continued pre-training on only proprietary data, the model's weight updates drift away from the general-capability manifold. By interleaving Nova-curated data from the same distribution used to train the base model, gradient updates maintain coverage of general capabilities while acquiring domain knowledge. The mid-training checkpoint uses a <strong>more conservative learning rate</strong> than full pre-training, which further reduces forgetting risk.</p>
+
+<div class="callout green">
+  <div class="callout-title">Interview Answer Pattern</div>
+  <p>"Catastrophic forgetting occurs when continued training on narrow data causes the model to lose previously learned capabilities. Nova Forge addresses this through data mixing — blending customer data with Amazon-curated datasets that maintain coverage of the original training distribution. The mid-training checkpoint specifically uses a lower learning rate than pre-training, making the model absorb new knowledge without destabilizing existing capabilities. This is fundamentally different from LoRA or adapter-based approaches, which avoid forgetting by freezing most weights but can't embed deep domain knowledge."</p>
+</div>
+
+<!-- ==================== SECTION: SFT ==================== -->
+<h2 id="sft">6. Supervised Fine-Tuning</h2>
+
+<h3>When to Use SFT</h3>
+<p>SFT is for <strong>behavioral alignment</strong> — teaching the model HOW to respond. It requires labeled instruction-response pairs. Do NOT use SFT when the gap is knowledge rather than behavior (prefer CPT or RAG for knowledge).</p>
+
+<h3>Supported Techniques</h3>
+<table>
+  <tr><th>Technique</th><th>Config</th><th>When to Use</th></tr>
+  <tr><td>LoRA (PEFT)</td><td>alpha: 32-192, lora_plus_lr_ratio: 0-100</td><td>Limited data, lower compute</td></tr>
+  <tr><td>Full-Rank SFT</td><td>All params updated</td><td>Large datasets, max quality</td></tr>
+  <tr><td>DPO</td><td>Preference pairs (chosen/rejected)</td><td>Tone, style, safety alignment</td></tr>
+  <tr><td>Knowledge Distillation</td><td>Teacher → student</td><td>Compress Pro model to Lite/Micro</td></tr>
+  <tr><td>PPO</td><td>Reward model + policy gradient</td><td>Standard RLHF alignment</td></tr>
+</table>
+
+<h3>Key Hyperparameters (from Nova Recipes)</h3>
+<div class="arch-box">SFT Recipe Defaults:
+  lr: 1e-5                    # Learning rate
+  weight_decay: 0.0           # L2 regularization
+  adam_beta1: 0.9              # First moment decay
+  adam_beta2: 0.95             # Second moment decay
+  warmup_steps: 15% of max    # Warmup schedule
+  min_lr: 1e-6                # Minimum LR (for cosine schedule)
+
+LoRA Defaults:
+  peft_scheme: "lora"
+  alpha: 64                   # Scaling factor (32/64/96/128/160/192)
+  lora_plus_lr_ratio: 64.0    # LoRA+ LR scaling (0.0–100.0)
+
+Data Format: JSONL with instruction-response pairs
+Instance Types: p5.48xlarge, p5en.48xlarge</div>
+
+<!-- ==================== SECTION: RFT ==================== -->
+<h2 id="rft">7. Reinforcement Fine-Tuning (RFT)</h2>
+
+<p>RFT is the paradigm shift from <strong>learning by imitation</strong> (SFT) to <strong>learning by evaluation</strong>. Instead of providing labeled examples, you provide prompts and define what makes answers correct through reward functions.</p>
+
+<h3>When to Use RFT vs. SFT</h3>
+<table>
+  <tr><th>Criterion</th><th>Use SFT</th><th>Use RFT</th></tr>
+  <tr><td>You have...</td><td>Labeled input-output pairs</td><td>Prompts + quality criteria</td></tr>
+  <tr><td>Gap is...</td><td>Behavioral (how to respond)</td><td>Correctness (what to optimize)</td></tr>
+  <tr><td>Evaluation is...</td><td>Expensive to verify programmatically</td><td>Measurable with functions or LLM judge</td></tr>
+  <tr><td>Examples</td><td>Customer service tone, format compliance</td><td>Code correctness, math accuracy, tool use</td></tr>
+</table>
+
+<h3>RFT Tiers (Progression Path)</h3>
+<div class="arch-box">
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│ TIER 1: Bedrock  │    │ TIER 2: SM Train  │    │ TIER 3: HyperPod │    │ TIER 4: Forge    │
+│                  │    │   Jobs            │    │                  │    │                  │
+│ Fully managed    │───▶│ Serverless        │───▶│ Persistent       │───▶│ BYOO             │
+│ Lambda rewards   │    │ More hyper-       │    │ GPU clusters     │    │ Multi-turn RL    │
+│ Single-turn      │    │ param control     │    │ Scale-out        │    │ Custom envs      │
+│ 15-min timeout   │    │ GRPO + RLVR/RLAIF│    │ Elastic training │    │ In your VPC      │
+│                  │    │                  │    │                  │    │ No timeout limit  │
+└──────────────────┘    └──────────────────┘    └──────────────────┘    └──────────────────┘
+</div>
+
+<h3>Reward Function Types</h3>
+<ul>
+  <li><strong>RLVR (Reinforcement Learning via Verifiable Rewards)</strong> — Rule-based Lambda functions. Perfect for code execution, math verification, deterministic checks.</li>
+  <li><strong>RLAIF (Reinforcement Learning from AI Feedback)</strong> — LLM-as-a-judge evaluates responses against criteria you define. Ideal for subjective qualities (helpfulness, style, brand voice).</li>
+  <li><strong>Remote Reward Functions (Forge)</strong> — API-based. Customer runs reward computation in their own VPC infrastructure. Enables physics simulators, complex code eval with nested tool-calling, robotics tasks.</li>
+</ul>
+
+<!-- ==================== SECTION: GRPO ==================== -->
+<h2 id="grpo">8. GRPO Deep Dive</h2>
+
+<p><strong>Group Relative Policy Optimization (GRPO)</strong> is the core RL algorithm used in Nova RFT. It's a variant of policy optimization designed specifically for language models.</p>
+
+<h3>How GRPO Works</h3>
+<ol>
+  <li><strong>Sample Generation</strong>: For each training prompt, generate N responses (configured via <code>number_generation</code>, typically 2-16)</li>
+  <li><strong>Reward Scoring</strong>: Each response is scored by the reward function (Lambda, LLM judge, or remote endpoint)</li>
+  <li><strong>Advantage Estimation</strong>: Compute relative advantage within the group — responses are compared against each other, not against an absolute baseline</li>
+  <li><strong>Policy Update</strong>: Update model weights to increase probability of high-reward responses and decrease probability of low-reward responses</li>
+</ol>
+
+<div class="callout purple">
+  <div class="callout-title">GRPO vs PPO — Key Distinction</div>
+  <p>PPO requires a separate <strong>value network (critic)</strong> to estimate advantages, which doubles memory requirements and adds training complexity. GRPO eliminates the critic by computing advantages <strong>relative to the group</strong> of sampled responses for each prompt. This makes it more memory-efficient and simpler to implement, while maintaining similar alignment quality. The tradeoff is that you need more samples per prompt (N ≥ 2) to estimate meaningful advantages.</p>
+</div>
+
+<h3>Key GRPO Config Parameters</h3>
+<div class="arch-box">training_config:
+  max_length: 8192              # Context window (input + output)
+  global_batch_size: 16         # Samples per optimizer step (16/32/64/128/256)
+  reasoning_effort: high        # Enable extended thinking (high/low/null)
+
+rollout:
+  advantage_strategy:
+    number_generation: 2        # N samples per prompt for advantage calc
+  generator:
+    max_new_tokens: 6000        # Max output tokens per sample
+    set_random_seed: true       # Reproducibility
+
+# For Forge BYOO:
+rollout:
+  delegate: true                # Hand off to customer infrastructure
+  timeout: 600                  # Max seconds for rollout completion
+rollout_strategy:
+  type: off_policy_async        # Async rollout for parallel environments
+  age_tolerance: 2              # How stale rollouts can be</div>
+
+<!-- ==================== SECTION: RL ENVIRONMENTS ==================== -->
+<h2 id="rl-environments">9. RL Environments & BYOO</h2>
+
+<p>Nova Forge's most advanced capability: <strong>Bring Your Own Orchestration (BYOO)</strong> lets customers run multi-turn RL with custom environments in their own VPC.</p>
+
+<h3>Architecture</h3>
+<div class="arch-box">
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BYOO RL ARCHITECTURE                             │
+│                                                                     │
+│  ┌──────────────┐        ┌──────────────────┐        ┌───────────┐ │
+│  │  TRAINING     │        │  COMMUNICATION    │        │ CUSTOMER  │ │
+│  │  CLUSTER      │        │  LAYER            │        │ VPC       │ │
+│  │  (HyperPod)   │        │                  │        │           │ │
+│  │               │        │ ┌──────────────┐ │        │ ┌───────┐ │ │
+│  │  Actor Model  │──req──▶│ │ Rollout Proxy│ │──req──▶│ │Custom │ │ │
+│  │  (generates   │        │ │ Lambda       │ │        │ │Env    │ │ │
+│  │   responses)  │        │ └──────────────┘ │        │ │Server │ │ │
+│  │               │        │                  │        │ │       │ │ │
+│  │  Trainer      │◀─resp──│ ┌──────────────┐ │◀─resp──│ │Physics│ │ │
+│  │  (updates     │        │ │ SQS Queues   │ │        │ │Sim /  │ │ │
+│  │   weights)    │        │ │ (4 queues)   │ │        │ │Code   │ │ │
+│  │               │        │ └──────────────┘ │        │ │Eval / │ │ │
+│  │  Generation   │        │                  │        │ │Robot  │ │ │
+│  │  Server       │        │ ┌──────────────┐ │        │ │Task   │ │ │
+│  │  (vLLM-like   │◀──────▶│ │ Gen Request  │ │        │ └───────┘ │ │
+│  │   inference)  │        │ │ /Response SQS│ │        │           │ │
+│  └──────────────┘        │ └──────────────┘ │        └───────────┘ │
+│                           └──────────────────┘                      │
+│  Communication: 3 Lambda functions + 4 SQS queues (SAM deploy)     │
+│  Config: rollout.delegate: true                                     │
+│  Rollout format: {version, sample_id, stop_reason, rewards: {...}} │
+└─────────────────────────────────────────────────────────────────────┘
+</div>
+
+<h3>BYOO Setup Flow</h3>
+<ol>
+  <li>Install Nova Forge verifiers package and environment bundles</li>
+  <li>Deploy communication infrastructure via SAM (<code>sam build && sam deploy</code>) — creates 3 Lambda functions + 4 SQS queues</li>
+  <li>Configure recipe with <code>rollout.delegate: true</code> and BYOO infrastructure ARNs</li>
+  <li>Customer environment receives generation requests, runs multi-turn conversations, returns aggregate reward scores</li>
+</ol>
+
+<h3>Example Environments</h3>
+<ul>
+  <li><strong>Wordle</strong> — Sample environment shipped with Forge for testing</li>
+  <li><strong>Chemistry tools</strong> — Score molecular designs, property prediction</li>
+  <li><strong>Robotics simulators</strong> — Reward efficient task completion, penalize collisions</li>
+  <li><strong>Code evaluation</strong> — Complex evaluation with internal systems, nested tool-calling</li>
+  <li><strong>Agentic workflows</strong> — Multi-turn conversations with tool use</li>
+</ul>
+
+<div class="callout red">
+  <div class="callout-title">Critical Design Decision</div>
+  <p>BYOO uses <code>off_policy_async</code> rollout strategy with an <code>age_tolerance</code> parameter. This means rollouts can happen asynchronously and be slightly stale — crucial for environments with high latency (physics sims, complex code eval). The trainer doesn't block waiting for every rollout to complete. The <code>timeout</code> parameter sets the max time for the entire conversation between trainer and environment — a timeout causes training failure.</p>
+</div>
+
+<!-- ==================== SECTION: HYPERPOD ==================== -->
+<h2 id="hyperpod">10. SageMaker HyperPod Infrastructure</h2>
+
+<p>Nova Forge uses <strong>SageMaker HyperPod</strong> as its training platform — purpose-built persistent GPU clusters for distributed training at scale.</p>
+
+<h3>Key HyperPod Features</h3>
+
+<h4>Fault Tolerance & Resiliency</h4>
+<ul>
+  <li><strong>Automatic node replacement</strong> — Detects hardware faults, replaces nodes, resumes from checkpoint</li>
+  <li><strong>Checkpointless training</strong> — Recovers via peer-to-peer transfer of model/optimizer states from healthy accelerators. No need for checkpoint-based restart. Achieves &gt;95% training goodput on 1000+ accelerator clusters</li>
+  <li><strong>Saves up to 40% training time</strong> over standard approaches</li>
+</ul>
+
+<h4>Elastic Training</h4>
+<ul>
+  <li>Training jobs automatically scale up/down based on resource availability</li>
+  <li>Preserves global batch size and learning rate across scaling transitions</li>
+  <li>Integrates with Kubernetes control plane and resource scheduler</li>
+  <li>Example: 256 GPU cluster, inference releases 96 GPUs at night → training absorbs them automatically</li>
+</ul>
+
+<h4>Task Governance</h4>
+<ul>
+  <li>Manages task queues across training, fine-tuning, experimentation, and inference</li>
+  <li>Prioritizes critical tasks, preempts lower-priority work</li>
+  <li>Reduces model development costs by up to 40%</li>
+</ul>
+
+<h4>Observability</h4>
+<ul>
+  <li>Unified dashboard via Amazon Managed Grafana</li>
+  <li>Metrics published to Amazon Managed Prometheus</li>
+  <li>CloudWatch integration for logs and system metrics</li>
+</ul>
+
+<h3>Cluster Architecture</h3>
+<div class="arch-box">
+┌────────────────────────────────────────────────────────────────────┐
+│                    HYPERPOD CLUSTER                                 │
+│                                                                    │
+│  ┌─────────────────────────────────────┐  ┌─────────────────────┐ │
+│  │  Instance Groups                     │  │  Storage            │ │
+│  │                                     │  │                     │ │
+│  │  Controller Group (head nodes)      │  │  FSx for Lustre     │ │
+│  │  ├── Slurm controller / K8s master  │  │  (shared filesystem)│ │
+│  │  └── Lifecycle scripts execution    │  │                     │ │
+│  │                                     │  │  S3 (checkpoints,   │ │
+│  │  Worker Group (GPU nodes)           │  │   datasets, model   │ │
+│  │  ├── p5.48xlarge (H100 x8)         │  │   artifacts)        │ │
+│  │  ├── p5en.48xlarge (enhanced net)   │  │                     │ │
+│  │  └── trn1.32xlarge (Trainium)       │  └─────────────────────┘ │
+│  │                                     │                          │
+│  │  Restricted Instance Group (RIG)    │  ┌─────────────────────┐ │
+│  │  ├── Nova Forge-specific            │  │  Orchestration      │ │
+│  │  ├── forge-subscription tag req'd   │  │                     │ │
+│  │  └── Access to Nova S3 buckets      │  │  Slurm or EKS       │ │
+│  └─────────────────────────────────────┘  │  Docker / enroot     │ │
+│                                            │  Conda / venv        │ │
+│  Networking: EFA (Elastic Fabric Adapter)  └─────────────────────┘ │
+│  one-line switch between GPU ↔ Trainium instances via recipes      │
+└────────────────────────────────────────────────────────────────────┘
+</div>
+
+<!-- ==================== SECTION: CONTAINERS ==================== -->
+<h2 id="containers">11. Containers & Recipes</h2>
+
+<h3>SageMaker Recipes</h3>
+<p>Nova Forge uses <strong>YAML recipe files</strong> to configure every aspect of training and evaluation. These are pre-tested configurations that encode best practices.</p>
+
+<ul>
+  <li><strong>Training recipes</strong>: SFT, DPO, RFT, CPT — specify model, data, hyperparams, parallelism</li>
+  <li><strong>Evaluation recipes</strong>: Benchmark tasks (MMLU, HumanEval), custom datasets, LLM-as-a-Judge</li>
+  <li>One-line switch between GPU and Trainium instances</li>
+  <li>Automatic checkpointing frequency optimization</li>
+</ul>
+
+<h3>Container Images</h3>
+<p>For inference, Nova uses dedicated container images hosted in ECR:</p>
+<div class="arch-box">Container Image Pattern:
+  {account_id}.dkr.ecr.{region}.amazonaws.com/nova-inference-repo:{tag}
+
+Tags:
+  v1.0.0             (versioned — recommended for production)
+  SM-Inference-latest (rolling latest)
+
+Training containers use SageMaker's PyTorch Estimator with recipe integration.</div>
+
+<h3>Data Format</h3>
+<p>All training and evaluation data uses <strong>JSONL format</strong>. SFT uses instruction-response pairs. RFT requires <code>messages</code> and <code>reference_answer</code> fields, with extensible <code>metadata</code> passed to reward functions. DPO uses chosen/rejected response pairs.</p>
+
+<!-- ==================== SECTION: DISTRIBUTED ==================== -->
+<h2 id="distributed">12. Distributed Training</h2>
+
+<p>HyperPod automatically handles distributed training by splitting models and datasets across accelerators. Key parallelism strategies:</p>
+
+<table>
+  <tr><th>Strategy</th><th>What's Split</th><th>When to Use</th></tr>
+  <tr><td>Data Parallel</td><td>Training data across replicas</td><td>Model fits in single GPU memory</td></tr>
+  <tr><td>Tensor Parallel</td><td>Individual layers across GPUs</td><td>Large layers, need low latency</td></tr>
+  <tr><td>Pipeline Parallel</td><td>Model layers across stages</td><td>Very deep models</td></tr>
+  <tr><td>FSDP (Fully Sharded)</td><td>Params, gradients, optimizer states</td><td>Default for large models</td></tr>
+  <tr><td>Expert Parallel</td><td>MoE experts across GPUs</td><td>Mixture-of-Experts architectures</td></tr>
+</table>
+
+<p>The <code>replicas</code> parameter in recipes controls data parallelism. For BYOO RFT, <code>generation_replicas</code> controls how many inference servers run in parallel for rollout generation, and <code>rollout_worker_replicas</code> controls environment interaction parallelism.</p>
+
+<!-- ==================== SECTION: INFERENCE ==================== -->
+<h2 id="inference">13. Inference Architecture</h2>
+
+<h3>Two Deployment Paths</h3>
+
+<h4>Path 1: Amazon Bedrock</h4>
+<ul>
+  <li><strong>On-Demand</strong>: Pay-per-token, auto-scales, uses <code>CreateCustomModelDeployment</code> API</li>
+  <li><strong>Provisioned Throughput</strong>: Reserved capacity for predictable workloads (LoRA/PEFT models)</li>
+  <li>Full-rank custom models use provisioned throughput; PEFT models support both on-demand and provisioned</li>
+  <li>Integrates with Bedrock Knowledge Bases, Guardrails, and Agents natively</li>
+</ul>
+
+<h4>Path 2: SageMaker Inference</h4>
+<ul>
+  <li>Full control over instance types, auto-scaling policies, concurrency</li>
+  <li>Only supports full-rank and LoRA-merged models (unmerged LoRA → use Bedrock)</li>
+  <li>Network isolation enabled (<code>EnableNetworkIsolation=True</code>)</li>
+</ul>
+
+<h3>Inference Configuration</h3>
+<div class="arch-box">Environment Variables:
+  CONTEXT_LENGTH:    Max total tokens (input + output) per request
+  MAX_CONCURRENCY:   Max concurrent requests per endpoint
+
+Instance Type Matrix (SageMaker):
+┌─────────────┬─────────────────────────────────────────────────────┐
+│ Model       │ Supported Instances                                 │
+├─────────────┼─────────────────────────────────────────────────────┤
+│ Nova Micro  │ g5.12xl, g5.24xl, g5.48xl, g6.12xl, g6.24xl,      │
+│             │ g6.48xl, p5.48xl                                    │
+├─────────────┼─────────────────────────────────────────────────────┤
+│ Nova Lite   │ g5.48xl, g6.48xl, p5.48xl                          │
+├─────────────┼─────────────────────────────────────────────────────┤
+│ Nova 2 Lite │ p5.48xl                                             │
+└─────────────┴─────────────────────────────────────────────────────┘
+
+Cost Optimization: Use G5/G6 over P5 when model fits — significant savings.
+Auto-scaling: Based on 5-minute usage patterns.</div>
+
+<div class="callout">
+  <div class="callout-title">Streaming Inference</div>
+  <p>SageMaker supports both synchronous (<code>invoke_endpoint</code>) and streaming (<code>invoke_endpoint_with_response_stream</code>) inference. Streaming returns chunked responses via an event stream — each chunk contains a PayloadPart with Bytes that decode to JSON. This is critical for real-time user-facing applications.</p>
+</div>
+
+<!-- ==================== SECTION: BENCHMARKING ==================== -->
+<h2 id="benchmarking">14. Benchmarking & Evaluation</h2>
+
+<h3>Evaluation Framework Overview</h3>
+<p>Nova provides a comprehensive evaluation system with multiple approaches:</p>
+
+<h4>A. Standard Benchmarks</h4>
+<p>YAML recipes point to pre-built benchmark tasks. Strategy options include zero-shot chain-of-thought (<code>zs_cot</code>) and zero-shot (<code>zs</code>).</p>
+<table>
+  <tr><th>Benchmark</th><th>What It Tests</th><th>Strategy</th></tr>
+  <tr><td>MMLU</td><td>Broad knowledge across 57 subjects</td><td>zs_cot</td></tr>
+  <tr><td>HumanEval</td><td>Python code generation (164 problems)</td><td>zs</td></tr>
+  <tr><td>FinQA</td><td>Financial data understanding</td><td>zs_cot</td></tr>
+  <tr><td>CRAG</td><td>RAG capabilities</td><td>gen_qa</td></tr>
+  <tr><td>MT-Bench</td><td>Multi-turn conversation quality</td><td>LLM judge</td></tr>
+  <tr><td>Arena-Hard-Auto</td><td>Head-to-head response battles</td><td>LLM judge</td></tr>
+</table>
+
+<h4>B. Nova LLM-as-a-Judge</h4>
+<ul>
+  <li>Purpose-built judge model trained through SFT + RL on human preference data</li>
+  <li>Pairwise A/B comparisons: baseline vs. challenger responses</li>
+  <li>Runs forward AND backward passes to detect positional bias</li>
+  <li>Outputs: <strong>Bradley-Terry probability scores</strong>, win/tie/loss ratios, confidence intervals, natural language rationales</li>
+  <li>Validated to be impartial across model families (unlike some judges that favor their own architecture)</li>
+</ul>
+
+<h4>C. Rubric Judge (Nova 2.0 Lite-based)</h4>
+<ul>
+  <li>Dynamically generates custom evaluation criteria per prompt</li>
+  <li>Assigns granular scores across multiple dimensions</li>
+  <li>More nuanced than simple preference verdicts</li>
+</ul>
+
+<h4>D. Bring Your Own Dataset (BYOD)</h4>
+<p>Custom Q&A datasets in JSONL format. Metrics include standard NLP metrics (ROUGE, F1, etc.) compared against reference answers.</p>
+
+<h4>E. Bring Your Own Metrics (BYOM)</h4>
+<p>Custom Lambda functions for preprocessing, evaluation, and postprocessing. Full control over evaluation logic.</p>
+
+<h4>F. Multi-Node Evaluation</h4>
+<p>Configure <code>replicas</code> in evaluation recipe to distribute across nodes. Automatic result aggregation. Scales from thousands to millions of evaluation examples.</p>
+
+<h4>G. Token-Level Log Probabilities</h4>
+<p>Capture per-token confidence scores. Useful for calibration, routing decisions, and identifying uncertainty hotspots. Configured via <code>top_logprobs</code> in inference config.</p>
+
+<!-- ==================== SECTION: DEPLOYMENT ==================== -->
+<h2 id="deployment">15. Deployment to Bedrock</h2>
+
+<div class="arch-box">
+End-to-End Deployment Flow:
+
+  1. Train model (SageMaker Training Job or HyperPod)
+     ├── Model artifacts saved to SageMaker-managed S3 (escrow)
+     └── Evaluation job validates quality
+
+  2. Import to Bedrock
+     ├── CreateCustomModel API
+     ├── Exports artifacts from SageMaker escrow to Bedrock
+     └── Wait for model status: ACTIVE
+
+  3. Deploy for inference
+     ├── Option A: CreateCustomModelDeployment (on-demand)
+     │   └── Pay-per-token, auto-manages capacity
+     └── Option B: Provisioned Throughput
+         └── Reserved capacity, predictable latency
+
+  4. Use in applications
+     ├── Standard Bedrock Converse / InvokeModel APIs
+     ├── Integrate with Knowledge Bases, Guardrails, Agents
+     └── Same security, logging, observability as native models
+</div>
+
+<!-- ==================== SECTION: SYSTEM DESIGN ==================== -->
+<h2 id="system-design">16. System Design Questions</h2>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Design the Nova Forge fine-tuning platform end-to-end</button>
+  <div class="toggle-content">
+    <h4>Requirements</h4>
+    <p>Multi-tenant platform where customers upload data, configure training recipes, launch training jobs on GPU clusters, evaluate results, and deploy custom models to production inference.</p>
+    <h4>Core Components</h4>
+    <ul>
+      <li><strong>UI Layer</strong>: SageMaker Studio console — checkpoint selection, dataset upload, recipe configuration, monitoring</li>
+      <li><strong>Job Orchestrator</strong>: Receives training requests, provisions infrastructure, manages lifecycle. Uses SageMaker Training Job API or HyperPod cluster allocation.</li>
+      <li><strong>Data Pipeline</strong>: Customer data uploaded to S3 → validated → merged with Nova-curated datasets per mixing ratios → JSONL generation → distributed to training nodes via FSx for Lustre</li>
+      <li><strong>Training Cluster</strong>: HyperPod with RIG (Restricted Instance Groups) for Forge customers. P5/P5en instances. Slurm or EKS orchestration.</li>
+      <li><strong>Checkpoint Manager</strong>: Stores intermediate checkpoints to S3. Manages checkpoint lifecycle across pre-train/mid-train/post-train phases. Optimizes checkpoint frequency.</li>
+      <li><strong>Model Registry</strong>: Tracks all model versions, training configs, eval metrics, lineage. Links training job → evaluation job → deployment.</li>
+      <li><strong>Evaluation Pipeline</strong>: Separate training jobs that run benchmark/custom evaluations. Results to S3 + TensorBoard.</li>
+      <li><strong>Deployment Pipeline</strong>: CreateCustomModel API to Bedrock. CreateCustomModelDeployment for on-demand. Provisioned throughput setup.</li>
+    </ul>
+    <h4>Key Design Decisions</h4>
+    <ul>
+      <li>RIG isolation ensures Forge customers' Nova checkpoints and curated data are only accessible by authorized clusters</li>
+      <li>Checkpointless training on HyperPod for fault tolerance at scale</li>
+      <li>Elastic training to maximize GPU utilization across training + inference workloads</li>
+      <li>Network isolation for inference endpoints</li>
+    </ul>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Design the BYOO RL training system</button>
+  <div class="toggle-content">
+    <h4>Challenge</h4>
+    <p>The model needs to interact with customer-hosted environments that may be physics simulators, code evaluation systems, or multi-step agent workflows. These environments have high latency (seconds to minutes), require multi-turn conversations, and run in the customer's VPC for data security.</p>
+    <h4>Architecture</h4>
+    <ul>
+      <li><strong>Training Cluster</strong> (HyperPod): Actor model generates responses. Trainer updates weights. Generation server runs vLLM-like inference.</li>
+      <li><strong>Communication Layer</strong> (AWS-managed): 3 Lambda functions + 4 SQS queues deployed via SAM template. Acts as async message bus between training cluster and customer environment.</li>
+      <li><strong>Customer Environment</strong> (Customer VPC): Receives prompts + model responses, executes domain-specific evaluation, returns reward scores.</li>
+    </ul>
+    <h4>Key Tradeoffs</h4>
+    <ul>
+      <li><strong>Async off-policy</strong> with age tolerance: Allows training to proceed without blocking on slow environments. Tradeoff: slightly stale rollouts may reduce training signal quality.</li>
+      <li><strong>SQS for durability</strong>: Messages survive Lambda failures, but adds latency vs. direct gRPC. Right choice for reliability over speed.</li>
+      <li><strong>Timeout handling</strong>: Rollout timeout causes training failure — must be set conservatively. Customer environments must be reliable.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Design the evaluation and benchmarking pipeline</button>
+  <div class="toggle-content">
+    <h4>Requirements</h4>
+    <p>Evaluate custom Nova models against standard benchmarks and custom datasets. Support LLM-as-a-Judge for subjective quality. Scale to millions of examples. Track eval lineage.</p>
+    <h4>Architecture</h4>
+    <ul>
+      <li><strong>Evaluation Recipes</strong>: YAML configs specifying task, strategy, metrics, dataset location</li>
+      <li><strong>Evaluation Container</strong>: Nova-specific container that loads model, runs inference on evaluation data, computes metrics</li>
+      <li><strong>Multi-Node Execution</strong>: Configure replicas in recipe → container auto-distributes workload → aggregates results</li>
+      <li><strong>LLM-as-a-Judge</strong>: Dedicated Nova Judge model. Forward + backward pass for positional debiasing. Bradley-Terry scoring.</li>
+      <li><strong>Results Store</strong>: S3 for raw metrics, TensorBoard for visualization, CloudWatch for monitoring</li>
+    </ul>
+    <h4>Evaluation Types</h4>
+    <ul>
+      <li>Standard benchmarks (MMLU, HumanEval) — automated, recipe-based</li>
+      <li>BYOD — customer dataset, gen_qa strategy</li>
+      <li>BYOM — custom Lambda metrics</li>
+      <li>LLM Judge — pairwise A/B with rationales</li>
+      <li>Rubric Judge — multi-dimensional scoring</li>
+      <li>MM Judge — multimodal evaluation (image inputs)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Design the inference serving system for custom Nova models</button>
+  <div class="toggle-content">
+    <h4>Requirements</h4>
+    <p>Serve custom Nova models with low latency, auto-scaling, cost optimization. Support both streaming and non-streaming. Handle multiple model sizes on heterogeneous hardware.</p>
+    <h4>Architecture</h4>
+    <ul>
+      <li><strong>Container</strong>: Nova inference container from ECR. Versioned tags for production stability.</li>
+      <li><strong>Model Loading</strong>: Artifacts from S3 → downloaded to instance → loaded into GPU memory. Configuration via environment variables (CONTEXT_LENGTH, MAX_CONCURRENCY).</li>
+      <li><strong>Instance Selection</strong>: Match model size to cheapest instance that fits. Micro → G5.12xl, Lite → G5.48xl, 2 Lite → P5.48xl.</li>
+      <li><strong>Auto-scaling</strong>: Based on 5-minute CloudWatch metrics. Scale-in/scale-out policies.</li>
+      <li><strong>Network Isolation</strong>: EnableNetworkIsolation=True prevents model containers from making outbound calls. Security requirement for custom models handling proprietary data.</li>
+    </ul>
+    <h4>Cost Optimization Strategy</h4>
+    <p>Use G5/G6 instances instead of P5 wherever model fits — dramatically lower cost. Use on-demand Bedrock for bursty workloads, provisioned throughput for steady state. Right-size CONTEXT_LENGTH to minimize memory waste.</p>
+  </div>
+</div>
+
+<!-- ==================== SECTION: DEEP DIVES ==================== -->
+<h2 id="deep-dives">17. Likely Deep Dive Questions</h2>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Q: How does data mixing prevent catastrophic forgetting at the gradient level?</button>
+  <div class="toggle-content">
+    <p><strong>Answer</strong>: During continued pre-training, each batch contains a mix of customer data and Nova-curated data. The loss function computes gradients from both sources simultaneously. Customer data gradients push weights toward domain-specific representations, but curated data gradients act as a regularizer — they counteract drift by maintaining the gradient signal from the original training distribution. The net gradient update is a weighted average that learns new knowledge while preserving existing capabilities. The mid-training checkpoint amplifies this effect by using a lower learning rate, which means each gradient step makes a smaller absolute change to weights, reducing the risk of overwriting critical parameters.</p>
+    <p>This is more effective than techniques like EWC (Elastic Weight Consolidation) which computes a Fisher information matrix to penalize changes to "important" weights, because data mixing directly maintains the training distribution rather than estimating parameter importance post-hoc.</p>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Q: Walk me through a GRPO training step in detail.</button>
+  <div class="toggle-content">
+    <p><strong>Answer</strong>:</p>
+    <ol>
+      <li><strong>Sample prompts</strong>: Draw a batch of prompts from the training dataset (size = global_batch_size / number_generation)</li>
+      <li><strong>Generate completions</strong>: For each prompt, the generation server produces N completions (number_generation, e.g., 16 for BYOO). Uses temperature sampling for diversity.</li>
+      <li><strong>Score with reward</strong>: Each completion is scored — Lambda function (RLVR), LLM judge (RLAIF), or remote endpoint (Forge). Returns scalar reward per completion.</li>
+      <li><strong>Compute group advantages</strong>: For each prompt, normalize rewards within the group: advantage_i = (reward_i - mean(rewards)) / std(rewards). This relative scoring means no value network is needed.</li>
+      <li><strong>Policy gradient</strong>: Compute loss = -sum(advantage_i * log_prob(completion_i | prompt)). Add KL penalty term against reference policy to prevent reward hacking.</li>
+      <li><strong>Update weights</strong>: Standard optimizer step (AdamW) with the computed gradients.</li>
+      <li><strong>Iterate</strong>: Repeat for max_steps.</li>
+    </ol>
+    <p>The key insight is that by comparing completions <em>within a group</em>, GRPO creates a self-normalizing advantage estimate without the instability and memory overhead of a separate critic model.</p>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Q: How does checkpointless training work on HyperPod?</button>
+  <div class="toggle-content">
+    <p><strong>Answer</strong>: Traditional fault recovery requires: (1) detect failure, (2) pause entire cluster, (3) replace faulty node, (4) load checkpoint from S3, (5) resume. This creates significant idle compute during recovery. Checkpointless training eliminates step 4 by using <strong>peer-to-peer state transfer</strong>. When a node fails:</p>
+    <ol>
+      <li>HyperPod detects the failure and swaps in a replacement node</li>
+      <li>The replacement node requests model parameters and optimizer states from healthy peer nodes over the high-bandwidth EFA network</li>
+      <li>Since FSDP shards state across all nodes, each healthy node holds a shard — the replacement reconstructs its own shard from peers</li>
+      <li>Training resumes from the current state without reverting to a stale checkpoint</li>
+    </ol>
+    <p>This achieves &gt;95% training goodput on 1000+ accelerator clusters. The cost savings come from eliminating both the checkpoint write overhead (which can be significant for large models) and the recovery read overhead.</p>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Q: How would you handle multi-tenant isolation on the Forge platform?</button>
+  <div class="toggle-content">
+    <p><strong>Answer</strong>: Multi-tenant isolation in Nova Forge operates at several levels:</p>
+    <ul>
+      <li><strong>Compute Isolation</strong>: Each customer gets dedicated HyperPod instance groups (RIG). No shared GPU memory between tenants.</li>
+      <li><strong>Data Isolation</strong>: Customer data stays in their own S3 buckets. Nova-curated data is read-only shared from Amazon-managed buckets. Execution roles with fine-grained IAM policies control access.</li>
+      <li><strong>Network Isolation</strong>: Training runs in customer's VPC. Inference endpoints have EnableNetworkIsolation. BYOO environments run entirely in customer VPC.</li>
+      <li><strong>Model Isolation</strong>: Custom models are private to the customer account. Deployed to Bedrock as private models with same security as native models.</li>
+      <li><strong>Access Control</strong>: forge-subscription IAM tag required on execution roles. Subscription approval process gates access.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Q: Compare LoRA vs. Full-Rank SFT — when would you choose each?</button>
+  <div class="toggle-content">
+    <p><strong>Answer</strong>:</p>
+    <table>
+      <tr><th>Dimension</th><th>LoRA (PEFT)</th><th>Full-Rank SFT</th></tr>
+      <tr><td>Parameters updated</td><td>Low-rank adapter matrices only (0.1-1% of params)</td><td>All parameters</td></tr>
+      <tr><td>Memory</td><td>~2-3x less than full-rank</td><td>Full model + optimizer states</td></tr>
+      <tr><td>Data requirement</td><td>Hundreds to low thousands of examples</td><td>Thousands to tens of thousands</td></tr>
+      <tr><td>Capability ceiling</td><td>Behavioral adaptation, not deep knowledge</td><td>Can embed new knowledge deeply</td></tr>
+      <tr><td>Deployment</td><td>Bedrock on-demand OR provisioned (unmerged LoRA)</td><td>SageMaker Inference or Bedrock provisioned</td></tr>
+      <tr><td>Cost</td><td>Lower compute, faster training</td><td>Higher compute, longer training</td></tr>
+      <tr><td>Composability</td><td>Can merge or serve multiple adapters</td><td>Single model per endpoint</td></tr>
+    </table>
+    <p><strong>Choose LoRA when</strong>: limited labeled data, need fast iteration, behavioral changes (format, style), cost-sensitive. <strong>Choose Full-Rank when</strong>: deep domain knowledge needed, large high-quality dataset available, maximum quality is the goal, using CPT + SFT pipeline.</p>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Q: How does the Nova LLM-as-a-Judge handle positional bias?</button>
+  <div class="toggle-content">
+    <p><strong>Answer</strong>: LLM judges are known to prefer responses presented in certain positions (often the first response). Nova's judge addresses this through <strong>bidirectional evaluation</strong>: for every prompt, it runs the comparison twice — once with Model A's response first and Model B's response second, then reversed. The final Bradley-Terry probability is computed from both orderings, effectively canceling out positional bias. Additionally, the judge was trained specifically for evaluation tasks through SFT + RL on human preference data, which helps it learn position-invariant quality assessment. Each judgment also produces a natural language rationale explaining the preference, enabling humans to audit the judge's reasoning.</p>
+  </div>
+</div>
+
+<!-- ==================== SECTION: TERMINOLOGY ==================== -->
+<h2 id="terminology">18. Key Terminology</h2>
+
+<table>
+  <tr><th>Term</th><th>Definition</th></tr>
+  <tr><td><strong>Novella</strong></td><td>A custom variant of Nova optimized for a specific organization's domain</td></tr>
+  <tr><td><strong>RIG</strong></td><td>Restricted Instance Group — Forge-specific HyperPod instance group with access to Nova checkpoints</td></tr>
+  <tr><td><strong>BYOO</strong></td><td>Bring Your Own Orchestration — customer manages multi-turn RL rollouts in their VPC</td></tr>
+  <tr><td><strong>GRPO</strong></td><td>Group Relative Policy Optimization — RL algorithm that eliminates the critic by comparing within groups</td></tr>
+  <tr><td><strong>RLVR</strong></td><td>RL via Verifiable Rewards — rule-based Lambda reward functions for objective tasks</td></tr>
+  <tr><td><strong>RLAIF</strong></td><td>RL from AI Feedback — LLM-as-judge reward functions for subjective evaluation</td></tr>
+  <tr><td><strong>CCMS</strong></td><td>Customizable Content Moderation Settings — override Nova's default safety controls</td></tr>
+  <tr><td><strong>CPT</strong></td><td>Continued Pre-Training — training on raw text to add knowledge (not behavior)</td></tr>
+  <tr><td><strong>DPO</strong></td><td>Direct Preference Optimization — alignment from preference pairs without a reward model</td></tr>
+  <tr><td><strong>Data Mixing</strong></td><td>Blending customer data with Nova-curated datasets to prevent catastrophic forgetting</td></tr>
+  <tr><td><strong>Bradley-Terry</strong></td><td>Probabilistic model for pairwise comparisons used in LLM-as-a-Judge scoring</td></tr>
+  <tr><td><strong>Checkpointless Training</strong></td><td>Fault recovery via peer-to-peer state transfer instead of checkpoint restoration</td></tr>
+  <tr><td><strong>Elastic Training</strong></td><td>Auto-scaling training jobs based on GPU availability</td></tr>
+  <tr><td><strong>Rollout</strong></td><td>In RL: the process of generating model responses and scoring them with rewards</td></tr>
+  <tr><td><strong>age_tolerance</strong></td><td>How many training steps a rollout can be stale before being discarded</td></tr>
+  <tr><td><strong>off_policy_async</strong></td><td>Rollout strategy where generation and training proceed asynchronously</td></tr>
+  <tr><td><strong>reasoning_effort</strong></td><td>Config to enable extended chain-of-thought in Nova 2 models (high/low/null)</td></tr>
+</table>
+
+<div style="height:60px"></div>
+<p style="color:var(--text-dim); font-size:12px; text-align:center;">Amazon Nova Forge Interview Prep — Compiled March 2026 — Based on AWS documentation, technical reports, and blog posts</p>
+
+</div>
+
+<script>
+function toggle(btn) {
+  btn.classList.toggle('open');
+  const content = btn.nextElementSibling;
+  content.classList.toggle('open');
+}
+
+// Active nav highlighting
+const sections = document.querySelectorAll('h2[id]');
+const navLinks = document.querySelectorAll('.nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.remove('active');
+    if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>
