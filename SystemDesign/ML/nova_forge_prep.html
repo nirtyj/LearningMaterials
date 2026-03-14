@@ -252,6 +252,7 @@ li { margin-bottom: 6px; }
   <div class="section-label">Training Pipeline</div>
   <a href="#training-phases">Training Phases & Checkpoints</a>
   <a href="#data-mixing">Data Mixing & Anti-Forgetting</a>
+  <a href="#plasticity-stability">Plasticity-Stability Dilemma</a>
   <a href="#sft">Supervised Fine-Tuning</a>
   <a href="#rft">Reinforcement Fine-Tuning</a>
   <a href="#grpo">GRPO Deep Dive</a>
@@ -330,6 +331,17 @@ li { margin-bottom: 6px; }
   <li><strong>Total Response Time</strong> — End-to-end completion latency</li>
 </ul>
 
+<h3>Modern Architecture Components</h3>
+<table>
+  <tr><th>Component</th><th>What It Does</th><th>Industry Adoption</th></tr>
+  <tr><td>Grouped Query Attention (GQA)</td><td>Shares KV heads across query heads — reduces memory 2-4x vs MHA</td><td>Llama 2/3, Mistral, Gemma</td></tr>
+  <tr><td>Rotary Position Embeddings (RoPE)</td><td>Encodes position via rotation matrices — enables length extrapolation</td><td>Near-universal in 2024+ models</td></tr>
+  <tr><td>FlashAttention-2/3</td><td>IO-aware exact attention — 2-4x speedup, no approximation</td><td>Standard in all major training stacks</td></tr>
+  <tr><td>Mixture-of-Experts (MoE)</td><td>Sparse activation — only k-of-N experts fire per token</td><td>Mixtral, GPT-4, DeepSeek, DBRX</td></tr>
+  <tr><td>SwiGLU Activation</td><td>Gated Linear Unit variant — better than ReLU/GELU empirically</td><td>Llama, PaLM, Gemma, Mistral</td></tr>
+  <tr><td>RMSNorm</td><td>Simplified LayerNorm (no mean centering) — faster, equally effective</td><td>Llama, Mistral, Gemma</td></tr>
+</table>
+
 <!-- ==================== SECTION: TRAINING PHASES ==================== -->
 <h2 id="training-phases">4. Training Phases & Checkpoints</h2>
 
@@ -382,6 +394,40 @@ li { margin-bottom: 6px; }
 <h3>Why This Prevents Catastrophic Forgetting</h3>
 <p>During continued pre-training on only proprietary data, the model's weight updates drift away from the general-capability manifold. By interleaving Nova-curated data from the same distribution used to train the base model, gradient updates maintain coverage of general capabilities while acquiring domain knowledge. The mid-training checkpoint uses a <strong>more conservative learning rate</strong> than full pre-training, which further reduces forgetting risk.</p>
 
+<h3 id="plasticity-stability">The Plasticity-Stability Dilemma — Industry Techniques</h3>
+<p>The fundamental challenge in continual learning: a model must be <strong>plastic</strong> enough to learn new tasks, yet <strong>stable</strong> enough to retain old ones. The industry addresses this through three complementary pillars.</p>
+
+<h4>1. Data-Based Strategies (Replay)</h4>
+<ul>
+  <li><strong>Data Mixing (Experience Replay):</strong> Mix 5-20% original general pre-training data with new domain data — this is exactly what Nova Forge does with its curated dataset blending</li>
+  <li><strong>Self-Synthesized Rehearsal (SSR):</strong> When original data is unavailable, use the model itself to generate "old-domain" data for replay — the model becomes its own memory</li>
+  <li><strong>Data Mixing Laws:</strong> Mathematical scaling laws to predict the optimal new-vs-old data ratio to prevent drops on benchmarks like MMLU/GSM8K — helps customers choose mixing ratios without expensive grid search</li>
+</ul>
+
+<h4>2. Regularization (Constraining Weights)</h4>
+<ul>
+  <li><strong>Elastic Weight Consolidation (EWC):</strong> Fisher information matrix identifies critical weights; a penalty term discourages modifying them during new training</li>
+  <li><strong>Knowledge Distillation:</strong> A frozen copy of the original model (Teacher) constrains the new model (Student) from drifting — the student's outputs must stay close to the teacher's on general-domain inputs</li>
+  <li><strong>Mixout:</strong> Randomly resets some weights to their original pre-trained values during training, acting as a stochastic anchor to the base model</li>
+</ul>
+
+<h4>3. Optimization & Architecture</h4>
+<ul>
+  <li><strong>Learning Rate Re-warming & Re-decay:</strong> Start with a very low LR that slowly increases to match the model's existing optimization momentum, then decays — avoids "shocking" the model with large early gradient steps</li>
+  <li><strong>PEFT/LoRA:</strong> Freeze core weights, only train small adapter layers — makes it physically impossible to erase base knowledge since original parameters are untouched</li>
+  <li><strong>Layer-wise Learning Rates:</strong> Very low LR for bottom layers (foundational skills like syntax, grammar), higher LR for top layers (specialization, task-specific behavior)</li>
+</ul>
+
+<div class="callout purple">
+  <div class="callout-title">Industry Recipe Summary — Preventing Forgetting</div>
+  <ol>
+    <li><strong>Architecture:</strong> Freeze bottom layers or use LoRA to protect foundational knowledge</li>
+    <li><strong>Data:</strong> Mix in ~10% general pre-training data to maintain distribution coverage</li>
+    <li><strong>Optimization:</strong> Use LR re-warming to prevent weight shocks at the start of training</li>
+    <li><strong>Evaluation:</strong> Monitor continuously with forgetting metrics like Backward Transfer (BWT) — measures the change in performance on old tasks after learning new ones</li>
+  </ol>
+</div>
+
 <div class="callout green">
   <div class="callout-title">Interview Answer Pattern</div>
   <p>"Catastrophic forgetting occurs when continued training on narrow data causes the model to lose previously learned capabilities. Nova Forge addresses this through data mixing — blending customer data with Amazon-curated datasets that maintain coverage of the original training distribution. The mid-training checkpoint specifically uses a lower learning rate than pre-training, making the model absorb new knowledge without destabilizing existing capabilities. This is fundamentally different from LoRA or adapter-based approaches, which avoid forgetting by freezing most weights but can't embed deep domain knowledge."</p>
@@ -420,6 +466,15 @@ LoRA Defaults:
 Data Format: JSONL with instruction-response pairs
 Instance Types: p5.48xlarge, p5en.48xlarge</div>
 
+<h3>Modern SFT Best Practices</h3>
+<ul>
+  <li><strong>NEFTune:</strong> Add uniform noise to embedding vectors during fine-tuning — improves conversational quality 10-15% on MT-Bench with zero overhead</li>
+  <li><strong>Packing / Sample Packing:</strong> Concatenate multiple short examples into single sequences to eliminate padding waste — can improve throughput 2-5x</li>
+  <li><strong>Curriculum Learning:</strong> Order training data from easy to hard — stabilizes training and improves final quality</li>
+  <li><strong>Chat Template Standardization:</strong> Use consistent chat templates (ChatML, Llama format) with proper special tokens to avoid distribution mismatch</li>
+  <li><strong>Loss Masking on Prompts:</strong> Only compute loss on assistant responses, mask instruction/system tokens — standard practice to prevent the model from learning to parrot instructions</li>
+</ul>
+
 <!-- ==================== SECTION: RFT ==================== -->
 <h2 id="rft">7. Reinforcement Fine-Tuning (RFT)</h2>
 
@@ -453,6 +508,23 @@ Instance Types: p5.48xlarge, p5en.48xlarge</div>
   <li><strong>RLAIF (Reinforcement Learning from AI Feedback)</strong> — LLM-as-a-judge evaluates responses against criteria you define. Ideal for subjective qualities (helpfulness, style, brand voice).</li>
   <li><strong>Remote Reward Functions (Forge)</strong> — API-based. Customer runs reward computation in their own VPC infrastructure. Enables physics simulators, complex code eval with nested tool-calling, robotics tasks.</li>
 </ul>
+
+<h3>Modern RL Alignment Landscape</h3>
+<table>
+  <tr><th>Method</th><th>Needs Reward Model?</th><th>Needs Online Gen?</th><th>Key Innovation</th></tr>
+  <tr><td>PPO / RLHF</td><td>Yes (separate RM)</td><td>Yes</td><td>Classic — policy gradient + value function</td></tr>
+  <tr><td>GRPO</td><td>No (group relative)</td><td>Yes</td><td>Eliminates critic via within-group normalization</td></tr>
+  <tr><td>DPO</td><td>No</td><td>No (offline)</td><td>Reparameterizes reward into policy directly</td></tr>
+  <tr><td>KTO</td><td>No</td><td>No (offline)</td><td>Works with binary (good/bad) labels instead of pairs</td></tr>
+  <tr><td>ORPO</td><td>No</td><td>No (offline)</td><td>Combines SFT + preference alignment in single step</td></tr>
+  <tr><td>SimPO</td><td>No</td><td>No (offline)</td><td>Length-normalized, reference-free DPO variant</td></tr>
+  <tr><td>REINFORCE++</td><td>No</td><td>Yes</td><td>Simplified GRPO with token-level baselines</td></tr>
+</table>
+
+<div class="callout blue">
+  <div class="callout-title">Industry Trend</div>
+  <p>The field is moving toward simpler, more stable algorithms. <strong>GRPO</strong> and its variants (DAPO, Dr. GRPO) are becoming the default for online RL, while <strong>DPO/SimPO</strong> dominate offline alignment. The key decision axis is whether you need the model to explore beyond its current distribution (online) or can align within existing response quality (offline).</p>
+</div>
 
 <!-- ==================== SECTION: GRPO ==================== -->
 <h2 id="grpo">8. GRPO Deep Dive</h2>
@@ -656,6 +728,16 @@ Training containers use SageMaker's PyTorch Estimator with recipe integration.</
 </table>
 
 <p>The <code>replicas</code> parameter in recipes controls data parallelism. For BYOO RFT, <code>generation_replicas</code> controls how many inference servers run in parallel for rollout generation, and <code>rollout_worker_replicas</code> controls environment interaction parallelism.</p>
+
+<h3>Modern Distributed Training Stack</h3>
+<ul>
+  <li><strong>ZeRO (Zero Redundancy Optimizer):</strong> Partitions optimizer states (Stage 1), gradients (Stage 2), and parameters (Stage 3) across data-parallel ranks — enables training models 8x larger than naive DP</li>
+  <li><strong>3D Parallelism:</strong> Combines TP + PP + DP — standard for 100B+ parameter training (Megatron-LM pattern)</li>
+  <li><strong>Sequence Parallelism:</strong> Splits long sequences across GPUs — essential for 128K+ context training (Ring Attention, Ulysses)</li>
+  <li><strong>Gradient Accumulation:</strong> Simulate larger batch sizes without proportional memory — critical for RL where per-sample memory is high</li>
+  <li><strong>Mixed Precision (BF16/FP8):</strong> BF16 is the default training dtype; FP8 (on H100/H200) provides additional 2x speedup with minimal quality loss</li>
+  <li><strong>Communication Optimization:</strong> Overlap all-reduce with compute; use NCCL/EFA for high-bandwidth collective ops</li>
+</ul>
 
 <!-- ==================== SECTION: INFERENCE ==================== -->
 <h2 id="inference">13. Inference Architecture</h2>
@@ -948,6 +1030,34 @@ End-to-End Deployment Flow:
   </div>
 </div>
 
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Q: What are the tradeoffs between online RL (GRPO) and offline alignment (DPO)?</button>
+  <div class="toggle-content">
+    <p><strong>Answer</strong>:</p>
+    <ul>
+      <li><strong>Online RL (GRPO)</strong>: The model generates its own responses, and a reward signal comes from scoring them. More compute-intensive but can discover novel behaviors beyond the training distribution. Better for verifiable tasks (code correctness, math accuracy, tool use).</li>
+      <li><strong>Offline DPO</strong>: Uses pre-collected preference pairs — no generation at training time. Cheaper, more stable, but limited to the distribution of collected responses. Better for style, tone, and safety alignment.</li>
+      <li><strong>Industry trend</strong>: Use DPO for an initial alignment pass (cheap, stable baseline), then GRPO for capability improvements on specific tasks where verifiable rewards exist. Nova Forge supports both — DPO via SFT recipes, GRPO via RFT recipes.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="toggle-group">
+  <button class="toggle-btn" onclick="toggle(this)"><span class="arrow">▶</span> Q: How would you decide between CPT, SFT, RAG, and LoRA for a customer use case?</button>
+  <div class="toggle-content">
+    <p><strong>Answer — Decision Framework</strong>:</p>
+    <table>
+      <tr><th>Signal</th><th>Recommendation</th></tr>
+      <tr><td>Model lacks domain knowledge (e.g., proprietary codebase, medical literature)</td><td>CPT at mid-training checkpoint</td></tr>
+      <tr><td>Model knows the domain but responds in wrong format/style</td><td>SFT (LoRA if &lt; 5K examples, Full-rank if &gt; 10K)</td></tr>
+      <tr><td>Knowledge changes frequently (product catalog, docs)</td><td>RAG (no training needed)</td></tr>
+      <tr><td>Need both new knowledge + new behavior</td><td>CPT → SFT pipeline</td></tr>
+      <tr><td>Need to optimize for measurable outcomes</td><td>RFT with GRPO</td></tr>
+    </table>
+    <p>In practice, these are not mutually exclusive. A common Nova Forge pattern is: CPT to inject domain knowledge → SFT to align behavior → RFT to optimize task-specific metrics → RAG at inference time for dynamic content.</p>
+  </div>
+</div>
+
 <!-- ==================== SECTION: TERMINOLOGY ==================== -->
 <h2 id="terminology">18. Key Terminology</h2>
 
@@ -970,6 +1080,19 @@ End-to-End Deployment Flow:
   <tr><td><strong>age_tolerance</strong></td><td>How many training steps a rollout can be stale before being discarded</td></tr>
   <tr><td><strong>off_policy_async</strong></td><td>Rollout strategy where generation and training proceed asynchronously</td></tr>
   <tr><td><strong>reasoning_effort</strong></td><td>Config to enable extended chain-of-thought in Nova 2 models (high/low/null)</td></tr>
+  <tr><td><strong>GQA</strong></td><td>Grouped Query Attention — shares KV heads across query heads to reduce memory 2-4x vs MHA</td></tr>
+  <tr><td><strong>RoPE</strong></td><td>Rotary Position Embeddings — encodes position via rotation matrices, enables length extrapolation</td></tr>
+  <tr><td><strong>FlashAttention</strong></td><td>IO-aware exact attention algorithm — 2-4x speedup with no approximation</td></tr>
+  <tr><td><strong>MoE</strong></td><td>Mixture-of-Experts — sparse activation where only k-of-N experts fire per token</td></tr>
+  <tr><td><strong>NEFTune</strong></td><td>Noisy Embedding Fine-Tuning — adds uniform noise to embeddings during SFT to improve quality</td></tr>
+  <tr><td><strong>KTO</strong></td><td>Kahneman-Tversky Optimization — offline alignment using binary (good/bad) labels instead of pairs</td></tr>
+  <tr><td><strong>SimPO</strong></td><td>Simple Preference Optimization — length-normalized, reference-free DPO variant</td></tr>
+  <tr><td><strong>ZeRO</strong></td><td>Zero Redundancy Optimizer — partitions optimizer states, gradients, and parameters across data-parallel ranks</td></tr>
+  <tr><td><strong>BWT</strong></td><td>Backward Transfer — metric measuring how much a model forgets previously learned tasks after new training</td></tr>
+  <tr><td><strong>SSR</strong></td><td>Self-Synthesized Rehearsal — using the model itself to generate old-domain data for replay when original data is unavailable</td></tr>
+  <tr><td><strong>EWC</strong></td><td>Elastic Weight Consolidation — uses Fisher information matrix to penalize changes to critical weights</td></tr>
+  <tr><td><strong>Mixout</strong></td><td>Stochastic weight reset regularization — randomly resets some weights to pre-trained values during training</td></tr>
+  <tr><td><strong>Sequence Parallelism</strong></td><td>Splitting long sequences across GPUs for memory efficiency — essential for 128K+ context training</td></tr>
 </table>
 
 <div style="height:60px"></div>
