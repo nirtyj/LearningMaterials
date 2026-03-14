@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>LLM Infra &mdash; 3. Fine-Tuning &amp; PEFT</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-architecture.html" class="tab-btn"><span class="tnum">1</span>Architecture</a>
+  <a href="2-pretraining.html" class="tab-btn"><span class="tnum">2</span>Pre-Training</a>
+  <a href="3-fine-tuning.html" class="tab-btn active"><span class="tnum">3</span>Fine-Tuning</a>
+  <a href="4-rl-alignment.html" class="tab-btn"><span class="tnum">4</span>RL Alignment</a>
+  <a href="5-distributed-training.html" class="tab-btn"><span class="tnum">5</span>Distributed</a>
+  <a href="6-inference.html" class="tab-btn"><span class="tnum">6</span>Inference</a>
+  <a href="7-eval-benchmarking.html" class="tab-btn"><span class="tnum">7</span>Eval</a>
+  <a href="8-aws-nova-forge.html" class="tab-btn"><span class="tnum">8</span>Nova Forge</a>
+</nav>
+
+<div class="tab-content">
+  <div class="hero">
+    <h1>Chapter 3: Supervised Fine-Tuning &amp; PEFT</h1>
+    <p>Teaching a pre-trained LLM how to behave &mdash; from full-parameter SFT to parameter-efficient adaptation.</p>
+  </div>
+
+  <!-- ═══════════════ 3.1 SFT Overview ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.1</span><h2>SFT Overview</h2></div>
+    <p class="sub">Pre-training teaches a model what language is. SFT teaches it how to respond.</p>
+
+    <p class="desc">Supervised Fine-Tuning (SFT) is the process of adapting a pre-trained base model on labeled instruction&ndash;response pairs (or multi-turn conversations) so it produces helpful, well-formatted outputs. It is the bridge between a raw next-token predictor and a useful assistant.</p>
+
+    <div class="callout blue">
+      <div class="callout-title">Core Principle: Quality &gt; Quantity</div>
+      <p>A few thousand high-quality, diverse instruction&ndash;response examples can outperform millions of low-quality ones. The LIMA paper showed that just 1,000 carefully curated samples can produce a strong instruction-following model. Focus your effort on data curation, not volume.</p>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">When to Use SFT vs CPT vs RAG</h4>
+      <table class="ct">
+        <tr><th>Technique</th><th>Purpose</th><th>Use When</th></tr>
+        <tr><td><span class="kt">SFT</span></td><td>Behavioral alignment &mdash; format, style, tone</td><td>Model has the knowledge but responds incorrectly</td></tr>
+        <tr><td><span class="kt">CPT</span></td><td>Knowledge injection</td><td>Model lacks domain-specific knowledge</td></tr>
+        <tr><td><span class="kt">RAG</span></td><td>Dynamic/changing information</td><td>Knowledge changes frequently; no training needed</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Typical SFT Recipe</h4>
+      <div class="g2">
+        <div>
+          <ul style="list-style:none;padding:0">
+            <li style="color:var(--dim);font-size:13px;padding:3px 0"><strong style="color:var(--text)">Epochs:</strong> 1&ndash;5 (often 2&ndash;3)</li>
+            <li style="color:var(--dim);font-size:13px;padding:3px 0"><strong style="color:var(--text)">Learning Rate:</strong> 1e-5 to 5e-5</li>
+            <li style="color:var(--dim);font-size:13px;padding:3px 0"><strong style="color:var(--text)">Schedule:</strong> Cosine decay with linear warmup</li>
+          </ul>
+        </div>
+        <div>
+          <ul style="list-style:none;padding:0">
+            <li style="color:var(--dim);font-size:13px;padding:3px 0"><strong style="color:var(--text)">Warmup:</strong> 3&ndash;10% of total steps</li>
+            <li style="color:var(--dim);font-size:13px;padding:3px 0"><strong style="color:var(--text)">Batch Size:</strong> 32&ndash;128 (effective, via accumulation)</li>
+            <li style="color:var(--dim);font-size:13px;padding:3px 0"><strong style="color:var(--text)">Precision:</strong> BF16 mixed-precision</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="ins">SFT does not add new factual knowledge effectively. If the base model does not already know something, SFT will not reliably teach it &mdash; it will just make the model more confidently wrong. Use CPT or RAG for knowledge.</div>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">SFT Training Pipeline</h4>
+      <div class="arch-box">Base Model (pre-trained)
+    │
+    ▼
+┌──────────────────────────────────────────────────────────┐
+│  1. Data Preparation                                     │
+│     └─ Curate instruction-response pairs (JSONL)         │
+│     └─ Quality filter, deduplicate, decontaminate        │
+├──────────────────────────────────────────────────────────┤
+│  2. Configuration                                        │
+│     └─ Choose method: Full SFT / LoRA / QLoRA            │
+│     └─ Set LR, epochs, batch size, warmup                │
+├──────────────────────────────────────────────────────────┤
+│  3. Training                                             │
+│     └─ Loss masking (assistant tokens only)              │
+│     └─ NEFTune noise, sample packing                     │
+│     └─ Monitor eval loss + generation quality            │
+├──────────────────────────────────────────────────────────┤
+│  4. Evaluation                                           │
+│     └─ Held-out test set + domain benchmarks             │
+│     └─ Human preference evaluation                       │
+│     └─ Check for regression on general capabilities      │
+└──────────────────────────────────────────────────────────┘
+    │
+    ▼
+Fine-Tuned Model (or LoRA adapter)</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 3.2 Full-Parameter SFT ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.2</span><h2>Full-Parameter SFT</h2></div>
+    <p class="sub">Maximum expressivity &mdash; update every weight in the model.</p>
+
+    <p class="desc">In full-parameter SFT, all model weights are unfrozen and updated via backpropagation. This gives the optimizer maximum freedom to reshape the model's behavior and internal representations, but comes at significant memory and compute cost.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Memory Footprint with AdamW (BF16)</h4>
+      <div class="mb">Memory &asymp; P &times; (2 + 2 + 4 + 4 + 4) = P &times; 16 bytes &nbsp;&nbsp;(params + grads + optimizer m + v + master weights)</div>
+      <p class="desc" style="margin-top:10px">For practical estimates, budget <strong>16&ndash;20 bytes per parameter</strong> (including activations). A 4B-parameter model requires roughly 64&ndash;80 GB of GPU memory for full-parameter SFT with AdamW in BF16.</p>
+
+      <table class="ct">
+        <tr><th>Model Size</th><th>Params</th><th>Approx. Memory (AdamW BF16)</th><th>Min GPUs (80 GB)</th></tr>
+        <tr><td>Small</td><td>1B</td><td>~16&ndash;20 GB</td><td>1</td></tr>
+        <tr><td>Medium</td><td>7B</td><td>~112&ndash;140 GB</td><td>2</td></tr>
+        <tr><td>Large</td><td>13B</td><td>~208&ndash;260 GB</td><td>4</td></tr>
+        <tr><td>Very Large</td><td>70B</td><td>~1.1&ndash;1.4 TB</td><td>16&ndash;24</td></tr>
+      </table>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-title">Risk: Catastrophic Forgetting</div>
+      <p>Aggressively fine-tuning on a narrow dataset can cause the model to lose general capabilities it learned during pre-training. <strong>Mitigation strategies:</strong></p>
+      <ul style="padding-left:20px;margin-top:6px">
+        <li>Mix 5&ndash;20% general-purpose data into your SFT dataset</li>
+        <li>Use a low learning rate (1e-5 or lower)</li>
+        <li>Limit to 2&ndash;3 epochs &mdash; more passes increase forgetting risk</li>
+        <li>Evaluate on held-out general benchmarks throughout training</li>
+      </ul>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">Risk: Overfitting on Small Datasets</div>
+      <p>Full-parameter SFT with fewer than ~5K examples often overfits. Symptoms include declining validation loss but increasing repetition and reduced diversity in generations. If your dataset is small, consider LoRA (Section 3.3) instead.</p>
+    </div>
+
+    <div class="ins">Full-parameter SFT is best suited for scenarios with large, high-quality datasets (10K+ examples) where maximum behavioral change is required, such as a CPT &rarr; SFT pipeline for a domain-specific model.</div>
+  </div>
+
+  <!-- ═══════════════ 3.3 LoRA & PEFT ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.3</span><h2>LoRA &amp; PEFT Methods</h2></div>
+    <p class="sub">Adapt large models by training a tiny fraction of parameters.</p>
+
+    <p class="desc">Parameter-Efficient Fine-Tuning (PEFT) methods freeze the original pre-trained weights and inject a small number of trainable parameters. The dominant approach is LoRA (Low-Rank Adaptation), which adds low-rank decomposition matrices to attention layers.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">LoRA: Low-Rank Adaptation</h4>
+      <p class="desc">Freeze all original weights <strong>W<sub>0</sub></strong>. For each target weight matrix, add a trainable low-rank update:</p>
+      <div class="mb">W = W&#x2080; + BA &nbsp;&nbsp;where&nbsp; B &isin; &#x211D;<sup>d&times;r</sup>, A &isin; &#x211D;<sup>r&times;k</sup>, &nbsp;rank r &lt;&lt; min(d, k)</div>
+      <p class="desc" style="margin-top:10px">Typical rank values: <code>r = 8</code>, <code>16</code>, <code>32</code>, or <code>64</code>. Applied to Q, K, V, and O projection matrices in attention layers. B is initialized to zeros and A to random Gaussian, so the initial adaptation is zero (no disruption to the base model at start).</p>
+      <div class="g2" style="margin-top:12px">
+        <div class="use-card">
+          <h4>Trainable Parameters</h4>
+          <ul>
+            <li><strong>Original:</strong> d &times; k per layer</li>
+            <li><strong>LoRA:</strong> (d &times; r) + (r &times; k) per layer</li>
+            <li><strong>Savings:</strong> With d=k=4096, r=16: 0.78% of original</li>
+            <li><strong>Typical total:</strong> 0.1&ndash;1% of all model params</li>
+          </ul>
+        </div>
+        <div class="use-card">
+          <h4>Key Hyperparameters</h4>
+          <ul>
+            <li><strong>Rank (r):</strong> Expressivity of the update (8&ndash;64)</li>
+            <li><strong>Alpha (&alpha;):</strong> Scaling factor, usually &alpha; = 2r</li>
+            <li><strong>Target modules:</strong> q_proj, v_proj minimum; all linear for best results</li>
+            <li><strong>Dropout:</strong> 0.05&ndash;0.1 on adapter outputs</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--green)">QLoRA: Quantized LoRA</h4>
+      <p class="desc">Quantize the base model to 4-bit (NF4 data type) and train LoRA adapters in BF16 on top. Uses double quantization and paged optimizers to handle memory spikes. Enables fine-tuning a <strong>65B-parameter model on a single 48 GB GPU</strong>.</p>
+      <div class="ins">QLoRA is the go-to method for fine-tuning large models when GPU budget is limited. Quality is within 1&ndash;2% of full-precision LoRA for most tasks.</div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <h4 style="margin-bottom:8px;color:var(--purple)">DoRA (Weight-Decomposed LoRA)</h4>
+        <p style="color:var(--dim);font-size:13px;line-height:1.7">Decomposes each weight matrix into <strong>magnitude</strong> and <strong>direction</strong> components. Applies LoRA only to the direction component. Consistently outperforms standard LoRA across tasks with minimal additional overhead.</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:8px;color:var(--cyan)">LoRA+ (Differential LR)</h4>
+        <p style="color:var(--dim);font-size:13px;line-height:1.7">Uses different learning rates for the A and B matrices &mdash; B gets a higher LR (typically 2&ndash;8x). A simple one-line change that yields measurable improvements in convergence speed and final quality.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Other Adapter Variants</h4>
+      <ul style="list-style:none;padding:0">
+        <li style="color:var(--dim);font-size:13px;padding:4px 0"><span class="tag tag-blue">PREFIX TUNING</span> &nbsp;Add learnable &ldquo;virtual tokens&rdquo; to each layer&rsquo;s key/value representations. Effective but harder to tune than LoRA.</li>
+        <li style="color:var(--dim);font-size:13px;padding:4px 0"><span class="tag tag-green">PROMPT TUNING</span> &nbsp;Learn a set of soft prompt embeddings prepended to the input. Extremely parameter-efficient; best for large models (10B+).</li>
+        <li style="color:var(--dim);font-size:13px;padding:4px 0"><span class="tag tag-purple">IA&sup3;</span> &nbsp;Infused Adapter by Inhibiting and Amplifying Inner Activations &mdash; learned scaling vectors on keys, values, and FFN. Fewer params than LoRA.</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">PEFT Method Comparison</h4>
+      <table class="ct">
+        <tr><th>Method</th><th>Trainable Params</th><th>Memory</th><th>Quality vs Full SFT</th><th>Training Speed</th></tr>
+        <tr><td><span class="kt">Full SFT</span></td><td>100%</td><td>16&ndash;20x P bytes</td><td>Baseline (best)</td><td>1x (baseline)</td></tr>
+        <tr><td><span class="kt">LoRA</span></td><td>0.1&ndash;1%</td><td>~60&ndash;70% less</td><td>95&ndash;99%</td><td>1.2&ndash;1.5x faster</td></tr>
+        <tr><td><span class="kt">QLoRA</span></td><td>0.1&ndash;1%</td><td>~75&ndash;85% less</td><td>93&ndash;98%</td><td>0.8&ndash;1x (quantization overhead)</td></tr>
+        <tr><td><span class="kt">DoRA</span></td><td>0.1&ndash;1%</td><td>~60&ndash;70% less</td><td>96&ndash;99%</td><td>1.1&ndash;1.4x faster</td></tr>
+        <tr><td><span class="kt">Prefix Tuning</span></td><td>0.01&ndash;0.1%</td><td>~80% less</td><td>88&ndash;95%</td><td>1.5&ndash;2x faster</td></tr>
+        <tr><td><span class="kt">Prompt Tuning</span></td><td>&lt; 0.01%</td><td>~85% less</td><td>85&ndash;92%</td><td>2x faster</td></tr>
+        <tr><td><span class="kt">IA&sup3;</span></td><td>&lt; 0.01%</td><td>~80% less</td><td>88&ndash;94%</td><td>1.5&ndash;2x faster</td></tr>
+      </table>
+    </div>
+
+    <div class="trend-box">
+      <strong>Industry Trend:</strong> LoRA has become the default fine-tuning method across cloud providers (AWS Bedrock, Azure AI, Google Vertex). QLoRA made it accessible to individual researchers. DoRA and LoRA+ are emerging as drop-in improvements.
+    </div>
+  </div>
+
+  <!-- ═══════════════ 3.4 Knowledge Distillation ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.4</span><h2>Knowledge Distillation</h2></div>
+    <p class="sub">Compress a large teacher model into a smaller, faster student.</p>
+
+    <p class="desc">Knowledge distillation transfers the learned behavior of a large &ldquo;teacher&rdquo; model into a smaller &ldquo;student&rdquo; model. Instead of training on hard labels (0 or 1), the student learns from the teacher&rsquo;s output probability distribution &mdash; soft targets that carry far more information about inter-class relationships.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Logit Distillation</h4>
+      <p class="desc">The student is trained to minimize the KL divergence between its own output distribution and the teacher&rsquo;s softened distribution:</p>
+      <div class="mb">L = &alpha; &middot; KL(softmax(z<sub>T</sub> / &tau;) &Vert; softmax(z<sub>S</sub> / &tau;)) + (1 &minus; &alpha;) &middot; CE(y, z<sub>S</sub>)</div>
+      <p class="desc" style="margin-top:10px">Where <strong>&tau;</strong> (temperature) controls distribution softness and <strong>&alpha;</strong> balances distillation loss vs. standard cross-entropy loss on ground-truth labels.</p>
+      <div class="g2" style="margin-top:12px">
+        <div class="use-card">
+          <h4>Temperature Effect</h4>
+          <ul>
+            <li><strong>&tau; = 1:</strong> Standard softmax (sharp, peaky)</li>
+            <li><strong>&tau; = 2&ndash;5:</strong> Softer distributions &mdash; more information transfer about &ldquo;dark knowledge&rdquo;</li>
+            <li><strong>&tau; &gt; 10:</strong> Nearly uniform &mdash; diminishing returns</li>
+            <li><strong>Sweet spot:</strong> Typically &tau; = 2&ndash;4 for LLMs</li>
+          </ul>
+        </div>
+        <div class="use-card">
+          <h4>Common Distillation Recipes</h4>
+          <ul>
+            <li><strong>70B &rarr; 7B:</strong> Retains 85&ndash;92% of teacher quality</li>
+            <li><strong>Pro &rarr; Lite:</strong> Production-grade compression</li>
+            <li><strong>Ensemble &rarr; Single:</strong> Combine multiple teachers</li>
+            <li><strong>Typical LR:</strong> 2e-5 to 1e-4</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="callout green">
+        <div class="callout-title">Offline Distillation</div>
+        <p>Pre-generate teacher outputs and cache them. Student trains on saved logits/tokens. Cheaper (teacher runs once), easier to parallelize, but frozen teacher quality.</p>
+      </div>
+      <div class="callout purple">
+        <div class="callout-title">Online Distillation</div>
+        <p>Teacher and student train jointly. Teacher generates outputs on-the-fly for each batch. Higher quality (teacher can adapt), but requires both models in memory simultaneously.</p>
+      </div>
+    </div>
+
+    <div class="ins">Distillation is how most production &ldquo;small&rdquo; models are trained. It is more data-efficient than training from scratch because the teacher provides richer supervision signals than hard labels alone.</div>
+
+    <div class="card" style="margin-top:16px">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Distillation Strategy Comparison</h4>
+      <table class="ct">
+        <tr><th>Strategy</th><th>Teacher Cost</th><th>Student Quality</th><th>Implementation</th></tr>
+        <tr><td><span class="kt">Logit Distillation</span></td><td>High (need full logits)</td><td>Highest</td><td>Requires access to teacher internals</td></tr>
+        <tr><td><span class="kt">Sequence Distillation</span></td><td>Medium (generate outputs)</td><td>High</td><td>Teacher generates; student does standard SFT</td></tr>
+        <tr><td><span class="kt">Feature Distillation</span></td><td>High (hidden states)</td><td>Very High</td><td>Match intermediate representations layer-by-layer</td></tr>
+        <tr><td><span class="kt">Black-Box Distillation</span></td><td>Low (API access only)</td><td>Moderate</td><td>Use teacher API to generate training data</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 3.5 SFT Best Practices ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.5</span><h2>SFT Best Practices</h2></div>
+    <p class="sub">Practical techniques that improve fine-tuning quality and efficiency.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--green)">NEFTune <span class="tag tag-green" style="margin-left:6px">FREE IMPROVEMENT</span></h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7">Add uniform noise to embedding vectors during fine-tuning: <code>emb = emb + &alpha; &middot; U(-1,1)</code> where &alpha; scales with sequence length. Improves conversational quality <strong>10&ndash;15% on MT-Bench</strong> with zero computational overhead. Works because it acts as a regularizer, preventing the model from overfitting to exact token positions.</p>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--cyan)">Sample Packing <span class="tag tag-cyan" style="margin-left:6px">2&ndash;5x THROUGHPUT</span></h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7">Concatenate multiple short examples into a single sequence (up to max context length) with separator tokens and attention masking to prevent cross-contamination. Eliminates padding waste &mdash; typical SFT datasets have highly variable sequence lengths, and naive batching wastes 40&ndash;70% of compute on padding tokens.</p>
+      <div class="arch-box">Naive batching:   [Ex1|pad|pad|pad]  [Ex2|pad|pad|pad|pad]  [Ex3|pad]
+Sample packing:   [Ex1|Ex2|Ex3|Ex4]  [Ex5|Ex6|Ex7|Ex8|Ex9]  [Ex10|Ex11]</div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <h4 style="margin-bottom:8px;color:var(--accentL)">Chat Template Standardization</h4>
+        <p style="color:var(--dim);font-size:13px;line-height:1.7">Use consistent templates with proper special tokens. Common formats: <strong>ChatML</strong> (<code>&lt;|im_start|&gt;</code>), <strong>Llama</strong> (<code>[INST]</code>), or provider-specific. Mismatched templates between training and inference cause severe quality degradation.</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:8px;color:var(--accentL)">Loss Masking on Prompts</h4>
+        <p style="color:var(--dim);font-size:13px;line-height:1.7">Only compute loss on <strong>assistant response tokens</strong>. Mask system prompts, user instructions, and all template tokens. Standard practice &mdash; prevents the model from learning to parrot instructions and focuses learning on generation quality.</p>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-top:12px">
+      <div class="card">
+        <h4 style="margin-bottom:8px;color:var(--yellow)">Curriculum Learning</h4>
+        <p style="color:var(--dim);font-size:13px;line-height:1.7">Order training data from easy to hard for stability. Start with shorter, simpler examples (single-turn, factual QA) and gradually introduce complex multi-turn conversations. Stabilizes early training and can improve final quality by 2&ndash;5%.</p>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:8px;color:var(--yellow)">Gradient Accumulation</h4>
+        <p style="color:var(--dim);font-size:13px;line-height:1.7">Simulate larger effective batch sizes when GPU memory is limited. Accumulate gradients over N micro-batches before performing an optimizer step. <code>effective_batch = micro_batch &times; accumulation_steps &times; num_gpus</code>. Allows using optimal batch sizes (32&ndash;128) even on a single GPU.</p>
+      </div>
+    </div>
+
+    <div class="callout blue" style="margin-top:16px">
+      <div class="callout-title">SFT Checklist</div>
+      <ul style="padding-left:20px;margin-top:6px">
+        <li>Enable NEFTune noise (noise_alpha = 5&ndash;15)</li>
+        <li>Enable sample packing with proper attention masks</li>
+        <li>Verify chat template matches inference template exactly</li>
+        <li>Enable loss masking on non-assistant tokens</li>
+        <li>Set gradient checkpointing if memory-constrained</li>
+        <li>Log eval metrics every 50&ndash;100 steps; watch for overfitting</li>
+        <li>Mix 5&ndash;20% general data to preserve base capabilities</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 3.6 Data Preparation ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.6</span><h2>Data Preparation</h2></div>
+    <p class="sub">Garbage in, garbage out &mdash; data quality is the single biggest lever in SFT.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Standard JSONL Format</h4>
+      <div class="arch-box">{"messages": [
+  {"role": "system", "content": "You are a helpful coding assistant."},
+  {"role": "user",   "content": "Write a Python function to reverse a string."},
+  {"role": "assistant", "content": "def reverse_string(s):\n    return s[::-1]"}
+]}</div>
+      <p class="desc" style="margin-top:10px">One JSON object per line. Multi-turn conversations include alternating user/assistant messages. System message is optional but recommended for consistency.</p>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Quality Filtering Pipeline</h4>
+      <table class="ct">
+        <tr><th>Step</th><th>Technique</th><th>Purpose</th></tr>
+        <tr><td>1. Deduplication</td><td>MinHash / exact-match on instructions</td><td>Remove redundant examples that waste compute</td></tr>
+        <tr><td>2. Length Filtering</td><td>Remove very short (&lt;10 tokens) or very long outliers</td><td>Reduce noise and training instability</td></tr>
+        <tr><td>3. Format Validation</td><td>Verify JSON schema, role alternation, special tokens</td><td>Prevent training on malformed data</td></tr>
+        <tr><td>4. Quality Scoring</td><td>Use a strong LLM to rate response quality (1&ndash;5 scale)</td><td>Filter out low-quality responses</td></tr>
+        <tr><td>5. Human Review</td><td>Sample 200&ndash;500 examples for manual audit</td><td>Catch systematic issues automated checks miss</td></tr>
+        <tr><td>6. Decontamination</td><td>n-gram overlap check against eval benchmarks</td><td>Ensure no leakage from MMLU, HumanEval, etc.</td></tr>
+      </table>
+    </div>
+
+    <div class="g2">
+      <div class="callout green">
+        <div class="callout-title">Synthetic Data Generation</div>
+        <p>Use a stronger model (e.g., GPT-4, Claude) to generate training data for a weaker model. Techniques include:</p>
+        <ul style="padding-left:20px;margin-top:6px">
+          <li><strong>Self-Instruct:</strong> Model generates its own instruction-response pairs</li>
+          <li><strong>Evol-Instruct:</strong> Iteratively evolve instructions for more complexity</li>
+          <li><strong>Self-Play:</strong> Model debates itself to generate preference data</li>
+        </ul>
+      </div>
+      <div class="callout purple">
+        <div class="callout-title">Data Augmentation</div>
+        <p>Increase diversity without collecting new data:</p>
+        <ul style="padding-left:20px;margin-top:6px">
+          <li><strong>Rephrase instructions:</strong> Same task, different wording</li>
+          <li><strong>Vary difficulty:</strong> Easy / medium / hard versions</li>
+          <li><strong>Multilingual:</strong> Translate high-quality examples</li>
+          <li><strong>Role variations:</strong> Different system prompts</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout red" style="margin-top:12px">
+      <div class="callout-title">Balance Across Tasks and Topics</div>
+      <p>An imbalanced dataset causes <strong>mode collapse</strong> &mdash; the model becomes excellent at overrepresented tasks and terrible at underrepresented ones. Track category distributions and oversample minority categories or downsample majority ones. Aim for at least 50&ndash;100 examples per task category.</p>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Data Quality Benchmarks</h4>
+      <table class="ct">
+        <tr><th>Dataset Size</th><th>Suitable For</th><th>Recommended Method</th><th>Expected Outcome</th></tr>
+        <tr><td>100&ndash;500</td><td>Simple format/style changes</td><td>LoRA (r=8&ndash;16)</td><td>Good style transfer, limited generalization</td></tr>
+        <tr><td>1K&ndash;5K</td><td>Task-specific fine-tuning</td><td>LoRA (r=16&ndash;64)</td><td>Strong task performance</td></tr>
+        <tr><td>5K&ndash;20K</td><td>General instruction following</td><td>LoRA or Full SFT</td><td>Broad capability improvement</td></tr>
+        <tr><td>20K&ndash;100K</td><td>Production-grade alignment</td><td>Full SFT</td><td>Deep behavioral change</td></tr>
+        <tr><td>100K+</td><td>Multi-task, multilingual</td><td>Full SFT + curriculum</td><td>Comprehensive coverage</td></tr>
+      </table>
+    </div>
+
+    <div class="trend-box" style="margin-top:16px">
+      <strong>Decontamination Is Critical:</strong> If your training data overlaps with evaluation benchmarks (MMLU, HumanEval, GSM8K), your metrics will be artificially inflated and unreliable. Use n-gram overlap detection (8-gram or 13-gram) against all benchmark test sets before training.
+    </div>
+  </div>
+
+  <!-- ═══════════════ 3.7 Decision Framework ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.7</span><h2>Decision Framework</h2></div>
+    <p class="sub">Choosing the right adaptation strategy for your use case.</p>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Adaptation Decision Table</h4>
+      <table class="ct">
+        <tr><th>Signal</th><th>Recommendation</th></tr>
+        <tr><td>Model lacks domain knowledge (e.g., proprietary codebase, medical literature)</td><td><span class="tag tag-blue">CPT</span> at mid-training checkpoint</td></tr>
+        <tr><td>Model knows domain but wrong format/style</td><td><span class="tag tag-purple">SFT</span> &mdash; LoRA if &lt; 5K examples, Full-rank if &gt; 10K</td></tr>
+        <tr><td>Knowledge changes frequently (product catalog, docs)</td><td><span class="tag tag-green">RAG</span> &mdash; no training needed</td></tr>
+        <tr><td>Need both new knowledge + new behavior</td><td><span class="tag tag-amber">CPT &rarr; SFT</span> pipeline</td></tr>
+        <tr><td>Need to optimize for measurable outcomes</td><td><span class="tag tag-red">RFT</span> with GRPO</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">LoRA vs Full-Rank SFT</h4>
+      <table class="ct">
+        <tr><th>Dimension</th><th>LoRA (PEFT)</th><th>Full-Rank SFT</th></tr>
+        <tr><td>Parameters updated</td><td>Low-rank adapter matrices only (0.1&ndash;1% of params)</td><td>All parameters</td></tr>
+        <tr><td>Memory</td><td>~2&ndash;3x less than full-rank</td><td>Full model + optimizer states</td></tr>
+        <tr><td>Data requirement</td><td>Hundreds to low thousands of examples</td><td>Thousands to tens of thousands</td></tr>
+        <tr><td>Capability ceiling</td><td>High but bounded by rank</td><td>Highest &mdash; no architectural constraint</td></tr>
+        <tr><td>Deployment</td><td>Hot-swap adapters; serve multiple on one base</td><td>Single model per endpoint</td></tr>
+        <tr><td>Cost</td><td>Lower compute, faster training</td><td>Higher compute, longer training</td></tr>
+        <tr><td>Composability</td><td>Can merge or serve multiple adapters</td><td>One monolithic model</td></tr>
+      </table>
+      <div class="ins" style="margin-top:12px"><strong>Choose LoRA when:</strong> limited labeled data, need fast iteration, behavioral changes (format, style), cost-sensitive. <strong>Choose Full-Rank when:</strong> deep domain knowledge needed, large high-quality dataset available, maximum quality is the goal, using CPT + SFT pipeline.</div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h4 style="margin-bottom:10px;color:var(--accentL)">Decision Flowchart</h4>
+      <div class="arch-box">                        ┌─────────────────────────┐
+                        │  Does the model lack     │
+                        │  domain knowledge?        │
+                        └─────────┬───────┬─────────┘
+                              YES │       │ NO
+                                  ▼       ▼
+                   ┌──────────────────┐  ┌──────────────────────────┐
+                   │  CPT on domain   │  │  Does it respond in the  │
+                   │  corpus          │  │  wrong format / style?   │
+                   └────────┬─────────┘  └─────────┬──────┬─────────┘
+                            │                  YES │      │ NO
+                            ▼                      ▼      ▼
+                   ┌──────────────────┐  ┌───────────┐  ┌────────────────────┐
+                   │  Also need       │  │  How much  │  │  Does knowledge    │
+                   │  behavior change?│  │  data?     │  │  change often?     │
+                   └───┬─────────┬────┘  └──┬─────┬──┘  └───┬──────────┬─────┘
+                   YES │         │ NO        │     │     YES │          │ NO
+                       ▼         ▼           ▼     ▼         ▼          ▼
+                   ┌────────┐ ┌──────┐  ┌──────┐┌──────┐┌──────┐  ┌──────────┐
+                   │CPT→SFT │ │ CPT  │  │&lt;5K:  ││&gt;10K: ││ RAG  │  │ Optimize │
+                   │Pipeline│ │ Only │  │ LoRA ││Full  ││      │  │ with RFT │
+                   └────────┘ └──────┘  └──────┘│ SFT  │└──────┘  │ (GRPO)   │
+                                                └──────┘           └──────────┘</div>
+    </div>
+
+    <div class="callout amber" style="margin-top:16px">
+      <div class="callout-title">These Strategies Are Not Mutually Exclusive</div>
+      <p>A common production pattern is: <strong>CPT</strong> to inject domain knowledge &rarr; <strong>SFT</strong> to align behavior &rarr; <strong>RFT</strong> to optimize task-specific metrics &rarr; <strong>RAG</strong> at inference time for dynamic content. Each stage addresses a different gap.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════ Navigation ═══════════════ -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <a href="4-rl-alignment.html" class="b bp" style="text-decoration:none;display:inline-block;padding:12px 28px;font-size:14px">Next: RL-Based Alignment &rarr;</a>
+  </div>
+
+</div>
+</body>
+</html>

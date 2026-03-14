@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>NN Explorer — 4. The Transformer</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-building-blocks.html" class="tab-btn"><span class="tnum">1</span>Building Blocks</a>
+  <a href="2-cnns.html" class="tab-btn"><span class="tnum">2</span>CNNs</a>
+  <a href="3-attention.html" class="tab-btn"><span class="tnum">3</span>Attention</a>
+  <a href="4-transformers.html" class="tab-btn active"><span class="tnum">4</span>Transformers</a>
+  <a href="5-vit.html" class="tab-btn"><span class="tnum">5</span>Vision (ViT)</a>
+  <a href="6-llms.html" class="tab-btn"><span class="tnum">6</span>LLMs</a>
+  <a href="7-multimodal.html" class="tab-btn"><span class="tnum">7</span>VLM &amp; MLLM</a>
+</nav>
+
+<div class="tab-content">
+
+  <!-- Hero + Prereq -->
+  <div class="hero">
+    <h1>4. The Transformer</h1>
+    <p>The architecture behind GPT, BERT, ViT, and modern AI.</p>
+  </div>
+  <div class="prereq"><strong>Prereq:</strong> Tab 3 &mdash; Q/K/V, self-attention, cross-attention, multi-head attention.</div>
+
+  <!-- 4.1 Encoder Block -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.1</span><h2>Encoder Block</h2></div>
+    <p class="sub">LN &rarr; Multi-Head Attention + Residual &rarr; LN &rarr; MLP + Residual. Click each component:</p>
+
+    <div id="enc-block"></div>
+
+    <div class="mb">x&#8321; = x + MultiHeadAttn(LayerNorm(x)) &rarr; x&#8322; = x&#8321; + MLP(LayerNorm(x&#8321;))</div>
+  </div>
+
+  <!-- 4.2 Encoder vs Decoder -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.2</span><h2>Encoder vs Decoder</h2></div>
+    <p class="sub">Three paradigms &mdash; each masks attention differently.</p>
+
+    <div class="g3">
+      <!-- Encoder-Only -->
+      <div class="card" style="border-top:3px solid var(--cyan)">
+        <h3 style="color:var(--cyan);font-size:15px;margin-bottom:8px">Encoder-Only</h3>
+        <p class="desc" style="margin-bottom:8px">Bidirectional &mdash; every token sees every other. For understanding/classification.</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px"><strong style="color:var(--text)">Examples:</strong> BERT, ViT</p>
+        <div class="use-card">
+          <h4>Real-World Usage</h4>
+          <ul>
+            <li><strong>Google Search</strong> &mdash; BERT powers ranking and snippet selection</li>
+            <li><strong>Named Entity Recognition</strong> &mdash; extracting people, places, orgs from text</li>
+            <li><strong>Sentiment Analysis</strong> &mdash; classifying review/comment polarity</li>
+            <li><strong>Document Classification</strong> &mdash; routing, tagging, categorization</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Decoder-Only -->
+      <div class="card" style="border-top:3px solid var(--neg)">
+        <h3 style="color:var(--neg);font-size:15px;margin-bottom:8px">Decoder-Only</h3>
+        <p class="desc" style="margin-bottom:8px">Causal &mdash; tokens only see the past. Generates left-to-right.</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px"><strong style="color:var(--text)">Examples:</strong> GPT, LLaMA, Claude</p>
+        <div class="use-card">
+          <h4>Real-World Usage</h4>
+          <ul>
+            <li><strong>Chatbots</strong> &mdash; GPT, LLaMA, Claude conversational assistants</li>
+            <li><strong>Code Generation</strong> &mdash; GitHub Copilot, Cursor</li>
+            <li><strong>Creative Writing</strong> &mdash; stories, poetry, marketing copy</li>
+            <li><strong>Reasoning</strong> &mdash; chain-of-thought, math, planning</li>
+          </ul>
+        </div>
+        <div class="trend-box"><strong>Dominant paradigm today.</strong> Decoder-only scaled to 100B+ parameters is the foundation of modern AI assistants.</div>
+      </div>
+
+      <!-- Encoder-Decoder -->
+      <div class="card" style="border-top:3px solid var(--green)">
+        <h3 style="color:var(--green);font-size:15px;margin-bottom:8px">Encoder-Decoder</h3>
+        <p class="desc" style="margin-bottom:8px">Encoder (bidirectional) + Decoder (causal + cross-attention to encoder).</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px"><strong style="color:var(--text)">Examples:</strong> T5, Whisper, Original Transformer</p>
+        <div class="use-card">
+          <h4>Real-World Usage</h4>
+          <ul>
+            <li><strong>T5</strong> &mdash; summarization and translation</li>
+            <li><strong>Whisper</strong> &mdash; speech-to-text transcription</li>
+            <li><strong>BART</strong> &mdash; abstractive text generation and denoising</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="ins">The causal mask: upper-triangular &minus;&infin; values added before softmax, forcing future positions to zero attention weight.</div>
+  </div>
+
+  <!-- 4.3 Key Concepts -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.3</span><h2>Key Concepts</h2></div>
+    <p class="sub">The building blocks that make transformers trainable and powerful.</p>
+
+    <div class="g3">
+      <div class="card" style="border-left:3px solid var(--green)">
+        <h3 style="font-size:14px;margin-bottom:6px;color:var(--green)">Residual Connections</h3>
+        <p class="desc">x + f(x) at every sub-layer. Gradient highway through 100+ layers. Without these, GPT-3's 96 layers would be untrainable.</p>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--dim)">
+        <h3 style="font-size:14px;margin-bottom:6px;color:var(--dim)">Layer Normalization</h3>
+        <p class="desc">Normalize across features (not batch). Keeps activations stable. Pre-LN (before attention) is now standard &mdash; more stable than Post-LN.</p>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--pink)">
+        <h3 style="font-size:14px;margin-bottom:6px;color:var(--pink)">Position Encoding</h3>
+        <p class="desc">Sinusoidal (fixed) or learnable. Without it, transformer is order-blind. RoPE (LLaMA) and ALiBi (BLOOM) enable length generalization beyond training context.</p>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--yellow)">
+        <h3 style="font-size:14px;margin-bottom:6px;color:var(--yellow)">Softmax Temperature</h3>
+        <p class="desc">1/&radic;d<sub>k</sub> prevents large dot products from pushing softmax to extremes. At inference: T&lt;1 for factual tasks, T&gt;1 for creative writing.</p>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--neg)">
+        <h3 style="font-size:14px;margin-bottom:6px;color:var(--neg)">Causal Mask</h3>
+        <p class="desc">Upper-triangular &minus;&infin;. Token i only attends to 0..i. Enables autoregressive generation. This is what makes GPT autoregressive &mdash; generates one token at a time.</p>
+      </div>
+
+      <div class="card" style="border-left:3px solid var(--cyan)">
+        <h3 style="font-size:14px;margin-bottom:6px;color:var(--cyan)">GELU Activation</h3>
+        <p class="desc">x&middot;&Phi;(x) &mdash; smooth probabilistic gate in all transformer MLPs. Being replaced by SwiGLU in LLaMA/Mistral for better performance.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div style="text-align:center;margin-top:32px">
+    <p style="color:var(--dim);font-size:14px;margin-bottom:16px">Transformer understood.</p>
+    <a href="5-vit.html" class="b bp" style="text-decoration:none;display:inline-block;padding:10px 24px;font-size:14px">Next: Vision (ViT) &rarr;</a>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  // Encoder block component data
+  var items = [
+    {name:"Input Embedding", desc:"Tokens \u2192 dense vectors via learnable lookup table (e.g. 768-dim).", color:"var(--pos)"},
+    {name:"+ Position Encoding", desc:"Add positional info. Without this, \u2018dog bit man\u2019 = \u2018man bit dog.\u2019 Learnable or sinusoidal.", color:"var(--pink)"},
+    {name:"Layer Normalization", desc:"Normalize across features. Keeps activations stable. Pre-LN variant (before attention).", color:"var(--dim)"},
+    {name:"Multi-Head Self-Attention", desc:"Core op: every token attends to every other via Q/K/V across h parallel heads. O(n\u00B2) in sequence length.", color:"var(--cyan)"},
+    {name:"+ Residual Connection", desc:"Output = Input + Attention(Input). Skip connections enable very deep stacking (12\u201396 layers).", color:"var(--green)"},
+    {name:"Layer Normalization", desc:"Second normalization before the MLP block.", color:"var(--dim)"},
+    {name:"MLP (Feed-Forward)", desc:"Linear(d\u21924d) \u2192 GELU \u2192 Linear(4d\u2192d). Applied independently per token. Where most parameters live.", color:"var(--purple)"},
+    {name:"+ Residual Connection", desc:"Output = Input + MLP(Input). Second skip connection per block.", color:"var(--green)"}
+  ];
+
+  var txExp = null;
+
+  function render(){
+    var el = document.getElementById('enc-block');
+    var h = '';
+    for(var i=0;i<items.length;i++){
+      var it = items[i];
+      var isOpen = txExp === i;
+
+      // Bracket opener after item 2 (index 1)
+      if(i === 2){
+        h += '<div style="text-align:center;font-family:monospace;font-size:12px;color:var(--muted);padding:6px 0;letter-spacing:1px">';
+        h += '\u250C\u2500 Repeated N times (12 in ViT-Base) \u2500\u2510';
+        h += '</div>';
+      }
+
+      h += '<div class="si' + (isOpen?' ac':'') + '" data-i="'+i+'" style="border-left:3px solid '+it.color+'">';
+      h += '<span class="sn2" style="color:'+it.color+'">'+it.name+'</span>';
+      h += '<span class="ar">'+(isOpen?'\u25B2':'\u25BC')+'</span>';
+      h += '</div>';
+
+      if(isOpen){
+        h += '<div class="sdet fi">'+it.desc+'</div>';
+      }
+
+      // Bracket closer after item 8 (index 7)
+      if(i === 7){
+        h += '<div style="text-align:center;font-family:monospace;font-size:12px;color:var(--muted);padding:6px 0;letter-spacing:1px">';
+        h += '\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518';
+        h += '</div>';
+      }
+    }
+    el.innerHTML = h;
+
+    // Attach click handlers
+    var sis = el.querySelectorAll('.si');
+    for(var j=0;j<sis.length;j++){
+      sis[j].addEventListener('click', handleClick);
+    }
+  }
+
+  function handleClick(e){
+    var target = e.currentTarget;
+    var idx = parseInt(target.getAttribute('data-i'));
+    txExp = (txExp === idx) ? null : idx;
+    render();
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>5. Vision Transformer (ViT) &mdash; NN Explorer</title>
+<style>
+  .step-arrow { text-align: center; color: var(--muted); font-size: 18px; line-height: 1; padding: 2px 0; }
+  .next-link { display: inline-block; padding: 10px 24px; font-size: 14px; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-building-blocks.html" class="tab-btn"><span class="tnum">1</span>Building Blocks</a>
+  <a href="2-cnns.html" class="tab-btn"><span class="tnum">2</span>CNNs</a>
+  <a href="3-attention.html" class="tab-btn"><span class="tnum">3</span>Attention</a>
+  <a href="4-transformers.html" class="tab-btn"><span class="tnum">4</span>Transformers</a>
+  <a href="5-vit.html" class="tab-btn active"><span class="tnum">5</span>Vision (ViT)</a>
+  <a href="6-llms.html" class="tab-btn"><span class="tnum">6</span>LLMs</a>
+  <a href="7-multimodal.html" class="tab-btn"><span class="tnum">7</span>VLM &amp; MLLM</a>
+</nav>
+
+<div class="tab-content">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>5. Vision Transformer (ViT)</h1>
+    <p>&ldquo;An Image is Worth 16&times;16 Words&rdquo;</p>
+  </div>
+  <div class="prereq"><strong>Builds on:</strong> Tab 3 (self-attention, multi-head) &rarr; Tab 4 (encoder block, positions, residuals)</div>
+
+  <!-- ============================================================ -->
+  <!-- Section 5.1: ViT Pipeline                                    -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">5.1</span><h2>ViT Pipeline</h2></div>
+    <p class="sub">Image &rarr; Patches &rarr; Embeddings &rarr; Transformer &times;12 &rarr; Classification. Click each step:</p>
+
+    <div class="card" id="vitPipeline"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 5.2: ViT Variants                                    -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">5.2</span><h2>ViT Variants</h2></div>
+    <p class="sub">Scaling the same architecture &mdash; more layers, wider hidden dim, more heads.</p>
+
+    <div class="card">
+      <table class="ct">
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th>Layers</th>
+            <th>Heads</th>
+            <th>Hidden</th>
+            <th>MLP</th>
+            <th>Params</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--pos)">ViT-Base/16</td>
+            <td>12</td>
+            <td>12</td>
+            <td>768</td>
+            <td>3,072</td>
+            <td>86M</td>
+          </tr>
+          <tr>
+            <td style="color:var(--accent)">ViT-Large/16</td>
+            <td>24</td>
+            <td>16</td>
+            <td>1,024</td>
+            <td>4,096</td>
+            <td>307M</td>
+          </tr>
+          <tr>
+            <td style="color:var(--cyan)">ViT-Huge/14</td>
+            <td>32</td>
+            <td>16</td>
+            <td>1,280</td>
+            <td>5,120</td>
+            <td>632M</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Enrichment 5.2 -->
+    <div class="use-card">
+      <h4>When to Use Which</h4>
+      <ul>
+        <li><strong>ViT-Base</strong> &mdash; best for fine-tuning on small datasets (medical imaging, satellite imagery, custom domains)</li>
+        <li><strong>ViT-Large</strong> &mdash; general-purpose pre-training, good balance of quality and compute</li>
+        <li><strong>ViT-Huge</strong> &mdash; research and SOTA benchmarks; diminishing returns for most production uses</li>
+        <li><strong>In production:</strong> DINOv2 (self-supervised ViT) is increasingly popular for feature extraction &mdash; no labeled data needed</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 5.3: CNN vs ViT                                      -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">5.3</span><h2>CNN vs ViT</h2></div>
+    <p class="sub">Two paradigms for visual understanding &mdash; local convolutions vs global attention.</p>
+
+    <div class="card">
+      <table class="ct">
+        <thead>
+          <tr>
+            <th>Aspect</th>
+            <th style="color:var(--pos)">CNN</th>
+            <th style="color:var(--cyan)">ViT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Core Op</td>
+            <td>Convolution (local 3&times;3)</td>
+            <td>Self-Attention (global)</td>
+          </tr>
+          <tr>
+            <td>Receptive Field</td>
+            <td>Local &rarr; grows with depth</td>
+            <td>Global from layer 1</td>
+          </tr>
+          <tr>
+            <td>Inductive Bias</td>
+            <td>Strong: locality + translation equiv.</td>
+            <td>Weak: learned from data</td>
+          </tr>
+          <tr>
+            <td>Position Info</td>
+            <td>Implicit from grid</td>
+            <td>Explicit embeddings (learnable)</td>
+          </tr>
+          <tr>
+            <td>Data Needs</td>
+            <td>Works with small datasets</td>
+            <td>Needs 14M+ pretraining</td>
+          </tr>
+          <tr>
+            <td>Compute</td>
+            <td>O(n) per layer in spatial</td>
+            <td>O(n&sup2;) in sequence length</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ins">ViT with enough data matches/beats CNNs. Without enough data, CNNs win &mdash; their locality bias is a useful prior.</div>
+
+    <!-- Enrichment 5.3 -->
+    <div class="use-card">
+      <h4>Hybrid Approaches (Best of Both Worlds)</h4>
+      <ul>
+        <li><strong>ConvNeXt</strong> &mdash; a pure CNN modernized with Transformer tricks (larger kernels, LayerNorm, GELU). Competitive with ViT.</li>
+        <li><strong>EfficientViT</strong> &mdash; efficient ViT variant designed for mobile and edge deployment</li>
+        <li><strong>DINOv2</strong> &mdash; self-supervised ViT that learns powerful features without any labels. Excellent for transfer learning.</li>
+        <li><strong>SAM (Segment Anything)</strong> &mdash; ViT backbone powering universal image segmentation. Works on any image type.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Footer / Next                                                -->
+  <!-- ============================================================ -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <p style="color:var(--green);font-weight:700;font-size:16px;margin-bottom:12px">ViT understood.</p>
+    <a href="6-llms.html" class="b bp next-link">Next: Large Language Models &rarr;</a>
+  </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- JavaScript: ViT Pipeline Click-to-Expand                       -->
+<!-- ============================================================== -->
+<script>
+(function(){
+
+  var vitExp = null; // currently expanded index, null = none
+
+  var steps = [
+    { emoji: '\uD83D\uDDBC', name: 'Image',           dim: '[B, 3, 224, 224]',    color: 'var(--pos)',    detail: 'Standard 224\u00D7224 RGB input image \u2014 same as CNN input.' },
+    { emoji: '\uD83D\uDD32', name: 'Patch Split',      dim: '14\u00D714 = 196 patches', color: 'var(--accent)', detail: 'Image divided into 196 non-overlapping 16\u00D716 patches. Each patch like a \u2018word.\u2019 Flattened: 16\u00D716\u00D73 = 768 per patch.' },
+    { emoji: '\uD83D\uDCD0', name: 'Linear Project',   dim: '[B, 196, 768]',       color: 'var(--accentL)', detail: 'Each 768-dim patch projected through learned matrix. Equivalent to Conv2d(3, 768, kernel_size=16, stride=16).' },
+    { emoji: '\uD83C\uDFF7',  name: 'Prepend [CLS]',   dim: '[B, 197, 768]',       color: 'var(--green)',  detail: 'Learnable [CLS] token prepended at position 0. Starts blank \u2014 absorbs info from all patches through attention.' },
+    { emoji: '\uD83D\uDCCD', name: '+ Position Embed', dim: '[B, 197, 768]',       color: 'var(--pink)',   detail: 'Learnable 1D position embeddings (197\u00D7768) added. Despite being 1D, model discovers 2D spatial structure!' },
+    { emoji: '\uD83D\uDD04', name: 'Transformer \u00D712', dim: '[B, 197, 768]',   color: 'var(--accent)', detail: '12 encoder blocks: LN \u2192 12-Head Attention + Residual \u2192 LN \u2192 MLP(768\u21923072\u2192768) + Residual. Shape constant throughout!' },
+    { emoji: '\uD83C\uDFAF', name: 'Extract [CLS]',    dim: '[B, 768]',            color: 'var(--cyan)',   detail: 'Take CLS token (pos 0). This 768-dim vector = entire image representation after 12 layers of global attention.' },
+    { emoji: '\uD83D\uDCCA', name: 'MLP Head',         dim: '[B, classes]',        color: 'var(--green)',  detail: 'LayerNorm \u2192 Linear(768\u2192num_classes) \u2192 Softmax probabilities.' }
+  ];
+
+  function render() {
+    var container = document.getElementById('vitPipeline');
+    var html = '';
+
+    for (var i = 0; i < steps.length; i++) {
+      var s = steps[i];
+      var isActive = (vitExp === i);
+
+      // Arrow between steps
+      if (i > 0) {
+        html += '<div class="step-arrow">\u2193</div>';
+      }
+
+      // Step item
+      html += '<div class="si' + (isActive ? ' ac' : '') + '" onclick="window._vitToggle(' + i + ')">';
+      html += '<span class="ic">' + s.emoji + '</span>';
+      html += '<span class="sn2" style="color:' + s.color + '">' + s.name + '</span>';
+      html += '<span class="sd">' + s.dim + '</span>';
+      html += '<span class="ar">' + (isActive ? '\u25B2' : '\u25BC') + '</span>';
+      html += '</div>';
+
+      // Detail text (shown when expanded)
+      if (isActive) {
+        html += '<div class="sdet fi">' + s.detail + '</div>';
+      }
+    }
+
+    container.innerHTML = html;
+  }
+
+  function vitToggle(i) {
+    if (vitExp === i) {
+      vitExp = null;
+    } else {
+      vitExp = i;
+    }
+    render();
+  }
+
+  window._vitToggle = vitToggle;
+
+  // Initial render
+  render();
+
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>LLM Infra — 6. Inference & Serving</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-architecture.html" class="tab-btn"><span class="tnum">1</span>Architecture</a>
+  <a href="2-pretraining.html" class="tab-btn"><span class="tnum">2</span>Pre-Training</a>
+  <a href="3-fine-tuning.html" class="tab-btn"><span class="tnum">3</span>Fine-Tuning</a>
+  <a href="4-rl-alignment.html" class="tab-btn"><span class="tnum">4</span>RL Alignment</a>
+  <a href="5-distributed-training.html" class="tab-btn"><span class="tnum">5</span>Distributed</a>
+  <a href="6-inference.html" class="tab-btn active"><span class="tnum">6</span>Inference</a>
+  <a href="7-eval-benchmarking.html" class="tab-btn"><span class="tnum">7</span>Eval</a>
+  <a href="8-aws-nova-forge.html" class="tab-btn"><span class="tnum">8</span>Nova Forge</a>
+</nav>
+
+<div class="tab-content">
+  <div class="hero">
+    <h1>6. Inference &amp; Serving</h1>
+    <p>KV cache management, continuous batching, speculative decoding, quantization, and production serving frameworks</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.1 The Inference Challenge                                    -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.1</span><h2>The Inference Challenge</h2></div>
+    <p class="sub">Why generating tokens is fundamentally harder than training on them</p>
+
+    <p class="desc">
+      Training is massively parallel: every token in every sequence is processed simultaneously.
+      Inference is fundamentally different. Autoregressive generation is <span class="kt">inherently
+      sequential</span> &mdash; each output token depends on all previous tokens. This creates a
+      strict dependency chain that leaves even the most powerful GPUs largely idle, making inference
+      the dominant cost in production LLM deployments.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">PHASE 1</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Prefill (Prompt Processing)</h4>
+        <p class="desc" style="margin-bottom:0">
+          The entire input prompt is processed in a <strong>single forward pass</strong>. All tokens
+          are available upfront, so attention is computed in parallel. This phase is
+          <span class="kt">compute-bound</span> and achieves high GPU utilization. TTFT is
+          primarily determined by prefill speed.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-amber">PHASE 2</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Decode (Token Generation)</h4>
+        <p class="desc" style="margin-bottom:0">
+          Tokens are generated <strong>one at a time</strong>. Each step runs a full forward pass
+          but produces only one token, yielding extremely low arithmetic intensity (FLOPs per byte
+          loaded). This phase is <span class="kt">memory-bandwidth-bound</span> &mdash; the
+          bottleneck is loading model weights from HBM, not computing with them.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Key Performance Metrics</h4>
+      <table class="ct">
+        <thead><tr><th>Metric</th><th>Definition</th><th>Bottleneck</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td>TTFT</td><td>Time to First Token &mdash; latency from request to first output</td><td>Prefill speed</td><td>&lt;500ms interactive</td></tr>
+          <tr><td>TPOT</td><td>Time Per Output Token &mdash; per-token decode latency</td><td>Decode speed</td><td>&lt;50ms (~20 tok/s)</td></tr>
+          <tr><td>Throughput</td><td>Total tokens/sec across all concurrent requests</td><td>Batching, memory</td><td>Maximize for cost</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-title">The Latency vs. Throughput Tradeoff</div>
+      <p>
+        Batching improves throughput by reusing model weights across requests, but increases per-request
+        latency. Production systems must balance batch size against SLA targets &mdash; maximizing
+        throughput within an acceptable latency envelope.
+      </p>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">The GPU Utilization Problem</div>
+      <p>
+        During decode with batch size 1, a typical LLM achieves <strong>&lt;5% GPU utilization</strong>.
+        The GPU loads the entire model (~140 GB for 70B FP16) from HBM to produce a single token &mdash;
+        performing just 2 FLOPs per parameter loaded. On an H100, this limits single-request decode to
+        ~24 tokens/second for a 70B model, regardless of the GPU's 990 TFLOPS compute capacity.
+        The entire inference optimization landscape exists to close this gap.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.2 KV Cache                                                   -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.2</span><h2>KV Cache</h2></div>
+    <p class="sub">Trading memory for compute by caching attention states</p>
+
+    <p class="desc">
+      In autoregressive generation, each decode step computes attention between the new token's query
+      and the keys/values of <em>all</em> preceding tokens. Without caching, this means re-computing
+      K and V projections for every previous token at every step &mdash; an <span class="kt">O(n&sup2;)</span>
+      total cost. The <span class="kt">KV Cache</span> stores computed K and V tensors and reuses them,
+      so each decode step only computes K/V for the single new token and appends to the cache.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">KV Cache Memory Formula</h4>
+      <div class="mb">KV_cache_bytes = 2 &times; n_layers &times; n_kv_heads &times; d_head &times; seq_len &times; precision_bytes</div>
+      <p class="desc" style="margin-bottom:0">
+        The factor of 2 accounts for both K and V tensors. With GQA, <code>n_kv_heads</code> is the
+        number of KV groups (not query heads). The cache grows <strong>linearly</strong> with both
+        sequence length and batch size, quickly dominating GPU memory in production.
+      </p>
+    </div>
+
+    <div class="arch-box">  KV Cache Memory Example: Llama 2 70B (GQA, 8 KV heads)
+
+  Per token:  2 &times; 80 layers &times; 8 heads &times; 128 dim &times; 2 bytes = 320 KB
+  Per request @ 4K ctx:    320 KB &times; 4,096   =  1.28 GB
+  Per request @ 128K ctx:  320 KB &times; 131,072  = 40 GB  &larr; exceeds single GPU!
+  Batch of 32 @ 4K ctx:    1.28 GB &times; 32      = 41 GB  &larr; half an 80GB A100</div>
+
+    <div class="callout blue">
+      <div class="callout-title">The KV Cache Scaling Problem</div>
+      <p>
+        KV cache grows along <strong>two dimensions</strong>: sequence length and batch size. For a 70B
+        model on 80 GB A100s, after loading model weights (~140 GB across 2 GPUs), remaining memory
+        limits you to ~20&ndash;30 concurrent 4K-context requests. KV cache management is the single
+        most important optimization in LLM serving.
+      </p>
+    </div>
+
+    <div class="card">
+      <span class="tag tag-green">KEY INNOVATION</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">PagedAttention (vLLM)</h4>
+      <p class="desc">
+        Traditional KV cache reserves a <strong>contiguous</strong> block for the maximum possible
+        sequence length upfront, causing 60&ndash;80% memory waste from internal fragmentation.
+      </p>
+      <p class="desc" style="margin-bottom:0">
+        PagedAttention (Kwon et al., 2023) manages KV cache like <span class="kt">virtual memory</span>:
+        fixed-size blocks allocated on demand, linked by a page table. Blocks are freed immediately when
+        requests complete. This enables near-zero waste, copy-on-write sharing of prefix KV blocks across
+        requests with common system prompts, and parallel sampling where multiple outputs share the same
+        prompt cache. Result: <strong>2&ndash;4&times; throughput improvement</strong> over naive implementations.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.3 Continuous Batching                                        -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.3</span><h2>Continuous Batching</h2></div>
+    <p class="sub">Maximizing GPU utilization by dynamically managing the request batch</p>
+
+    <p class="desc">
+      <span class="kt">Static batching</span> collects N requests, processes them together, and returns
+      results only when the <em>longest</em> request finishes. Shorter requests sit idle, wasting compute
+      proportional to the variance in output lengths. <span class="kt">Continuous batching</span> solves
+      this by inserting new requests into available slots and evicting completed ones at every decode step.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-red">STATIC</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Static Batching</h4>
+        <p class="desc" style="margin-bottom:0">
+          Collect N &rarr; process all &rarr; wait for longest &rarr; return all. Short requests
+          <strong>block</strong> slots from reuse. Effective throughput 2&ndash;10&times; below optimal.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">CONTINUOUS</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Continuous (In-Flight) Batching</h4>
+        <p class="desc" style="margin-bottom:0">
+          At each decode iteration, the scheduler <strong>inserts</strong> new requests and
+          <strong>evicts</strong> completed ones. Freed slots are immediately filled, keeping GPU
+          utilization consistently high across varying response lengths.
+        </p>
+      </div>
+    </div>
+
+    <div class="arch-box">  Static Batching:              Continuous Batching:
+
+  Step 1: [A B C D]            Step 1: [A B C D]
+  Step 2: [A B C D]            Step 2: [A B C D]
+  Step 3: [A _ C D] B done     Step 3: [A E C D] B done &rarr; E joins
+  Step 4: [A _ _ D] C done     Step 4: [A E F D] C done &rarr; F joins
+  Step 5: [A _ _ D] waiting    Step 5: [G E F D] A done &rarr; G joins
+  Step 6: [A _ _ _] D done     Step 6: [G E F H] D done &rarr; H joins
+
+  Static:  4 requests in 6 steps    Continuous: 8 requests in 6 steps (2&times;)</div>
+
+    <div class="callout green">
+      <div class="callout-title">Iteration-Level Scheduling</div>
+      <p>
+        Continuous batching operates at <strong>iteration-level granularity</strong>: each decode step
+        re-evaluates which requests to include. This enables priority-based scheduling, preemption of
+        low-priority requests, and SLA-aware admission control. vLLM, TensorRT-LLM, and SGLang all
+        implement iteration-level continuous batching as their default strategy.
+      </p>
+    </div>
+
+    <div class="trend-box">
+      <strong>Impact: </strong> Continuous batching delivers <strong>2&ndash;10&times; higher
+      throughput</strong> over static batching, with improvement scaling with response length variance.
+      It is a baseline requirement for any production LLM serving system.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.4 Speculative Decoding                                       -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.4</span><h2>Speculative Decoding</h2></div>
+    <p class="sub">Breaking the sequential bottleneck by drafting and verifying in parallel</p>
+
+    <p class="desc">
+      The key insight: <span class="kt">verifying</span> N candidate tokens in a single forward pass
+      is far cheaper than <span class="kt">generating</span> N tokens sequentially. A small, fast
+      "draft" model predicts several tokens; the large "target" model verifies all of them at once,
+      accepting correct ones and re-generating from the first disagreement. When the draft model
+      guesses correctly, multiple tokens are produced per large-model forward pass.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Draft-Then-Verify Pipeline</h4>
+      <ol style="color:var(--dim);font-size:13px;line-height:1.8;padding-left:20px;margin-bottom:12px">
+        <li><strong>Draft:</strong> Small model (e.g., 1B) generates K candidate tokens (K=4&ndash;8).</li>
+        <li><strong>Verify:</strong> Large target model processes all K drafts in a <strong>single forward pass</strong>.</li>
+        <li><strong>Accept/Reject:</strong> Keep tokens where distributions agree; resample from target at first disagreement.</li>
+        <li><strong>Repeat:</strong> Continue from the last accepted token. Average 2&ndash;5 accepted per step.</li>
+      </ol>
+      <div class="mb">Speedup &asymp; avg_accepted_tokens / (draft_time + verify_time) &times; baseline_decode_time</div>
+    </div>
+
+    <div class="callout purple">
+      <div class="callout-title">Mathematically Lossless</div>
+      <p>
+        The acceptance-rejection scheme ensures the final output distribution is <strong>identical</strong>
+        to sampling directly from the target model. When a draft token is rejected, the algorithm samples
+        from a corrected distribution. This is a pure speed gain with <strong>zero quality degradation</strong>.
+      </p>
+    </div>
+
+    <table class="ct">
+      <thead><tr><th>Method</th><th>Draft Source</th><th>Speedup</th><th>Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>Classic Spec. Decoding</td><td>Separate small model</td><td>2&ndash;3&times;</td><td>Dedicated draft model (1B for 70B target)</td></tr>
+        <tr><td>Medusa</td><td>Extra prediction heads</td><td>2&ndash;3&times;</td><td>Multiple lightweight heads on target predict future tokens in parallel</td></tr>
+        <tr><td>EAGLE</td><td>AR feature head</td><td>2.5&ndash;3.5&times;</td><td>Lightweight AR head over hidden states; better draft quality than Medusa</td></tr>
+        <tr><td>Lookahead Decoding</td><td>Jacobi iteration</td><td>1.5&ndash;2.5&times;</td><td>N-gram patterns to generate/verify without a separate draft model</td></tr>
+        <tr><td>Self-Speculative</td><td>Early exit / layer skip</td><td>1.5&ndash;2&times;</td><td>Early layers of target as draft; no extra parameters</td></tr>
+      </tbody>
+    </table>
+
+    <p class="ins">
+      Speculative decoding works best for predictable tokens (common phrases, code boilerplate,
+      structured outputs). Speedup is lower for creative or highly unpredictable text where the
+      draft model frequently disagrees with the target.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.5 Quantization                                               -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.5</span><h2>Quantization</h2></div>
+    <p class="sub">Reducing precision to fit larger models on fewer GPUs and decode faster</p>
+
+    <p class="desc">
+      Since LLM inference is <span class="kt">memory-bandwidth-bound</span>, reducing bytes per
+      parameter directly improves decode speed. Quantization converts weights from FP16/BF16 to
+      INT8, INT4, or FP8. A 70B model at FP16 needs ~140 GB; at INT4, it fits in ~35 GB &mdash;
+      a single A100 or two consumer GPUs. Less memory also means less HBM bandwidth consumed per
+      forward pass, directly improving <span class="kt">throughput</span>.
+    </p>
+
+    <div class="g2">
+      <div class="use-card">
+        <h4>GPTQ</h4>
+        <ul>
+          <li><strong>Approach:</strong> Layer-wise quantization using second-order (Hessian) information</li>
+          <li><strong>Precision:</strong> INT4 / INT3 with group-wise scaling</li>
+          <li><strong>Speed:</strong> ~4 hours for 70B on a single GPU</li>
+          <li><strong>Ecosystem:</strong> Widely supported in vLLM, TGI, AutoGPTQ</li>
+        </ul>
+      </div>
+      <div class="use-card">
+        <h4>AWQ (Activation-Aware)</h4>
+        <ul>
+          <li><strong>Approach:</strong> Protects salient weights identified by activation magnitudes</li>
+          <li><strong>Precision:</strong> INT4 with per-channel scaling</li>
+          <li><strong>Quality:</strong> Consistently better than GPTQ, especially for smaller models</li>
+          <li><strong>Key insight:</strong> 1% of weights carry disproportionate importance</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-cyan">HARDWARE-NATIVE</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">FP8 Quantization</h4>
+        <p class="desc" style="margin-bottom:0">
+          H100 GPUs natively support FP8 (E4M3/E5M2) in tensor cores, enabling <strong>2&times;
+          throughput</strong> over FP16 with negligible quality loss. FP8 preserves floating-point
+          dynamic range while halving memory. The "free lunch" of quantization on Hopper+ hardware.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-purple">EXTREME</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">SqueezeLLM &amp; Sub-4-Bit</h4>
+        <p class="desc" style="margin-bottom:0">
+          SqueezeLLM uses <strong>non-uniform quantization</strong> with lookup tables, placing more
+          levels where weight values are dense. Research continues into 2-bit and ternary quantization,
+          but quality degrades significantly below INT4 for most tasks.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Quantization Comparison</h4>
+      <table class="ct">
+        <thead><tr><th>Method</th><th>Bits</th><th>Quality Loss</th><th>Speed Gain</th><th>Hardware Req</th></tr></thead>
+        <tbody>
+          <tr><td>FP8 (E4M3)</td><td>8</td><td>Negligible (&lt;0.5%)</td><td>~2&times;</td><td>H100 / Ada (native FP8)</td></tr>
+          <tr><td>INT8 (SmoothQuant)</td><td>8</td><td>Near-lossless (&lt;1%)</td><td>~1.8&times;</td><td>Any GPU w/ INT8 cores</td></tr>
+          <tr><td>AWQ</td><td>4</td><td>Minor (1&ndash;2%)</td><td>~2.5&ndash;3&times;</td><td>GPU w/ INT4 or dequant</td></tr>
+          <tr><td>GPTQ</td><td>4</td><td>Moderate (1&ndash;3%)</td><td>~2.5&ndash;3&times;</td><td>GPU w/ INT4 or dequant</td></tr>
+          <tr><td>GGUF (llama.cpp)</td><td>2&ndash;8</td><td>Varies by level</td><td>Variable</td><td>CPU / Metal / GPU</td></tr>
+          <tr><td>SqueezeLLM</td><td>3</td><td>Significant (3&ndash;5%)</td><td>~3.5&times;</td><td>GPU + lookup tables</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">Practical Guidance</div>
+      <p>
+        On Hopper GPUs, start with <strong>FP8</strong> &mdash; nearly free quality-wise, doubles
+        throughput. For memory constraints, <strong>AWQ INT4</strong> offers the best quality-per-bit.
+        For local/edge, <strong>GGUF Q4_K_M</strong> via llama.cpp is the sweet spot. Avoid going
+        below INT4 unless your use case tolerates noticeable quality degradation.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.6 Inference Frameworks                                       -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.6</span><h2>Inference Frameworks</h2></div>
+    <p class="sub">Production-grade engines for efficient LLM serving</p>
+
+    <p class="desc">
+      Framework choice directly impacts throughput, latency, and operational complexity. All major
+      frameworks now support continuous batching, quantization, and multi-GPU serving, but they
+      differ in optimization strategies and target deployment scenarios.
+    </p>
+
+    <div class="card">
+      <table class="ct">
+        <thead><tr><th>Framework</th><th>Key Feature</th><th>Best For</th><th>Hardware</th></tr></thead>
+        <tbody>
+          <tr><td>vLLM</td><td>PagedAttention, multi-LoRA, prefix caching</td><td>General-purpose, multi-tenant</td><td>NVIDIA / AMD / TPU</td></tr>
+          <tr><td>TensorRT-LLM</td><td>NVIDIA kernels, FP8, inflight batching</td><td>Max perf on NVIDIA</td><td>NVIDIA only</td></tr>
+          <tr><td>SGLang</td><td>RadixAttention, constrained decoding</td><td>Structured outputs, agents</td><td>NVIDIA / AMD</td></tr>
+          <tr><td>llama.cpp</td><td>GGUF quantization, CPU/Metal</td><td>Local &amp; edge deployment</td><td>CPU / Metal / GPU</td></tr>
+          <tr><td>TGI (HuggingFace)</td><td>gRPC + REST, HF integration</td><td>Quick deploys, HF ecosystem</td><td>NVIDIA / AMD / Intel</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">OPEN SOURCE LEADER</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">vLLM</h4>
+        <p class="desc" style="margin-bottom:0">
+          The most widely adopted open-source engine. Built around PagedAttention, with continuous
+          batching, tensor parallelism, multi-LoRA serving, and prefix caching. Compatible with
+          OpenAI's API format for drop-in replacement. Active community, rapid feature development,
+          and support for NVIDIA, AMD, and TPU backends.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">NVIDIA-OPTIMIZED</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">TensorRT-LLM</h4>
+        <p class="desc" style="margin-bottom:0">
+          NVIDIA's first-party engine with custom CUDA kernels, native FP8 tensor core support,
+          and inflight batching. Achieves highest raw throughput on NVIDIA GPUs but requires NVIDIA
+          hardware and has a steeper learning curve. Integrates with Triton for production serving.
+        </p>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-purple">STRUCTURED OUTPUT</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">SGLang</h4>
+        <p class="desc" style="margin-bottom:0">
+          Introduces <span class="kt">RadixAttention</span>: a radix tree for automatic prefix
+          sharing &mdash; common prefix KV is computed once and shared. Excels at constrained
+          decoding (JSON schema, regex), making it ideal for agentic workflows requiring strict
+          output formats.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-amber">EDGE / LOCAL</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">llama.cpp</h4>
+        <p class="desc" style="margin-bottom:0">
+          C/C++ engine running LLMs on consumer hardware via the GGUF format with extensive
+          quantization options (Q2&ndash;Q8). Efficient on CPUs, Apple Silicon (Metal), and GPUs.
+          The go-to for local deployment; powers the Ollama ecosystem and numerous desktop apps.
+        </p>
+      </div>
+    </div>
+
+    <p class="ins">
+      For cloud GPU: vLLM or TensorRT-LLM. For structured outputs and agents: SGLang. For local
+      experimentation or edge deployment: llama.cpp remains unmatched in hardware compatibility.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.7 Serving Patterns                                           -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.7</span><h2>Serving Patterns</h2></div>
+    <p class="sub">Production architectures for multi-model, multi-tenant LLM systems</p>
+
+    <p class="desc">
+      Production LLM serving involves multiple model variants, adapter swapping, intelligent routing,
+      caching layers, and auto-scaling policies. These <span class="kt">serving patterns</span>
+      compose the inference primitives into systems that balance cost, latency, quality, and
+      reliability at scale.
+    </p>
+
+    <div class="card">
+      <span class="tag tag-cyan">MULTI-TENANT</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">Multi-LoRA Serving</h4>
+      <p class="desc" style="margin-bottom:0">
+        A single base model is loaded once, and multiple LoRA adapters (~10&ndash;100 MB each) are
+        swapped at request time per customer/task. Hundreds of adapters from one GPU deployment.
+        vLLM supports this natively &mdash; different requests in the same batch can use different
+        adapters, managed transparently.
+      </p>
+      <div class="mb">GPU memory: 1 &times; base_model + N &times; lora_adapter (negligible) &asymp; 1 &times; base_model</div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-purple">ROUTING</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Model Routing</h4>
+        <p class="desc" style="margin-bottom:0">
+          A <span class="kt">router</span> classifies requests by complexity and routes them to
+          appropriately-sized models &mdash; simple queries to 8B, complex reasoning to 70B, hardest
+          tasks to the largest model. Reduces average cost 3&ndash;5&times; while maintaining tail quality.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">CACHING</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Prefix Caching</h4>
+        <p class="desc" style="margin-bottom:0">
+          Compute KV cache for shared system prompts once and reuse across all requests. SGLang's
+          RadixAttention auto-detects common prefixes. Eliminates 50&ndash;90% of prefill computation
+          for apps with long system prompts.
+        </p>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-amber">SCALING</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Auto-Scaling</h4>
+        <p class="desc" style="margin-bottom:0">
+          Scale based on <strong>queue depth</strong> and <strong>P99 latency</strong> rather than
+          CPU/memory metrics. Scale-up on threshold breach; scale-down slowly to avoid thrashing.
+          KV cache memory limits max concurrency per instance, making capacity planning predictable.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-blue">ADVANCED</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Disaggregated Inference</h4>
+        <p class="desc" style="margin-bottom:0">
+          Separate <strong>prefill</strong> (compute-bound) and <strong>decode</strong>
+          (memory-bandwidth-bound) onto different hardware optimized for each phase. Prefill cluster
+          transfers KV caches to decode cluster via high-speed interconnect. Enables independent
+          scaling and better hardware utilization.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">A/B Testing &amp; Canary Deployments</div>
+      <p>
+        Offline evals don't fully predict real-world quality. Production systems route traffic
+        percentages to candidate models, measuring user-facing metrics (ratings, task completion,
+        engagement). Shadow deployments run candidates without serving output for latency/error
+        comparison. Gradual rollouts (1% &rarr; 10% &rarr; 50% &rarr; 100%) limit blast radius.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.8 Streaming & Optimization                                   -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.8</span><h2>Streaming &amp; Optimization</h2></div>
+    <p class="sub">Delivering tokens to users and optimizing end-to-end cost</p>
+
+    <p class="desc">
+      Users perceive streaming responses as significantly faster than waiting for a complete response.
+      Beyond UX, several optimization techniques target specific inference bottlenecks &mdash; from
+      reducing <span class="kt">TTFT</span> to minimizing cost per token at scale.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">PROTOCOL</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Server-Sent Events (SSE)</h4>
+        <p class="desc" style="margin-bottom:0">
+          The standard for streaming LLM responses. Server sends <code>data:</code> events over a
+          persistent HTTP connection, each containing one or more tokens. Unidirectional, simple
+          text format, handles reconnection natively. The OpenAI API's <code>stream: true</code>
+          uses SSE, making it the de facto standard.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">TRANSPORT</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Chunked Transfer Encoding</h4>
+        <p class="desc" style="margin-bottom:0">
+          The HTTP mechanism enabling SSE. Data is sent in variable-size chunks without specifying
+          <code>Content-Length</code> upfront, allowing transmission before total response size is
+          known &mdash; essential for autoregressive generation with unpredictable output length.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Optimization Strategies</h4>
+      <table class="ct">
+        <thead><tr><th>Target</th><th>Strategy</th><th>Mechanism</th><th>Impact</th></tr></thead>
+        <tbody>
+          <tr><td>TTFT</td><td>Prefix caching</td><td>Reuse KV for shared system prompts</td><td>50&ndash;90% TTFT reduction</td></tr>
+          <tr><td>TTFT</td><td>Prompt compression</td><td>Compress contexts into fewer tokens (LLMLingua)</td><td>2&ndash;5&times; prefill speedup</td></tr>
+          <tr><td>TPOT</td><td>Speculative decoding</td><td>Draft-verify for multi-token steps</td><td>2&ndash;3&times; faster decode</td></tr>
+          <tr><td>Cost</td><td>Quantization</td><td>Reduce precision (FP8/INT4)</td><td>2&ndash;4&times; fewer GPUs</td></tr>
+          <tr><td>Cost</td><td>Model routing</td><td>Match model size to task difficulty</td><td>3&ndash;5&times; cost reduction</td></tr>
+          <tr><td>Cost</td><td>Off-peak batching</td><td>Queue non-urgent requests for high-batch</td><td>2&times; better $/token</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">Token Budget Optimization</div>
+      <p>
+        <strong>Early stopping</strong> detects repetitive or low-value generation.
+        <strong>Length penalties</strong> discourage verbose outputs. <strong>Structured output
+        constraints</strong> (JSON mode, grammar-guided decoding) prevent wasted tokens outside
+        expected formats. Tight <code>max_tokens</code> limits based on task requirements can cut
+        batch processing costs by 30&ndash;50%.
+      </p>
+    </div>
+
+    <div class="g2">
+      <div class="use-card">
+        <h4>Edge Deployment Considerations</h4>
+        <ul>
+          <li><strong>Format:</strong> GGUF (llama.cpp), CoreML (Apple), TFLite (Android)</li>
+          <li><strong>Quantization:</strong> Q4_K_M balances quality and memory for mobile</li>
+          <li><strong>Model size:</strong> 1B&ndash;3B parameters is the on-device sweet spot</li>
+          <li><strong>Latency:</strong> No network round-trip; sub-10ms TTFT achievable</li>
+          <li><strong>Privacy:</strong> Data never leaves the device</li>
+        </ul>
+      </div>
+      <div class="use-card">
+        <h4>Cost Optimization Checklist</h4>
+        <ul>
+          <li><strong>Quantize first:</strong> FP8 on Hopper, AWQ INT4 on Ampere</li>
+          <li><strong>Enable prefix caching:</strong> Share KV for common system prompts</li>
+          <li><strong>Use continuous batching:</strong> Never static batching in production</li>
+          <li><strong>Right-size the model:</strong> Route easy queries to smaller models</li>
+          <li><strong>Set max_tokens tightly:</strong> Don't allocate 4K for 200-token tasks</li>
+          <li><strong>Monitor GPU util:</strong> Target &gt;60% decode utilization via batching</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="trend-box">
+      <strong>Emerging: </strong> Disaggregated inference, speculative decoding as a default,
+      and FP4/INT4 as standard serving precision are converging toward an order-of-magnitude
+      inference cost reduction over 2024&ndash;2026 &mdash; driven by software and systems
+      innovation as much as new hardware.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Next Chapter Button                                           -->
+  <!-- ============================================================ -->
+  <div style="text-align:center;margin-top:48px">
+    <a href="7-eval-benchmarking.html" class="b bp" style="text-decoration:none;display:inline-block;padding:12px 28px;font-size:15px">
+      Next: Evaluation &amp; Benchmarking &rarr;
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

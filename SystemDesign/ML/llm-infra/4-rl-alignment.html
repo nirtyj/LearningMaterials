@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>LLM Infra — 4. RL-Based Alignment</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-architecture.html" class="tab-btn"><span class="tnum">1</span>Architecture</a>
+  <a href="2-pretraining.html" class="tab-btn"><span class="tnum">2</span>Pre-Training</a>
+  <a href="3-fine-tuning.html" class="tab-btn"><span class="tnum">3</span>Fine-Tuning</a>
+  <a href="4-rl-alignment.html" class="tab-btn active"><span class="tnum">4</span>RL Alignment</a>
+  <a href="5-distributed-training.html" class="tab-btn"><span class="tnum">5</span>Distributed</a>
+  <a href="6-inference.html" class="tab-btn"><span class="tnum">6</span>Inference</a>
+  <a href="7-eval-benchmarking.html" class="tab-btn"><span class="tnum">7</span>Eval</a>
+  <a href="8-aws-nova-forge.html" class="tab-btn"><span class="tnum">8</span>Nova Forge</a>
+</nav>
+
+<div class="tab-content">
+  <div class="hero">
+    <h1>RL-Based Alignment</h1>
+    <p>From human preferences to verifiable rewards &mdash; making models helpful, harmless, and honest through reinforcement learning.</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4.1  The Alignment Problem                                  -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.1</span><h2>The Alignment Problem</h2></div>
+    <p class="sub">Why supervised fine-tuning alone is not enough</p>
+
+    <p class="desc">
+      Pre-training produces a powerful language model, and SFT teaches it to follow instructions in a desired format.
+      But SFT has a fundamental limitation: it teaches the model to <em>imitate</em> demonstrations, not to
+      <em>optimize for outcomes</em>. When the goal is nuanced &mdash; be helpful but not harmful, be accurate but admit uncertainty &mdash;
+      imitation learning hits a ceiling. Reinforcement learning bridges this gap by letting the model explore and learn
+      from evaluative feedback rather than teacher forcing.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-amber">LIMITATION</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">SFT Teaches Format, Not Judgment</h4>
+        <p class="desc" style="margin-bottom:0">
+          SFT optimizes cross-entropy against reference answers. It cannot distinguish a <em>good</em> answer from a
+          <em>great</em> one &mdash; both get the same gradient if they match the reference. The model learns surface patterns
+          (tone, structure, verbosity) without learning <strong>which</strong> answers humans actually prefer.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-red">PROBLEM</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">Reward Hacking</h4>
+        <p class="desc" style="margin-bottom:0">
+          When optimized against a reward signal, models learn to exploit the reward function rather than genuinely improve.
+          Examples: producing longer answers because the reward model correlates length with quality, or hedging excessively
+          because the RM scores cautious refusals higher. Managing reward hacking is a central challenge in RL-based alignment.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">The Alignment Tax</div>
+      <p>Aligned models may sacrifice some raw capability for safety and helpfulness. A model steered away from generating
+        harmful content may also become less creative or less willing to engage with edge cases. The goal of modern alignment
+        is to minimize this tax &mdash; maximize helpfulness while maintaining safety guardrails.</p>
+    </div>
+
+    <div class="use-card">
+      <h4>Why RL Is Needed &mdash; Non-Differentiable Objectives</h4>
+      <ul>
+        <li><strong>Human preference:</strong> "Which response do you prefer?" is a ranking, not a continuous gradient signal</li>
+        <li><strong>Code correctness:</strong> Code either passes tests or it doesn't &mdash; binary, non-differentiable</li>
+        <li><strong>Factual accuracy:</strong> A claim is true or false; partial credit is hard to express as cross-entropy loss</li>
+        <li><strong>Safety compliance:</strong> Whether a response violates a policy is a discrete judgment call</li>
+        <li><strong>Tool use success:</strong> Did the model call the right API with the right parameters? Pass/fail.</li>
+      </ul>
+    </div>
+
+    <p class="ins">RL turns these binary or ordinal signals into gradient updates the model can learn from, enabling optimization of objectives that SFT cannot directly address.</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4.2  RLHF / PPO                                            -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.2</span><h2>RLHF / PPO</h2></div>
+    <p class="sub">The classic InstructGPT pipeline that started it all</p>
+
+    <p class="desc">
+      Reinforcement Learning from Human Feedback (RLHF) was popularized by the <span class="kt">InstructGPT</span> paper (2022)
+      and became the standard alignment recipe for ChatGPT, Claude, and other frontier models. The pipeline has three stages:
+      supervised fine-tuning, reward model training, and PPO-based policy optimization.
+    </p>
+
+    <div class="arch-box">
+  Stage 1              Stage 2                Stage 3
+  ┌─────────┐         ┌──────────────┐        ┌─────────────────────┐
+  │ SFT     │         │ Reward Model │        │ PPO Training        │
+  │ Model   │────────▶│ Training     │───────▶│                     │
+  │         │         │              │        │  Policy ──▶ Generate│
+  └─────────┘         │ Human prefs  │        │     │       samples │
+  Supervised          │ (A > B)      │        │     ▼               │
+  fine-tuning         │     │        │        │  RM scores          │
+  on demos            │     ▼        │        │     │               │
+                      │ Scalar       │        │     ▼               │
+                      │ reward r(x,y)│        │  PPO update         │
+                      └──────────────┘        │  + KL penalty       │
+                                              └─────────────────────┘
+    </div>
+
+    <div class="card">
+      <span class="tag tag-blue">STAGE 2</span>
+      <h4 style="margin:8px 0 6px;color:var(--text)">Reward Model (RM)</h4>
+      <p class="desc">Trained on human preference pairs: given prompt <code>x</code> and two responses <code>y_w</code> (preferred) and <code>y_l</code> (rejected),
+        the RM learns to assign a higher scalar reward to the preferred response. The loss is the Bradley-Terry pairwise ranking objective:</p>
+      <div class="mb">L(RM) = -log( sigma( r(x, y_w) - r(x, y_l) ) )</div>
+      <p class="desc" style="margin-bottom:0">Typically initialized from the same SFT model with a scalar head replacing the LM head. Quality of the reward model is the
+        <strong>ceiling</strong> for alignment quality &mdash; a noisy RM will teach the policy to exploit noise.</p>
+    </div>
+
+    <div class="card">
+      <span class="tag tag-purple">STAGE 3</span>
+      <h4 style="margin:8px 0 6px;color:var(--text)">PPO &mdash; Proximal Policy Optimization</h4>
+      <p class="desc">PPO is a policy gradient algorithm with a <strong>clipped surrogate objective</strong> that prevents
+        catastrophically large parameter updates:</p>
+      <div class="mb">L(PPO) = -E[ min( r_t * A_t, clip(r_t, 1-eps, 1+eps) * A_t ) ]</div>
+      <p class="desc">where <code>r_t = pi_new / pi_old</code> is the probability ratio and <code>A_t</code> is the advantage estimate.</p>
+
+      <div class="g2" style="margin-top:12px">
+        <div class="use-card">
+          <h4>KL Penalty</h4>
+          <ul>
+            <li><strong>Purpose:</strong> Constrains the trained policy from drifting too far from the SFT model (reference policy)</li>
+            <li><strong>Mechanism:</strong> <code>reward_final = r(x,y) - beta * KL(pi || pi_ref)</code></li>
+            <li><strong>Effect:</strong> Without it, the model collapses to degenerate reward-maximizing behavior</li>
+            <li><strong>Typical beta:</strong> 0.01 &ndash; 0.2, tuned on a per-task basis</li>
+          </ul>
+        </div>
+        <div class="use-card">
+          <h4>Value Network (Critic)</h4>
+          <ul>
+            <li><strong>Role:</strong> Estimates expected reward V(s) to compute advantages A = R - V(s)</li>
+            <li><strong>Architecture:</strong> Same size as the policy model with a scalar value head</li>
+            <li><strong>Cost:</strong> Roughly doubles GPU memory (two full model copies)</li>
+            <li><strong>Training:</strong> Updated jointly with the policy via MSE on returns</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-title">PPO Challenges</div>
+      <ul>
+        <li><strong>Reward model quality is the ceiling</strong> &mdash; a noisy RM leads to reward hacking, not alignment</li>
+        <li><strong>Training instability</strong> &mdash; requires careful tuning of learning rate, clipping epsilon, KL coefficient, and GAE lambda</li>
+        <li><strong>High compute cost</strong> &mdash; four models in memory (policy, reference, RM, value network) during training</li>
+        <li><strong>Sensitivity to hyperparameters</strong> &mdash; PPO is notoriously brittle; small changes can destabilize training</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4.3  DPO & Offline Methods                                 -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.3</span><h2>DPO &amp; Offline Methods</h2></div>
+    <p class="sub">Preference optimization without reinforcement learning</p>
+
+    <p class="desc">
+      <span class="kt">Direct Preference Optimization (DPO)</span> showed that you can skip the reward model and the online RL
+      loop entirely. The key insight: the optimal policy under the RLHF objective can be expressed as a
+      <strong>closed-form function</strong> of preference data. This collapses the three-stage RLHF pipeline into a single
+      supervised learning step on preference pairs.
+    </p>
+
+    <div class="card">
+      <span class="tag tag-green">CORE IDEA</span>
+      <h4 style="margin:8px 0 6px;color:var(--text)">DPO Loss Function</h4>
+      <p class="desc">DPO reparameterizes the reward into the policy directly. The implicit reward for any response is:</p>
+      <div class="mb">r(x, y) = beta * log( pi(y|x) / pi_ref(y|x) ) + const</div>
+      <p class="desc">The DPO loss maximizes the margin between preferred and rejected responses under this implicit reward:</p>
+      <div class="mb">L(DPO) = -log sigma( beta * [ log(pi(y_w|x)/pi_ref(y_w|x)) - log(pi(y_l|x)/pi_ref(y_l|x)) ] )</div>
+      <p class="desc" style="margin-bottom:0">No reward model to train, no online generation, no value network. Just a supervised loss on preference pairs
+        &mdash; as stable and cheap as SFT.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="lb" style="background:var(--purple);margin-bottom:8px">KTO</span>
+        <h4 style="margin:4px 0 6px;color:var(--text)">Kahneman-Tversky Optimization</h4>
+        <p class="desc" style="margin-bottom:0">
+          Works with <strong>binary labels</strong> (good/bad) instead of preference pairs. Much easier to collect data &mdash;
+          annotators just thumbs-up or thumbs-down individual responses, no need to compare pairs. Based on prospect theory:
+          losses loom larger than gains, so the algorithm weights rejected examples more heavily.
+        </p>
+      </div>
+      <div class="card">
+        <span class="lb" style="background:var(--cyan);margin-bottom:8px">ORPO</span>
+        <h4 style="margin:4px 0 6px;color:var(--text)">Odds Ratio Preference Optimization</h4>
+        <p class="desc" style="margin-bottom:0">
+          Combines SFT and preference alignment in a <strong>single training step</strong>. The SFT loss teaches format while
+          the odds ratio term simultaneously penalizes rejected responses. Eliminates the need for a separate SFT phase,
+          reducing total training time and simplifying the pipeline.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="lb" style="background:var(--green);margin-bottom:8px">SimPO</span>
+      <h4 style="margin:4px 0 6px;color:var(--text)">Simple Preference Optimization</h4>
+      <p class="desc" style="margin-bottom:0">
+        A <strong>length-normalized, reference-free</strong> variant of DPO. By normalizing log-probabilities by sequence length,
+        SimPO avoids the bias toward shorter responses that can plague DPO. Removing the reference model dependency means no need
+        to keep <code>pi_ref</code> in memory during training. Often competitive with DPO while being simpler and cheaper to run.
+      </p>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">Offline Methods &mdash; Pros vs Cons</div>
+      <div class="g2">
+        <div>
+          <p><strong style="color:var(--green)">Advantages:</strong></p>
+          <ul>
+            <li>Stable training &mdash; no RL instability, same as SFT</li>
+            <li>Cheap &mdash; no online generation, no reward model</li>
+            <li>Simple &mdash; standard supervised training loop</li>
+            <li>Reproducible &mdash; deterministic given fixed data</li>
+          </ul>
+        </div>
+        <div>
+          <p><strong style="color:var(--red)">Limitations:</strong></p>
+          <ul>
+            <li>Limited to distribution of collected responses</li>
+            <li>Cannot discover novel behaviors beyond training data</li>
+            <li>Quality bounded by the annotation quality</li>
+            <li>No exploration &mdash; policy never generates and evaluates</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4.4  GRPO Deep Dive                                        -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.4</span><h2>GRPO Deep Dive</h2></div>
+    <p class="sub">Group Relative Policy Optimization &mdash; eliminating the critic</p>
+
+    <p class="desc">
+      <span class="kt">GRPO</span> (Group Relative Policy Optimization) is the core online RL algorithm used by systems like
+      DeepSeek-R1 and AWS Nova Forge RFT. It is a variant of policy optimization that eliminates the value network (critic)
+      entirely by computing advantages <strong>relative to a group</strong> of sampled responses per prompt. This removes the
+      memory overhead of maintaining a critic model while maintaining competitive alignment quality.
+    </p>
+
+    <div class="card">
+      <span class="tag tag-blue">STEP-BY-STEP</span>
+      <h4 style="margin:8px 0 10px;color:var(--text)">GRPO Training Walkthrough</h4>
+      <ol style="padding-left:20px;color:var(--dim);font-size:13px;line-height:1.8">
+        <li><strong style="color:var(--text)">Sample prompts</strong> &mdash; Draw a batch of prompts from the training dataset</li>
+        <li><strong style="color:var(--text)">Generate N completions per prompt</strong> &mdash; The policy model generates <code>N</code> responses for each prompt (typically <code>N = 2&ndash;16</code>, controlled by <code>number_generation</code>)</li>
+        <li><strong style="color:var(--text)">Score each completion</strong> &mdash; A reward function (Lambda, LLM judge, or remote endpoint) assigns a scalar reward to each response</li>
+        <li><strong style="color:var(--text)">Compute group advantages</strong> &mdash; For each prompt, normalize rewards within the group:</li>
+      </ol>
+      <div class="mb">advantage_i = ( reward_i - mean(rewards_group) ) / std(rewards_group)</div>
+      <ol start="5" style="padding-left:20px;color:var(--dim);font-size:13px;line-height:1.8">
+        <li><strong style="color:var(--text)">Policy gradient update</strong> &mdash; Compute the loss that increases probability of high-advantage responses:</li>
+      </ol>
+      <div class="mb">L = -sum( advantage_i * log_prob(completion_i | prompt) )</div>
+      <ol start="6" style="padding-left:20px;color:var(--dim);font-size:13px;line-height:1.8">
+        <li><strong style="color:var(--text)">KL penalty</strong> &mdash; Add a KL divergence penalty against the reference policy to prevent reward hacking: <code>L_total = L + beta * KL(pi || pi_ref)</code></li>
+        <li><strong style="color:var(--text)">Optimizer step</strong> &mdash; AdamW updates model weights. Repeat from step 1.</li>
+      </ol>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-title">GRPO vs PPO &mdash; Key Distinction</div>
+      <p>PPO requires a separate <strong>value network (critic)</strong> to estimate advantages, which doubles memory requirements
+        and adds training complexity. GRPO eliminates the critic by computing advantages <strong>relative to the group</strong> of
+        sampled responses for each prompt. This makes it more memory-efficient and simpler to implement, while maintaining
+        similar alignment quality.</p>
+    </div>
+
+    <div class="g2">
+      <div class="use-card">
+        <h4>GRPO Advantages</h4>
+        <ul>
+          <li><strong>No value network:</strong> ~50% less GPU memory vs PPO</li>
+          <li><strong>Simpler training loop:</strong> No critic loss to balance</li>
+          <li><strong>Self-normalizing:</strong> Group statistics provide automatic baselines</li>
+          <li><strong>Proven at scale:</strong> Used by DeepSeek-R1, Nova Forge</li>
+        </ul>
+      </div>
+      <div class="use-card">
+        <h4>GRPO Tradeoffs</h4>
+        <ul>
+          <li><strong>Needs N &ge; 2 samples per prompt:</strong> Minimum for meaningful advantage estimation</li>
+          <li><strong>Generation overhead:</strong> Must generate multiple completions per step</li>
+          <li><strong>Variance with small groups:</strong> Advantage estimates are noisy when N is small</li>
+          <li><strong>Reward function required:</strong> Still needs a way to score completions</li>
+        </ul>
+      </div>
+    </div>
+
+    <table class="ct">
+      <tr><th>Config Parameter</th><th>Typical Range</th><th>Effect</th></tr>
+      <tr><td><code>number_generation</code></td><td>2 &ndash; 16</td><td>Completions per prompt; higher = better advantage estimates, more compute</td></tr>
+      <tr><td><code>kl_coeff (beta)</code></td><td>0.01 &ndash; 0.2</td><td>Strength of KL penalty against reference policy</td></tr>
+      <tr><td><code>learning_rate</code></td><td>1e-7 &ndash; 5e-6</td><td>Too high = instability; too low = no learning</td></tr>
+      <tr><td><code>max_new_tokens</code></td><td>256 &ndash; 4096</td><td>Max generation length per completion</td></tr>
+      <tr><td><code>temperature</code></td><td>0.7 &ndash; 1.0</td><td>Controls exploration; higher = more diverse samples</td></tr>
+    </table>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4.5  Online vs Offline                                      -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.5</span><h2>Online vs Offline Alignment</h2></div>
+    <p class="sub">Choosing the right alignment paradigm for your task</p>
+
+    <p class="desc">
+      The most consequential decision in RL-based alignment is whether to use <strong>online</strong> methods (the model generates
+      its own responses and learns from reward feedback) or <strong>offline</strong> methods (the model learns from pre-collected
+      preference data without any generation). Each paradigm has distinct strengths, and modern practice often combines both.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">ONLINE</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">GRPO / PPO</h4>
+        <ul style="padding-left:16px;color:var(--dim);font-size:13px;line-height:1.8">
+          <li>Model generates its own responses at each training step</li>
+          <li>Responses scored by reward function (Lambda, LLM judge, remote endpoint)</li>
+          <li>More compute-intensive &mdash; generation + scoring per step</li>
+          <li><strong>Can discover novel behaviors</strong> beyond the training distribution</li>
+          <li>Best for <span class="kt">verifiable tasks</span>: code correctness, math accuracy, tool use, format compliance</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">OFFLINE</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">DPO / SimPO / KTO</h4>
+        <ul style="padding-left:16px;color:var(--dim);font-size:13px;line-height:1.8">
+          <li>Uses pre-collected preference pairs &mdash; no generation at training time</li>
+          <li>Training cost similar to SFT (same data pipeline, same loop)</li>
+          <li>Cheaper, more stable, highly reproducible</li>
+          <li><strong>Limited to existing response quality</strong> distribution in the dataset</li>
+          <li>Best for <span class="kt">subjective tasks</span>: style, tone, safety, helpfulness</li>
+        </ul>
+      </div>
+    </div>
+
+    <table class="ct">
+      <tr><th>Dimension</th><th>Online (GRPO, PPO)</th><th>Offline (DPO, SimPO, KTO)</th></tr>
+      <tr><td>Generation</td><td>Model generates at each step</td><td>No generation needed</td></tr>
+      <tr><td>Compute Cost</td><td>High (gen + scoring + gradient)</td><td>Low (same as SFT)</td></tr>
+      <tr><td>Training Stability</td><td>Moderate &mdash; requires tuning</td><td>High &mdash; standard supervised loop</td></tr>
+      <tr><td>Exploration</td><td>Can discover novel behaviors</td><td>Bounded by collected data</td></tr>
+      <tr><td>Data Requirements</td><td>Prompts + reward function</td><td>Preference pairs or binary labels</td></tr>
+      <tr><td>Best For</td><td>Code, math, tool use, planning</td><td>Style, tone, safety, helpfulness</td></tr>
+      <tr><td>Memory</td><td>Policy + reference + (critic for PPO)</td><td>Policy + reference only</td></tr>
+    </table>
+
+    <div class="trend-box">
+      <strong>Industry Trend:</strong> Use <strong>DPO</strong> for an initial alignment pass (cheap, stable baseline),
+      then <strong>GRPO</strong> for capability improvements on specific tasks where verifiable rewards exist.
+      This two-phase approach gives you the stability of offline alignment plus the exploration power of online RL
+      where it matters most.
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4.6  Reward Design                                          -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.6</span><h2>Reward Design</h2></div>
+    <p class="sub">The reward function defines what the model optimizes for &mdash; get it right or suffer the consequences</p>
+
+    <p class="desc">
+      The reward function is the single most important design decision in RL-based alignment. A well-designed reward
+      produces a helpful, capable model. A poorly designed reward produces a model that games the metric. There are three
+      major paradigms for constructing rewards, each suited to different task types.
+    </p>
+
+    <div class="card">
+      <span class="tag tag-green">RLVR</span>
+      <h4 style="margin:8px 0 6px;color:var(--text)">RL via Verifiable Rewards</h4>
+      <p class="desc">Rule-based reward functions for tasks with <strong>objective correctness criteria</strong>. The reward is
+        computed deterministically &mdash; no learned model involved.</p>
+      <ul style="padding-left:16px;color:var(--dim);font-size:13px;line-height:1.8">
+        <li><strong>Code execution:</strong> Run code against test cases &mdash; pass = 1.0, fail = 0.0</li>
+        <li><strong>Math verification:</strong> Extract final answer, compare against ground truth</li>
+        <li><strong>Format compliance:</strong> Check JSON structure, field presence, type constraints</li>
+        <li><strong>Regex matching:</strong> Verify output matches expected patterns</li>
+      </ul>
+      <p class="ins">RLVR is the gold standard when applicable &mdash; deterministic, fast, no noise. The challenge is that most real-world tasks are not fully verifiable.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-purple">RLAIF</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">RL from AI Feedback</h4>
+        <p class="desc" style="margin-bottom:0">
+          An LLM-as-judge evaluates responses against criteria (helpfulness, accuracy, safety). Scores are used as reward signals.
+          Suitable for <strong>subjective quality</strong> where human preferences are hard to formalize. Trade-off: cheaper than
+          human annotation but inherits the biases and blind spots of the judge model.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-cyan">REMOTE</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">Remote Reward Functions</h4>
+        <p class="desc" style="margin-bottom:0">
+          API-based reward computation where the customer runs evaluation in their own infrastructure. Enables
+          <strong>complex evaluations</strong>: physics simulators, code with nested tool-calling, robotics tasks, multi-step
+          web interaction. The training system sends (prompt, response) to a remote endpoint and receives a scalar reward.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-title">Reward Hacking Mitigations</div>
+      <ul>
+        <li><strong>KL penalty:</strong> Constrains the policy from drifting too far from the reference, limiting exploitation of RM weaknesses</li>
+        <li><strong>Reward model ensembles:</strong> Average rewards from multiple RMs &mdash; harder for the policy to simultaneously hack all of them</li>
+        <li><strong>Constrained optimization:</strong> Set minimum thresholds on safety scores while maximizing helpfulness</li>
+        <li><strong>Process reward models (PRMs):</strong> Reward each reasoning step, not just the final outcome &mdash; encourages correct reasoning rather than lucky guesses</li>
+        <li><strong>Reward capping:</strong> Clip extreme reward values to prevent the policy from over-optimizing outliers</li>
+      </ul>
+    </div>
+
+    <div class="callout purple">
+      <div class="callout-title">Multi-Objective Rewards &mdash; Constitutional AI</div>
+      <p>Real alignment requires balancing multiple objectives simultaneously. The Constitutional AI approach defines a weighted
+        combination of <strong>helpfulness</strong>, <strong>harmlessness</strong>, and <strong>honesty</strong> (the "HHH" criteria).
+        In practice, the reward is often a weighted sum: <code>R = w_h * R_helpful + w_s * R_safe + w_a * R_accurate</code>.
+        The weights encode the provider's alignment priorities and can be tuned per-deployment.</p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4.7  Multi-Turn RL & Agentic Training                      -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.7</span><h2>Multi-Turn RL &amp; Agentic Training</h2></div>
+    <p class="sub">Beyond single-turn: training models to use tools, plan, and recover from errors</p>
+
+    <p class="desc">
+      Single-turn RL optimizes for one-shot question-answer quality. But modern LLM applications are increasingly
+      <strong>agentic</strong> &mdash; the model must plan multi-step workflows, call external tools, interpret results,
+      and recover from failures. Training for these capabilities requires RL environments that simulate real-world
+      interaction patterns.
+    </p>
+
+    <div class="card">
+      <span class="tag tag-amber">TOOL USE</span>
+      <h4 style="margin:8px 0 6px;color:var(--text)">RL for Tool-Calling</h4>
+      <p class="desc">The model learns <em>when</em> and <em>how</em> to call tools through RL signal. Instead of SFT on
+        tool-use demonstrations (which teaches imitation), RL lets the model discover optimal tool strategies:</p>
+      <ul style="padding-left:16px;color:var(--dim);font-size:13px;line-height:1.8">
+        <li><strong>When to call:</strong> Learn that some questions need a calculator, others don't</li>
+        <li><strong>Parameter selection:</strong> Learn correct API parameters through trial-and-error</li>
+        <li><strong>Result interpretation:</strong> Learn to extract relevant information from tool outputs</li>
+        <li><strong>Fallback strategies:</strong> Learn to recover when a tool call fails or returns unexpected results</li>
+      </ul>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">ENVIRONMENTS</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">Environment Design</h4>
+        <ul style="padding-left:16px;color:var(--dim);font-size:13px;line-height:1.8">
+          <li><strong>Code sandbox:</strong> Isolated execution with test-case feedback</li>
+          <li><strong>Web browsing:</strong> Simulated browser for navigation tasks</li>
+          <li><strong>API interaction:</strong> Mock or real API endpoints for tool use</li>
+          <li><strong>Multi-agent:</strong> Conversations with other LLMs or simulated users</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="tag tag-red">CHALLENGES</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">Multi-Turn Difficulties</h4>
+        <ul style="padding-left:16px;color:var(--dim);font-size:13px;line-height:1.8">
+          <li><strong>Credit assignment:</strong> Which step in a 10-step trajectory caused failure?</li>
+          <li><strong>Sparse rewards:</strong> Only final outcome is scored &mdash; many steps get no signal</li>
+          <li><strong>Environment reliability:</strong> External APIs may be flaky or rate-limited</li>
+          <li><strong>Trajectory length:</strong> Long rollouts are expensive and slow to backprop through</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-title">BYOO Pattern &mdash; Bring Your Own Orchestrator</div>
+      <p>In production systems like AWS Nova Forge, customers run the RL environment in their <strong>own VPC infrastructure</strong>.
+        The training system sends prompts and model responses to a customer-hosted endpoint, which orchestrates multi-turn
+        conversations &mdash; tool calls, environment interaction, error handling &mdash; and returns aggregate reward scores.
+        This keeps sensitive tools, data, and business logic within the customer's security boundary.</p>
+    </div>
+
+    <div class="arch-box">
+  Training System                        Customer VPC (BYOO)
+  ┌────────────────┐                     ┌──────────────────────────┐
+  │  GRPO Trainer   │                     │  Orchestrator Endpoint   │
+  │                 │  POST /rollout      │                          │
+  │  Policy Model  ─┼────────────────────▶│  1. Receive prompt+resp  │
+  │                 │                     │  2. Execute tool calls   │
+  │                 │  {reward: 0.85}     │  3. Multi-turn loop      │
+  │  Update weights◀┼─────────────────────│  4. Score final outcome  │
+  │                 │                     │  5. Return reward        │
+  └────────────────┘                     └──────────────────────────┘
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- 4.8  Modern RL Landscape                                    -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">4.8</span><h2>Modern RL Landscape</h2></div>
+    <p class="sub">A taxonomy of alignment algorithms and where they are headed</p>
+
+    <p class="desc">
+      The RL alignment landscape has evolved rapidly since InstructGPT. The trend is unmistakable: <strong>simpler algorithms
+      are winning</strong>. The field has moved from the four-model complexity of PPO to methods that require only a policy
+      and optionally a reference model. Here is the full landscape as of 2025&ndash;2026.
+    </p>
+
+    <table class="ct">
+      <tr><th>Method</th><th>Needs RM?</th><th>Online Gen?</th><th>Key Innovation</th></tr>
+      <tr><td>PPO / RLHF</td><td>Yes (separate RM)</td><td>Yes</td><td>Classic &mdash; policy gradient + value function</td></tr>
+      <tr><td>GRPO</td><td>No (group relative)</td><td>Yes</td><td>Eliminates critic via within-group normalization</td></tr>
+      <tr><td>DPO</td><td>No</td><td>No (offline)</td><td>Reparameterizes reward into policy directly</td></tr>
+      <tr><td>KTO</td><td>No</td><td>No (offline)</td><td>Binary labels &mdash; no preference pairs needed</td></tr>
+      <tr><td>ORPO</td><td>No</td><td>No (offline)</td><td>Combines SFT + preference alignment in single step</td></tr>
+      <tr><td>SimPO</td><td>No</td><td>No (offline)</td><td>Length-normalized, reference-free DPO variant</td></tr>
+      <tr><td>REINFORCE++</td><td>No</td><td>Yes</td><td>Simplified GRPO with token-level baselines</td></tr>
+      <tr><td>DAPO</td><td>No</td><td>Yes</td><td>GRPO variant with dynamic sampling &amp; clip-higher</td></tr>
+    </table>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">ONLINE WINNERS</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">GRPO Family</h4>
+        <p class="desc" style="margin-bottom:0">
+          <span class="kt">GRPO</span> and its variants (<strong>DAPO</strong>, <strong>Dr. GRPO</strong>) have become the default
+          for online RL. They eliminate the critic, simplify the training loop, and scale well. DAPO adds dynamic sampling
+          (adjusting the number of generations based on task difficulty) and a clip-higher mechanism that prevents the policy from
+          becoming overconfident on easy examples.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">OFFLINE WINNERS</span>
+        <h4 style="margin:8px 0 6px;color:var(--text)">DPO / SimPO</h4>
+        <p class="desc" style="margin-bottom:0">
+          <span class="kt">DPO</span> remains the dominant offline method for its simplicity and strong empirical results.
+          <strong>SimPO</strong> is gaining ground as a drop-in replacement that removes reference model dependency and handles
+          length bias. For teams with only binary feedback data, <strong>KTO</strong> is the go-to choice.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout purple">
+      <div class="callout-title">The Decision Framework</div>
+      <div class="g2">
+        <div class="use-card">
+          <h4>Choose Online RL (GRPO) When:</h4>
+          <ul>
+            <li>You have a <strong>verifiable reward</strong> (code tests, math answers)</li>
+            <li>You need the model to <strong>explore</strong> beyond existing data</li>
+            <li>Task performance is <strong>measurable</strong> and objective</li>
+            <li>You have sufficient <strong>compute budget</strong> for generation</li>
+          </ul>
+        </div>
+        <div class="use-card">
+          <h4>Choose Offline (DPO/SimPO) When:</h4>
+          <ul>
+            <li>You have <strong>preference data</strong> (human or AI annotated)</li>
+            <li>The goal is <strong>style, tone, or safety</strong> alignment</li>
+            <li>You want <strong>maximum stability</strong> and reproducibility</li>
+            <li>Compute budget is <strong>limited</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="trend-box">
+      <strong>Where the Field Is Headed:</strong> The boundary between online and offline is blurring. Iterative DPO
+      (generate &rarr; preference label &rarr; DPO &rarr; repeat) adds exploration to offline methods. Meanwhile, online
+      methods are getting cheaper through efficient generation (speculative decoding in the RL loop) and better advantage
+      estimation (token-level rewards in REINFORCE++). Expect convergence toward <strong>simple, scalable algorithms</strong>
+      with optional exploration &mdash; the complexity of classic PPO is unlikely to return.
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- Next Chapter Button                                         -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <a href="5-distributed-training.html" class="b bp" style="text-decoration:none;display:inline-block;padding:12px 28px;font-size:14px">
+      Next: Distributed Training &rarr;
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

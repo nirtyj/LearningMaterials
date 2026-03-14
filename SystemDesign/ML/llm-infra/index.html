@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>LLM Infrastructure Explorer</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn active"><span class="tnum">~</span>Home</a>
+  <a href="1-architecture.html" class="tab-btn"><span class="tnum">1</span>Architecture</a>
+  <a href="2-pretraining.html" class="tab-btn"><span class="tnum">2</span>Pre-Training</a>
+  <a href="3-fine-tuning.html" class="tab-btn"><span class="tnum">3</span>Fine-Tuning</a>
+  <a href="4-rl-alignment.html" class="tab-btn"><span class="tnum">4</span>RL Alignment</a>
+  <a href="5-distributed-training.html" class="tab-btn"><span class="tnum">5</span>Distributed</a>
+  <a href="6-inference.html" class="tab-btn"><span class="tnum">6</span>Inference</a>
+  <a href="7-eval-benchmarking.html" class="tab-btn"><span class="tnum">7</span>Eval</a>
+  <a href="8-aws-nova-forge.html" class="tab-btn"><span class="tnum">8</span>Nova Forge</a>
+</nav>
+
+<div class="tab-content">
+  <div class="hero" style="margin-top:40px">
+    <h1>LLM Infrastructure Explorer</h1>
+    <p>From transformer architecture to production serving &mdash; a comprehensive guide to LLM training, alignment, and infrastructure.</p>
+  </div>
+
+  <div class="index-grid">
+    <a href="1-architecture.html" class="index-card">
+      <div class="ic">&#x1f9e9;</div>
+      <h3>1. Modern LLM Architecture</h3>
+      <p>Decoder-only transformers, attention variants (MHA/MQA/GQA), RoPE, FlashAttention, SwiGLU, and Mixture-of-Experts.</p>
+      <span class="tag tag-blue">ARCHITECTURE</span>
+    </a>
+    <a href="2-pretraining.html" class="index-card">
+      <div class="ic">&#x1f4da;</div>
+      <h3>2. Pre-Training at Scale</h3>
+      <p>Next-token prediction, data pipelines, tokenization, scaling laws, and the plasticity-stability dilemma.</p>
+      <span class="tag tag-green">TRAINING</span>
+    </a>
+    <a href="3-fine-tuning.html" class="index-card">
+      <div class="ic">&#x1f3af;</div>
+      <h3>3. Fine-Tuning &amp; PEFT</h3>
+      <p>Supervised fine-tuning, LoRA, QLoRA, knowledge distillation, NEFTune, and the CPT vs SFT vs RAG decision framework.</p>
+      <span class="tag tag-purple">ADAPTATION</span>
+    </a>
+    <a href="4-rl-alignment.html" class="index-card">
+      <div class="ic">&#x2696;&#xfe0f;</div>
+      <h3>4. RL-Based Alignment</h3>
+      <p>RLHF, DPO, GRPO, reward design, online vs offline methods, and the modern RL landscape.</p>
+      <span class="tag tag-amber">ALIGNMENT</span>
+    </a>
+    <a href="5-distributed-training.html" class="index-card">
+      <div class="ic">&#x1f5a7;</div>
+      <h3>5. Distributed Training</h3>
+      <p>Data/tensor/pipeline parallelism, ZeRO, 3D parallelism, mixed precision, NCCL, and fault tolerance.</p>
+      <span class="tag tag-red">INFRASTRUCTURE</span>
+    </a>
+    <a href="6-inference.html" class="index-card">
+      <div class="ic">&#x26a1;</div>
+      <h3>6. Inference &amp; Serving</h3>
+      <p>KV cache, PagedAttention, continuous batching, speculative decoding, quantization, and serving frameworks.</p>
+      <span class="tag tag-cyan">SERVING</span>
+    </a>
+    <a href="7-eval-benchmarking.html" class="index-card">
+      <div class="ic">&#x1f4ca;</div>
+      <h3>7. Evaluation &amp; Benchmarking</h3>
+      <p>MMLU, HumanEval, MT-Bench, LLM-as-a-Judge, safety evaluation, and benchmark anti-patterns.</p>
+      <span class="tag tag-pink">EVALUATION</span>
+    </a>
+    <a href="8-aws-nova-forge.html" class="index-card">
+      <div class="ic">&#x1f525;</div>
+      <h3>8. AWS Nova Forge</h3>
+      <p>Case study &mdash; checkpoint access, data mixing, HyperPod, BYOO, and the full Nova training lifecycle.</p>
+      <span class="tag tag-amber">CASE STUDY</span>
+    </a>
+  </div>
+
+  <div style="text-align:center;margin-top:48px;padding:24px;color:var(--dim);font-size:13px">
+    <p>Each chapter is self-contained with industry-standard practices, architecture diagrams, and comparison tables.</p>
+    <p style="margin-top:8px"><a href="1-architecture.html" class="b bp" style="text-decoration:none;display:inline-block;padding:10px 24px;font-size:14px">Start the Journey &rarr;</a></p>
+  </div>
+</div>
+</body>
+</html>

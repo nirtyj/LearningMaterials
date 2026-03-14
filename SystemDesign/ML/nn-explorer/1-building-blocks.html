@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>NN Explorer — 1. Building Blocks</title>
+</head>
+<body>
+
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-building-blocks.html" class="tab-btn active"><span class="tnum">1</span>Building Blocks</a>
+  <a href="2-cnns.html" class="tab-btn"><span class="tnum">2</span>CNNs</a>
+  <a href="3-attention.html" class="tab-btn"><span class="tnum">3</span>Attention</a>
+  <a href="4-transformers.html" class="tab-btn"><span class="tnum">4</span>Transformers</a>
+  <a href="5-vit.html" class="tab-btn"><span class="tnum">5</span>Vision (ViT)</a>
+  <a href="6-llms.html" class="tab-btn"><span class="tnum">6</span>LLMs</a>
+  <a href="7-multimodal.html" class="tab-btn"><span class="tnum">7</span>VLM &amp; MLLM</a>
+</nav>
+
+<div class="tab-content">
+
+  <!-- ═══════════════ HERO ═══════════════ -->
+  <div class="hero">
+    <h1>1. Building Blocks</h1>
+    <p>The fundamental concepts every architecture builds upon.</p>
+  </div>
+
+  <!-- ═══════════════ 1.1 THE NEURON ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.1</span><h2>The Neuron</h2></div>
+    <p class="sub">The atom of neural networks &mdash; a weighted sum followed by a non-linear activation.</p>
+    <p class="desc">
+      A single neuron takes multiple inputs, multiplies each by a learnable <span class="kt">weight</span>,
+      adds a <span class="kt">bias</span>, and passes the result through an <span class="kt">activation function</span>.
+      This tiny unit, repeated millions of times, is the foundation of every neural network.
+    </p>
+
+    <div class="card" id="neuronCard">
+      <!-- Sliders -->
+      <div class="g2" style="margin-bottom:16px">
+        <div>
+          <div class="sr">
+            <label>w<sub>1</sub> <span id="w1Val">0.50</span></label>
+            <input type="range" id="w1Slider" min="-2" max="2" step="0.01" value="0.5">
+          </div>
+          <div class="sr">
+            <label>w<sub>2</sub> <span id="w2Val">-0.30</span></label>
+            <input type="range" id="w2Slider" min="-2" max="2" step="0.01" value="-0.3">
+          </div>
+          <div class="sr">
+            <label>bias <span id="biasVal">0.10</span></label>
+            <input type="range" id="biasSlider" min="-2" max="2" step="0.01" value="0.1">
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--dim);margin-bottom:6px">Inputs (fixed)</div>
+          <div class="mb">x<sub>1</sub> = 0.8 &nbsp;&nbsp; x<sub>2</sub> = 0.6</div>
+          <div style="font-size:12px;color:var(--dim);margin-bottom:6px;margin-top:12px">Activation Function</div>
+          <div class="br" id="actBtns">
+            <button class="bt on" data-fn="relu">ReLU</button>
+            <button class="bt" data-fn="sigmoid">Sigmoid</button>
+            <button class="bt" data-fn="tanh">Tanh</button>
+            <button class="bt" data-fn="gelu">GELU</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SVG Diagram -->
+      <div id="neuronSvgWrap" style="text-align:center;margin:16px 0">
+        <svg id="neuronSvg" viewBox="0 0 640 200" width="100%" style="max-width:640px;background:var(--surface);border-radius:12px;border:1px solid var(--border)"></svg>
+      </div>
+
+      <!-- Formula output -->
+      <div class="mb" id="neuronFormula">output = relu(0.8*0.50 + 0.6*(-0.30) + 0.10) = relu(0.32) = 0.32</div>
+    </div>
+
+    <!-- Enrichment 1.1 -->
+    <div class="use-card">
+      <h4>Industry Use: Where the Neuron Concept Appears</h4>
+      <ul>
+        <li><strong>Logistic Regression</strong> &mdash; literally one neuron with sigmoid activation; still the baseline classifier in industry</li>
+        <li><strong>Recommendation Systems</strong> &mdash; user/item embedding dot product + bias is a neuron; Netflix, Spotify use this at scale</li>
+        <li><strong>Binary Classifiers</strong> &mdash; spam filters, fraud detection, ad click prediction all reduce to neuron-like units at the output</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 1.2 ACTIVATION FUNCTIONS ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.2</span><h2>Activation Functions</h2></div>
+    <p class="sub">Non-linearities that give networks their power.</p>
+    <p class="desc">
+      Without activations, stacking layers just produces another linear transformation.
+      <span class="kt">Activation functions</span> introduce non-linearity, enabling networks to learn
+      complex, curved decision boundaries. The choice of activation affects training speed, gradient flow, and model quality.
+    </p>
+
+    <div class="card">
+      <!-- Toggle buttons -->
+      <div class="br" id="actChartBtns">
+        <button class="bt on" data-fn="relu" style="color:var(--pos)">ReLU</button>
+        <button class="bt on" data-fn="sigmoid" style="color:var(--green)">Sigmoid</button>
+        <button class="bt on" data-fn="tanh" style="color:var(--pink)">Tanh</button>
+        <button class="bt on" data-fn="gelu" style="color:var(--purple)">GELU</button>
+      </div>
+
+      <!-- Canvas chart -->
+      <canvas id="actCanvas" width="900" height="400" style="width:100%;background:var(--surface);border:1px solid var(--border)"></canvas>
+
+      <!-- Hover readout -->
+      <div id="actReadout" style="font-family:monospace;font-size:12px;color:var(--dim);margin-top:6px;min-height:18px">&nbsp;</div>
+    </div>
+
+    <!-- Activation info cards -->
+    <div class="g2">
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="lb" style="background:var(--pos)">ReLU</span>
+        </div>
+        <div class="mb">f(x) = max(0, x)</div>
+        <div style="font-size:12px;color:var(--dim);margin:6px 0"><strong style="color:var(--text)">Range:</strong> [0, &infin;)</div>
+        <p class="desc" style="margin-bottom:8px">Default for CNNs (ResNet, VGG). Fast, sparse. Used in hidden layers of most feedforward networks.</p>
+        <div class="ins">Warning: Dying neurons &mdash; once a neuron outputs 0 for all inputs, gradients vanish and it never recovers ("stuck at 0").</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="lb" style="background:var(--green)">Sigmoid</span>
+        </div>
+        <div class="mb">&sigma;(x) = 1 / (1 + e<sup>-x</sup>)</div>
+        <div style="font-size:12px;color:var(--dim);margin:6px 0"><strong style="color:var(--text)">Range:</strong> (0, 1)</div>
+        <p class="desc" style="margin-bottom:8px">Output layer for binary classification. Gates in LSTMs/GRUs. Logistic regression.</p>
+        <div class="ins">Warning: Vanishing gradients &mdash; for large |x| the gradient approaches 0, making deep networks hard to train.</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="lb" style="background:var(--pink)">Tanh</span>
+        </div>
+        <div class="mb">tanh(x) = (e<sup>x</sup> - e<sup>-x</sup>) / (e<sup>x</sup> + e<sup>-x</sup>)</div>
+        <div style="font-size:12px;color:var(--dim);margin:6px 0"><strong style="color:var(--text)">Range:</strong> (-1, 1)</div>
+        <p class="desc" style="margin-bottom:8px">RNNs, LSTMs (cell state). Normalizing outputs to [-1,1]. Some GAN generators.</p>
+        <div class="ins">Warning: Vanishing gradients &mdash; same saturation problem as sigmoid, though zero-centered output helps somewhat.</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="lb" style="background:var(--purple)">GELU</span>
+        </div>
+        <div class="mb">GELU(x) = x &middot; &Phi;(x)</div>
+        <div style="font-size:12px;color:var(--dim);margin:6px 0"><strong style="color:var(--text)">Range:</strong> &asymp;(-0.17, &infin;)</div>
+        <p class="desc" style="margin-bottom:8px">Default in Transformers: GPT, BERT, ViT, LLaMA. Smooth probabilistic gating.</p>
+        <div class="ins">Warning: More compute than ReLU &mdash; involves Gaussian CDF approximation, but modern GPUs handle it efficiently.</div>
+      </div>
+    </div>
+
+    <!-- Enrichment 1.2 -->
+    <div class="trend-box">
+      <strong>Modern Trend: SwiGLU</strong> &mdash; SwiGLU (Gated Linear Unit with Swish) is replacing GELU in latest LLMs (LLaMA, Mistral, PaLM). It uses x&middot;&sigma;(&beta;x)&middot;(xW&#8321;) gating for better gradient flow.
+    </div>
+  </div>
+
+  <!-- ═══════════════ 1.3 LAYERS & FORWARD PASS ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.3</span><h2>Layers &amp; Forward Pass</h2></div>
+    <p class="sub">Composing neurons into layers to form a network.</p>
+    <p class="desc">
+      A <span class="kt">layer</span> is a group of neurons that all receive the same inputs.
+      In a <span class="kt">fully-connected</span> (dense) layer, every neuron connects to every output of the previous layer.
+      The <span class="kt">forward pass</span> pushes data through each layer sequentially: input &rarr; hidden &rarr; output.
+    </p>
+
+    <div class="card" id="layerCard">
+      <!-- Architecture display -->
+      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Architecture: <span id="layerArch" style="color:var(--accentL);font-family:monospace">[4, 6, 6, 3]</span></div>
+
+      <!-- Layer controls -->
+      <div id="layerControls" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <!-- JS will populate per-layer +/- buttons -->
+      </div>
+
+      <div class="br" style="margin-bottom:16px">
+        <button class="b bp" id="addLayerBtn">+ Layer</button>
+        <button class="b bo" id="rmLayerBtn">&minus; Layer</button>
+      </div>
+
+      <!-- SVG network -->
+      <div id="layerSvgWrap" style="text-align:center">
+        <svg id="layerSvg" viewBox="0 0 700 260" width="100%" style="max-width:700px;background:var(--surface);border-radius:12px;border:1px solid var(--border)"></svg>
+      </div>
+
+      <!-- Param count -->
+      <div class="mb" id="paramCount">Parameters: 0 weights + 0 biases = 0 total</div>
+    </div>
+
+    <div class="ins" id="paramInsight">
+      Dense layers grow quadratically: doubling layer width 4&times; the parameters. This is why modern architectures prefer sparse structures (convolutions, attention) for most of the network.
+    </div>
+
+    <!-- Enrichment 1.3 -->
+    <div class="use-card">
+      <h4>Where Dense Layers Are Used</h4>
+      <ul>
+        <li><strong>Classification Heads</strong> &mdash; final layers of CNNs, ViTs (e.g., Linear(768 &rarr; num_classes))</li>
+        <li><strong>MLP Blocks in Transformers</strong> &mdash; the FFN after attention: Linear(d&rarr;4d) &rarr; GELU &rarr; Linear(4d&rarr;d)</li>
+        <li><strong>Recommendation Systems</strong> &mdash; user/item embeddings fed through dense layers (YouTube, TikTok ranking)</li>
+        <li><strong>Note:</strong> Pure dense networks are rare today &mdash; most use dense layers as <em>components</em> within CNNs or Transformers</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 1.4 LOSS FUNCTIONS ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.4</span><h2>Loss Functions</h2></div>
+    <p class="sub">How networks measure their mistakes.</p>
+    <p class="desc">
+      The <span class="kt">loss function</span> quantifies the gap between prediction and truth.
+      Training is the process of minimizing this value. Different tasks require different loss functions &mdash;
+      the choice shapes what the network learns to optimize.
+    </p>
+
+    <div class="card">
+      <div style="font-size:13px;color:var(--dim);margin-bottom:4px">
+        <strong style="color:var(--text)">Scenario:</strong> True label y&nbsp;=&nbsp;1 (positive class). Adjust the predicted probability:
+      </div>
+      <div class="sr">
+        <label>Prediction (&ycirc;) <span id="predVal">0.70</span></label>
+        <input type="range" id="predSlider" min="0.01" max="0.99" step="0.01" value="0.70">
+      </div>
+
+      <div class="g2" style="margin-top:16px">
+        <div style="text-align:center;padding:20px;background:var(--surface);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">MSE Loss</div>
+          <div id="mseVal" style="font-size:32px;font-weight:800;color:var(--pos);font-family:monospace">0.0900</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:4px">(&ycirc; &minus; y)&sup2;</div>
+        </div>
+        <div style="text-align:center;padding:20px;background:var(--surface);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Cross-Entropy Loss</div>
+          <div id="ceVal" style="font-size:32px;font-weight:800;color:var(--neg);font-family:monospace">0.3567</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:4px">&minus;log(&ycirc;)</div>
+        </div>
+      </div>
+
+      <div class="ins" style="margin-top:16px">
+        Cross-entropy explodes as &ycirc; &rarr; 0 (confident &amp; wrong), creating a powerful gradient signal that pushes the network to correct confident mistakes. MSE remains gentle, making CE far better for classification.
+      </div>
+    </div>
+
+    <!-- Enrichment 1.4 -->
+    <div class="use-card">
+      <h4>Which Loss for Which Task</h4>
+      <ul>
+        <li><strong>MSE</strong> &rarr; Regression (price prediction, age estimation, weather forecasting)</li>
+        <li><strong>Cross-Entropy</strong> &rarr; Classification (image recognition, spam detection, sentiment analysis)</li>
+        <li><strong>Binary CE</strong> &rarr; Multi-label tagging (an image can be both "dog" AND "outdoor")</li>
+        <li><strong>Contrastive Loss</strong> &rarr; Embedding learning (CLIP, face recognition, sentence similarity)</li>
+        <li><strong>CTC Loss</strong> &rarr; Sequence alignment (speech recognition, OCR without alignment)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 1.5 BACKPROPAGATION ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.5</span><h2>Backpropagation &amp; Gradient Descent</h2></div>
+    <p class="sub">How networks learn from their mistakes.</p>
+    <p class="desc">
+      <span class="kt">Backpropagation</span> computes how much each weight contributed to the error by propagating
+      gradients backwards through the network using the chain rule. <span class="kt">Gradient descent</span> then
+      updates each weight in the direction that reduces the loss: <code>w &larr; w &minus; lr &times; &nabla;L</code>.
+    </p>
+
+    <div class="card">
+      <div class="sr">
+        <label>Learning Rate (lr) <span id="lrVal">0.30</span></label>
+        <input type="range" id="lrSlider" min="0.01" max="1.2" step="0.01" value="0.30">
+      </div>
+
+      <div class="br" style="margin-bottom:12px">
+        <button class="b bp" id="bpStepBtn">Step</button>
+        <button class="b bo" id="bpResetBtn">Reset</button>
+      </div>
+
+      <!-- SVG visualization -->
+      <div id="bpSvgWrap" style="text-align:center">
+        <svg id="bpSvg" viewBox="0 0 700 300" width="100%" style="max-width:700px;background:var(--surface);border-radius:12px;border:1px solid var(--border)"></svg>
+      </div>
+
+      <!-- Step info -->
+      <div class="mb" id="bpInfo">Step 0 &mdash; w = 2.00 &nbsp;|&nbsp; Loss = (w &minus; 0.5)&sup2; = 2.2500</div>
+    </div>
+
+    <div class="ins">
+      Too small a learning rate: painfully slow convergence. Too large: overshooting the minimum and diverging. Finding the right lr is one of the most important hyperparameter choices in deep learning.
+    </div>
+
+    <!-- Enrichment 1.5 -->
+    <div class="use-card">
+      <h4>Optimizers in Practice</h4>
+      <ul>
+        <li><strong>SGD (+ Momentum)</strong> &mdash; still used for CNNs in research. Good generalization properties.</li>
+        <li><strong>Adam / AdamW</strong> &mdash; default for Transformers and LLMs. Adaptive learning rates per parameter.</li>
+        <li><strong>Note:</strong> AdamW (decoupled weight decay) is the industry standard for training LLMs. Learning rate schedules: warmup &rarr; cosine decay.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 1.6 FEATURES & REPRESENTATIONS ═══════════════ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.6</span><h2>Features &amp; Representations</h2></div>
+    <p class="sub">What networks actually learn inside their layers.</p>
+    <p class="desc">
+      Each layer in a deep network transforms raw input into increasingly abstract <span class="kt">representations</span>.
+      Early layers detect simple patterns; deeper layers compose them into meaningful concepts. This
+      <span class="kt">feature hierarchy</span> is why deep learning works &mdash; it automatically discovers the right features for the task.
+    </p>
+
+    <div class="g2">
+      <div class="card" style="border-left:3px solid var(--pos)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="lb" style="background:var(--pos)">Layer 1&ndash;2</span>
+        </div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Edges, Colors, Gradients</div>
+        <p class="desc">Simple oriented edges, color blobs, brightness gradients. The most basic visual primitives &mdash; similar across all image domains.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--green)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="lb" style="background:var(--green)">Layer 3&ndash;4</span>
+        </div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Textures, Patterns, Corners</div>
+        <p class="desc">Combinations of edges form textures (fur, brick, fabric), repeating patterns, corners, and junctions.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--pink)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="lb" style="background:var(--pink)">Layer 5&ndash;7</span>
+        </div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Parts: Eyes, Wheels, Fur</div>
+        <p class="desc">Recognizable object parts emerge. Neurons respond to eyes, wheels, ears, windows &mdash; semantically meaningful components.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--purple)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="lb" style="background:var(--purple)">Layer 8+</span>
+        </div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Objects: Faces, Cars, Dogs</div>
+        <p class="desc">Full object representations. Neurons activate for entire faces, specific dog breeds, car models &mdash; task-level concepts.</p>
+      </div>
+    </div>
+
+    <div class="ins">
+      This hierarchy was famously visualized by Zeiler &amp; Fergus (2013). The key insight: early features are universal (edges work for any image), while later features become domain-specific. This is why transfer learning works.
+    </div>
+
+    <!-- Enrichment 1.6 -->
+    <div class="use-card">
+      <h4>In Practice: Transfer Learning</h4>
+      <ul>
+        <li><strong>Pre-trained features</strong> (ImageNet) transfer to medical imaging, satellite imagery, manufacturing defect detection</li>
+        <li><strong>Fine-tuning strategy:</strong> freeze early layers (edges/textures are universal), retrain later layers for your domain</li>
+        <li><strong>Modern approach:</strong> ViT/CLIP pre-training on billions of images &rarr; fine-tune on 100 examples works surprisingly well</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════════════ NEXT BUTTON ═══════════════ -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <a href="2-cnns.html" class="b bp" style="text-decoration:none;display:inline-block;padding:12px 28px;font-size:14px">
+      Next: CNNs &rarr;
+    </a>
+  </div>
+
+</div><!-- /tab-content -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     INTERACTIVE JAVASCRIPT
+     Only handles the 5 interactive demos: neuron, activation chart,
+     layer builder, loss slider, and backprop animation.
+     Each section has its own render function targeting its DOM container.
+═══════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  'use strict';
+
+  // ─── Math helpers ───
+  function relu(x)    { return Math.max(0, x); }
+  function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+  function tanhFn(x)  { return Math.tanh(x); }
+  function gelu(x)    { return 0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * x * x * x))); }
+  var AF = { relu: relu, sigmoid: sigmoid, tanh: tanhFn, gelu: gelu };
+  var AF_NAMES = { relu: 'ReLU', sigmoid: 'Sigmoid', tanh: 'Tanh', gelu: 'GELU' };
+
+  // color map
+  var COLORS = {
+    relu:    '#60a5fa',
+    sigmoid: '#34d399',
+    tanh:    '#f472b6',
+    gelu:    '#a78bfa'
+  };
+
+  // ═══════════════════════════════════════
+  // 1. NEURON DEMO
+  // ═══════════════════════════════════════
+  var neuron = { x1: 0.8, x2: 0.6, w1: 0.5, w2: -0.3, bias: 0.1, actFn: 'relu' };
+
+  function renderNeuron() {
+    var z = neuron.x1 * neuron.w1 + neuron.x2 * neuron.w2 + neuron.bias;
+    var out = AF[neuron.actFn](z);
+
+    // Update slider labels
+    document.getElementById('w1Val').textContent = neuron.w1.toFixed(2);
+    document.getElementById('w2Val').textContent = neuron.w2.toFixed(2);
+    document.getElementById('biasVal').textContent = neuron.bias.toFixed(2);
+
+    // Update formula
+    var fnName = AF_NAMES[neuron.actFn];
+    document.getElementById('neuronFormula').innerHTML =
+      'output = ' + fnName + '(' + neuron.x1 + '*' + neuron.w1.toFixed(2) +
+      ' + ' + neuron.x2 + '*(' + neuron.w2.toFixed(2) + ') + ' + neuron.bias.toFixed(2) +
+      ') = ' + fnName + '(' + z.toFixed(4) + ') = <strong>' + out.toFixed(4) + '</strong>';
+
+    // Update activation buttons
+    var btns = document.querySelectorAll('#actBtns .bt');
+    btns.forEach(function(b) {
+      b.classList.toggle('on', b.getAttribute('data-fn') === neuron.actFn);
+    });
+
+    // Draw SVG
+    var svg = document.getElementById('neuronSvg');
+    var w = 640, h = 200;
+
+    // Positions
+    var inX = 60, sumX = 280, actX = 420, outX = 580;
+    var y1 = 60, y2 = 140, cy = 100;
+
+    // Color for weight lines
+    function wCol(v) {
+      return v >= 0 ? '#60a5fa' : '#f97316';
+    }
+    function wWidth(v) {
+      return Math.max(1, Math.abs(v) * 3);
+    }
+
+    var html = '';
+    // Connections: x1->sum, x2->sum
+    html += '<line x1="' + (inX + 20) + '" y1="' + y1 + '" x2="' + (sumX - 24) + '" y2="' + cy + '" stroke="' + wCol(neuron.w1) + '" stroke-width="' + wWidth(neuron.w1) + '" opacity="0.7"/>';
+    html += '<line x1="' + (inX + 20) + '" y1="' + y2 + '" x2="' + (sumX - 24) + '" y2="' + cy + '" stroke="' + wCol(neuron.w2) + '" stroke-width="' + wWidth(neuron.w2) + '" opacity="0.7"/>';
+    // sum->act
+    html += '<line x1="' + (sumX + 24) + '" y1="' + cy + '" x2="' + (actX - 24) + '" y2="' + cy + '" stroke="#64748b" stroke-width="2"/>';
+    // act->out
+    html += '<line x1="' + (actX + 24) + '" y1="' + cy + '" x2="' + (outX - 24) + '" y2="' + cy + '" stroke="#64748b" stroke-width="2"/>';
+
+    // Arrow heads
+    html += '<polygon points="' + (actX - 24) + ',' + cy + ' ' + (actX - 32) + ',' + (cy - 5) + ' ' + (actX - 32) + ',' + (cy + 5) + '" fill="#64748b"/>';
+    html += '<polygon points="' + (outX - 24) + ',' + cy + ' ' + (outX - 32) + ',' + (cy - 5) + ' ' + (outX - 32) + ',' + (cy + 5) + '" fill="#64748b"/>';
+
+    // Input nodes
+    html += '<circle cx="' + inX + '" cy="' + y1 + '" r="20" fill="#0d1224" stroke="#1e293b" stroke-width="2"/>';
+    html += '<text x="' + inX + '" y="' + (y1 - 6) + '" text-anchor="middle" fill="#94a3b8" font-size="10">x&#8321;</text>';
+    html += '<text x="' + inX + '" y="' + (y1 + 8) + '" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">0.8</text>';
+
+    html += '<circle cx="' + inX + '" cy="' + y2 + '" r="20" fill="#0d1224" stroke="#1e293b" stroke-width="2"/>';
+    html += '<text x="' + inX + '" y="' + (y2 - 6) + '" text-anchor="middle" fill="#94a3b8" font-size="10">x&#8322;</text>';
+    html += '<text x="' + inX + '" y="' + (y2 + 8) + '" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">0.6</text>';
+
+    // Weight labels on lines
+    var mid1x = (inX + 20 + sumX - 24) / 2, mid1y = (y1 + cy) / 2 - 10;
+    var mid2x = (inX + 20 + sumX - 24) / 2, mid2y = (y2 + cy) / 2 + 14;
+    html += '<text x="' + mid1x + '" y="' + mid1y + '" text-anchor="middle" fill="' + wCol(neuron.w1) + '" font-size="11" font-weight="700">w&#8321;=' + neuron.w1.toFixed(2) + '</text>';
+    html += '<text x="' + mid2x + '" y="' + mid2y + '" text-anchor="middle" fill="' + wCol(neuron.w2) + '" font-size="11" font-weight="700">w&#8322;=' + neuron.w2.toFixed(2) + '</text>';
+
+    // Sum node
+    html += '<circle cx="' + sumX + '" cy="' + cy + '" r="24" fill="#131a2e" stroke="#6366f1" stroke-width="2"/>';
+    html += '<text x="' + sumX + '" y="' + (cy - 5) + '" text-anchor="middle" fill="#818cf8" font-size="10">&Sigma;+b</text>';
+    html += '<text x="' + sumX + '" y="' + (cy + 10) + '" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">' + z.toFixed(3) + '</text>';
+
+    // Activation node
+    var actCol = COLORS[neuron.actFn];
+    html += '<circle cx="' + actX + '" cy="' + cy + '" r="24" fill="#131a2e" stroke="' + actCol + '" stroke-width="2"/>';
+    html += '<text x="' + actX + '" y="' + (cy - 5) + '" text-anchor="middle" fill="' + actCol + '" font-size="10">' + AF_NAMES[neuron.actFn] + '</text>';
+    html += '<text x="' + actX + '" y="' + (cy + 10) + '" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">' + out.toFixed(3) + '</text>';
+
+    // Output node
+    html += '<circle cx="' + outX + '" cy="' + cy + '" r="24" fill="#131a2e" stroke="#22d3ee" stroke-width="2"/>';
+    html += '<text x="' + outX + '" y="' + (cy - 5) + '" text-anchor="middle" fill="#22d3ee" font-size="10">output</text>';
+    html += '<text x="' + outX + '" y="' + (cy + 10) + '" text-anchor="middle" fill="#e2e8f0" font-size="14" font-weight="800">' + out.toFixed(3) + '</text>';
+
+    // Bias label
+    html += '<text x="' + sumX + '" y="' + (cy + 42) + '" text-anchor="middle" fill="#94a3b8" font-size="10">bias=' + neuron.bias.toFixed(2) + '</text>';
+
+    svg.innerHTML = html;
+  }
+
+  // Wire neuron events
+  document.getElementById('w1Slider').addEventListener('input', function(e) { neuron.w1 = parseFloat(e.target.value); renderNeuron(); });
+  document.getElementById('w2Slider').addEventListener('input', function(e) { neuron.w2 = parseFloat(e.target.value); renderNeuron(); });
+  document.getElementById('biasSlider').addEventListener('input', function(e) { neuron.bias = parseFloat(e.target.value); renderNeuron(); });
+  document.querySelectorAll('#actBtns .bt').forEach(function(btn) {
+    btn.addEventListener('click', function() { neuron.actFn = this.getAttribute('data-fn'); renderNeuron(); });
+  });
+
+
+  // ═══════════════════════════════════════
+  // 2. ACTIVATION CHART
+  // ═══════════════════════════════════════
+  var actOn = { relu: true, sigmoid: true, tanh: true, gelu: true };
+  var canvas = document.getElementById('actCanvas');
+  var ctx = canvas.getContext('2d');
+  var hoverX = null;
+
+  function drawActChart() {
+    var W = canvas.width, H = canvas.height;
+    var pad = { l: 60, r: 20, t: 20, b: 40 };
+    var pw = W - pad.l - pad.r;
+    var ph = H - pad.t - pad.b;
+    var xMin = -5, xMax = 5, yMin = -2, yMax = 3;
+
+    function toCanvasX(x) { return pad.l + (x - xMin) / (xMax - xMin) * pw; }
+    function toCanvasY(y) { return pad.t + (1 - (y - yMin) / (yMax - yMin)) * ph; }
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1;
+    for (var gx = -4; gx <= 4; gx++) {
+      ctx.beginPath(); ctx.moveTo(toCanvasX(gx), pad.t); ctx.lineTo(toCanvasX(gx), H - pad.b); ctx.stroke();
+    }
+    for (var gy = -1; gy <= 2; gy++) {
+      ctx.beginPath(); ctx.moveTo(pad.l, toCanvasY(gy)); ctx.lineTo(W - pad.r, toCanvasY(gy)); ctx.stroke();
+    }
+
+    // Axes
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(toCanvasX(xMin), toCanvasY(0)); ctx.lineTo(toCanvasX(xMax), toCanvasY(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(toCanvasX(0), pad.t); ctx.lineTo(toCanvasX(0), H - pad.b); ctx.stroke();
+
+    // Axis labels
+    ctx.fillStyle = '#64748b';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'center';
+    for (gx = -4; gx <= 4; gx += 2) {
+      ctx.fillText(gx, toCanvasX(gx), H - pad.b + 16);
+    }
+    ctx.textAlign = 'right';
+    for (gy = -1; gy <= 2; gy++) {
+      ctx.fillText(gy, pad.l - 8, toCanvasY(gy) + 4);
+    }
+
+    // Draw curves
+    var fns = ['relu', 'sigmoid', 'tanh', 'gelu'];
+    fns.forEach(function(fn) {
+      if (!actOn[fn]) return;
+      ctx.strokeStyle = COLORS[fn];
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (var px = 0; px <= pw; px++) {
+        var x = xMin + (px / pw) * (xMax - xMin);
+        var y = AF[fn](x);
+        var cx2 = pad.l + px;
+        var cy2 = toCanvasY(y);
+        if (px === 0) ctx.moveTo(cx2, cy2); else ctx.lineTo(cx2, cy2);
+      }
+      ctx.stroke();
+    });
+
+    // Hover crosshair
+    if (hoverX !== null) {
+      var xv = xMin + ((hoverX - pad.l) / pw) * (xMax - xMin);
+      if (xv >= xMin && xv <= xMax) {
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(hoverX, pad.t); ctx.lineTo(hoverX, H - pad.b); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Dots and readout text
+        var readout = 'x=' + xv.toFixed(2) + '  ';
+        fns.forEach(function(fn) {
+          if (!actOn[fn]) return;
+          var yv = AF[fn](xv);
+          var dy = toCanvasY(yv);
+          ctx.fillStyle = COLORS[fn];
+          ctx.beginPath(); ctx.arc(hoverX, dy, 5, 0, Math.PI * 2); ctx.fill();
+          readout += AF_NAMES[fn] + '=' + yv.toFixed(3) + '  ';
+        });
+        document.getElementById('actReadout').textContent = readout;
+      }
+    }
+  }
+
+  canvas.addEventListener('mousemove', function(e) {
+    var rect = canvas.getBoundingClientRect();
+    hoverX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    drawActChart();
+  });
+  canvas.addEventListener('mouseleave', function() {
+    hoverX = null;
+    document.getElementById('actReadout').innerHTML = '&nbsp;';
+    drawActChart();
+  });
+
+  // Toggle buttons
+  document.querySelectorAll('#actChartBtns .bt').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var fn = this.getAttribute('data-fn');
+      actOn[fn] = !actOn[fn];
+      this.classList.toggle('on', actOn[fn]);
+      drawActChart();
+    });
+  });
+
+
+  // ═══════════════════════════════════════
+  // 3. LAYER BUILDER
+  // ═══════════════════════════════════════
+  var layers = [4, 6, 6, 3];
+
+  function adjLayer(idx, delta) {
+    layers[idx] = Math.max(1, Math.min(12, layers[idx] + delta));
+    renderLayers();
+  }
+  function addLayer() {
+    if (layers.length >= 8) return;
+    layers.splice(layers.length - 1, 0, 4);
+    renderLayers();
+  }
+  function rmLayer() {
+    if (layers.length <= 2) return;
+    layers.splice(layers.length - 2, 1);
+    renderLayers();
+  }
+
+  function renderLayers() {
+    // Update architecture label
+    document.getElementById('layerArch').textContent = '[' + layers.join(', ') + ']';
+
+    // Build layer controls
+    var ctrl = document.getElementById('layerControls');
+    var html = '';
+    for (var i = 0; i < layers.length; i++) {
+      var label = i === 0 ? 'In' : i === layers.length - 1 ? 'Out' : 'H' + i;
+      html += '<div style="text-align:center">';
+      html += '<div style="font-size:10px;color:var(--muted);margin-bottom:2px">' + label + '</div>';
+      html += '<div style="display:flex;align-items:center;gap:2px">';
+      html += '<button class="b bo" style="padding:2px 8px;font-size:12px" onclick="window._adjLayer(' + i + ',-1)">&minus;</button>';
+      html += '<span style="min-width:24px;text-align:center;font-family:monospace;font-size:14px;font-weight:700">' + layers[i] + '</span>';
+      html += '<button class="b bo" style="padding:2px 8px;font-size:12px" onclick="window._adjLayer(' + i + ',1)">+</button>';
+      html += '</div></div>';
+    }
+    ctrl.innerHTML = html;
+
+    // Draw SVG network
+    var svg = document.getElementById('layerSvg');
+    var W = 700, H = 260;
+    var nLayers = layers.length;
+    var gap = W / (nLayers + 1);
+    var maxN = Math.max.apply(null, layers);
+    var svgHtml = '';
+
+    // Connections
+    for (var li = 0; li < nLayers - 1; li++) {
+      var cx1 = gap * (li + 1);
+      var cx2 = gap * (li + 2);
+      var n1 = layers[li], n2 = layers[li + 1];
+      for (var a = 0; a < n1; a++) {
+        for (var b = 0; b < n2; b++) {
+          var ay = 30 + (H - 60) / Math.max(1, n1 - 1) * a;
+          var by = 30 + (H - 60) / Math.max(1, n2 - 1) * b;
+          if (n1 === 1) ay = H / 2;
+          if (n2 === 1) by = H / 2;
+          svgHtml += '<line x1="' + cx1 + '" y1="' + ay + '" x2="' + cx2 + '" y2="' + by + '" stroke="#1e293b" stroke-width="0.7" opacity="0.5"/>';
+        }
+      }
+    }
+
+    // Nodes
+    for (li = 0; li < nLayers; li++) {
+      var cx = gap * (li + 1);
+      var n = layers[li];
+      var col = li === 0 ? '#60a5fa' : li === nLayers - 1 ? '#22d3ee' : '#818cf8';
+      for (var j = 0; j < n; j++) {
+        var ny = 30 + (H - 60) / Math.max(1, n - 1) * j;
+        if (n === 1) ny = H / 2;
+        svgHtml += '<circle cx="' + cx + '" cy="' + ny + '" r="8" fill="#131a2e" stroke="' + col + '" stroke-width="2"/>';
+      }
+      // Layer label
+      svgHtml += '<text x="' + cx + '" y="' + (H - 6) + '" text-anchor="middle" fill="#64748b" font-size="10">' + n + '</text>';
+    }
+
+    svg.innerHTML = svgHtml;
+
+    // Param count
+    var weights = 0, biases = 0;
+    for (li = 0; li < nLayers - 1; li++) {
+      weights += layers[li] * layers[li + 1];
+      biases += layers[li + 1];
+    }
+    document.getElementById('paramCount').innerHTML =
+      'Parameters: <strong>' + weights + '</strong> weights + <strong>' + biases + '</strong> biases = <strong>' + (weights + biases) + '</strong> total';
+  }
+
+  // Expose layer functions globally for onclick
+  window._adjLayer = adjLayer;
+  document.getElementById('addLayerBtn').addEventListener('click', addLayer);
+  document.getElementById('rmLayerBtn').addEventListener('click', rmLayer);
+
+
+  // ═══════════════════════════════════════
+  // 4. LOSS SLIDER
+  // ═══════════════════════════════════════
+  function renderLoss() {
+    var pred = parseFloat(document.getElementById('predSlider').value);
+    document.getElementById('predVal').textContent = pred.toFixed(2);
+    var mse = Math.pow(pred - 1, 2);
+    var ce = -Math.log(pred);
+    document.getElementById('mseVal').textContent = mse.toFixed(4);
+    document.getElementById('ceVal').textContent = ce.toFixed(4);
+
+    // Color intensity based on value
+    var mseEl = document.getElementById('mseVal');
+    var ceEl = document.getElementById('ceVal');
+    mseEl.style.opacity = 0.4 + Math.min(mse, 1) * 0.6;
+    ceEl.style.opacity = 0.4 + Math.min(ce / 4, 1) * 0.6;
+  }
+
+  document.getElementById('predSlider').addEventListener('input', renderLoss);
+
+
+  // ═══════════════════════════════════════
+  // 5. BACKPROPAGATION / GRADIENT DESCENT
+  // ═══════════════════════════════════════
+  var bp = { lr: 0.3, step: 0, w: 2.0, history: [2.0] };
+
+  function bpLoss(w) { return Math.pow(w - 0.5, 2); }
+  function bpGrad(w) { return 2 * (w - 0.5); }
+
+  function bpStep() {
+    var grad = bpGrad(bp.w);
+    bp.w = bp.w - bp.lr * grad;
+    bp.step++;
+    bp.history.push(bp.w);
+    renderBp();
+  }
+
+  function bpReset() {
+    bp.w = 2.0;
+    bp.step = 0;
+    bp.history = [2.0];
+    renderBp();
+  }
+
+  function renderBp() {
+    bp.lr = parseFloat(document.getElementById('lrSlider').value);
+    document.getElementById('lrVal').textContent = bp.lr.toFixed(2);
+
+    var svg = document.getElementById('bpSvg');
+    var W = 700, H = 300;
+    var pad = { l: 50, r: 30, t: 30, b: 40 };
+    var pw = W - pad.l - pad.r;
+    var ph = H - pad.t - pad.b;
+    var wMin = -1.5, wMax = 3.0;
+    var lMax = 6.5;
+
+    function toX(w) { return pad.l + (w - wMin) / (wMax - wMin) * pw; }
+    function toY(l) { return pad.t + (1 - l / lMax) * ph; }
+
+    var svgHtml = '';
+
+    // Grid lines
+    for (var gw = -1; gw <= 3; gw++) {
+      svgHtml += '<line x1="' + toX(gw) + '" y1="' + pad.t + '" x2="' + toX(gw) + '" y2="' + (H - pad.b) + '" stroke="#1e293b" stroke-width="1"/>';
+      svgHtml += '<text x="' + toX(gw) + '" y="' + (H - pad.b + 16) + '" text-anchor="middle" fill="#64748b" font-size="10">' + gw + '</text>';
+    }
+    for (var gl2 = 0; gl2 <= 6; gl2 += 2) {
+      svgHtml += '<line x1="' + pad.l + '" y1="' + toY(gl2) + '" x2="' + (W - pad.r) + '" y2="' + toY(gl2) + '" stroke="#1e293b" stroke-width="1"/>';
+      svgHtml += '<text x="' + (pad.l - 8) + '" y="' + (toY(gl2) + 4) + '" text-anchor="end" fill="#64748b" font-size="10">' + gl2 + '</text>';
+    }
+
+    // Axis labels
+    svgHtml += '<text x="' + (pad.l + pw / 2) + '" y="' + (H - 4) + '" text-anchor="middle" fill="#94a3b8" font-size="11">w</text>';
+    svgHtml += '<text x="12" y="' + (pad.t + ph / 2) + '" text-anchor="middle" fill="#94a3b8" font-size="11" transform="rotate(-90,12,' + (pad.t + ph / 2) + ')">Loss</text>';
+
+    // Parabola: loss = (w - 0.5)^2
+    svgHtml += '<path d="';
+    for (var px = 0; px <= pw; px += 2) {
+      var wv = wMin + (px / pw) * (wMax - wMin);
+      var lv = bpLoss(wv);
+      var sx = pad.l + px;
+      var sy = toY(lv);
+      svgHtml += (px === 0 ? 'M' : 'L') + sx.toFixed(1) + ',' + sy.toFixed(1);
+    }
+    svgHtml += '" fill="none" stroke="#6366f1" stroke-width="2.5"/>';
+
+    // Minimum marker
+    svgHtml += '<circle cx="' + toX(0.5) + '" cy="' + toY(0) + '" r="4" fill="#34d399" opacity="0.6"/>';
+    svgHtml += '<text x="' + toX(0.5) + '" y="' + (toY(0) + 16) + '" text-anchor="middle" fill="#34d399" font-size="10">min</text>';
+
+    // History trail
+    for (var hi = 0; hi < bp.history.length; hi++) {
+      var hw = bp.history[hi];
+      var hl = bpLoss(hw);
+      var hx = toX(hw);
+      var hy = toY(hl);
+      if (hi > 0) {
+        var phw = bp.history[hi - 1];
+        var phl = bpLoss(phw);
+        svgHtml += '<line x1="' + toX(phw) + '" y1="' + toY(phl) + '" x2="' + hx + '" y2="' + hy + '" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5"/>';
+      }
+      var r = hi === bp.history.length - 1 ? 8 : 4;
+      var op = hi === bp.history.length - 1 ? 1 : 0.4;
+      svgHtml += '<circle cx="' + hx + '" cy="' + hy + '" r="' + r + '" fill="#f97316" opacity="' + op + '"/>';
+    }
+
+    // Current ball label
+    var curW = bp.w;
+    var curL = bpLoss(curW);
+    svgHtml += '<text x="' + toX(curW) + '" y="' + (toY(curL) - 14) + '" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">w=' + curW.toFixed(3) + '</text>';
+
+    svg.innerHTML = svgHtml;
+
+    // Update info
+    var grad = bpGrad(curW);
+    var info = 'Step ' + bp.step + ' &mdash; w = ' + curW.toFixed(4) +
+      ' &nbsp;|&nbsp; Loss = ' + curL.toFixed(4) +
+      ' &nbsp;|&nbsp; gradient = ' + grad.toFixed(4);
+    if (bp.step > 0) {
+      info += ' &nbsp;|&nbsp; w<sub>new</sub> = w &minus; ' + bp.lr.toFixed(2) + ' &times; ' + bpGrad(bp.history[bp.history.length - 2]).toFixed(3);
+    }
+    document.getElementById('bpInfo').innerHTML = info;
+  }
+
+  document.getElementById('bpStepBtn').addEventListener('click', bpStep);
+  document.getElementById('bpResetBtn').addEventListener('click', bpReset);
+  document.getElementById('lrSlider').addEventListener('input', function() {
+    bp.lr = parseFloat(this.value);
+    document.getElementById('lrVal').textContent = bp.lr.toFixed(2);
+  });
+
+
+  // ═══════════════════════════════════════
+  // INITIAL RENDERS
+  // ═══════════════════════════════════════
+  renderNeuron();
+  drawActChart();
+  renderLayers();
+  renderLoss();
+  renderBp();
+
+})();
+</script>
+
+</body>
+</html>

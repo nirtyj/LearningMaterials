@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>2. CNNs — NN Explorer</title>
+<style>
+  /* Convolution demo specific */
+  .conv-label { font-size: 12px; font-weight: 700; color: var(--dim); margin-bottom: 6px; text-align: center; }
+  .cc.hl-input { background: rgba(96, 165, 250, .22); border-color: var(--pos); }
+  .cc.hl-kernel { background: rgba(34, 211, 238, .18); border-color: var(--cyan); }
+  .cc.hl-output { background: rgba(99, 102, 241, .25); border-color: var(--accent); color: var(--accentL); font-weight: 700; }
+  .cc.hl-output-done { background: rgba(52, 211, 153, .12); border-color: var(--green); color: var(--green); }
+  .cc.pool-q1 { background: rgba(96, 165, 250, .15); }
+  .cc.pool-q2 { background: rgba(249, 115, 22, .15); }
+  .cc.pool-q3 { background: rgba(34, 211, 153, .15); }
+  .cc.pool-q4 { background: rgba(167, 139, 250, .15); }
+  .pool-arrow { font-size: 28px; color: var(--dim); display: flex; align-items: center; padding: 0 12px; }
+  .arch-card { position: relative; padding-left: 6px; }
+  .arch-card .arch-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px; }
+  .arch-card h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+  .arch-card .arch-meta { font-size: 11px; color: var(--muted); font-family: monospace; margin-bottom: 6px; }
+  .arch-card p { font-size: 13px; color: var(--dim); line-height: 1.6; }
+  .next-link { display: inline-block; padding: 10px 24px; font-size: 14px; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-building-blocks.html" class="tab-btn"><span class="tnum">1</span>Building Blocks</a>
+  <a href="2-cnns.html" class="tab-btn active"><span class="tnum">2</span>CNNs</a>
+  <a href="3-attention.html" class="tab-btn"><span class="tnum">3</span>Attention</a>
+  <a href="4-transformers.html" class="tab-btn"><span class="tnum">4</span>Transformers</a>
+  <a href="5-vit.html" class="tab-btn"><span class="tnum">5</span>Vision (ViT)</a>
+  <a href="6-llms.html" class="tab-btn"><span class="tnum">6</span>LLMs</a>
+  <a href="7-multimodal.html" class="tab-btn"><span class="tnum">7</span>VLM &amp; MLLM</a>
+</nav>
+
+<div class="tab-content">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>2. Convolutional Neural Networks</h1>
+    <p>Local filters, shared weights, spatial hierarchy.</p>
+  </div>
+  <div class="prereq"><strong>Builds on:</strong> Tab 1 (neurons, activations, layers, loss, backprop, features)</div>
+
+  <!-- ============================================================ -->
+  <!-- Section 2.1: The Convolution Operation                       -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.1</span><h2>The Convolution Operation</h2></div>
+    <p class="sub">A small filter slides across the image computing a dot product at every position.</p>
+    <p class="desc">Like a flashlight scanning the image, a <span class="kt">kernel</span> (small weight matrix) slides across the input. At every position it computes an element-wise multiply then sums the results into one output number. Click any output cell or press <strong>Auto</strong> to watch it step through.</p>
+
+    <div class="card">
+      <div class="cw" id="convDemo">
+        <!-- Input 5x5 -->
+        <div>
+          <div class="conv-label">Input 5&times;5</div>
+          <div class="cg" id="convInput" style="grid-template-columns:repeat(5,40px)"></div>
+        </div>
+        <!-- Kernel 3x3 -->
+        <div>
+          <div class="conv-label">Kernel 3&times;3</div>
+          <div class="cg" id="convKernel" style="grid-template-columns:repeat(3,40px)"></div>
+        </div>
+        <!-- Output 3x3 -->
+        <div>
+          <div class="conv-label">Output 3&times;3</div>
+          <div class="cg" id="convOutput" style="grid-template-columns:repeat(3,40px)"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <button class="b bp" id="convAutoBtn" onclick="togConv()">Auto</button>
+      </div>
+
+      <div class="mb" id="convMath">Click an output cell or press Auto to see the computation.</div>
+    </div>
+
+    <!-- Enrichment 2.1 -->
+    <div class="use-card">
+      <h4>Real-World Applications</h4>
+      <ul>
+        <li><strong>Edge Detection</strong> — Sobel/Prewitt kernels are hand-crafted convolutions; CNNs learn better ones</li>
+        <li><strong>Object Detection</strong> — YOLO, Faster R-CNN use conv layers to extract feature maps for detecting objects</li>
+        <li><strong>Medical Image Segmentation</strong> — U-Net (encoder-decoder CNN) segments tumors, organs, cells</li>
+        <li><strong>Image Enhancement</strong> — blur (Gaussian kernel), sharpen, denoise — all are convolution operations</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 2.2: Pooling & Downsampling                          -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.2</span><h2>Pooling &amp; Downsampling</h2></div>
+    <p class="sub">Keep the strongest signal, reduce spatial size.</p>
+
+    <div class="card">
+      <div class="conv-label" style="text-align:left;margin-bottom:10px"><span class="kt">Max Pooling</span> &mdash; 2&times;2 window, stride 2</div>
+      <div class="cw">
+        <!-- Input 4x4 -->
+        <div>
+          <div class="conv-label">Input 4&times;4</div>
+          <div class="cg" style="grid-template-columns:repeat(4,40px)">
+            <!-- Row 0 (quadrant colors: top-left=q1, top-right=q2, bottom-left=q3, bottom-right=q4) -->
+            <div class="cc pool-q1">1</div><div class="cc pool-q1">3</div><div class="cc pool-q2">2</div><div class="cc pool-q2">1</div>
+            <div class="cc pool-q1">4</div><div class="cc pool-q1" style="color:var(--pos);font-weight:700">6</div><div class="cc pool-q2" style="color:var(--neg);font-weight:700">5</div><div class="cc pool-q2">2</div>
+            <div class="cc pool-q3">7</div><div class="cc pool-q3" style="color:var(--green);font-weight:700">8</div><div class="cc pool-q4">3</div><div class="cc pool-q4">1</div>
+            <div class="cc pool-q3">2</div><div class="cc pool-q3">4</div><div class="cc pool-q4">6</div><div class="cc pool-q4" style="color:var(--purple);font-weight:700">9</div>
+          </div>
+        </div>
+
+        <div class="pool-arrow">&rarr;</div>
+
+        <!-- Output 2x2 -->
+        <div>
+          <div class="conv-label">Output 2&times;2</div>
+          <div class="cg" style="grid-template-columns:repeat(2,40px)">
+            <div class="cc pool-q1" style="color:var(--pos);font-weight:700">6</div>
+            <div class="cc pool-q2" style="color:var(--neg);font-weight:700">5</div>
+            <div class="cc pool-q3" style="color:var(--green);font-weight:700">8</div>
+            <div class="cc pool-q4" style="color:var(--purple);font-weight:700">9</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ins">No learnable parameters. Spatial halved: 4&times;4 &rarr; 2&times;2. Channels stay same. Provides local translation invariance.</div>
+
+    <!-- Enrichment 2.2 -->
+    <div class="use-card">
+      <h4>Alternatives &amp; Modern Approaches</h4>
+      <ul>
+        <li><strong>Strided Convolutions</strong> — learnable downsampling, used in modern architectures (replaces pooling)</li>
+        <li><strong>Global Average Pooling</strong> — replaces FC layers at the end; used in ResNet, EfficientNet. Reduces overfitting.</li>
+        <li><strong>Adaptive Pooling</strong> — produces fixed output size regardless of input dimensions (essential for variable-size inputs)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 2.3: Full CNN Pipeline                               -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.3</span><h2>Full CNN Pipeline</h2></div>
+    <p class="sub">Input &rarr; Conv &rarr; ReLU &rarr; Pool &rarr; ... &rarr; Flatten &rarr; FC &rarr; Softmax</p>
+
+    <div class="card">
+      <div class="pp" id="cnnPipeline">
+        <div class="ps" onclick="setExp('cnnExp',0)" id="cnnPs0">
+          <div class="nm">Input</div>
+          <div class="dm">224&times;224&times;3</div>
+        </div>
+        <div class="ps" onclick="setExp('cnnExp',1)" id="cnnPs1">
+          <div class="nm">Conv1</div>
+          <div class="dm">224&times;224&times;64</div>
+        </div>
+        <div class="ps" onclick="setExp('cnnExp',2)" id="cnnPs2">
+          <div class="nm">ReLU</div>
+          <div class="dm">224&times;224&times;64</div>
+        </div>
+        <div class="ps" onclick="setExp('cnnExp',3)" id="cnnPs3">
+          <div class="nm">Pool</div>
+          <div class="dm">112&times;112&times;64</div>
+        </div>
+        <div class="ps" onclick="setExp('cnnExp',4)" id="cnnPs4">
+          <div class="nm">Conv2+</div>
+          <div class="dm">56&rarr;7</div>
+        </div>
+        <div class="ps" onclick="setExp('cnnExp',5)" id="cnnPs5">
+          <div class="nm">Flatten</div>
+          <div class="dm">25,088</div>
+        </div>
+        <div class="ps" onclick="setExp('cnnExp',6)" id="cnnPs6">
+          <div class="nm">FC+Soft</div>
+          <div class="dm">1,000</div>
+        </div>
+      </div>
+
+      <div id="cnnExp"></div>
+    </div>
+
+    <div class="ins">Funnel shape: spatial shrinks (224&rarr;7) while depth grows (3&rarr;512). Compresses WHERE into WHAT.</div>
+
+    <!-- Enrichment 2.3 -->
+    <div class="use-card">
+      <h4>Modern Additions to the Pipeline</h4>
+      <ul>
+        <li><strong>Batch Normalization</strong> — after every Conv layer; stabilizes training, allows higher learning rates</li>
+        <li><strong>Skip/Residual Connections</strong> — ResNet innovation; enables 100+ layer networks by solving vanishing gradients</li>
+        <li><strong>Depthwise Separable Conv</strong> — MobileNet; 8-9x fewer parameters, designed for mobile/edge deployment</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 2.4: Famous CNN Architectures                        -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.4</span><h2>Famous CNN Architectures</h2></div>
+    <p class="sub">From 60K to 60M parameters — a timeline of breakthroughs.</p>
+
+    <div class="g2">
+      <!-- LeNet-5 -->
+      <div class="card arch-card">
+        <div class="arch-bar" style="background:var(--dim)"></div>
+        <div style="padding-left:10px">
+          <h3>LeNet-5 <span class="lb" style="background:var(--dim);font-size:10px;vertical-align:middle">1998</span></h3>
+          <div class="arch-meta">60K params</div>
+          <p>Established Conv&rarr;Pool&rarr;Conv&rarr;Pool&rarr;FC for digit recognition. Deployed in USPS handwriting recognition and ATM check reading.</p>
+        </div>
+      </div>
+
+      <!-- AlexNet -->
+      <div class="card arch-card">
+        <div class="arch-bar" style="background:var(--pos)"></div>
+        <div style="padding-left:10px">
+          <h3>AlexNet <span class="lb" style="background:var(--pos);font-size:10px;vertical-align:middle">2012</span></h3>
+          <div class="arch-meta">60M params</div>
+          <p>Won ImageNet (15.3% vs 26%). Introduced ReLU, dropout, GPU training. Sparked the deep learning revolution — GPU training became standard.</p>
+        </div>
+      </div>
+
+      <!-- VGG -->
+      <div class="card arch-card">
+        <div class="arch-bar" style="background:var(--accent)"></div>
+        <div style="padding-left:10px">
+          <h3>VGG-16 <span class="lb" style="background:var(--accent);font-size:10px;vertical-align:middle">2014</span></h3>
+          <div class="arch-meta">138M params</div>
+          <p>Proved uniform 3&times;3 convolutions stacked deep work well. Two 3&times;3 = one 5&times;5 receptive field. Still used as feature extractor (VGG-16 backbone) and for neural style transfer.</p>
+        </div>
+      </div>
+
+      <!-- ResNet -->
+      <div class="card arch-card">
+        <div class="arch-bar" style="background:var(--green)"></div>
+        <div style="padding-left:10px">
+          <h3>ResNet <span class="lb" style="background:var(--green);font-size:10px;vertical-align:middle">2015</span></h3>
+          <div class="arch-meta">25M params</div>
+          <p>Skip connections enabled 152+ layers. 3.57% error — surpassed human level (~5.1%). Backbone for object detection (Faster R-CNN), segmentation (U-Net), medical imaging. Most-cited architecture.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="trend-box" style="margin-top:20px">
+      <strong>Trend:</strong> Parameter count does not equal performance. ResNet (25M) beat VGG (138M) with skip connections, proving architecture design matters more than brute-force scaling for CNNs.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Footer / Next                                                -->
+  <!-- ============================================================ -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <p style="color:var(--green);font-weight:700;font-size:16px;margin-bottom:12px">CNNs mastered.</p>
+    <a href="3-attention.html" class="b bp next-link">Next: Attention Mechanisms &rarr;</a>
+  </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- JavaScript: Convolution Demo + Pipeline Expander               -->
+<!-- ============================================================== -->
+<script>
+(function(){
+
+  /* ---- Convolution Demo State ---- */
+  var INPUT = [
+    [1,0,1,0,1],
+    [0,1,0,1,0],
+    [1,1,1,0,0],
+    [0,0,1,1,1],
+    [1,0,0,1,0]
+  ];
+  var KERNEL = [
+    [1,0,-1],
+    [1,0,-1],
+    [1,0,-1]
+  ];
+  // Precompute output
+  var OUTPUT = [];
+  for(var r=0;r<3;r++){
+    OUTPUT[r]=[];
+    for(var c=0;c<3;c++){
+      var s=0;
+      for(var kr=0;kr<3;kr++) for(var kc=0;kc<3;kc++) s+=INPUT[r+kr][c+kc]*KERNEL[kr][kc];
+      OUTPUT[r][c]=s;
+    }
+  }
+
+  var convR=-1, convC=-1;
+  var autoMode=false, autoTimer=null;
+  var computed={}; // track which cells have been computed
+
+  function renderConv(){
+    // Input grid
+    var ih='';
+    for(var r=0;r<5;r++) for(var c=0;c<5;c++){
+      var hl=(convR>=0 && r>=convR && r<convR+3 && c>=convC && c<convC+3)?'hl-input':'';
+      ih+='<div class="cc '+hl+'">'+INPUT[r][c]+'</div>';
+    }
+    document.getElementById('convInput').innerHTML=ih;
+
+    // Kernel grid
+    var kh='';
+    for(var kr=0;kr<3;kr++) for(var kc=0;kc<3;kc++){
+      var hl=(convR>=0)?'hl-kernel':'';
+      kh+='<div class="cc '+hl+'">'+KERNEL[kr][kc]+'</div>';
+    }
+    document.getElementById('convKernel').innerHTML=kh;
+
+    // Output grid
+    var oh='';
+    for(var r=0;r<3;r++) for(var c=0;c<3;c++){
+      var isCurrent=(r===convR && c===convC);
+      var isDone=computed[r+','+c];
+      var cls='';
+      if(isCurrent) cls='hl-output';
+      else if(isDone) cls='hl-output-done';
+      var val=(isDone||isCurrent)?OUTPUT[r][c]:'?';
+      oh+='<div class="cc '+cls+'" style="cursor:pointer" onclick="window._setConvPos('+r+','+c+')">'+val+'</div>';
+    }
+    document.getElementById('convOutput').innerHTML=oh;
+
+    // Math
+    if(convR>=0){
+      var terms=[];
+      for(var kr=0;kr<3;kr++) for(var kc=0;kc<3;kc++){
+        var iv=INPUT[convR+kr][convC+kc];
+        var kv=KERNEL[kr][kc];
+        terms.push('('+iv+'&times;'+(kv<0?'('+kv+')':kv)+')');
+      }
+      document.getElementById('convMath').innerHTML=
+        'output['+convR+']['+convC+'] = '+terms.join(' + ')+' = <strong style="color:var(--green)">'+OUTPUT[convR][convC]+'</strong>';
+    }
+  }
+
+  function setConvPos(r,c){
+    convR=r; convC=c;
+    computed[r+','+c]=true;
+    renderConv();
+  }
+  window._setConvPos=setConvPos;
+
+  function togConv(){
+    var btn=document.getElementById('convAutoBtn');
+    if(autoMode){
+      autoMode=false;
+      clearInterval(autoTimer);
+      autoTimer=null;
+      btn.textContent='Auto';
+      btn.classList.remove('bo');
+      btn.classList.add('bp');
+    } else {
+      autoMode=true;
+      btn.textContent='Pause';
+      btn.classList.remove('bp');
+      btn.classList.add('bo');
+      // Reset
+      computed={};
+      var pos=0;
+      function step(){
+        var r=Math.floor(pos/3);
+        var c=pos%3;
+        setConvPos(r,c);
+        pos++;
+        if(pos>=9){
+          autoMode=false;
+          clearInterval(autoTimer);
+          autoTimer=null;
+          btn.textContent='Auto';
+          btn.classList.remove('bo');
+          btn.classList.add('bp');
+        }
+      }
+      step();
+      autoTimer=setInterval(step, 800);
+    }
+  }
+  window.togConv=togConv;
+
+  // Initial render
+  renderConv();
+
+
+  /* ---- Pipeline Expander ---- */
+  var pipelineData=[
+    {title:'Input', desc:'Raw RGB image: 150,528 numbers (224 &times; 224 &times; 3). Each pixel has red, green, blue channels scaled 0&ndash;1. This is the only stage that receives raw data.'},
+    {title:'Conv1', desc:'64 filters of 3&times;3 detect edges, corners, and color gradients. Each filter shares weights across all spatial positions. Params: 64 &times; (3&times;3&times;3 + 1) = <strong>1,792</strong>.'},
+    {title:'ReLU', desc:'max(0, x). Zero parameters. Introduces non-linearity &mdash; without it, stacking layers would still be linear. Creates sparse activations (many zeros), improving efficiency.'},
+    {title:'Pool', desc:'MaxPool 2&times;2, stride 2. Spatial dimensions halved: 224&rarr;112. Keeps the strongest activations, discards precise position. Zero learnable params.'},
+    {title:'Conv2+', desc:'More Conv&rarr;ReLU&rarr;Pool blocks. Spatial shrinks: 56&rarr;28&rarr;14&rarr;7. Channels grow: 64&rarr;128&rarr;256&rarr;512. Deeper layers detect complex patterns (faces, wheels, text).'},
+    {title:'Flatten', desc:'7 &times; 7 &times; 512 = 25,088. Reshape the 3D feature volume into a 1D vector. No computation &mdash; just a view change. This bridge connects spatial features to classification.'},
+    {title:'FC + Softmax', desc:'Dense layer(s) map 25,088 features to 1,000 ImageNet classes. This is where most parameters live: 25M+. Softmax converts logits to probabilities that sum to 1.'}
+  ];
+
+  var curExp=-1;
+
+  function setExp(id,i){
+    var container=document.getElementById(id);
+    // Toggle active pipeline step
+    for(var j=0;j<7;j++){
+      var el=document.getElementById('cnnPs'+j);
+      if(el) el.classList.toggle('ac', j===i && curExp!==i);
+    }
+    if(curExp===i){
+      container.innerHTML='';
+      curExp=-1;
+      return;
+    }
+    curExp=i;
+    var d=pipelineData[i];
+    container.innerHTML='<div class="pd fi"><div class="pt">'+d.title+'</div><p>'+d.desc+'</p></div>';
+  }
+  window.setExp=setExp;
+
+})();
+</script>
+
+</body>
+</html>

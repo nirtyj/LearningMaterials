@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>LLM Infra &mdash; 2. Pre-Training at Scale</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-architecture.html" class="tab-btn"><span class="tnum">1</span>Architecture</a>
+  <a href="2-pretraining.html" class="tab-btn active"><span class="tnum">2</span>Pre-Training</a>
+  <a href="3-fine-tuning.html" class="tab-btn"><span class="tnum">3</span>Fine-Tuning</a>
+  <a href="4-rl-alignment.html" class="tab-btn"><span class="tnum">4</span>RL Alignment</a>
+  <a href="5-distributed-training.html" class="tab-btn"><span class="tnum">5</span>Distributed</a>
+  <a href="6-inference.html" class="tab-btn"><span class="tnum">6</span>Inference</a>
+  <a href="7-eval-benchmarking.html" class="tab-btn"><span class="tnum">7</span>Eval</a>
+  <a href="8-aws-nova-forge.html" class="tab-btn"><span class="tnum">8</span>Nova Forge</a>
+</nav>
+
+<div class="tab-content">
+  <div class="hero">
+    <h1>2. Pre-Training at Scale</h1>
+    <p>Next-token prediction, data pipelines, tokenization, scaling laws, and the plasticity-stability dilemma.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ 2.1 ═══ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.1</span><h2>Pre-Training Paradigm</h2></div>
+    <p class="sub">The deceptively simple objective behind modern LLMs</p>
+
+    <p class="desc">
+      Pre-training is the foundation of every large language model. The core idea is elegantly simple:
+      given a sequence of tokens, predict the next one. This single objective &mdash; <kt>causal language modeling</kt> (CLM) &mdash;
+      is what turns raw text into a model that can reason, code, translate, and follow instructions.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Next-Token Prediction (Autoregressive LM)</h4>
+      <p class="desc" style="margin-bottom:8px">
+        At each position <em>t</em> in the sequence, the model predicts a probability distribution over the
+        entire vocabulary, conditioned on all preceding tokens:
+      </p>
+      <div class="mb">p(x<sub>t</sub> | x<sub>1</sub>, x<sub>2</sub>, &hellip;, x<sub>t&minus;1</sub> ; &theta;)</div>
+      <p class="desc" style="margin-bottom:8px">
+        The training loss is the <kt>cross-entropy</kt> between the model&rsquo;s predicted distribution and the
+        one-hot ground truth at every position, averaged over all tokens in the batch:
+      </p>
+      <div class="mb">L(&theta;) = &minus; (1/T) &sum;<sub>t=1..T</sub> log p(x<sub>t</sub> | x<sub>&lt;t</sub> ; &theta;)</div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-green" style="margin-bottom:8px">SELF-SUPERVISED</span>
+        <p style="color:var(--dim);font-size:13px;margin-top:8px">
+          No human labels are needed. The text <strong>IS</strong> the label &mdash; each token serves as the
+          target for the preceding context. This enables training on virtually unlimited internet text
+          without any annotation cost.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-blue" style="margin-bottom:8px">SCALE</span>
+        <p style="color:var(--dim);font-size:13px;margin-top:8px">
+          Modern pre-training runs process <strong>trillions of tokens</strong> across
+          <strong>thousands of GPUs</strong> over <strong>months</strong> of continuous compute.
+          Llama 3.1 405B trained on 15.6T tokens using 16,384 H100 GPUs.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-title">Why Does This Simple Objective Work?</div>
+      <p>
+        Predicting the next token is equivalent to <strong>lossless compression</strong> of the training data.
+        To compress well, the model must build internal representations of syntax, semantics, world knowledge,
+        reasoning chains, and even theory of mind. In the words of Ilya Sutskever: &ldquo;Prediction is
+        compression, and compression is understanding.&rdquo; The model doesn&rsquo;t just memorize &mdash;
+        it learns transferable representations that generalize far beyond the training distribution.
+      </p>
+    </div>
+
+    <p class="ins">
+      All instruction-following, chat, and reasoning abilities are built ON TOP of this pre-trained foundation.
+      Pre-training creates the knowledge; fine-tuning and RLHF shape the behavior.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ 2.2 ═══ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.2</span><h2>Data Pipeline</h2></div>
+    <p class="sub">From raw web crawl to training-ready token streams</p>
+
+    <p class="desc">
+      Data quality is the single most impactful lever in pre-training. Models trained on cleaner, better-deduplicated
+      data consistently outperform larger models trained on noisier corpora. The data pipeline is a multi-stage
+      funnel that starts with petabytes of raw web crawl and produces a curated, tokenized training corpus.
+    </p>
+
+    <div class="arch-box">Data Pipeline Overview
+
+  Web Crawl (Common Crawl, ~250B pages)
+       |
+       v
+  [Language ID] -----> Filter non-target languages
+       |
+       v
+  [URL / Domain Filter] -> Block known low-quality domains
+       |
+       v
+  [Heuristic Rules] ----> Length, repetition, boilerplate removal
+       |
+       v
+  [Quality Classifier] -> Score text quality (high vs random web)
+       |
+       v
+  [Deduplication] ------> Exact hash + MinHash/LSH fuzzy dedup
+       |
+       v
+  [PII / Toxicity Filter] -> Regex PII removal + classifier
+       |
+       v
+  [Tokenization] -------> BPE / SentencePiece encoding
+       |
+       v
+  [Shuffling + Packing] -> Concat docs, shuffle, pack to seq_len
+       |
+       v
+  Training-Ready Shards (.bin / .arrow files)</div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Deduplication</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7">
+        Deduplication is <strong>critical</strong> &mdash; it prevents memorization, reduces training FLOPs wasted on
+        repeated content, and improves downstream quality. Two main approaches:
+      </p>
+      <ul style="color:var(--dim);font-size:13px;padding-left:20px;margin-top:8px;line-height:1.8">
+        <li><kt>Exact dedup</kt>: Hash each document (SHA-256 or similar), remove exact duplicates. Fast but misses near-duplicates.</li>
+        <li><kt>Fuzzy dedup (MinHash/LSH)</kt>: Compute MinHash signatures, use Locality-Sensitive Hashing to find near-duplicates (e.g., Jaccard similarity &gt; 0.8). Catches boilerplate templates, mirror sites, syndicated content.</li>
+        <li><kt>Paragraph / n-gram dedup</kt>: Remove repeated paragraphs across documents. Used by FineWeb for finer granularity.</li>
+      </ul>
+      <p class="ins">Lee et al. (2022) showed that deduplication alone can improve perplexity by 10%+ and significantly reduce memorization of training data.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <h4 style="color:var(--text);margin-bottom:8px">Quality Filtering</h4>
+        <ul style="color:var(--dim);font-size:13px;padding-left:16px;line-height:1.8">
+          <li><strong>Classifier-based:</strong> Train a fastText/BERT classifier on Wikipedia + curated books (positive) vs random web (negative). Keep pages with high quality score.</li>
+          <li><strong>Perplexity filtering:</strong> Score with a small LM; remove very high or very low perplexity pages (gibberish or repetitive).</li>
+          <li><strong>Heuristic rules:</strong> Min/max length, alphabet ratio, stopword density, line-level repetition, bullet-list ratio.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--text);margin-bottom:8px">Safety Filtering</h4>
+        <ul style="color:var(--dim);font-size:13px;padding-left:16px;line-height:1.8">
+          <li><strong>Toxicity classifiers:</strong> Trained detectors (e.g., Jigsaw, Perspective API) flag and remove toxic, hateful, or NSFW content.</li>
+          <li><strong>PII removal:</strong> Regex patterns for emails, phone numbers, SSNs, credit cards. Named entity recognition for names and addresses.</li>
+          <li><strong>CSAM filtering:</strong> Perceptual hashing + classifiers to detect and remove illegal content.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h4 style="color:var(--text);margin:20px 0 12px">Major Open Datasets</h4>
+    <table class="ct">
+      <tr>
+        <th>Dataset</th>
+        <th>Size</th>
+        <th>Source</th>
+        <th>Key Feature</th>
+      </tr>
+      <tr>
+        <td>Common Crawl</td>
+        <td>~250B pages</td>
+        <td>Web crawl</td>
+        <td>Raw foundation; requires heavy filtering</td>
+      </tr>
+      <tr>
+        <td>FineWeb (HuggingFace)</td>
+        <td>15T tokens</td>
+        <td>Common Crawl</td>
+        <td>Aggressive dedup + quality filtering; state-of-the-art open data</td>
+      </tr>
+      <tr>
+        <td>DCLM (DataComp-LM)</td>
+        <td>3T tokens</td>
+        <td>Common Crawl</td>
+        <td>Model-based quality scoring; competitive with FineWeb</td>
+      </tr>
+      <tr>
+        <td>RedPajama v2</td>
+        <td>30T tokens</td>
+        <td>84 CC snapshots</td>
+        <td>Quality signals + dedup metadata included</td>
+      </tr>
+      <tr>
+        <td>The Pile</td>
+        <td>825 GB</td>
+        <td>22 curated sources</td>
+        <td>Diverse: academic, code, books, StackExchange, USPTO</td>
+      </tr>
+      <tr>
+        <td>StarCoder Data</td>
+        <td>783 GB</td>
+        <td>GitHub</td>
+        <td>Permissively-licensed code in 80+ languages</td>
+      </tr>
+    </table>
+
+    <div class="callout amber">
+      <div class="callout-title">Data Mix Ratios Matter Enormously</div>
+      <p>
+        The blend of data domains &mdash; web text, books, code, academic papers, Wikipedia, conversations &mdash;
+        has an outsized impact on model capabilities. Llama 2 used roughly: 89.7% web, 4.5% code, 2.5% Wikipedia,
+        2.5% books, 0.8% academic. Increasing the code ratio (Llama 3 used ~17% code) dramatically improves
+        reasoning and math abilities even on non-code tasks. These ratios are typically the most closely guarded
+        secrets of frontier labs.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ 2.3 ═══ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.3</span><h2>Tokenization</h2></div>
+    <p class="sub">Converting text to numbers the neural network can process</p>
+
+    <p class="desc">
+      Neural networks operate on numbers, not characters. <kt>Tokenization</kt> is the process of converting
+      raw text into a sequence of integer token IDs from a fixed vocabulary. The choice of tokenizer
+      affects sequence length, model efficiency, multilingual capability, and even reasoning performance.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Byte-Pair Encoding (BPE)</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7">
+        The most common algorithm. BPE starts with individual bytes (or characters) and <strong>iteratively
+        merges the most frequent adjacent pair</strong> into a new token, repeating until the desired vocabulary
+        size is reached.
+      </p>
+      <div class="arch-box">BPE Training Example
+
+Input corpus: "low low low low lower lower newest newest"
+
+Step 0: Characters  → l o w _ l o w e r _ n e w e s t
+Step 1: Merge (l,o) → lo w _ lo w e r _ n e w e s t
+Step 2: Merge (lo,w) → low _ low e r _ n e w e s t
+Step 3: Merge (e,s) → low _ low e r _ n e w es t
+Step 4: Merge (es,t) → low _ low e r _ n e w est
+...continue until vocab_size reached</div>
+      <p class="ins">Used by GPT-2/3/4, Llama 3, Mistral. Llama 3 uses a 128K BPE vocabulary trained with tiktoken.</p>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">SentencePiece</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7">
+        A <strong>language-agnostic</strong> tokenizer that operates directly on raw Unicode bytes, treating
+        the input as a stream of bytes rather than pre-tokenized words. It can use BPE or Unigram algorithms
+        internally. Because it doesn&rsquo;t assume whitespace-delimited words, it handles CJK languages,
+        code, and multilingual text gracefully.
+      </p>
+      <p class="ins">Used by Llama 1&ndash;2, Gemma, T5, mT5. Llama 2 uses a 32K SentencePiece vocabulary.</p>
+    </div>
+
+    <h4 style="color:var(--text);margin:20px 0 12px">Vocabulary Size Tradeoffs</h4>
+    <table class="ct">
+      <tr>
+        <th>Model</th>
+        <th>Vocab Size</th>
+        <th>Tokenizer</th>
+        <th>Notes</th>
+      </tr>
+      <tr>
+        <td>GPT-2</td>
+        <td>50,257</td>
+        <td>BPE</td>
+        <td>Byte-level BPE, English-centric</td>
+      </tr>
+      <tr>
+        <td>Llama 2</td>
+        <td>32,000</td>
+        <td>SentencePiece</td>
+        <td>Compact vocab, longer sequences</td>
+      </tr>
+      <tr>
+        <td>Llama 3</td>
+        <td>128,256</td>
+        <td>tiktoken BPE</td>
+        <td>4x larger vocab &rarr; ~15% shorter sequences</td>
+      </tr>
+      <tr>
+        <td>Gemma 2</td>
+        <td>256,000</td>
+        <td>SentencePiece</td>
+        <td>Massive vocab for multilingual coverage</td>
+      </tr>
+      <tr>
+        <td>GPT-4</td>
+        <td>~100,000</td>
+        <td>tiktoken BPE</td>
+        <td>Optimized for code + multilingual</td>
+      </tr>
+    </table>
+
+    <div class="g2">
+      <div class="callout green">
+        <div class="callout-title">Larger Vocab Advantages</div>
+        <ul style="padding-left:16px;margin-top:4px">
+          <li>Shorter token sequences (fewer forward passes for same text)</li>
+          <li>Better multilingual and code coverage</li>
+          <li>Less byte-level fallback needed</li>
+        </ul>
+      </div>
+      <div class="callout red">
+        <div class="callout-title">Larger Vocab Costs</div>
+        <ul style="padding-left:16px;margin-top:4px">
+          <li>Larger embedding table (vocab_size &times; d_model)</li>
+          <li>More memory for the LM head (output projection)</li>
+          <li>Rare tokens may be poorly trained</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Special Tokens &amp; Chat Templates</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7;margin-bottom:8px">
+        Beyond content tokens, tokenizers define <kt>special tokens</kt> that signal structure:
+      </p>
+      <div class="arch-box">&lt;bos&gt;  Begin of sequence — signals the start of a new document/conversation
+&lt;eos&gt;  End of sequence — signals completion; used for stopping generation
+&lt;pad&gt;  Padding — fills shorter sequences in a batch to uniform length
+
+Chat template example (Llama 3):
+&lt;|begin_of_text|&gt;&lt;|start_header_id|&gt;system&lt;|end_header_id|&gt;
+You are a helpful assistant.&lt;|eot_id|&gt;
+&lt;|start_header_id|&gt;user&lt;|end_header_id|&gt;
+What is 2+2?&lt;|eot_id|&gt;
+&lt;|start_header_id|&gt;assistant&lt;|end_header_id|&gt;</div>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">Tokenization Failure Modes</div>
+      <p>
+        BPE tokenizers trained primarily on English text can produce <strong>extremely long token sequences</strong>
+        for non-English languages (sometimes 3&ndash;5x more tokens for the same semantic content in Hindi, Arabic,
+        or CJK). This means non-English users pay more in API costs and hit context limits sooner. Code and math
+        expressions can also tokenize poorly &mdash; a single variable name like <code>getElementById</code> might
+        become 3&ndash;4 tokens. Byte-level fallback (encoding unknown characters as raw UTF-8 bytes) ensures nothing
+        is ever out-of-vocabulary, but at a severe efficiency cost.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ 2.4 ═══ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.4</span><h2>Training Phases &amp; Scheduling</h2></div>
+    <p class="sub">Learning rate schedules, mixed precision, and the rhythm of large-scale training</p>
+
+    <p class="desc">
+      Pre-training is not a single monolithic phase. Modern training runs are carefully orchestrated with
+      learning rate schedules, batch size ramps, mixed precision strategies, and checkpointing protocols
+      that keep the run stable across months of continuous compute.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Multi-Phase Training</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7;margin-bottom:8px">
+        Large-scale pre-training typically follows three phases:
+      </p>
+      <div class="arch-box">Training Phases
+
+   Learning Rate
+   ^
+   |      peak_lr
+   |     /--------\
+   |    /          \            Annealing
+   |   /   Main     \         (higher quality data,
+   |  / Pre-Training  \        smaller LR)
+   | / (bulk of tokens) \       /--------\
+   |/ Warmup              \    /  Cooldown \
+   +------------------------\-/-------------\------->
+   0       80% tokens       90%    100%    Steps
+
+Phase 1: Main Pre-Training  — Bulk of compute, general web data
+Phase 2: Annealing          — Higher quality data mix, decaying LR
+Phase 3: Cooldown           — Final LR decay to near-zero min_lr</div>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Learning Rate Schedule</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7">
+        The standard schedule has three stages:
+      </p>
+      <ul style="color:var(--dim);font-size:13px;padding-left:20px;margin-top:8px;line-height:1.8">
+        <li><kt>Warmup</kt> (linear ramp): Gradually increase LR from ~0 to peak over 1&ndash;2K steps. Prevents large, unstable gradient updates when weights are randomly initialized.</li>
+        <li><kt>Peak &rarr; Cosine Decay</kt>: After warmup, follow a cosine schedule from peak_lr down to min_lr (typically 10% of peak). This is the main training phase.</li>
+        <li><kt>Min LR</kt>: The floor learning rate, maintained until end of training. Too low and the model stops learning; too high and loss becomes noisy.</li>
+      </ul>
+      <div class="mb">lr(t) = min_lr + 0.5 &times; (peak_lr &minus; min_lr) &times; (1 + cos(&pi; &times; t / T))</div>
+      <p class="ins">Typical values: peak_lr = 3e-4 (for 7B models), min_lr = 3e-5, warmup = 2000 steps.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <h4 style="color:var(--text);margin-bottom:8px">Batch Size Ramp</h4>
+        <p style="color:var(--dim);font-size:13px;line-height:1.7">
+          Start with a <strong>small batch size</strong> (e.g., 0.5M tokens) and gradually increase to the
+          full batch size (e.g., 4M tokens) over the first few thousand steps. Small batches early on provide
+          noisier but more diverse gradient signal, helping the model escape poor local minima. Larger batches
+          later provide stable, efficient gradient estimates.
+        </p>
+      </div>
+      <div class="card">
+        <h4 style="color:var(--text);margin-bottom:8px">Gradient Clipping</h4>
+        <p style="color:var(--dim);font-size:13px;line-height:1.7">
+          Clip the global gradient norm to prevent <kt>exploding gradients</kt> that can destabilize training
+          or cause loss spikes. The standard approach clips to <code>max_norm = 1.0</code>:
+        </p>
+        <div class="mb">if ||g|| &gt; max_norm: g &larr; g &times; max_norm / ||g||</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Mixed Precision Training</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7;margin-bottom:10px">
+        Modern LLM training uses multiple numeric precisions simultaneously to balance speed, memory, and numerical stability:
+      </p>
+      <table class="ct">
+        <tr>
+          <th>Component</th>
+          <th>Precision</th>
+          <th>Why</th>
+        </tr>
+        <tr>
+          <td>Forward / backward pass</td>
+          <td><kt>BF16</kt></td>
+          <td>2x throughput, same dynamic range as FP32, no loss scaling needed</td>
+        </tr>
+        <tr>
+          <td>Master weights</td>
+          <td>FP32</td>
+          <td>Small weight updates (LR &times; gradient) need FP32 precision to accumulate</td>
+        </tr>
+        <tr>
+          <td>Optimizer states</td>
+          <td>FP32</td>
+          <td>Adam momentum/variance require high precision for stability</td>
+        </tr>
+        <tr>
+          <td>Gradient communication</td>
+          <td>BF16 or FP16</td>
+          <td>Reduces all-reduce bandwidth by 2x</td>
+        </tr>
+      </table>
+      <p class="ins">
+        BF16 has largely replaced FP16 for LLM training because it has the same exponent range as FP32
+        (8 bits), eliminating the need for loss scaling. FP16 requires careful loss scaling to avoid underflow
+        in gradients.
+      </p>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Checkpointing Strategy</div>
+      <p>
+        Save full model + optimizer state every N steps (typically every 500&ndash;1000 steps). Keep a rolling
+        window of the last 3&ndash;5 checkpoints to manage storage. Checkpoints are critical for
+        <strong>recovery from hardware failures</strong> (which are inevitable at scale &mdash; Meta reported
+        ~100 failures during Llama 3 training) and for <strong>branching experiments</strong> (e.g., trying
+        different annealing data mixes from the same checkpoint). Async checkpointing avoids blocking training.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ 2.5 ═══ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.5</span><h2>Scaling Laws</h2></div>
+    <p class="sub">How loss, compute, data, and parameters interact &mdash; and what this means for model design</p>
+
+    <p class="desc">
+      Scaling laws are the empirical relationships that let us predict model performance before training.
+      They have fundamentally changed how labs plan training runs, allocate budgets, and choose model sizes.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Kaplan et al. (2020) &mdash; OpenAI Scaling Laws</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7">
+        The first comprehensive study showed that loss scales as a <strong>power law</strong> with three variables:
+        compute (C), dataset size (D), and model parameters (N):
+      </p>
+      <div class="mb">L(N) &sim; N<sup>&minus;0.076</sup> &nbsp;&nbsp;|&nbsp;&nbsp; L(D) &sim; D<sup>&minus;0.095</sup> &nbsp;&nbsp;|&nbsp;&nbsp; L(C) &sim; C<sup>&minus;0.050</sup></div>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7;margin-top:8px">
+        Key insight: <strong>loss improves smoothly and predictably</strong> with scale. There are no sharp
+        phase transitions &mdash; you can extrapolate from small runs to predict large model performance.
+        The original recommendation was to scale model size faster than data size.
+      </p>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Chinchilla (Hoffmann et al. 2022) &mdash; Compute-Optimal Training</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7;margin-bottom:10px">
+        DeepMind&rsquo;s landmark result overturned the &ldquo;scale parameters first&rdquo; wisdom.
+        For a fixed compute budget, the <strong>compute-optimal</strong> strategy is to scale parameters
+        and tokens roughly equally:
+      </p>
+      <div class="mb">Optimal tokens &asymp; 20 &times; parameters</div>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7;margin-top:10px">
+        This meant GPT-3 (175B params, 300B tokens) was massively <strong>undertrained</strong> &mdash;
+        it should have seen ~3.5T tokens. Chinchilla (70B params, 1.4T tokens) matched GPT-3&rsquo;s
+        performance with 4x fewer parameters.
+      </p>
+    </div>
+
+    <h4 style="color:var(--text);margin:20px 0 12px">Chinchilla-Optimal Configurations</h4>
+    <table class="ct">
+      <tr>
+        <th>Compute Budget</th>
+        <th>Optimal Params</th>
+        <th>Optimal Tokens</th>
+        <th>Token:Param Ratio</th>
+      </tr>
+      <tr>
+        <td>10<sup>19</sup> FLOPs</td>
+        <td>~400M</td>
+        <td>~8B</td>
+        <td>20:1</td>
+      </tr>
+      <tr>
+        <td>10<sup>20</sup> FLOPs</td>
+        <td>~1B</td>
+        <td>~20B</td>
+        <td>20:1</td>
+      </tr>
+      <tr>
+        <td>10<sup>21</sup> FLOPs</td>
+        <td>~3B</td>
+        <td>~60B</td>
+        <td>20:1</td>
+      </tr>
+      <tr>
+        <td>10<sup>22</sup> FLOPs</td>
+        <td>~10B</td>
+        <td>~200B</td>
+        <td>20:1</td>
+      </tr>
+      <tr>
+        <td>10<sup>23</sup> FLOPs</td>
+        <td>~30B</td>
+        <td>~600B</td>
+        <td>20:1</td>
+      </tr>
+      <tr>
+        <td>10<sup>24</sup> FLOPs</td>
+        <td>~100B</td>
+        <td>~2T</td>
+        <td>20:1</td>
+      </tr>
+    </table>
+
+    <div class="callout purple">
+      <div class="callout-title">Post-Chinchilla: The Llama Approach &mdash; Over-Training for Inference</div>
+      <p>
+        Chinchilla optimizes for <strong>training compute</strong>. But in practice, you train once and serve
+        millions of times. Meta&rsquo;s key insight: <strong>over-train smaller models far beyond the Chinchilla-optimal
+        point</strong> because a smaller model is dramatically cheaper to serve.
+      </p>
+      <ul style="padding-left:16px;margin-top:8px">
+        <li>Llama 1 7B: trained on <strong>1T tokens</strong> (Chinchilla-optimal would be ~140B tokens &mdash; 7x over-trained)</li>
+        <li>Llama 2 7B: trained on <strong>2T tokens</strong> (~14x over-trained)</li>
+        <li>Llama 3 8B: trained on <strong>15T tokens</strong> (~100x over-trained!)</li>
+      </ul>
+      <p style="margin-top:8px">
+        The loss curves show diminishing returns from over-training, but the <strong>inference cost savings</strong>
+        are enormous. Serving a 7B model is ~50x cheaper per token than serving a 70B model. The extra training
+        compute pays for itself quickly at scale.
+      </p>
+    </div>
+
+    <div class="trend-box">
+      <strong>The Key Tradeoff:</strong> Training compute is a one-time cost; inference compute is ongoing.
+      For models that will be served at scale, over-training a smaller model is almost always the right call.
+      This is why Llama-class models (7&ndash;13B) trained on massive token counts have become the industry
+      standard for deployment.
+    </div>
+
+    <p class="ins">
+      Scaling laws enable &ldquo;scaling law experiments&rdquo; &mdash; train several small models at different
+      scales, fit the power law, and predict the performance of a much larger target model before committing
+      the full compute budget.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ 2.6 ═══ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.6</span><h2>Continued Pre-Training (CPT)</h2></div>
+    <p class="sub">Domain adaptation through further pre-training on specialized corpora</p>
+
+    <p class="desc">
+      <kt>Continued Pre-Training</kt> (CPT) takes an existing pre-trained model and further trains it on
+      domain-specific text (medical, legal, code, finance) using the same next-token prediction objective.
+      The goal is to inject <strong>deep domain knowledge</strong> into the model&rsquo;s weights &mdash;
+      knowledge that goes beyond what retrieval-augmented generation (RAG) can provide.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">When to Use CPT vs RAG vs SFT</h4>
+      <table class="ct">
+        <tr>
+          <th>Approach</th>
+          <th>Use When</th>
+          <th>Knowledge Type</th>
+          <th>Compute Cost</th>
+        </tr>
+        <tr>
+          <td><kt>CPT</kt></td>
+          <td>Model lacks fundamental domain knowledge</td>
+          <td>Deep, parametric (in weights)</td>
+          <td>High (days&ndash;weeks of GPU)</td>
+        </tr>
+        <tr>
+          <td><kt>RAG</kt></td>
+          <td>Knowledge is factual, changes frequently</td>
+          <td>Shallow, non-parametric (retrieved)</td>
+          <td>Low (no training)</td>
+        </tr>
+        <tr>
+          <td><kt>SFT</kt></td>
+          <td>Model has knowledge but wrong behavior/format</td>
+          <td>Behavioral (how to respond)</td>
+          <td>Medium (hours&ndash;days)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="g2">
+      <div class="callout green">
+        <div class="callout-title">CPT Best Practices</div>
+        <ul style="padding-left:16px;margin-top:4px">
+          <li><strong>Mix domain + general data:</strong> Use 5&ndash;20% general replay data to prevent catastrophic forgetting</li>
+          <li><strong>Lower learning rate:</strong> Use 10&ndash;50% of the original pre-training peak LR</li>
+          <li><strong>LR re-warmup:</strong> Brief warmup to the new (lower) peak, then cosine decay</li>
+          <li><strong>Monitor general benchmarks:</strong> Track MMLU, HellaSwag alongside domain evals</li>
+          <li><strong>Start from base model:</strong> NOT the instruct/chat variant (loses instruction tuning)</li>
+        </ul>
+      </div>
+      <div class="callout red">
+        <div class="callout-title">CPT Risks</div>
+        <ul style="padding-left:16px;margin-top:4px">
+          <li><strong>Catastrophic forgetting:</strong> Model loses general capabilities if trained only on narrow data</li>
+          <li><strong>Overfitting:</strong> Domain corpora are often small; easy to memorize</li>
+          <li><strong>Lost instruction following:</strong> After CPT, the model needs SFT again to regain chat capabilities</li>
+          <li><strong>Expensive:</strong> Requires significant compute even with LoRA</li>
+        </ul>
+      </div>
+    </div>
+
+    <h4 style="color:var(--text);margin:20px 0 12px">Notable CPT Examples</h4>
+    <table class="ct">
+      <tr>
+        <th>Model</th>
+        <th>Base</th>
+        <th>Domain</th>
+        <th>CPT Data</th>
+        <th>Key Result</th>
+      </tr>
+      <tr>
+        <td>Code Llama</td>
+        <td>Llama 2</td>
+        <td>Code</td>
+        <td>500B code tokens</td>
+        <td>62% HumanEval (vs 30% base)</td>
+      </tr>
+      <tr>
+        <td>BioMistral</td>
+        <td>Mistral 7B</td>
+        <td>Biomedical</td>
+        <td>PubMed Central</td>
+        <td>+8% on medical QA benchmarks</td>
+      </tr>
+      <tr>
+        <td>SaulLM</td>
+        <td>Mistral 7B</td>
+        <td>Legal</td>
+        <td>30B legal tokens</td>
+        <td>SOTA on legal benchmarks</td>
+      </tr>
+      <tr>
+        <td>FinMA</td>
+        <td>Llama</td>
+        <td>Finance</td>
+        <td>Financial filings + news</td>
+        <td>Strong on FinBench tasks</td>
+      </tr>
+    </table>
+
+    <p class="ins">
+      The typical full pipeline is: Base Model &rarr; CPT (domain knowledge) &rarr; SFT (instruction following) &rarr; RLHF/DPO (alignment).
+      Each stage builds on the previous one.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ 2.7 ═══ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">2.7</span><h2>Plasticity-Stability Dilemma</h2></div>
+    <p class="sub">The fundamental tension in continual learning: learn new things without forgetting old ones</p>
+
+    <p class="desc">
+      The <kt>plasticity-stability dilemma</kt> is the central challenge of continued pre-training and any
+      form of continual learning. A model must be <strong>plastic</strong> enough to learn new tasks and absorb
+      new domain knowledge, yet <strong>stable</strong> enough to retain the general capabilities it already has.
+      Train too aggressively on new data and the model forgets how to do basic reasoning; train too conservatively
+      and it never truly learns the new domain.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:12px">Three Pillars of Anti-Forgetting</h4>
+      <p style="color:var(--dim);font-size:13px;line-height:1.7;margin-bottom:16px">
+        The industry addresses the plasticity-stability dilemma through three complementary pillars:
+      </p>
+
+      <!-- Pillar 1 -->
+      <div style="margin-bottom:16px">
+        <span class="lb" style="background:var(--accent);margin-bottom:8px;display:inline-block">PILLAR 1</span>
+        <h4 style="color:var(--text);margin:6px 0 8px">Data-Based Strategies (Replay)</h4>
+        <ul style="color:var(--dim);font-size:13px;padding-left:20px;line-height:1.8">
+          <li><kt>Data Mixing (Experience Replay)</kt>: Mix 5&ndash;20% original general pre-training data with new domain data. This maintains coverage of the original training distribution, preventing gradient drift away from the general-capability manifold.</li>
+          <li><kt>Self-Synthesized Rehearsal (SSR)</kt>: When original pre-training data is unavailable (common for proprietary base models), use the model itself to <strong>generate</strong> &ldquo;old-domain&rdquo; data for replay. The model becomes its own memory.</li>
+          <li><kt>Data Mixing Laws</kt>: Mathematical scaling laws that predict the optimal new-vs-old data ratio to prevent drops on benchmarks like MMLU and GSM8K. These help choose mixing ratios without expensive grid search.</li>
+        </ul>
+      </div>
+
+      <!-- Pillar 2 -->
+      <div style="margin-bottom:16px">
+        <span class="lb" style="background:var(--purple);margin-bottom:8px;display:inline-block">PILLAR 2</span>
+        <h4 style="color:var(--text);margin:6px 0 8px">Regularization (Constraining Weights)</h4>
+        <ul style="color:var(--dim);font-size:13px;padding-left:20px;line-height:1.8">
+          <li><kt>Elastic Weight Consolidation (EWC)</kt>: The <strong>Fisher information matrix</strong> identifies which weights are critical for previously learned tasks. A penalty term is added to the loss to discourage modifying these important weights during new training:</li>
+        </ul>
+        <div class="mb">L<sub>EWC</sub> = L<sub>new</sub> + (&lambda;/2) &sum;<sub>i</sub> F<sub>i</sub> (&theta;<sub>i</sub> &minus; &theta;<sub>i</sub>*)<sup>2</sup></div>
+        <ul style="color:var(--dim);font-size:13px;padding-left:20px;line-height:1.8">
+          <li><kt>Knowledge Distillation</kt>: A frozen copy of the original model (Teacher) constrains the new model (Student) from drifting. The student&rsquo;s outputs must stay close to the teacher&rsquo;s on general-domain inputs, adding a KL-divergence loss term.</li>
+          <li><kt>Mixout</kt>: Randomly resets some weights to their original pre-trained values during training, acting as a <strong>stochastic anchor</strong> to the base model. Similar in spirit to Dropout but resets to pre-trained values instead of zero.</li>
+        </ul>
+      </div>
+
+      <!-- Pillar 3 -->
+      <div>
+        <span class="lb" style="background:var(--cyan);color:var(--bg);margin-bottom:8px;display:inline-block">PILLAR 3</span>
+        <h4 style="color:var(--text);margin:6px 0 8px">Optimization &amp; Architecture</h4>
+        <ul style="color:var(--dim);font-size:13px;padding-left:20px;line-height:1.8">
+          <li><kt>Learning Rate Re-warming &amp; Re-decay</kt>: Start with a very low LR that slowly increases, matching the model&rsquo;s existing optimization momentum, then decays. This avoids &ldquo;shocking&rdquo; the model with large early gradient steps that overwrite existing knowledge.</li>
+          <li><kt>PEFT / LoRA</kt>: Freeze core weights entirely and only train small low-rank adapter matrices. This makes it <strong>physically impossible</strong> to erase base knowledge since the original parameters remain untouched.</li>
+          <li><kt>Layer-wise Learning Rates</kt>: Assign very low LR to bottom layers (foundational skills like syntax, grammar, basic reasoning) and higher LR to top layers (task-specific specialization). Bottom layers encode universal linguistic knowledge that should be preserved.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout purple">
+      <div class="callout-title">Industry Recipe Summary &mdash; Preventing Forgetting</div>
+      <ol style="padding-left:20px;margin-top:4px;line-height:2">
+        <li><strong>Architecture:</strong> Freeze bottom layers or use LoRA to protect foundational knowledge</li>
+        <li><strong>Data:</strong> Mix in ~10% general pre-training data to maintain distribution coverage</li>
+        <li><strong>Optimization:</strong> Use LR re-warming to prevent weight shocks at the start of training</li>
+        <li><strong>Evaluation:</strong> Monitor continuously with forgetting metrics like Backward Transfer (BWT) &mdash; measures the change in performance on old tasks after learning new ones</li>
+      </ol>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-title">Backward Transfer (BWT) Metric</div>
+      <p>
+        <strong>BWT</strong> quantifies how much a model forgets previously learned tasks after training on new ones.
+        It is defined as the average change in performance on all prior tasks after new training:
+      </p>
+      <div class="mb">BWT = (1 / (T&minus;1)) &sum;<sub>i=1..T&minus;1</sub> (R<sub>T,i</sub> &minus; R<sub>i,i</sub>)</div>
+      <p style="margin-top:8px">
+        Where R<sub>T,i</sub> is the performance on task <em>i</em> after training on task <em>T</em>, and
+        R<sub>i,i</sub> is the performance on task <em>i</em> right after training on it.
+        <strong>BWT = 0</strong> means no forgetting.
+        <strong>BWT &lt; 0</strong> means the model has forgotten (negative backward transfer).
+        <strong>BWT &gt; 0</strong> (rare) means new training actually improved old-task performance.
+        In practice, aim for BWT &gt; &minus;2% on critical benchmarks.
+      </p>
+    </div>
+
+    <div class="use-card">
+      <h4>Practical Decision Framework</h4>
+      <ul>
+        <li><strong>Small domain shift, limited data (&lt;1B tokens):</strong> Use LoRA/QLoRA &mdash; safest against forgetting</li>
+        <li><strong>Moderate domain shift, good data (1&ndash;50B tokens):</strong> Full CPT with 10&ndash;20% replay + LR re-warmup</li>
+        <li><strong>Large domain shift, massive data (&gt;50B tokens):</strong> Full CPT with replay + EWC regularization + distillation</li>
+        <li><strong>No original data available:</strong> Use SSR (self-synthesized rehearsal) + LoRA as safety net</li>
+      </ul>
+    </div>
+
+    <p class="ins">
+      There is no single &ldquo;best&rdquo; technique &mdash; the optimal strategy depends on the domain gap,
+      data availability, compute budget, and acceptable forgetting threshold. In practice, teams combine
+      multiple pillars (e.g., replay + low LR + LoRA) for the best results.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════ Next Chapter Button ═══════ -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <a href="3-fine-tuning.html" class="b bp" style="text-decoration:none;display:inline-block;padding:12px 28px;font-size:14px">
+      Next: Fine-Tuning &amp; PEFT &rarr;
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

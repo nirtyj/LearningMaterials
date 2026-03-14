@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>NN Explorer — 6. Large Language Models</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-building-blocks.html" class="tab-btn"><span class="tnum">1</span>Building Blocks</a>
+  <a href="2-cnns.html" class="tab-btn"><span class="tnum">2</span>CNNs</a>
+  <a href="3-attention.html" class="tab-btn"><span class="tnum">3</span>Attention</a>
+  <a href="4-transformers.html" class="tab-btn"><span class="tnum">4</span>Transformers</a>
+  <a href="5-vit.html" class="tab-btn"><span class="tnum">5</span>Vision (ViT)</a>
+  <a href="6-llms.html" class="tab-btn active"><span class="tnum">6</span>LLMs</a>
+  <a href="7-multimodal.html" class="tab-btn"><span class="tnum">7</span>VLM &amp; MLLM</a>
+</nav>
+
+<div class="tab-content">
+
+  <!-- Hero + Prereq -->
+  <div class="hero">
+    <h1>6. Large Language Models</h1>
+    <p>Decoder-only transformers predicting the next token &mdash; GPT, LLaMA, Claude.</p>
+  </div>
+  <div class="prereq">
+    <strong>Prereq:</strong> Tab 3 (self-attention) &rarr; Tab 4 (decoder block, causal masking)
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.1 LLM Pipeline                                             -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.1</span><h2>LLM Pipeline</h2></div>
+    <p class="sub">Given preceding text, predict the next token. That's the entire paradigm.</p>
+
+    <div class="card" id="llmPipelineCard"></div>
+
+    <div class="ins">The entire LLM is just this pipeline repeated autoregressively &mdash; append the predicted token, re-run, predict the next, repeat until done.</div>
+
+    <!-- Enrichment 6.1 -->
+    <div class="use-card">
+      <h4>Why Next-Token Prediction Works</h4>
+      <ul>
+        <li><strong>Compression is intelligence</strong> &mdash; to predict the next token well, the model must learn grammar, facts, reasoning, and world knowledge</li>
+        <li><strong>Autoregressive generation</strong> &mdash; at inference, the predicted token is appended and the process repeats, producing arbitrarily long text</li>
+        <li><strong>Emergent abilities</strong> &mdash; at sufficient scale, models exhibit chain-of-thought reasoning, in-context learning, and tool use without explicit training</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.2 Training & Scale                                         -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.2</span><h2>Training &amp; Scale</h2></div>
+    <p class="sub">Two-phase training: learn language, then learn to be helpful.</p>
+
+    <div class="g2">
+      <div class="card" style="border-left:4px solid var(--pos)">
+        <h3 style="font-size:16px;font-weight:700;color:var(--pos);margin-bottom:8px">Pre-training</h3>
+        <p class="desc" style="margin-bottom:0">Next-token prediction on trillions of tokens. Learns language, facts, reasoning. Extremely expensive ($millions). The model sees the entire internet-scale corpus and learns to compress it into its weights.</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--green)">
+        <h3 style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:8px">Fine-tuning &amp; RLHF</h3>
+        <p class="desc" style="margin-bottom:0">SFT on instruction-response pairs, then RLHF/DPO for alignment. Makes model helpful and harmless. Much cheaper. Transforms a text completer into an assistant that follows instructions.</p>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;font-weight:700;margin:24px 0 12px">Model Comparison</h3>
+    <div class="g3">
+      <div class="card" style="padding:14px;text-align:center;border-top:3px solid var(--pos)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">GPT-2</span>
+        <p style="font-size:18px;font-weight:700;color:var(--pos);margin:4px 0">1.5B</p>
+        <p style="font-size:11px;color:var(--dim);font-family:monospace">48 layers &middot; 1K ctx</p>
+      </div>
+      <div class="card" style="padding:14px;text-align:center;border-top:3px solid var(--accent)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">GPT-3</span>
+        <p style="font-size:18px;font-weight:700;color:var(--accentL);margin:4px 0">175B</p>
+        <p style="font-size:11px;color:var(--dim);font-family:monospace">96 layers &middot; 4K ctx</p>
+      </div>
+      <div class="card" style="padding:14px;text-align:center;border-top:3px solid var(--neg)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">LLaMA-2</span>
+        <p style="font-size:18px;font-weight:700;color:var(--neg);margin:4px 0">70B</p>
+        <p style="font-size:11px;color:var(--dim);font-family:monospace">80 layers &middot; 4K ctx</p>
+      </div>
+      <div class="card" style="padding:14px;text-align:center;border-top:3px solid var(--green)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">LLaMA-3</span>
+        <p style="font-size:18px;font-weight:700;color:var(--green);margin:4px 0">405B</p>
+        <p style="font-size:11px;color:var(--dim);font-family:monospace">126 layers &middot; 128K ctx</p>
+      </div>
+      <div class="card" style="padding:14px;text-align:center;border-top:3px solid var(--cyan)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">GPT-4</span>
+        <p style="font-size:18px;font-weight:700;color:var(--cyan);margin:4px 0">~1.8T MoE</p>
+        <p style="font-size:11px;color:var(--dim);font-family:monospace">~120 layers &middot; 128K ctx</p>
+      </div>
+      <div class="card" style="padding:14px;text-align:center;border-top:3px solid var(--purple)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">Claude</span>
+        <p style="font-size:18px;font-weight:700;color:var(--purple);margin:4px 0">Undisclosed</p>
+        <p style="font-size:11px;color:var(--dim);font-family:monospace">- &middot; 200K ctx</p>
+      </div>
+    </div>
+
+    <!-- Enrichment 6.2a -->
+    <div class="use-card">
+      <h4>Scaling Laws (Chinchilla)</h4>
+      <ul>
+        <li><strong>Optimal ratio:</strong> ~20 tokens per parameter for compute-optimal training</li>
+        <li><strong>LLaMA-3:</strong> trained on 15T tokens for 405B params (37x over-trained) &mdash; more data beats bigger models</li>
+        <li><strong>Key insight:</strong> For a fixed compute budget, it's better to train a smaller model on more data than a larger model on less data</li>
+      </ul>
+    </div>
+    <div class="use-card">
+      <h4>Training Infrastructure</h4>
+      <ul>
+        <li><strong>Hardware:</strong> 1000s of GPUs (H100/A100), distributed across data centers</li>
+        <li><strong>Cost:</strong> $10M&ndash;$100M+ per training run for frontier models</li>
+        <li><strong>Techniques:</strong> Data parallelism, tensor parallelism, pipeline parallelism, ZeRO optimization</li>
+      </ul>
+    </div>
+
+    <div class="trend-box">
+      <strong>Trend:</strong> The cost of training frontier models is doubling roughly every 6&ndash;9 months. Open-weight models (LLaMA, Mistral) are closing the gap with proprietary models, democratizing access.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6.3 Key Concepts                                             -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">6.3</span><h2>Key Concepts</h2></div>
+    <p class="sub">Six ideas that make modern LLMs practical.</p>
+
+    <div class="g3">
+      <!-- KV Cache -->
+      <div class="card" style="border-left:4px solid var(--cyan)">
+        <h3 style="font-size:15px;font-weight:700;color:var(--cyan);margin-bottom:6px">KV Cache</h3>
+        <p class="desc" style="margin-bottom:0">Cache K,V from previous tokens during generation. Avoids recomputation &rarr; fast inference. Without KV cache, generation is O(n&sup2;) per token. With it, O(n). Essential for production deployment.</p>
+      </div>
+
+      <!-- Context Window -->
+      <div class="card" style="border-left:4px solid var(--pos)">
+        <h3 style="font-size:15px;font-weight:700;color:var(--pos);margin-bottom:6px">Context Window</h3>
+        <p class="desc" style="margin-bottom:0">Max sequence length. Modern: 128K&ndash;1M+ tokens. Used for RAG (retrieval augmented generation), long document analysis, multi-turn conversations.</p>
+      </div>
+
+      <!-- Temperature -->
+      <div class="card" style="border-left:4px solid var(--neg)">
+        <h3 style="font-size:15px;font-weight:700;color:var(--neg);margin-bottom:6px">Temperature</h3>
+        <p class="desc" style="margin-bottom:0">Scales logits before softmax. T&lt;1=focused, T&gt;1=creative. Production: T=0 for deterministic outputs (code, math). T=0.7&ndash;1.0 for creative tasks.</p>
+      </div>
+
+      <!-- BPE Tokenization -->
+      <div class="card" style="border-left:4px solid var(--purple)">
+        <h3 style="font-size:15px;font-weight:700;color:var(--purple);margin-bottom:6px">BPE Tokenization</h3>
+        <p class="desc" style="margin-bottom:0">Iteratively merge frequent character pairs. Balances vocab size and coverage. GPT uses ~50K tokens. Multilingual models (mT5) use ~250K. Bigger vocab = fewer tokens per text but larger embedding table.</p>
+      </div>
+
+      <!-- MoE -->
+      <div class="card" style="border-left:4px solid var(--green)">
+        <h3 style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:6px">MoE (Mixture of Experts)</h3>
+        <p class="desc" style="margin-bottom:0">N expert MLPs + router. Only top-k active per token. More params, same compute. Mixtral 8x7B: 47B total params but only 13B active per token. Best quality/cost ratio.</p>
+      </div>
+
+      <!-- RoPE -->
+      <div class="card" style="border-left:4px solid var(--pink)">
+        <h3 style="font-size:15px;font-weight:700;color:var(--pink);margin-bottom:6px">RoPE</h3>
+        <p class="desc" style="margin-bottom:0">Rotary Position Embedding: encode positions as rotations. Captures relative distance. Enables context extension via interpolation (YaRN, NTK-aware scaling). LLaMA-3: 128K context.</p>
+      </div>
+    </div>
+
+    <!-- Enrichment 6.3 -->
+    <div class="use-card">
+      <h4>Inference Optimization Stack</h4>
+      <ul>
+        <li><strong>Quantization</strong> &mdash; reduce weights from FP16 to INT8/INT4. 2&ndash;4x memory savings with minimal quality loss (GPTQ, AWQ, GGUF)</li>
+        <li><strong>Speculative Decoding</strong> &mdash; small draft model proposes tokens, large model verifies in parallel. 2&ndash;3x speedup.</li>
+        <li><strong>Continuous Batching</strong> &mdash; vLLM/TGI dynamically batch requests, maximizing GPU utilization. Essential for serving at scale.</li>
+        <li><strong>Flash Attention</strong> &mdash; IO-aware attention algorithm. 2&ndash;4x faster, uses far less GPU memory. Now standard in all frameworks.</li>
+      </ul>
+    </div>
+    <div class="use-card">
+      <h4>Prompting &amp; Reasoning Techniques</h4>
+      <ul>
+        <li><strong>Chain-of-Thought (CoT)</strong> &mdash; "Let's think step by step" unlocks multi-step reasoning in large models</li>
+        <li><strong>Few-Shot Learning</strong> &mdash; provide examples in the prompt; no gradient updates needed. Emergent at ~100B+ scale.</li>
+        <li><strong>RAG (Retrieval-Augmented Generation)</strong> &mdash; retrieve relevant documents, inject into context. Reduces hallucination and grounds responses in facts.</li>
+        <li><strong>Tool Use / Function Calling</strong> &mdash; models call external APIs (search, code execution, databases) to extend their capabilities beyond text.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Footer / Next                                                -->
+  <!-- ============================================================ -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <p style="color:var(--green);font-weight:700;font-size:16px;margin-bottom:16px">LLMs understood.</p>
+    <a href="7-multimodal.html" class="b bp" style="text-decoration:none;display:inline-block;padding:10px 24px;font-size:14px">Next: 7. VLM &amp; Multimodal &rarr;</a>
+  </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- JavaScript: LLM Pipeline Click-to-Expand                       -->
+<!-- ============================================================== -->
+<script>
+(function(){
+
+  var steps = [
+    {
+      icon: '\uD83D\uDCDD',
+      color: 'var(--pos)',
+      name: 'Text Input',
+      dim: '"The cat sat on the"',
+      detail: 'Raw text. Goal: predict the next token.'
+    },
+    {
+      icon: '\u2702\uFE0F',
+      color: 'var(--neg)',
+      name: 'Tokenization',
+      dim: '\u2192 [464, 2857, 3332, 319, 262]',
+      detail: 'BPE splits text into subword tokens. Common words = single token. Rare words split into pieces. Vocab: ~32\u201350K tokens.'
+    },
+    {
+      icon: '\uD83D\uDCCA',
+      color: 'var(--accent)',
+      name: 'Token Embeddings',
+      dim: '[5, 768]',
+      detail: 'Each token ID indexes a learnable table (50K\u00D7768). \u2018cat\u2019 \u2192 [0.12, \u22120.34, ...] \u2014 768 numbers encoding meaning.'
+    },
+    {
+      icon: '\uD83D\uDCCD',
+      color: 'var(--pink)',
+      name: '+ Position Embed',
+      dim: '[5, 768]',
+      detail: 'GPT-2: learnable absolute. LLaMA: RoPE (rotations encoding relative distance, generalizes to longer sequences).'
+    },
+    {
+      icon: '\uD83D\uDD04',
+      color: 'var(--accent)',
+      name: 'Decoder Block \u00D7N',
+      dim: '[5, 768]',
+      detail: 'N stacked decoder blocks (12\u201396). Each: LN \u2192 CAUSAL Self-Attn + Residual \u2192 LN \u2192 MLP + Residual. Causal = each token only sees past tokens.'
+    },
+    {
+      icon: '\uD83C\uDFAF',
+      color: 'var(--cyan)',
+      name: 'LM Head',
+      dim: '[5, 50257]',
+      detail: 'Linear 768\u2192vocab_size. Each position scores every possible next token. Often shares weights with embedding table.'
+    },
+    {
+      icon: '\uD83C\uDFB2',
+      color: 'var(--green)',
+      name: 'Sample Next Token',
+      dim: 'P("mat")=.32 ...',
+      detail: 'Softmax \u2192 probabilities. Strategies: greedy, top-k, top-p/nucleus, temperature scaling.'
+    }
+  ];
+
+  var llmExp = -1;
+
+  function render(){
+    var container = document.getElementById('llmPipelineCard');
+    var html = '<p style="font-size:12px;color:var(--muted);margin-bottom:12px;text-align:center">Click any step to expand its details</p>';
+
+    for(var i = 0; i < steps.length; i++){
+      var s = steps[i];
+      var isActive = (i === llmExp);
+
+      // Step item
+      html += '<div class="si' + (isActive ? ' ac' : '') + '" onclick="llmToggle(' + i + ')" style="border:1px solid ' + (isActive ? 'rgba(99,102,241,.3)' : 'transparent') + '">';
+      html += '<span class="ic">' + s.icon + '</span>';
+      html += '<span class="sn2" style="color:' + s.color + '">' + s.name + '</span>';
+      html += '<span class="sd">' + s.dim + '</span>';
+      html += '<span class="ar">' + (isActive ? '\u25B2' : '\u25BC') + '</span>';
+      html += '</div>';
+
+      // Detail panel (only when expanded)
+      if(isActive){
+        html += '<div class="sdet fi">' + s.detail + '</div>';
+      }
+
+      // Arrow between steps
+      if(i < steps.length - 1){
+        html += '<div style="text-align:center;color:var(--muted);font-size:14px;margin:2px 0">\u2193</div>';
+      }
+    }
+
+    container.innerHTML = html;
+  }
+
+  window.llmToggle = function(i){
+    llmExp = (llmExp === i) ? -1 : i;
+    render();
+  };
+
+  render();
+
+})();
+</script>
+</body>
+</html>

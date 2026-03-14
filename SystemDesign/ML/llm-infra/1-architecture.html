@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>LLM Infra — 1. Modern LLM Architecture</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-architecture.html" class="tab-btn active"><span class="tnum">1</span>Architecture</a>
+  <a href="2-pretraining.html" class="tab-btn"><span class="tnum">2</span>Pre-Training</a>
+  <a href="3-fine-tuning.html" class="tab-btn"><span class="tnum">3</span>Fine-Tuning</a>
+  <a href="4-rl-alignment.html" class="tab-btn"><span class="tnum">4</span>RL Alignment</a>
+  <a href="5-distributed-training.html" class="tab-btn"><span class="tnum">5</span>Distributed</a>
+  <a href="6-inference.html" class="tab-btn"><span class="tnum">6</span>Inference</a>
+  <a href="7-eval-benchmarking.html" class="tab-btn"><span class="tnum">7</span>Eval</a>
+  <a href="8-aws-nova-forge.html" class="tab-btn"><span class="tnum">8</span>Nova Forge</a>
+</nav>
+
+<div class="tab-content">
+  <div class="hero">
+    <h1>1. Modern LLM Architecture</h1>
+    <p>Decoder-only transformers, attention mechanisms, positional encodings, and the building blocks of frontier models</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1.1 Transformer Backbone                                      -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.1</span><h2>Transformer Backbone</h2></div>
+    <p class="sub">The decoder-only architecture that powers every modern LLM</p>
+
+    <p class="desc">
+      The original 2017 "Attention Is All You Need" paper introduced the Transformer with an
+      <span class="kt">encoder-decoder</span> structure designed for sequence-to-sequence tasks like
+      machine translation. Since then, the field has converged on a simpler variant: the
+      <span class="kt">decoder-only</span> architecture. GPT, Llama, Mistral, Claude, Gemini, and
+      nearly every frontier LLM uses this paradigm. The core insight is that a single autoregressive
+      decoder, trained with next-token prediction, is a universal learner capable of in-context
+      learning, chain-of-thought reasoning, and instruction following &mdash; all without a separate
+      encoder stage.
+    </p>
+
+    <div class="callout blue">
+      <div class="callout-title">Three Transformer Families</div>
+      <ul>
+        <li><strong>Encoder-only (BERT, RoBERTa):</strong> Bidirectional attention over the full input. Ideal for classification and embedding tasks, but cannot generate text autoregressively.</li>
+        <li><strong>Encoder-decoder (T5, BART, Flan-T5):</strong> Encoder processes the input bidirectionally; decoder generates output causally. Natural for translation and summarization, but adds architectural complexity.</li>
+        <li><strong>Decoder-only (GPT, Llama, Mistral):</strong> A single stack of transformer blocks with causal masking. Scales cleanly, supports generation natively, and dominates the LLM landscape.</li>
+      </ul>
+    </div>
+
+    <p class="desc">
+      In the decoder-only design, each transformer block consists of two sub-layers:
+      <span class="kt">masked multi-head self-attention</span> and a
+      <span class="kt">position-wise feed-forward network</span> (FFN). Both sub-layers are wrapped
+      in residual connections and normalization. The causal (autoregressive) mask ensures that when
+      predicting token <em>t</em>, the model can only attend to tokens at positions
+      1, 2, &hellip;, <em>t</em>&minus;1. This is implemented as an upper-triangular mask that sets
+      future positions to &minus;&infin; before the softmax, ensuring zero attention weight on tokens
+      that haven't been generated yet.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Scaled Dot-Product Attention</h4>
+      <div class="mb">Attention(Q, K, V) = softmax( QK&#x1D40; / &radic;d_k ) &middot; V</div>
+      <p class="desc" style="margin-bottom:0">
+        <strong>Q</strong> (queries), <strong>K</strong> (keys), and <strong>V</strong> (values) are
+        linear projections of the input. The scaling factor <code>&radic;d_k</code> prevents the dot
+        products from growing too large in magnitude, which would push softmax into regions with
+        vanishingly small gradients. This simple formula is the computational heart of every
+        transformer.
+      </p>
+    </div>
+
+    <div class="arch-box">  Input Token IDs
+       &darr;
+  [Token Embedding + Positional Encoding]
+       &darr;
+  &boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdl;
+  &boxv;  Masked Multi-Head Self-Attention  &boxv;  &larr; Causal mask applied here
+  &boxv;  + Residual + Norm                 &boxv;
+  &boxvr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxvl;
+  &boxv;  Feed-Forward Network (FFN)        &boxv;
+  &boxv;  + Residual + Norm                 &boxv;
+  &boxur;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxul;
+       &darr;  (&times; N layers)
+  [Linear + Softmax &rarr; next-token probabilities]</div>
+
+    <p class="ins">
+      Residual connections are critical at scale. Without them, gradients would vanish across 80+
+      layers. The residual stream acts as a "highway" that each sub-layer reads from and writes to,
+      enabling deep networks to train stably.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1.2 Attention Variants                                        -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.2</span><h2>Attention Variants</h2></div>
+    <p class="sub">MHA, MQA, and GQA &mdash; trading expressivity for inference efficiency</p>
+
+    <p class="desc">
+      The original transformer uses <span class="kt">Multi-Head Attention (MHA)</span>, where the
+      input is projected into independent Q, K, and V matrices for each attention head. With
+      <em>h</em> heads and a model dimension <em>d</em>, each head operates on vectors of size
+      <em>d/h</em>. MHA provides maximum expressivity &mdash; each head can learn to attend to
+      different relationship patterns &mdash; but during autoregressive inference, every head requires
+      its own key and value cache. For a model with 32 heads, this means 32 independent K and V
+      tensors stored per layer, consuming significant GPU HBM.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">MQA</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Multi-Query Attention</h4>
+        <p class="desc" style="margin-bottom:0">
+          Introduced by Noam Shazeer (2019), MQA uses a <strong>single</strong> shared K and V
+          projection across all query heads. This reduces the KV cache by a factor of <em>h</em>
+          (e.g., 32&times; for a 32-head model). The quality degradation is surprisingly small, and
+          the inference throughput improvement is dramatic. Adopted by PaLM, Falcon, and StarCoder.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">GQA</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Grouped Query Attention</h4>
+        <p class="desc" style="margin-bottom:0">
+          GQA (Ainslie et al., 2023) is the pragmatic middle ground. Query heads are divided into
+          <em>g</em> groups, and each group shares one K and one V head. With <em>g</em>=8 groups
+          for 32 query heads, you get 8 KV heads &mdash; a 4&times; KV cache reduction versus MHA
+          while retaining more expressivity than MQA. This has become the default choice for
+          Llama 2/3, Mistral, Gemma 2, and Qwen 2.5.
+        </p>
+      </div>
+    </div>
+
+    <table class="ct">
+      <thead>
+        <tr>
+          <th>Variant</th>
+          <th>KV Heads</th>
+          <th>KV Cache Memory</th>
+          <th>Throughput</th>
+          <th>Adopted By</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>MHA</td>
+          <td><em>h</em> (e.g., 32)</td>
+          <td>Baseline (1&times;)</td>
+          <td>Baseline</td>
+          <td>GPT-3, BERT, original Transformer</td>
+        </tr>
+        <tr>
+          <td>MQA</td>
+          <td>1</td>
+          <td>1/<em>h</em> (~3%)</td>
+          <td>2&ndash;4&times;</td>
+          <td>PaLM, PaLM 2, Falcon, StarCoder</td>
+        </tr>
+        <tr>
+          <td>GQA</td>
+          <td><em>g</em> (e.g., 8)</td>
+          <td><em>g</em>/<em>h</em> (~25%)</td>
+          <td>1.5&ndash;2.5&times;</td>
+          <td>Llama 2/3, Mistral, Gemma, Qwen 2.5</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="ins">
+      The GQA paper showed that an MHA model can be "uptrained" to GQA by mean-pooling the
+      existing KV heads within each group, then continuing training for a small fraction of the
+      original compute. This makes GQA a practical retrofit, not just a from-scratch decision.
+    </p>
+
+    <div class="callout purple">
+      <div class="callout-title">Multi-Head Latent Attention (MLA)</div>
+      <p>
+        DeepSeek-V2 and V3 introduce <strong>MLA</strong>, which goes further than GQA. Instead of
+        separate KV heads, MLA compresses the KV representation into a low-rank latent vector, then
+        expands it back during attention. This achieves even smaller KV caches than GQA while
+        maintaining MHA-level quality. It represents the next frontier in attention efficiency.
+      </p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1.3 Positional Encoding                                       -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.3</span><h2>Positional Encoding</h2></div>
+    <p class="sub">Injecting sequence order into a permutation-invariant mechanism</p>
+
+    <p class="desc">
+      Self-attention is fundamentally <span class="kt">permutation-invariant</span>: if you shuffle
+      the input tokens, the attention outputs (before masking) are simply a permuted version of the
+      originals. This means a transformer with no positional information would treat "the cat sat on
+      the mat" identically to "mat the on sat cat the." Positional encoding solves this by injecting
+      information about each token's position in the sequence.
+    </p>
+
+    <div class="card">
+      <span class="tag tag-amber">LEGACY</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">Learned Absolute Embeddings (GPT-2)</h4>
+      <p class="desc" style="margin-bottom:0">
+        The simplest approach: add a learned embedding vector for each position
+        (0, 1, 2, &hellip;, <em>max_len</em>). GPT-2 used this with a 1024-token context window.
+        Advantages: trivially simple to implement. Disadvantages: the model cannot extrapolate beyond
+        the trained context length, and the embeddings must be stored as part of the model parameters.
+        No modern frontier model uses this approach.
+      </p>
+    </div>
+
+    <div class="card">
+      <span class="tag tag-green">STANDARD</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">RoPE &mdash; Rotary Position Embeddings</h4>
+      <p class="desc">
+        RoPE (Su et al., 2021) has become the <strong>near-universal</strong> positional encoding
+        for 2024+ LLMs. Rather than adding position information to token embeddings, RoPE encodes
+        relative position directly in the attention computation by rotating Q and K vectors in a
+        complex number space. Each dimension pair (2<em>i</em>, 2<em>i</em>+1) of the Q and K
+        vectors is treated as a 2D vector and rotated by an angle proportional to the position.
+      </p>
+      <div class="mb">R(&theta;, m) &middot; q = [ q_2i cos(m&theta;_i) &minus; q_{2i+1} sin(m&theta;_i) , q_2i sin(m&theta;_i) + q_{2i+1} cos(m&theta;_i) ]</div>
+      <p class="desc" style="margin-bottom:0">
+        The key property is that the dot product between a rotated Q at position <em>m</em> and a
+        rotated K at position <em>n</em> depends only on the <strong>relative distance</strong>
+        (<em>m</em>&minus;<em>n</em>), giving the model natural relative position awareness. RoPE
+        also supports length extrapolation through techniques like NTK-aware scaling, YaRN, and
+        dynamic NTK, allowing models trained on 8K contexts to generalize to 128K+ at inference time.
+      </p>
+    </div>
+
+    <div class="card">
+      <span class="tag tag-cyan">ALTERNATIVE</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">ALiBi &mdash; Attention with Linear Biases</h4>
+      <p class="desc" style="margin-bottom:0">
+        ALiBi (Press et al., 2022) takes a radically simple approach: instead of modifying
+        embeddings, it adds a <strong>linear bias</strong> to the attention score based on the
+        distance between query and key positions. The bias is &minus;<em>m</em> &middot; |<em>i</em> &minus; <em>j</em>|,
+        where <em>m</em> is a head-specific slope (set geometrically, not learned). This acts as a
+        soft local attention window that naturally decays with distance. ALiBi requires no additional
+        parameters and shows strong length extrapolation. Used by MPT and BLOOM, though RoPE has
+        since overtaken it in popularity.
+      </p>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">Length Extrapolation Techniques</div>
+      <p>
+        Training with long sequences is expensive (attention is O(N&sup2;)). Length extrapolation
+        methods allow a model trained on short contexts to perform well on longer ones:
+      </p>
+      <ul>
+        <li><strong>Position Interpolation (PI):</strong> Linearly scales positions down to fit within the trained range. Simple but requires fine-tuning.</li>
+        <li><strong>NTK-aware Scaling:</strong> Modifies the RoPE frequency base to handle higher frequencies better. Works with minimal or no fine-tuning.</li>
+        <li><strong>YaRN:</strong> Combines NTK scaling with attention temperature adjustments and a ramp function. State-of-the-art extrapolation for RoPE models.</li>
+        <li><strong>Dynamic NTK:</strong> Adjusts the scaling factor based on the actual sequence length at inference, applying more interpolation only when needed.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1.4 Activations & Normalization                               -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.4</span><h2>Activations &amp; Normalization</h2></div>
+    <p class="sub">SwiGLU, RMSNorm, and the pre-norm transformer recipe</p>
+
+    <p class="desc">
+      The feed-forward network (FFN) in each transformer block is the primary "compute" layer, where
+      the model performs non-linear transformations on each token's representation. While the original
+      transformer used a simple two-layer MLP with ReLU activation, modern LLMs have converged on
+      <span class="kt">SwiGLU</span> &mdash; a gated linear unit with the Swish activation function.
+      Similarly, normalization has evolved from LayerNorm to the simpler and faster
+      <span class="kt">RMSNorm</span>, applied in a <span class="kt">pre-norm</span> configuration.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">SwiGLU Activation</h4>
+      <p class="desc">
+        SwiGLU (Shazeer, 2020) replaces the standard FFN with a gated architecture. Instead of a
+        single linear projection followed by an activation, it uses two parallel projections and
+        combines them with element-wise multiplication (gating):
+      </p>
+      <div class="mb">SwiGLU(x) = Swish(x &middot; W_1 + b_1) &odot; (x &middot; W_2 + b_2)</div>
+      <div class="mb">Swish(x) = x &middot; &sigma;(&beta;x) &nbsp;&nbsp; where &sigma; is the sigmoid function</div>
+      <p class="desc" style="margin-bottom:0">
+        The gating mechanism allows the network to learn which features to pass through, acting as a
+        form of learned feature selection. Empirically, SwiGLU achieves better loss for the same
+        compute budget compared to ReLU or GELU FFNs. Note that SwiGLU requires three weight
+        matrices (W_1, W_2, W_3) instead of two, so the hidden dimension is typically reduced from
+        4&times;<em>d</em> to (8/3)&times;<em>d</em> to keep the parameter count constant.
+        Used by Llama, Mistral, Gemma, Qwen, PaLM, and virtually all frontier models.
+      </p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">NORMALIZATION</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">RMSNorm</h4>
+        <div class="mb">RMSNorm(x) = x / RMS(x) &middot; &gamma;</div>
+        <div class="mb">RMS(x) = &radic;( (1/n) &sum; x_i&sup2; )</div>
+        <p class="desc" style="margin-bottom:0">
+          RMSNorm (Zhang &amp; Sennrich, 2019) simplifies LayerNorm by removing the mean-centering
+          step. It normalizes only by the root mean square, then applies a learned scale parameter
+          &gamma;. This removes one reduction operation and is empirically equivalent in quality while
+          being ~10-15% faster. Adopted by Llama, Mistral, Gemma, and most modern LLMs.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag tag-purple">PLACEMENT</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Pre-Norm vs Post-Norm</h4>
+        <p class="desc" style="margin-bottom:0">
+          The original transformer applies normalization <em>after</em> the attention/FFN sub-layer
+          (post-norm). Modern LLMs universally use <strong>pre-norm</strong>: normalize the input
+          <em>before</em> passing it to attention/FFN. Pre-norm provides significantly better training
+          stability, especially for deep models (60+ layers), because the residual connection carries
+          unnormalized activations, preventing gradient explosion. The trade-off is that pre-norm can
+          slightly reduce representation power, but this is negligible at scale.
+        </p>
+      </div>
+    </div>
+
+    <div class="arch-box">  Pre-Norm Transformer Block:
+
+  x &rarr; [RMSNorm] &rarr; [Multi-Head Attention] &rarr; (+x) &rarr; out_1
+                                                       residual
+
+  out_1 &rarr; [RMSNorm] &rarr; [SwiGLU FFN] &rarr; (+out_1) &rarr; out_2
+                                                  residual</div>
+
+    <p class="ins">
+      The combination of Pre-Norm + RMSNorm + SwiGLU has become the "standard recipe" for modern
+      LLM blocks. It first appeared in PaLM (2022), was adopted by Llama (2023), and is now
+      essentially universal in open-weight models.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1.5 FlashAttention                                            -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.5</span><h2>FlashAttention</h2></div>
+    <p class="sub">IO-aware exact attention &mdash; the algorithm that unlocked long contexts</p>
+
+    <p class="desc">
+      Standard attention computes the full <em>N</em>&times;<em>N</em> attention matrix, where
+      <em>N</em> is the sequence length. This matrix must be materialized in GPU HBM (high-bandwidth
+      memory), consuming <strong>O(N&sup2;)</strong> memory. For a 128K-token sequence, this means
+      storing a matrix with ~16 billion entries &mdash; clearly impractical. Even for shorter
+      sequences, the memory reads and writes between HBM and SRAM (on-chip cache) dominate the
+      runtime, making attention <span class="kt">memory-bandwidth-bound</span> rather than
+      compute-bound.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">The FlashAttention Algorithm (Dao et al., 2022)</h4>
+      <p class="desc">
+        FlashAttention is an <span class="kt">IO-aware</span> algorithm that restructures the
+        attention computation to minimize data movement between HBM and SRAM. The key ideas:
+      </p>
+      <ol style="color:var(--dim);font-size:13px;line-height:1.8;padding-left:20px;margin-bottom:12px">
+        <li><strong>Tiling:</strong> Divide Q, K, V into blocks that fit in SRAM (the fast on-chip memory, ~20 MB on A100).</li>
+        <li><strong>Block-wise computation:</strong> Compute attention for each tile pair in SRAM without ever writing the full N&times;N matrix to HBM.</li>
+        <li><strong>Online softmax:</strong> Use the "online softmax trick" to incrementally compute the correct softmax across tiles, tracking running max and sum statistics.</li>
+        <li><strong>Recomputation on backward pass:</strong> Instead of storing the attention matrix for the backward pass, recompute it from Q, K, V blocks. This trades FLOPs for memory.</li>
+      </ol>
+      <p class="desc" style="margin-bottom:0">
+        The result is <strong>exact attention</strong> (not an approximation) with O(N) memory instead
+        of O(N&sup2;), and 2-4&times; wall-clock speedup due to reduced HBM traffic. FlashAttention
+        is now the default in virtually every training and inference framework.
+      </p>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">GPU Memory Hierarchy</div>
+      <p>
+        Understanding FlashAttention requires knowing the GPU memory hierarchy. On an A100:
+        <strong>HBM</strong> is 80 GB at ~2 TB/s bandwidth; <strong>SRAM</strong> is ~20 MB at ~19 TB/s
+        bandwidth. SRAM is 10&times; faster but 4000&times; smaller. FlashAttention keeps the
+        hot data (the current tile of Q, K, V) in SRAM and only reads/writes final results to HBM.
+      </p>
+    </div>
+
+    <table class="ct">
+      <thead>
+        <tr>
+          <th>Version</th>
+          <th>Year</th>
+          <th>Key Improvement</th>
+          <th>Target Hardware</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>FlashAttention</td>
+          <td>2022</td>
+          <td>IO-aware tiling, online softmax, O(N) memory</td>
+          <td>A100 (FP16/BF16)</td>
+        </tr>
+        <tr>
+          <td>FlashAttention-2</td>
+          <td>2023</td>
+          <td>Better parallelism across sequence dim, reduced non-matmul FLOPs, ~2&times; over FA-1</td>
+          <td>A100, H100</td>
+        </tr>
+        <tr>
+          <td>FlashAttention-3</td>
+          <td>2024</td>
+          <td>FP8 tensor core support, asynchronous softmax, warp-specialized pipelining</td>
+          <td>H100 (Hopper architecture)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="ins">
+      FlashAttention didn't change the mathematics of attention at all &mdash; it changed the
+      memory access pattern. This is a powerful lesson: at modern hardware scales, algorithmic
+      efficiency is often about IO, not FLOPs.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1.6 Mixture-of-Experts (MoE)                                  -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.6</span><h2>Mixture-of-Experts (MoE)</h2></div>
+    <p class="sub">Scaling total parameters while keeping per-token compute constant</p>
+
+    <p class="desc">
+      In a standard <span class="kt">dense</span> transformer, every parameter is active for every
+      token. If a model has 70 billion parameters, all 70B are used to process each token. This
+      creates a tight coupling between model capacity (total parameters) and compute cost (FLOPs per
+      token). <span class="kt">Mixture-of-Experts (MoE)</span> breaks this coupling by replacing the
+      single FFN in each transformer block with <em>N</em> parallel "expert" FFN modules and a
+      learned <span class="kt">router</span> (gating network) that selects the top-<em>k</em>
+      experts for each token.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">How MoE Routing Works</h4>
+      <p class="desc">
+        For each token, the router computes a probability distribution over all <em>N</em> experts
+        using a softmax over learned gate weights. The top-<em>k</em> experts (typically <em>k</em>=2)
+        are selected, and the token is processed by only those experts. The outputs are combined as a
+        weighted sum using the router probabilities:
+      </p>
+      <div class="mb">output = &sum;_{i &in; top-k} g_i &middot; Expert_i(x) &nbsp;&nbsp; where g_i = softmax(x &middot; W_gate)_i</div>
+      <p class="desc" style="margin-bottom:0">
+        This means a model with 8 experts and top-2 routing activates only ~25% of its FFN parameters
+        per token. Mixtral 8&times;7B has ~47B total parameters but only ~13B active per token,
+        achieving performance competitive with dense 70B models at a fraction of the inference cost.
+      </p>
+    </div>
+
+    <div class="arch-box">             &boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdl;
+             &boxv;   Router    &boxv;
+             &boxv;  (Gating)   &boxv;
+             &boxur;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxul;
+            / | | | | | | \
+           /  | | | | | |  \
+  &boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdl; &boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdl; &boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdl; &boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdl;
+  &boxv;Exp. 1&boxv; &boxv;Exp. 2&boxv; &boxv;Exp. 3&boxv; &boxv;Exp. N&boxv;
+  &boxv; (FFN) &boxv; &boxv; (FFN) &boxv; &boxv; (FFN) &boxv; &boxv; (FFN) &boxv;
+  &boxur;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxul; &boxur;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxul; &boxur;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxul; &boxur;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxul;
+    &boxv;*          &boxv;                        &boxv;
+    &boxur;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdl;            &boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxul;
+             &boxv;            &boxv;
+             v            v
+      &boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdl;
+      &boxv;  Weighted Sum of     &boxv;
+      &boxv;  top-k Expert Outputs &boxv;  * selected by router
+      &boxur;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxul;</div>
+
+    <div class="callout red">
+      <div class="callout-title">MoE Challenges</div>
+      <ul>
+        <li><strong>Load balancing:</strong> Without intervention, the router may collapse to using only a few experts, wasting capacity. An auxiliary load-balancing loss penalizes uneven expert utilization.</li>
+        <li><strong>Expert parallelism:</strong> Experts must be distributed across GPUs, requiring all-to-all communication to route tokens to their selected experts and gather results back. This is a significant networking bottleneck.</li>
+        <li><strong>Memory footprint:</strong> While active parameters are sparse, all expert weights must still be loaded in memory. Mixtral 8&times;7B needs ~47B params in VRAM, even though only ~13B are active per token.</li>
+        <li><strong>Training instability:</strong> Router training can be unstable, with experts alternating between being over- and under-utilized. Techniques like expert choice routing and soft routing help stabilize training.</li>
+      </ul>
+    </div>
+
+    <div class="use-card">
+      <h4>Notable MoE Models</h4>
+      <ul>
+        <li><strong>Mixtral 8&times;7B</strong> &mdash; 8 experts, top-2, ~47B total / ~13B active. Matches Llama 2 70B on many benchmarks.</li>
+        <li><strong>GPT-4</strong> &mdash; Rumored MoE with ~1.8T total parameters, 8 experts per layer.</li>
+        <li><strong>DeepSeek-V2/V3</strong> &mdash; 671B total / 37B active. Uses fine-grained experts (256 experts, top-8) with shared experts always active.</li>
+        <li><strong>DBRX</strong> &mdash; Databricks' 132B MoE (36B active), 16 experts with top-4 routing.</li>
+        <li><strong>Qwen2-MoE</strong> &mdash; 57B total / 14B active. Fine-grained expert segmentation with shared experts.</li>
+      </ul>
+    </div>
+
+    <p class="ins">
+      The trend is moving toward <strong>fine-grained MoE</strong>: more experts with smaller
+      individual sizes and higher top-k selection. DeepSeek-V3 uses 256 routed experts + 1 shared
+      expert, selecting top-8. This gives more diverse expert combinations and better load balancing.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1.7 Model Landscape                                           -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">1.7</span><h2>Model Landscape</h2></div>
+    <p class="sub">A comparative view of the major LLM families and their architectural choices</p>
+
+    <p class="desc">
+      The LLM landscape has consolidated around a shared set of architectural primitives &mdash;
+      decoder-only transformers, RoPE, GQA, SwiGLU, RMSNorm, pre-norm, FlashAttention &mdash; but
+      each model family makes distinct choices about scale, training data, context length, and
+      specializations like MoE or multimodality. The table below captures the key architectural
+      fingerprint of each major family.
+    </p>
+
+    <table class="ct">
+      <thead>
+        <tr>
+          <th>Model Family</th>
+          <th>Organization</th>
+          <th>Sizes</th>
+          <th>Attention</th>
+          <th>Position</th>
+          <th>FFN / Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Llama 3 / 3.1</td>
+          <td>Meta</td>
+          <td>8B / 70B / 405B</td>
+          <td>GQA</td>
+          <td>RoPE</td>
+          <td>SwiGLU, open-weight, 128K ctx</td>
+        </tr>
+        <tr>
+          <td>Mistral / Mixtral</td>
+          <td>Mistral AI</td>
+          <td>7B / 8&times;7B / 8&times;22B</td>
+          <td>GQA + SWA</td>
+          <td>RoPE</td>
+          <td>Sliding window attn, MoE variants</td>
+        </tr>
+        <tr>
+          <td>Gemma / Gemma 2</td>
+          <td>Google</td>
+          <td>2B / 7B / 9B / 27B</td>
+          <td>MQA / GQA</td>
+          <td>RoPE</td>
+          <td>Alternating local+global attention</td>
+        </tr>
+        <tr>
+          <td>Qwen 2.5</td>
+          <td>Alibaba</td>
+          <td>0.5B &ndash; 72B</td>
+          <td>GQA</td>
+          <td>RoPE</td>
+          <td>SwiGLU, strong multilingual + code</td>
+        </tr>
+        <tr>
+          <td>DeepSeek-V3</td>
+          <td>DeepSeek</td>
+          <td>671B (37B active)</td>
+          <td>MLA</td>
+          <td>RoPE</td>
+          <td>256 fine-grained experts, FP8 training</td>
+        </tr>
+        <tr>
+          <td>GPT-4 / 4o</td>
+          <td>OpenAI</td>
+          <td>Proprietary</td>
+          <td>Undisclosed</td>
+          <td>Undisclosed</td>
+          <td>Rumored MoE ~1.8T params, multimodal</td>
+        </tr>
+        <tr>
+          <td>Claude 3.5 / Opus</td>
+          <td>Anthropic</td>
+          <td>Proprietary</td>
+          <td>Undisclosed</td>
+          <td>Undisclosed</td>
+          <td>Strong reasoning, 200K ctx, RLHF-aligned</td>
+        </tr>
+        <tr>
+          <td>Gemini 1.5 / 2.0</td>
+          <td>Google</td>
+          <td>Proprietary</td>
+          <td>Undisclosed</td>
+          <td>Undisclosed</td>
+          <td>Multimodal-native, 1M+ ctx, rumored MoE</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <div class="callout-title">Key Architectural Trends (2024-2025)</div>
+      <ul>
+        <li><strong>GQA is the default.</strong> Almost every new open model uses grouped-query attention over full MHA.</li>
+        <li><strong>RoPE is universal.</strong> ALiBi and learned absolute embeddings have been fully displaced.</li>
+        <li><strong>MoE is mainstream.</strong> After Mixtral proved the concept, DeepSeek-V3 and Qwen2-MoE showed that fine-grained MoE can match dense models at a fraction of the compute.</li>
+        <li><strong>Context windows are exploding.</strong> 128K is standard; Gemini supports 1M+; research pushes toward 10M tokens.</li>
+        <li><strong>Multimodality is table stakes.</strong> Vision, audio, and video encoders are being fused into the same transformer backbone.</li>
+        <li><strong>Open weights accelerate.</strong> Meta's Llama, Google's Gemma, Alibaba's Qwen, and DeepSeek have created a thriving open ecosystem.</li>
+      </ul>
+    </div>
+
+    <div class="trend-box">
+      <strong>Emerging: </strong> Multi-Head Latent Attention (MLA) from DeepSeek represents a
+      potential next step beyond GQA, compressing KV representations into low-rank latents. Native
+      FP8 training (DeepSeek-V3) and dynamic expert allocation are also areas of active innovation.
+    </div>
+
+    <p class="ins">
+      While proprietary models (GPT-4, Claude, Gemini) don't disclose architectures, the open-weight
+      ecosystem &mdash; Llama, Mistral, Gemma, Qwen, DeepSeek &mdash; has converged on a remarkably
+      consistent recipe: decoder-only + GQA + RoPE + SwiGLU + RMSNorm + Pre-Norm + FlashAttention.
+      The differentiators are increasingly about data, scale, alignment, and training infrastructure
+      rather than novel architecture.
+    </p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Next Chapter Button                                           -->
+  <!-- ============================================================ -->
+  <div style="text-align:center;margin-top:48px">
+    <a href="2-pretraining.html" class="b bp" style="text-decoration:none;display:inline-block;padding:12px 28px;font-size:15px">
+      Next: Pre-Training at Scale &rarr;
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

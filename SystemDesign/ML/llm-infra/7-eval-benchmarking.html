@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>LLM Infra — 7. Evaluation & Benchmarking</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-architecture.html" class="tab-btn"><span class="tnum">1</span>Architecture</a>
+  <a href="2-pretraining.html" class="tab-btn"><span class="tnum">2</span>Pre-Training</a>
+  <a href="3-fine-tuning.html" class="tab-btn"><span class="tnum">3</span>Fine-Tuning</a>
+  <a href="4-rl-alignment.html" class="tab-btn"><span class="tnum">4</span>RL Alignment</a>
+  <a href="5-distributed-training.html" class="tab-btn"><span class="tnum">5</span>Distributed</a>
+  <a href="6-inference.html" class="tab-btn"><span class="tnum">6</span>Inference</a>
+  <a href="7-eval-benchmarking.html" class="tab-btn active"><span class="tnum">7</span>Eval</a>
+  <a href="8-aws-nova-forge.html" class="tab-btn"><span class="tnum">8</span>Nova Forge</a>
+</nav>
+
+<div class="tab-content">
+  <div class="hero">
+    <h1>7. Evaluation &amp; Benchmarking</h1>
+    <p>Knowledge benchmarks, reasoning evals, LLM-as-a-judge, safety testing, and the infrastructure to run it all at scale</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.1 Why Evaluation Matters                                    -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.1</span><h2>Why Evaluation Matters</h2></div>
+    <p class="sub">If you can't measure it, you can't improve it &mdash; but measure the wrong thing and you'll improve the wrong thing</p>
+
+    <p class="desc">
+      Evaluation guides every LLM decision: which architecture to use, when to stop training, whether fine-tuning helped, and whether a model is safe to deploy. Without rigorous eval, you are spending millions on compute with no principled way to know if the result is better. Yet evaluation is <span class="kt">deceptively hard</span> &mdash; a model can ace every benchmark and still fail catastrophically in production.
+    </p>
+
+    <div class="callout red">
+      <div class="callout-title">Goodhart's Law</div>
+      <p>"When a measure becomes a target, it ceases to be a good measure." The moment you optimize for a benchmark, teams begin overfitting to its distribution, format, and quirks. Models scoring 90% on MMLU may struggle with basic real-world knowledge phrased differently. High benchmark scores create a dangerous illusion of capability.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">GAP</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">The Evaluation Gap</h4>
+        <p class="desc" style="margin-bottom:0">Academic benchmarks test <strong>narrow, well-defined skills</strong> under controlled conditions. Production use cases are diverse, evolving, and ambiguous. A model excelling at multiple-choice science questions may fail at drafting a nuanced business email.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">DISCIPLINE</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Eval as Engineering</h4>
+        <p class="desc" style="margin-bottom:0">Frontier labs treat evaluation as a <strong>first-class engineering discipline</strong>: eval datasets are version-controlled, pipelines are automated in CI/CD, results are tracked with experiment management tools, and eval infra gets dedicated compute.</p>
+      </div>
+    </div>
+
+    <div class="use-card">
+      <h4>Five Types of Evaluation</h4>
+      <ul>
+        <li><strong>Capability Benchmarks</strong> &mdash; Measure raw skills: knowledge, reasoning, code generation, math.</li>
+        <li><strong>Preference Evaluation</strong> &mdash; Human or LLM judges compare outputs side-by-side for helpfulness and tone.</li>
+        <li><strong>Safety Evaluation</strong> &mdash; Red-teaming, bias testing, truthfulness checks before deployment.</li>
+        <li><strong>Domain-Specific Evaluation</strong> &mdash; Custom benchmarks for finance, medicine, law, or your product.</li>
+        <li><strong>Operational Evaluation</strong> &mdash; Latency, throughput, cost-per-token, memory footprint.</li>
+      </ul>
+    </div>
+
+    <p class="ins">The best strategies combine multiple types: automated benchmarks for rapid iteration, LLM-as-a-judge for scalable preference signals, human evaluation for ground truth, and domain-specific evals for production readiness. No single metric tells the whole story.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.2 Knowledge Benchmarks                                      -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.2</span><h2>Knowledge Benchmarks</h2></div>
+    <p class="sub">Testing breadth of world knowledge across dozens of subjects</p>
+
+    <p class="desc">
+      Knowledge benchmarks evaluate a model's ability to recall and apply factual information across a wide range of domains. These are the most commonly reported metrics in model release papers, forming the first line of comparison. However, they primarily test <span class="kt">memorized knowledge</span> rather than reasoning or generation quality &mdash; necessary but not sufficient.
+    </p>
+
+    <div class="card">
+      <span class="tag tag-blue">STANDARD</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">MMLU &mdash; Massive Multitask Language Understanding</h4>
+      <p class="desc">Covers <strong>57 subjects</strong> from abstract algebra to world religions. 4-option multiple-choice, evaluated 5-shot or 0-shot. Became the de facto standard after GPT-4 scored ~86% vs GPT-3.5's ~70%.</p>
+      <p class="desc" style="margin-bottom:0"><strong>Criticism:</strong> Many questions are ambiguous, have disputed answers, or test niche trivia. Studies found 5-10% error rates in the ground truth labels. Despite this, MMLU remains the most widely reported benchmark due to breadth and established baselines.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-purple">HARDER</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">MMLU-Pro</h4>
+        <p class="desc" style="margin-bottom:0">10 answer choices instead of 4, reducing guessing from 25% to 10%. Requires more nuanced reasoning and resists surface-level pattern matching.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">REASONING</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">ARC (AI2 Reasoning Challenge)</h4>
+        <p class="desc" style="margin-bottom:0">Grade-school science questions split into <strong>Easy</strong> and <strong>Challenge</strong> sets. The Challenge set requires genuine multi-step reasoning that simple retrieval methods fail on.</p>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-amber">COMMONSENSE</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">HellaSwag</h4>
+        <p class="desc" style="margin-bottom:0">Sentence completion requiring commonsense reasoning. Adversarially filtered so wrong answers fool simple models. <strong>Near-saturated</strong> &mdash; GPT-4 scores &gt;95%, limiting discriminative power.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-cyan">FACTUAL QA</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">TriviaQA &amp; NaturalQuestions</h4>
+        <p class="desc" style="margin-bottom:0">Open-domain factual QA. TriviaQA uses trivia sites; NaturalQuestions uses real Google queries with Wikipedia answers. Tests recall in free-form generation, not multiple-choice.</p>
+      </div>
+    </div>
+
+    <table class="ct">
+      <thead><tr><th>Benchmark</th><th>What It Tests</th><th>Format</th><th>Metric</th><th>Saturated?</th></tr></thead>
+      <tbody>
+        <tr><td>MMLU</td><td>Broad knowledge (57 subjects)</td><td>4-choice MC, 5-shot</td><td>Accuracy</td><td>Approaching (top &gt;90%)</td></tr>
+        <tr><td>MMLU-Pro</td><td>Harder knowledge + reasoning</td><td>10-choice MC</td><td>Accuracy</td><td>No</td></tr>
+        <tr><td>ARC-Challenge</td><td>Grade-school science reasoning</td><td>4-choice MC</td><td>Accuracy</td><td>Approaching</td></tr>
+        <tr><td>HellaSwag</td><td>Commonsense completion</td><td>4-choice MC</td><td>Accuracy</td><td>Yes (top &gt;95%)</td></tr>
+        <tr><td>TriviaQA</td><td>Factual trivia recall</td><td>Open-ended QA</td><td>EM / F1</td><td>No</td></tr>
+        <tr><td>NaturalQuestions</td><td>Real search query answers</td><td>Open-ended QA</td><td>EM / F1</td><td>No</td></tr>
+      </tbody>
+    </table>
+
+    <p class="ins">A model scoring 90% on MMLU and 60% on your domain eval is probably worse for your use case than one scoring 85% MMLU and 80% domain. Knowledge benchmarks are a starting point, never the final word.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.3 Reasoning & Code                                          -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.3</span><h2>Reasoning &amp; Code</h2></div>
+    <p class="sub">Mathematical problem-solving and programming benchmarks with automated verification</p>
+
+    <p class="desc">
+      Reasoning and code benchmarks are arguably more informative than knowledge benchmarks because they test <span class="kt">compositional thinking</span>, not recall. They also have a critical advantage: <strong>automated verification</strong>. You can check if the math answer is correct or if the code passes test cases, eliminating subjective judgment.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-green">MATH</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">GSM8K</h4>
+        <p class="desc" style="margin-bottom:0"><strong>8.5K grade school math</strong> word problems requiring 2-8 reasoning steps with basic arithmetic. Chain-of-thought prompting dramatically improves performance. Top models now score &gt;95% &mdash; increasingly saturated.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-purple">MATH</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">MATH Benchmark</h4>
+        <p class="desc" style="margin-bottom:0"><strong>12.5K competition-level</strong> problems across 7 subjects (algebra, number theory, geometry) at 5 difficulty levels. Tests symbolic reasoning and mathematical creativity. Even frontier models score well below human experts on the hardest levels.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="tag tag-blue">CODE</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">HumanEval &amp; pass@k</h4>
+      <p class="desc"><strong>164 Python function completion</strong> problems with docstrings, signatures, and unit tests. The metric <span class="kt">pass@k</span> measures the probability that at least one of <em>k</em> sampled completions passes all tests:</p>
+      <div class="mb">pass@k = 1 &minus; C(n&minus;c, k) / C(n, k) &nbsp;&nbsp; where n = total samples, c = correct samples</div>
+      <p class="desc" style="margin-bottom:0">This unbiased estimator avoids the high variance of checking a single random sample. <strong>pass@1</strong> is most reported; pass@10 and pass@100 reveal the model's solution diversity.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-cyan">CODE</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">MBPP</h4>
+        <p class="desc" style="margin-bottom:0"><strong>500 basic Python programs</strong> &mdash; standard library operations, string manipulation, simple algorithms. Easier than HumanEval but provides a larger test surface.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-red">HARD</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">SWE-bench</h4>
+        <p class="desc" style="margin-bottom:0">Real <strong>GitHub issue resolution</strong>: given an issue and full repo, produce a correct patch. Tests end-to-end SWE: reading code, understanding context, writing a fix. Top agents solve ~50% of the verified subset.</p>
+      </div>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">LiveCodeBench &mdash; Fighting Contamination</div>
+      <p>Static benchmarks risk <strong>data contamination</strong> &mdash; test questions appearing in training data. LiveCodeBench addresses this by continuously sourcing new competitive programming problems from LeetCode, Codeforces, and AtCoder <em>after</em> a model's training cutoff. Timestamped problems ensure the model has never seen them, providing a cleaner signal of true coding ability.</p>
+    </div>
+
+    <table class="ct">
+      <thead><tr><th>Benchmark</th><th>Task Type</th><th>Size</th><th>Metric</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr><td>GSM8K</td><td>Grade school math</td><td>8.5K</td><td>Exact match</td><td>Low-Medium</td></tr>
+        <tr><td>MATH</td><td>Competition math</td><td>12.5K</td><td>Exact match</td><td>Medium-Very High</td></tr>
+        <tr><td>HumanEval</td><td>Python function completion</td><td>164</td><td>pass@k</td><td>Medium</td></tr>
+        <tr><td>MBPP</td><td>Basic Python programs</td><td>500</td><td>pass@k</td><td>Low-Medium</td></tr>
+        <tr><td>SWE-bench</td><td>GitHub issue resolution</td><td>2294 (500 verified)</td><td>% resolved</td><td>High</td></tr>
+        <tr><td>LiveCodeBench</td><td>Competitive programming</td><td>Continuously updated</td><td>pass@k</td><td>Medium-High</td></tr>
+      </tbody>
+    </table>
+
+    <p class="ins">Code benchmarks have a unique advantage: correctness is objectively verifiable. The trend is toward more realistic (SWE-bench) and contamination-resistant (LiveCodeBench) designs.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.4 Conversational Evaluation                                 -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.4</span><h2>Conversational Evaluation</h2></div>
+    <p class="sub">Measuring instruction following, multi-turn coherence, and chat quality</p>
+
+    <p class="desc">
+      Knowledge and code benchmarks test narrow skills. But the primary LLM interface is <span class="kt">open-ended conversation</span> where users expect helpful, coherent, well-formatted responses. Conversational evals capture this holistic quality, which is much harder to quantify than accuracy.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">MULTI-TURN</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">MT-Bench</h4>
+        <p class="desc" style="margin-bottom:0"><strong>80 multi-turn questions</strong> across 8 categories (writing, roleplay, reasoning, math, coding, extraction, STEM, humanities). Each has a follow-up turn testing context retention. Scored 1-10 by a GPT-4 judge. Small size (80 questions) limits statistical power.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-green">FAST</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">AlpacaEval</h4>
+        <p class="desc" style="margin-bottom:0">Automatic pairwise comparison against a reference model. <strong>AlpacaEval 2.0</strong> adds length-controlled scoring to penalize verbosity. Fast (~$10/run) and highly correlated with human rankings.</p>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-purple">HARD</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Arena-Hard</h4>
+        <p class="desc" style="margin-bottom:0">~500 <strong>challenging queries</strong> curated from Chatbot Arena for discriminative power. Uses pairwise comparison against a baseline and reports a Bradley-Terry score. More statistically robust than MT-Bench.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-amber">FORMAT</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">IFEval</h4>
+        <p class="desc" style="margin-bottom:0">Tests <strong>strict format compliance</strong>: "respond in exactly 3 bullet points," "don't use the word 'the'," "include at least 2 citations." Objectively scorable &mdash; critical for production apps with structured output requirements.</p>
+      </div>
+    </div>
+
+    <div class="callout purple">
+      <div class="callout-title">Chatbot Arena (LMSYS) &mdash; The Gold Standard</div>
+      <p>A live human preference tournament: users chat with two anonymous models side-by-side and vote for the better response. Results are aggregated into <strong>Elo ratings</strong> (like chess).</p>
+      <ul>
+        <li><strong>Strengths:</strong> Real human judgments, diverse queries, no contamination, high face validity.</li>
+        <li><strong>Weaknesses:</strong> Expensive (millions of votes needed), slow to update, voter demographic biases, can't evaluate pre-release models.</li>
+        <li><strong>Impact:</strong> Arena Elo has become the most cited measure in model releases &mdash; often considered more meaningful than any single benchmark.</li>
+      </ul>
+    </div>
+
+    <p class="ins">Start with Arena-Hard or AlpacaEval for automated comparison, validate with IFEval for instruction adherence, and trust Chatbot Arena for the definitive ranking.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.5 LLM-as-a-Judge                                           -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.5</span><h2>LLM-as-a-Judge</h2></div>
+    <p class="sub">Using language models to evaluate language models &mdash; scalable but biased</p>
+
+    <p class="desc">
+      Human evaluation is the gold standard but costs $1-5 per judgment and takes days. <span class="kt">LLM-as-a-Judge</span> offers a scalable alternative: use a strong LLM (GPT-4, Claude, Gemini) to score or compare outputs. This powers MT-Bench, AlpacaEval, Arena-Hard, and most automated eval pipelines. However, it introduces systematic biases that must be understood and mitigated.
+    </p>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Two Evaluation Paradigms</h4>
+      <div class="g2">
+        <div>
+          <span class="tag tag-blue">SINGLE-POINT</span>
+          <p class="desc" style="margin-top:8px;margin-bottom:0">Score a single response on an absolute scale (1-10). Simpler but less reliable &mdash; judges compress scores into a narrow high range. Calibration is inconsistent across instances.</p>
+        </div>
+        <div>
+          <span class="tag tag-green">PAIRWISE</span>
+          <p class="desc" style="margin-top:8px;margin-bottom:0">Compare two responses and pick the winner. More reliable because relative comparison is easier. The <span class="kt">Bradley-Terry model</span> converts pairwise wins into global rankings: P(A &gt; B) = e<sup>s_A</sup> / (e<sup>s_A</sup> + e<sup>s_B</sup>).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-title">Known Biases in LLM Judges</div>
+      <ul>
+        <li><strong>Positional bias:</strong> Judges prefer responses in certain positions. Fix: run both orderings (A vs B and B vs A) and average.</li>
+        <li><strong>Verbosity bias:</strong> Longer responses rated higher even with more filler. Fix: length-controlled metrics or explicit instructions to penalize unnecessary length.</li>
+        <li><strong>Self-preference bias:</strong> Models prefer their own style. GPT-4 judges rate GPT-4 outputs higher. Fix: use a different model family as judge.</li>
+        <li><strong>Sycophancy:</strong> Judges rate agreeable or confident responses higher, even if less accurate.</li>
+        <li><strong>Format bias:</strong> Judges may prefer well-formatted markdown or bullet points regardless of content quality.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <span class="tag tag-purple">TECHNIQUE</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">Rubric-Based Judging</h4>
+      <p class="desc" style="margin-bottom:0">Instead of "which is better?", provide an <strong>explicit scoring rubric</strong> with concrete examples per score level: "Score 5: factually correct, directly addresses the question, provides a relevant example. Score 3: mostly correct but misses key details." Rubric-based evaluation is significantly more consistent and reproducible. Tailor the rubric to your use case &mdash; a support bot and a creative writing assistant need different rubrics.</p>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">Building a Reliable Judge Pipeline</div>
+      <ol style="color:var(--dim);font-size:13px;line-height:1.8;padding-left:20px">
+        <li><strong>Choose the strongest available judge</strong> &mdash; frontier models outperform smaller models significantly.</li>
+        <li><strong>Use pairwise comparison</strong> &mdash; more discriminative, less prone to calibration issues.</li>
+        <li><strong>Run bidirectional evaluation</strong> &mdash; swap response order to cancel positional bias.</li>
+        <li><strong>Define explicit rubrics</strong> &mdash; scoring criteria with examples for each level.</li>
+        <li><strong>Validate against human judgments</strong> &mdash; compute Cohen's kappa on a held-out sample.</li>
+        <li><strong>Monitor for drift</strong> &mdash; re-validate periodically as judge models are updated.</li>
+      </ol>
+    </div>
+
+    <p class="ins">LLM-as-a-judge is a scalable proxy, not a replacement for human evaluation. Correlation between LLM and human judges is typically 0.8-0.9 &mdash; high but not perfect. Use it for rapid iteration; validate critical decisions with humans.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.6 Domain-Specific Evaluation                                -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.6</span><h2>Domain-Specific Evaluation</h2></div>
+    <p class="sub">Generic benchmarks miss domain nuances &mdash; build evals that match your use case</p>
+
+    <p class="desc">
+      A model excelling on MMLU and HumanEval may perform poorly on financial analysis, medical diagnosis, or legal reasoning. Domain-specific evaluation tests the <span class="kt">exact capabilities</span> that matter for your users. Several established domain benchmarks exist, but the most valuable evals are often the ones you build yourself.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-green">FINANCE</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">FinQA</h4>
+        <p class="desc" style="margin-bottom:0">Financial QA over earnings reports and SEC filings. Tests numerical reasoning &mdash; computing ratios, interpreting tables, multi-step arithmetic over financial statements.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-blue">MEDICINE</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">MedQA</h4>
+        <p class="desc" style="margin-bottom:0">USMLE-style medical licensing exam questions. Complex vignettes requiring clinical reasoning. GPT-4 passes the threshold, but rare conditions and multi-step diagnosis remain weak.</p>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-purple">LEGAL</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">LegalBench</h4>
+        <p class="desc" style="margin-bottom:0"><strong>162 legal reasoning tasks</strong> across 6 categories: issue-spotting, rule-recall, rule-application, rule-conclusion, interpretation, and rhetorical understanding. Created by legal practitioners.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-cyan">RAG</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">CRAG</h4>
+        <p class="desc" style="margin-bottom:0"><strong>Comprehensive RAG Benchmark</strong> &mdash; tests retrieval-augmented generation across domains. Evaluates faithfulness, hallucination rates, and the ability to say "I don't know" when context is insufficient.</p>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-title">BYOD + BYOM: Custom Evaluation at Scale</div>
+      <ul>
+        <li><strong>BYOD (Bring Your Own Dataset):</strong> Curate examples in JSONL format (prompt, expected output, metadata). Source from real production traffic, edge cases, and expert-crafted adversarial inputs. Aim for 200-500 diverse examples.</li>
+        <li><strong>BYOM (Bring Your Own Metrics):</strong> Custom evaluation functions (Lambda/serverless) for domain-specific quality. A medical eval might check contraindication mentions; a support eval might verify knowledge base citations.</li>
+      </ul>
+      <p>BYOD + BYOM gives you an eval pipeline tailored to your product &mdash; far more actionable than any generic benchmark.</p>
+    </div>
+
+    <div class="trend-box">
+      <strong>Eval Pyramid: </strong> Broad public benchmarks at the base for sanity checks, domain-specific benchmarks in the middle for capability validation, and custom BYOD/BYOM evals at the top for production readiness. Each layer catches failures the others miss.
+    </div>
+
+    <p class="ins">Invest early in custom eval datasets. The cost of curating 500 high-quality examples is trivial compared to deploying a model that fails on your core use cases. Treat your eval dataset like a test suite &mdash; it should grow as you discover new failure modes.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.7 Safety Evaluation                                         -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.7</span><h2>Safety Evaluation</h2></div>
+    <p class="sub">Testing for truthfulness, bias, harmful content, and adversarial robustness</p>
+
+    <p class="desc">
+      Safety evaluation is a non-negotiable deployment prerequisite. Unlike capability benchmarks where 80% vs 90% is a quantitative difference, safety failures are <span class="kt">qualitative catastrophes</span> &mdash; a single harmful response can cause real damage to users and organizations.
+    </p>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-red">TRUTH</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">TruthfulQA</h4>
+        <p class="desc" style="margin-bottom:0">Tests whether models generate <strong>truthful answers</strong> where common misconceptions exist. Larger models are often <em>less</em> truthful &mdash; they memorize popular misconceptions with higher confidence. Measures both truthfulness and informativeness (always saying "I don't know" is truthful but useless).</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-purple">BIAS</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">BBQ (Bias Benchmark for QA)</h4>
+        <p class="desc" style="margin-bottom:0">Tests social biases across <strong>11 demographic categories</strong> (age, gender, race, religion, disability, socioeconomic status). Uses ambiguous/disambiguating question pairs to detect stereotypical assumptions when the correct answer is uncertain.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--text);margin-bottom:10px">Red-Teaming Approaches</h4>
+      <ul style="color:var(--dim);font-size:13px;line-height:1.8;padding-left:20px;margin-bottom:0">
+        <li><strong>Manual red-teaming:</strong> Expert adversaries probe for jailbreaks, prompt injection, harmful content, and information leakage. Expensive but finds novel attack vectors.</li>
+        <li><strong>Automated red-teaming:</strong> Use one LLM (the "attacker") to generate adversarial inputs. The attacker is prompted to find inputs triggering safety violations. Scales to millions of test cases.</li>
+        <li><strong>Gradient-based attacks:</strong> For white-box models, use gradient information to craft adversarial suffixes (GCG attack) or universal jailbreaks that transfer across models.</li>
+      </ul>
+    </div>
+
+    <div class="use-card">
+      <h4>Safety Categories</h4>
+      <ul>
+        <li><strong>Harmful content</strong> &mdash; Violence, self-harm, illegal activities. Test with direct and indirect/encoded prompts.</li>
+        <li><strong>PII leakage</strong> &mdash; Memorized personal information. Probe with prompts designed to elicit phone numbers, emails, addresses.</li>
+        <li><strong>Bias &amp; discrimination</strong> &mdash; Systematic quality/tone differences based on demographic attributes.</li>
+        <li><strong>Misinformation</strong> &mdash; Confidently incorrect claims, fabricated citations, hallucinated statistics.</li>
+        <li><strong>Overrefusal</strong> &mdash; Refusing safe, legitimate requests due to aggressive safety filtering. Erodes user trust.</li>
+      </ul>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">Constitutional AI Evaluation</div>
+      <p>For CAI-trained models, test adherence to each principle in the constitution. For every principle (e.g., "be helpful but avoid harm," "acknowledge uncertainty"), create targeted edge-case tests. This creates a direct feedback loop between training objectives and evaluation criteria.</p>
+    </div>
+
+    <p class="ins">Safety evaluation is never "done." New attack vectors emerge constantly. Build safety testing into your continuous eval pipeline and update your threat model regularly.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.8 Eval Infrastructure                                       -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.8</span><h2>Eval Infrastructure</h2></div>
+    <p class="sub">Frameworks, distributed execution, and reproducibility at scale</p>
+
+    <p class="desc">
+      A full evaluation suite for a frontier model may include 20+ benchmarks, millions of test examples, and multiple decoding configurations. Evaluation infrastructure must be <span class="kt">fast</span> (keep pace with training checkpoints), <span class="kt">reproducible</span> (same inputs &rarr; same outputs), and <span class="kt">extensible</span> (easy to add new benchmarks).
+    </p>
+
+    <div class="card">
+      <span class="tag tag-green">FRAMEWORK</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">lm-evaluation-harness (EleutherAI)</h4>
+      <p class="desc" style="margin-bottom:0">The standard open-source framework: <strong>200+ tasks</strong> (MMLU, HellaSwag, ARC, GSM8K, HumanEval, TruthfulQA, etc.), unified model loading (HuggingFace, GGUF, API-based), few-shot prompting, chain-of-thought, and multiple answer extraction methods. Powers Hugging Face's Open LLM Leaderboard and most open-weight evaluations.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-blue">SCALE</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Multi-Node Evaluation</h4>
+        <p class="desc" style="margin-bottom:0">Distribute across nodes for large eval sets. Shard datasets, run parallel GPU inference, aggregate results. A full sweep of a 70B model takes 10-20 GPU-hours single-node; multi-node parallelism reduces this to 1-2 wall-clock hours.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-purple">CONTINUOUS</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Continuous Evaluation</h4>
+        <p class="desc" style="margin-bottom:0">Run evals on <strong>each training checkpoint</strong> (e.g., every 1000 steps). Produces eval curves alongside loss curves, revealing when capabilities emerge, plateau, or regress. Critical for catching regressions during fine-tuning.</p>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <div class="callout-title">Token-Level Analysis</div>
+      <p>Capture <strong>per-token log probabilities</strong> during evaluation for deeper insight:</p>
+      <ul>
+        <li><strong>Calibration:</strong> Is confidence correlated with correctness? A well-calibrated model at 80% confidence should be right ~80% of the time.</li>
+        <li><strong>Uncertainty:</strong> High-entropy examples (uncertain) vs. low-entropy wrong answers (confidently wrong). The latter is more dangerous.</li>
+        <li><strong>Perplexity metrics:</strong> Token-level perplexity on domain corpora measures how well the model has learned domain language, independent of any task.</li>
+      </ul>
+    </div>
+
+    <div class="use-card">
+      <h4>Reproducibility Checklist</h4>
+      <ul>
+        <li><strong>Fixed random seeds</strong> &mdash; Set and document seeds for sampling, shuffling, and all stochastic components.</li>
+        <li><strong>Deterministic decoding</strong> &mdash; Use greedy or fixed temperature + top-p. Report parameters alongside results.</li>
+        <li><strong>Version-controlled prompts</strong> &mdash; A minor prompt change can shift scores 5-10%. Store prompts in git.</li>
+        <li><strong>Pinned dependencies</strong> &mdash; Lock eval framework, tokenizer, and preprocessing code versions.</li>
+        <li><strong>Hardware spec</strong> &mdash; Document GPU type, batch size, precision. Numerical differences across hardware affect results.</li>
+      </ul>
+    </div>
+
+    <p class="ins">Treat eval infrastructure as a first-class system: dedicated compute, CI/CD integration, regression alerting, and dashboards for tracking metrics over time. The investment pays for itself by catching problems early.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7.9 Anti-Patterns                                             -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.9</span><h2>Anti-Patterns</h2></div>
+    <p class="sub">Common evaluation pitfalls that produce misleading results</p>
+
+    <p class="desc">
+      Bad evaluation practices are pervasive in the LLM space and lead to inflated claims, wasted resources, and poor deployment decisions. Understanding these anti-patterns is essential for <span class="kt">critical evaluation literacy</span>.
+    </p>
+
+    <div class="card">
+      <span class="tag tag-red">CRITICAL</span>
+      <h4 style="color:var(--text);margin:8px 0 6px">Benchmark Contamination</h4>
+      <p class="desc" style="margin-bottom:0">Training data overlaps with test data. Since LLMs train on massive web crawls, benchmark Q&amp;A frequently appears verbatim in the corpus. Models <strong>memorize answers</strong> rather than reason, inflating scores by 10-15% compared to rephrased versions. The single most damaging anti-pattern in LLM evaluation.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-amber">WARNING</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Cherry-Picking</h4>
+        <p class="desc" style="margin-bottom:0">Reporting only favorable benchmarks while ignoring poor results. Always look for <strong>what's missing</strong> from a benchmark table &mdash; the omissions tell you more than the inclusions.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-amber">WARNING</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Benchmark Overfitting</h4>
+        <p class="desc" style="margin-bottom:0">Optimizing specifically for benchmark performance (explicit or implicit). The model becomes a benchmark specialist that fails on real-world tasks outside the benchmark distribution.</p>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <span class="tag tag-red">CRITICAL</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Goodharting on Evals</h4>
+        <p class="desc" style="margin-bottom:0">Training on eval-like data to game metrics. Fine-tuning on GSM8K-formatted problems inflates that score without improving actual math reasoning. Goodhart's Law applied directly.</p>
+      </div>
+      <div class="card">
+        <span class="tag tag-purple">LIMIT</span>
+        <h4 style="color:var(--text);margin:8px 0 6px">Saturated Benchmarks</h4>
+        <p class="desc" style="margin-bottom:0">When top models all score 95%+, the benchmark no longer discriminates. HellaSwag and ARC-Easy are saturated for frontier models. Continuing to report scores adds noise, not signal.</p>
+      </div>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">Mitigation Strategies</div>
+      <ul>
+        <li><strong>Held-out test sets:</strong> Keep eval data private. Use canary strings to detect if eval data leaks into training corpora.</li>
+        <li><strong>Live/dynamic benchmarks:</strong> LiveCodeBench, LiveBench, Chatbot Arena &mdash; continuously updated and inherently contamination-resistant.</li>
+        <li><strong>Contamination detection:</strong> N-gram overlap analysis between training and eval data. Check if performance correlates with exact-match memorization.</li>
+        <li><strong>Multiple independent evaluations:</strong> Use a diverse portfolio spanning different task types, formats, and data sources.</li>
+        <li><strong>Rephrased variants:</strong> Paraphrase benchmark questions to test genuine understanding vs. memorized wording.</li>
+      </ul>
+    </div>
+
+    <div class="arch-box">  The Evaluation Anti-Pattern Cycle:
+
+  Train on web data  &rarr;  Web contains benchmark answers
+       &darr;                            &darr;
+  Test on benchmarks  &larr;  Scores inflated by memorization
+       &darr;
+  Report high scores  &rarr;  Create pressure to match/beat
+       &darr;                            &darr;
+  Competitors train   &larr;  Everyone optimizes for benchmarks
+  on similar data          instead of real capability
+
+  Break the cycle: dynamic benchmarks, custom domain evals,
+  human preference data, held-out production data.</div>
+
+    <div class="trend-box">
+      <strong>The Future of Eval: </strong> The field is moving toward multi-dimensional evaluation combining automated benchmarks, LLM judges, human preference, safety testing, and domain-specific metrics. No single number captures model quality, but a well-designed eval suite &mdash; contamination-resistant, regularly updated, grounded in real use cases &mdash; provides the signal needed for good decisions.
+    </div>
+
+    <p class="ins">When reading a model release, ask: which benchmarks are missing? Are any near saturation? Is there contamination analysis? Are results shown on dynamic/live benchmarks? Healthy skepticism is one of the most valuable skills in the LLM space.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Next Chapter Button                                           -->
+  <!-- ============================================================ -->
+  <div style="text-align:center;margin-top:48px">
+    <a href="8-aws-nova-forge.html" class="b bp" style="text-decoration:none;display:inline-block;padding:12px 28px;font-size:15px">
+      Next: AWS Nova Forge &rarr;
+    </a>
+  </div>
+
+</div>
+</body>
+</html>

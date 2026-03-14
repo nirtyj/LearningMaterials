@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>7. Vision-Language &amp; Multimodal Models &mdash; NN Explorer</title>
+<style>
+  .step-arrow { text-align: center; color: var(--muted); font-size: 18px; line-height: 1; padding: 2px 0; }
+  .arch-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .arch-card .arch-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .arch-card .arch-org { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .arch-card .arch-desc { color: var(--dim); font-size: 13px; line-height: 1.6; margin-bottom: 8px; }
+  .arch-card .arch-bridge { font-size: 12px; color: var(--dim); padding: 6px 10px; background: var(--surface); border-radius: 8px; margin-bottom: 8px; }
+  .arch-card .arch-bridge strong { color: var(--text); }
+  .arch-card .arch-enrich { font-size: 12px; color: var(--dim); padding: 6px 10px; background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.15); border-radius: 8px; line-height: 1.5; }
+  .arch-card .arch-enrich strong { color: var(--accentL); }
+  .bridge-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .bridge-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .bridge-card .bridge-desc { color: var(--dim); font-size: 13px; line-height: 1.6; margin-bottom: 8px; }
+  .bridge-card .bridge-used { font-size: 12px; color: var(--muted); }
+  .bridge-card .bridge-used strong { color: var(--text); }
+  .journey-chip { display: inline-block; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; background: var(--surface); border: 1px solid var(--border); margin: 3px; }
+  .journey-arrow { display: inline-block; color: var(--muted); font-size: 18px; margin: 3px 2px; vertical-align: middle; }
+  .journey-wrap { text-align: center; padding: 28px 16px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-building-blocks.html" class="tab-btn"><span class="tnum">1</span>Building Blocks</a>
+  <a href="2-cnns.html" class="tab-btn"><span class="tnum">2</span>CNNs</a>
+  <a href="3-attention.html" class="tab-btn"><span class="tnum">3</span>Attention</a>
+  <a href="4-transformers.html" class="tab-btn"><span class="tnum">4</span>Transformers</a>
+  <a href="5-vit.html" class="tab-btn"><span class="tnum">5</span>Vision (ViT)</a>
+  <a href="6-llms.html" class="tab-btn"><span class="tnum">6</span>LLMs</a>
+  <a href="7-multimodal.html" class="tab-btn active"><span class="tnum">7</span>VLM &amp; MLLM</a>
+</nav>
+
+<div class="tab-content">
+
+  <!-- ============================================================ -->
+  <!-- Hero                                                          -->
+  <!-- ============================================================ -->
+  <div class="hero">
+    <h1>7. Vision-Language &amp; Multimodal Models</h1>
+    <p>Models that see AND speak &mdash; bridging vision and language.</p>
+  </div>
+  <div class="prereq"><strong>Builds on:</strong> Tab 5 (ViT encoder) &rarr; Tab 6 (LLM decoder) &rarr; Tab 3 (cross-attention for bridging)</div>
+
+  <!-- ============================================================ -->
+  <!-- Section 7.1: VLM Architecture                                 -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.1</span><h2>VLM Architecture</h2></div>
+    <p class="sub">Image Encoder (ViT) + Projection + LLM = a model that sees and speaks.</p>
+
+    <div class="card" id="mmPipeline"></div>
+
+    <!-- Enrichment 7.1 -->
+    <div class="use-card">
+      <h4>Why This Matters</h4>
+      <ul>
+        <li><strong>Modularity</strong> &mdash; each component (encoder, projection, LLM) can be swapped, upgraded, or frozen independently</li>
+        <li><strong>Leverage existing models</strong> &mdash; use a pre-trained ViT and pre-trained LLM; only train the thin projection layer</li>
+        <li><strong>Efficiency</strong> &mdash; LLaVA&rsquo;s simple linear projection trains in under 24 GPU-hours, yet produces a competitive VLM</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 7.2: Key Architectures                                -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.2</span><h2>Key Architectures</h2></div>
+    <p class="sub">Major models bridging vision and language &mdash; from contrastive embeddings to native multimodality.</p>
+
+    <div class="g2">
+      <!-- CLIP -->
+      <div class="arch-card" style="border-top:3px solid var(--pos)">
+        <div class="arch-head">
+          <strong style="color:var(--pos);font-size:16px">CLIP</strong>
+          <span class="lb" style="background:var(--pos)">Contrastive VLM</span>
+          <span style="font-size:11px;color:var(--muted)">(2021)</span>
+        </div>
+        <div class="arch-org">OpenAI</div>
+        <div class="arch-desc">Two encoders trained to align matching image-text pairs. Not generative &mdash; embeddings for retrieval and zero-shot classification.</div>
+        <div class="arch-bridge"><strong>Bridge:</strong> Contrastive loss aligns two embedding spaces.</div>
+        <div class="arch-enrich"><strong>Powers:</strong> image search (Google Photos, Pinterest), content moderation, zero-shot classification. DALL-E uses CLIP for guidance.</div>
+      </div>
+
+      <!-- LLaVA -->
+      <div class="arch-card" style="border-top:3px solid var(--accent)">
+        <div class="arch-head">
+          <strong style="color:var(--accentL);font-size:16px">LLaVA</strong>
+          <span class="lb" style="background:var(--accent)">Generative VLM</span>
+          <span style="font-size:11px;color:var(--muted)">(2023)</span>
+        </div>
+        <div class="arch-org">UW / Microsoft</div>
+        <div class="arch-desc">CLIP ViT + linear projection + LLaMA. Simple projection surprisingly effective.</div>
+        <div class="arch-bridge"><strong>Bridge:</strong> 1&ndash;2 linear layers from ViT&rarr;LLM dim.</div>
+        <div class="arch-enrich"><strong>Open-source VLM</strong> for research. Fine-tunable on custom vision-language tasks. Spawned LLaVA-1.5, LLaVA-NeXT.</div>
+      </div>
+
+      <!-- GPT-4V/4o -->
+      <div class="arch-card" style="border-top:3px solid var(--cyan)">
+        <div class="arch-head">
+          <strong style="color:var(--cyan);font-size:16px">GPT-4V / 4o</strong>
+          <span class="lb" style="background:var(--cyan)">MLLM</span>
+          <span style="font-size:11px;color:var(--muted)">(2023)</span>
+        </div>
+        <div class="arch-org">OpenAI</div>
+        <div class="arch-desc">Multimodal LLM accepting images, text, audio. Handles interleaved inputs natively.</div>
+        <div class="arch-bridge"><strong>Bridge:</strong> Learned adapter / projection layers.</div>
+        <div class="arch-enrich"><strong>Used in:</strong> accessibility (describing images for blind users), document analysis, UI understanding, visual coding assistance.</div>
+      </div>
+
+      <!-- Gemini -->
+      <div class="arch-card" style="border-top:3px solid var(--green)">
+        <div class="arch-head">
+          <strong style="color:var(--green);font-size:16px">Gemini</strong>
+          <span class="lb" style="background:var(--green)">MLLM</span>
+          <span style="font-size:11px;color:var(--muted)">(2023)</span>
+        </div>
+        <div class="arch-org">Google</div>
+        <div class="arch-desc">Natively multimodal from pre-training. Not bolted-on &mdash; multimodality baked in.</div>
+        <div class="arch-bridge"><strong>Bridge:</strong> Native multimodal tokenization.</div>
+      </div>
+
+      <!-- Claude -->
+      <div class="arch-card" style="border-top:3px solid var(--purple)">
+        <div class="arch-head">
+          <strong style="color:var(--purple);font-size:16px">Claude</strong>
+          <span class="lb" style="background:var(--purple)">MLLM</span>
+          <span style="font-size:11px;color:var(--muted)">(2024)</span>
+        </div>
+        <div class="arch-org">Anthropic</div>
+        <div class="arch-desc">Multimodal LLM with vision. Analyzes images, charts, documents alongside text.</div>
+        <div class="arch-bridge"><strong>Bridge:</strong> Internal vision processing pipeline.</div>
+        <div class="arch-enrich"><strong>Used in:</strong> chart analysis, document processing, visual reasoning, scientific figure interpretation.</div>
+      </div>
+
+      <!-- PaliGemma -->
+      <div class="arch-card" style="border-top:3px solid var(--pink)">
+        <div class="arch-head">
+          <strong style="color:var(--pink);font-size:16px">PaliGemma</strong>
+          <span class="lb" style="background:var(--pink)">VLM</span>
+          <span style="font-size:11px;color:var(--muted)">(2024)</span>
+        </div>
+        <div class="arch-org">Google</div>
+        <div class="arch-desc">SigLIP (vision) + Gemma (LLM). Open-source, strong on OCR and documents.</div>
+        <div class="arch-bridge"><strong>Bridge:</strong> Linear projection SigLIP&rarr;Gemma.</div>
+      </div>
+    </div>
+
+    <!-- Enrichment 7.2 -->
+    <div class="trend-box">
+      <strong>Trend:</strong> The line between VLM and MLLM is blurring. Models are converging toward natively multimodal architectures trained end-to-end on interleaved image, text, audio, and video data.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 7.3: VLM vs MLLM                                     -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.3</span><h2>VLM vs MLLM</h2></div>
+    <p class="sub">Vision-Language Models handle two modalities; Multimodal LLMs handle many.</p>
+
+    <div class="card">
+      <table class="ct">
+        <thead>
+          <tr>
+            <th>Aspect</th>
+            <th style="color:var(--pos)">VLM</th>
+            <th style="color:var(--cyan)">MLLM</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Modalities</td>
+            <td>Vision + Language (2)</td>
+            <td>Vision + Language + Audio + Video + &hellip;</td>
+          </tr>
+          <tr>
+            <td>Architecture</td>
+            <td>Encoder + Projection + Decoder</td>
+            <td>Unified natively multimodal model</td>
+          </tr>
+          <tr>
+            <td>Training</td>
+            <td>Staged: freeze encoder &rarr; train proj &rarr; finetune</td>
+            <td>End-to-end on interleaved data</td>
+          </tr>
+          <tr>
+            <td>Examples</td>
+            <td style="color:var(--pos)">CLIP, LLaVA, PaliGemma, BLIP-2</td>
+            <td style="color:var(--cyan)">GPT-4o, Gemini, Claude</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ins">VLMs are modular &mdash; swap out the encoder or LLM independently. MLLMs trade modularity for deeper integration and potentially stronger cross-modal reasoning.</div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 7.4: Three Bridging Strategies                        -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.4</span><h2>Three Bridging Strategies</h2></div>
+    <p class="sub">How visual information gets into the language model.</p>
+
+    <div class="g3">
+      <div class="bridge-card" style="border-top:3px solid var(--pos)">
+        <h3 style="color:var(--pos)">Linear Projection</h3>
+        <div class="bridge-desc">Simple matrix multiply. Used in LLaVA. Surprisingly effective and fast.</div>
+        <div class="bridge-used"><strong>Used in:</strong> LLaVA, PaliGemma</div>
+      </div>
+      <div class="bridge-card" style="border-top:3px solid var(--accent)">
+        <h3 style="color:var(--accentL)">Q-Former / Perceiver</h3>
+        <div class="bridge-desc">Learned query tokens cross-attend to image features. Compresses visual info.</div>
+        <div class="bridge-used"><strong>Used in:</strong> BLIP-2, Flamingo</div>
+      </div>
+      <div class="bridge-card" style="border-top:3px solid var(--cyan)">
+        <h3 style="color:var(--cyan)">Native Multimodal</h3>
+        <div class="bridge-desc">All modalities tokenized in one unified transformer from scratch.</div>
+        <div class="bridge-used"><strong>Used in:</strong> Gemini, GPT-4o</div>
+      </div>
+    </div>
+
+    <div class="ins">Trend: toward native multimodality. But the modular approach (LLaVA-style) remains practical since it leverages existing strong models.</div>
+
+    <!-- Enrichment 7.4 -->
+    <div class="use-card">
+      <h4>Choosing a Bridge Strategy</h4>
+      <ul>
+        <li><strong>Linear Projection</strong> &mdash; fastest to train, easiest to debug, best when you have strong pre-trained components</li>
+        <li><strong>Q-Former</strong> &mdash; compresses many visual tokens into fewer queries, saving LLM context length; useful for high-res images</li>
+        <li><strong>Native</strong> &mdash; best performance ceiling, but requires massive data and compute for pre-training from scratch</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Section 7.5: The Full Picture                                 -->
+  <!-- ============================================================ -->
+  <div class="sec">
+    <div class="sh"><span class="sn">7.5</span><h2>The Full Picture</h2></div>
+    <p class="sub">From a single neuron to models that see and speak.</p>
+
+    <div class="journey-wrap">
+      <span class="journey-chip" style="color:var(--pos);border-color:var(--pos)">Neuron</span>
+      <span class="journey-arrow">&rarr;</span>
+      <span class="journey-chip" style="color:var(--green);border-color:var(--green)">Layers</span>
+      <span class="journey-arrow">&rarr;</span>
+      <span class="journey-chip" style="color:var(--neg);border-color:var(--neg)">CNN / ViT</span>
+      <span class="journey-arrow">&rarr;</span>
+      <span class="journey-chip" style="color:var(--pink);border-color:var(--pink)">Attention</span>
+      <span class="journey-arrow">&rarr;</span>
+      <span class="journey-chip" style="color:var(--accent);border-color:var(--accent)">Transformer</span>
+      <span class="journey-arrow">&rarr;</span>
+      <span class="journey-chip" style="color:var(--cyan);border-color:var(--cyan)">LLM</span>
+      <span class="journey-arrow">&rarr;</span>
+      <span class="journey-chip" style="color:var(--purple);border-color:var(--purple)">VLM / MLLM</span>
+    </div>
+
+    <p class="desc" style="text-align:center">
+      From a single neuron computing <code style="color:var(--accentL)">activation(&Sigma;wx + b)</code>, through layers, CNNs, attention, transformers, LLMs, to multimodal models that see and speak. Every layer builds on the last.
+    </p>
+
+    <div class="trend-box" style="text-align:center">
+      <strong>Complete journey!</strong> Go back to any tab to review.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Footer                                                        -->
+  <!-- ============================================================ -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <p style="color:var(--green);font-weight:700;font-size:16px;margin-bottom:12px">Multimodal understood. Journey complete.</p>
+    <a href="index.html" class="b bp" style="text-decoration:none;display:inline-block;padding:12px 28px;font-size:14px">
+      &larr; Back to Home
+    </a>
+  </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- JavaScript: VLM Pipeline Click-to-Expand                        -->
+<!-- ============================================================== -->
+<script>
+(function(){
+
+  var mmExp = null; // currently expanded index, null = none
+
+  var steps = [
+    { emoji: '\uD83D\uDDBC', name: 'Image Encoder',     color: 'var(--pos)',    detail: 'A ViT (or CNN) processes the image into visual tokens. E.g., ViT-L/14 \u2192 257 tokens of 1024-dim. Often pre-trained and frozen.' },
+    { emoji: '\uD83D\uDD17', name: 'Projection Layer',   color: 'var(--accent)', detail: 'Linear layer or small MLP mapping visual tokens from encoder dim to LLM dim. E.g., 1024\u21924096. The \u2018bridge\u2019 between vision and language.' },
+    { emoji: '\uD83D\uDCDD', name: 'Text Tokenizer',     color: 'var(--neg)',    detail: 'User text tokenized and embedded normally. Text tokens have their own embeddings matching LLM dimension.' },
+    { emoji: '\uD83D\uDD00', name: 'Interleave Tokens',  color: 'var(--pink)',   detail: 'Visual tokens inserted alongside text tokens. LLM processes both uniformly through self-attention \u2014 no special architecture needed.' },
+    { emoji: '\uD83E\uDDE0', name: 'LLM Decoder',        color: 'var(--cyan)',   detail: 'Full LLM processes combined sequence. Text tokens attend to image tokens via self-attention (effectively cross-attention within unified sequence).' },
+    { emoji: '\uD83D\uDCAC', name: 'Text Output',        color: 'var(--green)',  detail: 'Model generates natural language: answers, descriptions, analysis. It \u2018sees\u2019 the image through visual tokens in its context.' }
+  ];
+
+  function render() {
+    var container = document.getElementById('mmPipeline');
+    var html = '';
+
+    for (var i = 0; i < steps.length; i++) {
+      var s = steps[i];
+      var isActive = (mmExp === i);
+
+      // Arrow between steps
+      if (i > 0) {
+        html += '<div class="step-arrow">\u2193</div>';
+      }
+
+      // Step item
+      html += '<div class="si' + (isActive ? ' ac' : '') + '" onclick="window._mmToggle(' + i + ')">';
+      html += '<span class="ic">' + s.emoji + '</span>';
+      html += '<span class="sn2" style="color:' + s.color + '">' + s.name + '</span>';
+      html += '<span class="ar">' + (isActive ? '\u25B2' : '\u25BC') + '</span>';
+      html += '</div>';
+
+      // Detail text (shown when expanded)
+      if (isActive) {
+        html += '<div class="sdet fi">' + s.detail + '</div>';
+      }
+    }
+
+    container.innerHTML = html;
+  }
+
+  function mmToggle(i) {
+    if (mmExp === i) {
+      mmExp = null;
+    } else {
+      mmExp = i;
+    }
+    render();
+  }
+
+  window._mmToggle = mmToggle;
+
+  // Initial render
+  render();
+
+})();
+</script>
+
+</body>
+</html>

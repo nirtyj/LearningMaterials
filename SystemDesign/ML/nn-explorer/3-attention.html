@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="shared.css">
+<title>NN Explorer — 3. Attention Mechanisms</title>
+</head>
+<body>
+<nav class="tab-bar">
+  <a href="index.html" class="tab-btn"><span class="tnum">~</span>Home</a>
+  <a href="1-building-blocks.html" class="tab-btn"><span class="tnum">1</span>Building Blocks</a>
+  <a href="2-cnns.html" class="tab-btn"><span class="tnum">2</span>CNNs</a>
+  <a href="3-attention.html" class="tab-btn active"><span class="tnum">3</span>Attention</a>
+  <a href="4-transformers.html" class="tab-btn"><span class="tnum">4</span>Transformers</a>
+  <a href="5-vit.html" class="tab-btn"><span class="tnum">5</span>Vision (ViT)</a>
+  <a href="6-llms.html" class="tab-btn"><span class="tnum">6</span>LLMs</a>
+  <a href="7-multimodal.html" class="tab-btn"><span class="tnum">7</span>VLM &amp; MLLM</a>
+</nav>
+
+<div class="tab-content">
+
+  <!-- Hero + Prereq -->
+  <div class="hero">
+    <h1>3. Attention Mechanisms</h1>
+    <p>The mechanism that lets models focus on what matters.</p>
+  </div>
+  <div class="prereq">
+    <strong>Prereq:</strong> Tab 1 (neurons, features) &rarr; Tab 2 (CNN limitations &rarr; need for global context)
+  </div>
+
+  <!-- 3.1 Why Attention? -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.1</span><h2>Why Attention?</h2></div>
+    <p class="sub">CNNs see small local windows. Attention sees everything in one step.</p>
+    <div class="g2">
+      <div class="card" style="border-top:3px solid var(--pos)">
+        <span class="lb" style="background:var(--pos)">CNN</span>
+        <h3 style="margin:10px 0 6px;font-size:16px">Local Vision</h3>
+        <p class="desc" style="margin-bottom:0">Each neuron sees a 3&times;3 window. Global context requires 10+ layers stacked. Like reading through a tiny window.</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--cyan)">
+        <span class="lb" style="background:var(--cyan);color:#000">ATTENTION</span>
+        <h3 style="margin:10px 0 6px;font-size:16px">Global Vision</h3>
+        <p class="desc" style="margin-bottom:0">Every element attends to every other in ONE step. Like seeing the entire page and choosing what to focus on.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3.2 Query, Key, Value (Q, K, V) -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.2</span><h2>Query, Key, Value (Q, K, V)</h2></div>
+    <p class="sub">Three projections &mdash; like a database lookup.</p>
+    <p class="desc">
+      Each input token is projected into three vectors via learned weight matrices:<br>
+      <span class="kt">Q (Query)</span> = "What am I looking for?" &mdash; the question each element asks.<br>
+      <span class="kt">K (Key)</span> = "What do I contain?" &mdash; what each element advertises about itself.<br>
+      <span class="kt">V (Value)</span> = "Here's my actual content." &mdash; the information to be retrieved.
+    </p>
+
+    <!-- SVG Diagram -->
+    <div class="card" style="text-align:center;padding:24px;overflow-x:auto">
+      <svg viewBox="0 0 580 190" width="580" height="190" style="max-width:100%" xmlns="http://www.w3.org/2000/svg">
+        <!-- Input Embedding -->
+        <rect x="10" y="70" width="110" height="44" rx="8" fill="#131a2e" stroke="#6366f1" stroke-width="1.5"/>
+        <text x="65" y="97" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">Input Embedding</text>
+
+        <!-- Projection lines -->
+        <line x1="120" y1="82" x2="190" y2="35" stroke="#60a5fa" stroke-width="1.5"/>
+        <line x1="120" y1="92" x2="190" y2="92" stroke="#34d399" stroke-width="1.5"/>
+        <line x1="120" y1="102" x2="190" y2="150" stroke="#f97316" stroke-width="1.5"/>
+
+        <!-- Projection labels -->
+        <text x="150" y="50" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="600">&times;W_Q</text>
+        <text x="150" y="85" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">&times;W_K</text>
+        <text x="150" y="140" text-anchor="middle" fill="#f97316" font-size="10" font-weight="600">&times;W_V</text>
+
+        <!-- Q box -->
+        <rect x="190" y="14" width="50" height="36" rx="6" fill="rgba(96,165,250,.15)" stroke="#60a5fa" stroke-width="1.5"/>
+        <text x="215" y="37" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="700">Q</text>
+
+        <!-- K box -->
+        <rect x="190" y="72" width="50" height="36" rx="6" fill="rgba(52,211,153,.15)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="215" y="95" text-anchor="middle" fill="#34d399" font-size="14" font-weight="700">K</text>
+
+        <!-- V box -->
+        <rect x="190" y="130" width="50" height="36" rx="6" fill="rgba(249,115,22,.15)" stroke="#f97316" stroke-width="1.5"/>
+        <text x="215" y="153" text-anchor="middle" fill="#f97316" font-size="14" font-weight="700">V</text>
+
+        <!-- Q and K merge lines -->
+        <line x1="240" y1="32" x2="290" y2="62" stroke="#60a5fa" stroke-width="1.5"/>
+        <line x1="240" y1="90" x2="290" y2="72" stroke="#34d399" stroke-width="1.5"/>
+
+        <!-- Dot product + softmax box -->
+        <rect x="290" y="46" width="140" height="42" rx="8" fill="#131a2e" stroke="#818cf8" stroke-width="1.5"/>
+        <text x="360" y="63" text-anchor="middle" fill="#818cf8" font-size="10" font-weight="600">Q&middot;K^T / &radic;d</text>
+        <text x="360" y="79" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">&rarr; softmax</text>
+
+        <!-- V to multiplication -->
+        <line x1="240" y1="148" x2="460" y2="148" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="460" y1="148" x2="460" y2="80" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        <!-- Softmax output to multiply -->
+        <line x1="430" y1="67" x2="460" y2="67" stroke="#818cf8" stroke-width="1.5"/>
+
+        <!-- Multiply symbol -->
+        <circle cx="460" cy="67" r="10" fill="none" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="460" y="71" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="700">&times;</text>
+
+        <!-- Output box -->
+        <line x1="470" y1="67" x2="500" y2="67" stroke="#22d3ee" stroke-width="1.5"/>
+        <rect x="500" y="47" width="70" height="40" rx="8" fill="rgba(34,211,238,.12)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="535" y="72" text-anchor="middle" fill="#22d3ee" font-size="13" font-weight="700">Output</text>
+      </svg>
+    </div>
+
+    <div class="mb">Attention(Q, K, V) = softmax(Q &middot; K<sup>T</sup> / &radic;d<sub>k</sub>) &middot; V</div>
+    <div class="ins">Dot product Q&middot;K measures similarity. Softmax converts to probabilities. Output = weighted sum of Values.</div>
+  </div>
+
+  <!-- 3.3 Self-Attention (INTERACTIVE) -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.3</span><h2>Self-Attention</h2></div>
+    <p class="sub">Every element attends to every other in the same sequence.</p>
+    <p class="desc">In self-attention, Q, K, V all come from the <strong style="color:var(--text)">SAME</strong> input. Each element asks every other "how relevant are you to me?"</p>
+
+    <!-- Interactive Demo -->
+    <div class="card" id="sa-demo">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;text-align:center">Click a patch to see its attention distribution</p>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:16px" id="sa-patches"></div>
+      <div id="sa-bars" style="margin-bottom:14px"></div>
+      <div class="mb" id="sa-formula"></div>
+      <div class="ins" id="sa-insight"></div>
+    </div>
+
+    <!-- Enrichment 3.3 -->
+    <div class="use-card">
+      <h4>Where Self-Attention Is Used</h4>
+      <ul>
+        <li><strong>Every Transformer Layer</strong> — GPT, BERT, ViT all use self-attention as their core operation</li>
+        <li><strong>Document Understanding</strong> — captures long-range dependencies (e.g., pronoun resolution across paragraphs)</li>
+        <li><strong>Protein Folding</strong> — AlphaFold uses self-attention over amino acid sequences to predict 3D structure</li>
+        <li><strong>Code Completion</strong> — understanding function context, variable scope, and API patterns across files</li>
+        <li><strong>Music Generation</strong> — attending to musical patterns, rhythm, and harmony across a composition</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 3.4 Cross-Attention -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.4</span><h2>Cross-Attention</h2></div>
+    <p class="sub">Queries from one source, Keys+Values from another.</p>
+    <p class="desc">Cross-attention connects two different sequences. The decoder generates Queries ("what do I need?"), and the encoder provides Keys and Values ("here's what I know"). This is how image captioning models attend to image features while generating text, or how translation models attend to source language while producing the target.</p>
+
+    <div class="g2">
+      <div class="card" style="border-top:3px solid var(--pos)">
+        <span class="lb" style="background:var(--pos)">SOURCE A (DECODER)</span>
+        <h3 style="margin:10px 0 6px;font-size:16px">Provides Queries</h3>
+        <p class="desc" style="margin-bottom:0">"What do I need to know?"</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--green)">
+        <span class="lb" style="background:var(--green);color:#000">SOURCE B (ENCODER)</span>
+        <h3 style="margin:10px 0 6px;font-size:16px">Provides Keys + Values</h3>
+        <p class="desc" style="margin-bottom:0">"Here's what I offer."</p>
+      </div>
+    </div>
+
+    <div class="mb">CrossAttn(Q<sub>dec</sub>, K<sub>enc</sub>, V<sub>enc</sub>) = softmax(Q<sub>dec</sub> &middot; K<sub>enc</sub><sup>T</sup> / &radic;d) &middot; V<sub>enc</sub></div>
+
+    <div class="g2" style="margin-top:16px">
+      <div class="card">
+        <span class="lb" style="background:var(--accent)">SELF-ATTENTION</span>
+        <p style="margin:10px 0 4px;font-size:14px;font-weight:600">Q, K, V from same sequence</p>
+        <p class="desc" style="margin-bottom:0">Used in: Encoder, ViT, GPT</p>
+      </div>
+      <div class="card">
+        <span class="lb" style="background:var(--cyan);color:#000">CROSS-ATTENTION</span>
+        <p style="margin:10px 0 4px;font-size:14px;font-weight:600">Q from one source, K+V from another</p>
+        <p class="desc" style="margin-bottom:0">Used in: Decoder, VLMs, DALL&middot;E</p>
+      </div>
+    </div>
+
+    <!-- Enrichment 3.4 -->
+    <div class="use-card">
+      <h4>Cross-Attention Applications</h4>
+      <ul>
+        <li><strong>Image Captioning</strong> — BLIP-2 decoder queries attend to image encoder features</li>
+        <li><strong>Text-to-Image</strong> — Stable Diffusion uses cross-attention between text embeddings and image features</li>
+        <li><strong>Machine Translation</strong> — decoder attends to encoder's source language representation</li>
+        <li><strong>Visual Question Answering</strong> — question tokens attend to image features to find answers</li>
+        <li><strong>Text-Conditioned Generation</strong> — any model that generates conditioned on text (video, audio, 3D)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 3.5 Multi-Head Attention -->
+  <div class="sec">
+    <div class="sh"><span class="sn">3.5</span><h2>Multi-Head Attention</h2></div>
+    <p class="sub">Multiple attention "lenses" in parallel &mdash; each head learns different relationships.</p>
+    <p class="desc">Instead of one attention function, run <strong style="color:var(--text)">h</strong> parallel heads (12 in ViT-Base), each with own W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub> at reduced dimension (768/12=64 per head). Outputs concatenated and projected back.</p>
+
+    <div class="mb">MultiHead(Q, K, V) = Concat(head<sub>1</sub>, ..., head<sub>h</sub>) &middot; W<sub>O</sub><br>where head<sub>i</sub> = Attn(Q W<sub>i</sub><sup>Q</sup>, K W<sub>i</sub><sup>K</sup>, V W<sub>i</sub><sup>V</sup>)</div>
+
+    <!-- 12 Head Visualization -->
+    <div class="g3" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:16px">
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--pos)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 1</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--pos)">Position</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--neg)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 2</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--neg)">Syntax</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--green)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 3</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--green)">Object</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--yellow)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 4</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--yellow)">Color</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--purple)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 5</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--purple)">Texture</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--cyan)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 6</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--cyan)">Shape</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--pink)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 7</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--pink)">Edge</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--accentL)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 8</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--accentL)">Semantic</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--pos)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 9</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--pos)">Global</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--neg)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 10</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--neg)">Detail</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--green)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 11</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--green)">Rare</p>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border-top:3px solid var(--accent)">
+        <span style="font-size:11px;color:var(--muted);font-weight:700">HEAD 12</span>
+        <p style="font-size:13px;font-weight:600;margin-top:4px;color:var(--accent)">Context</p>
+      </div>
+    </div>
+
+    <div class="ins" style="margin-top:16px">Each head: 768/12 = 64 dims. 12 outputs (12&times;64=768) concatenated and linearly projected. Multiple perspectives simultaneously.</div>
+
+    <!-- Enrichment 3.5 -->
+    <div class="use-card">
+      <h4>Modern Variants</h4>
+      <ul>
+        <li><strong>Grouped Query Attention (GQA)</strong> — shares KV heads across query heads. 2-4x memory savings. Used in LLaMA 2/3, Mistral.</li>
+        <li><strong>Multi-Query Attention (MQA)</strong> — single KV head shared by all query heads. Fastest inference. Used in PaLM, Falcon.</li>
+        <li><strong>Sliding Window Attention</strong> — each token only attends to a local window. O(n) complexity. Used in Mistral, Longformer.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Next -->
+  <div style="text-align:center;margin-top:48px;padding:24px">
+    <p style="color:var(--green);font-weight:700;font-size:16px;margin-bottom:16px">Attention mastered.</p>
+    <a href="4-transformers.html" class="b bp" style="text-decoration:none;display:inline-block;padding:10px 24px;font-size:14px">Next: 4. Transformers &rarr;</a>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var labels = ['Sky','Tree','Dog','Grass','Ball'];
+  var colors = ['#60a5fa','#34d399','#f97316','#fbbf24','#f472b6'];
+  var scores = [
+    [.60,.10,.05,.15,.10],
+    [.10,.50,.05,.30,.05],
+    [.05,.10,.35,.15,.35],
+    [.10,.25,.10,.45,.10],
+    [.05,.05,.40,.10,.40]
+  ];
+  var queryIdx = 2;
+
+  function render(){
+    // Patches
+    var ph = '';
+    for(var i=0;i<labels.length;i++){
+      var sel = i===queryIdx;
+      ph += '<button onclick="saClick('+i+')" style="'
+        + 'padding:10px 18px;border-radius:10px;border:2px solid '
+        + (sel ? colors[i] : 'var(--border)') + ';'
+        + 'background:' + (sel ? 'rgba(99,102,241,.12)' : 'var(--surface)') + ';'
+        + 'color:' + (sel ? colors[i] : 'var(--dim)') + ';'
+        + 'font-size:13px;font-weight:700;cursor:pointer;transition:all .2s'
+        + '">' + labels[i] + '</button>';
+    }
+    document.getElementById('sa-patches').innerHTML = ph;
+
+    // Bars
+    var row = scores[queryIdx];
+    var bh = '';
+    for(var i=0;i<row.length;i++){
+      var pct = Math.round(row[i]*100);
+      var w = Math.max(pct, 4);
+      bh += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
+        + '<span style="min-width:50px;font-size:12px;font-weight:600;color:'
+        + (i===queryIdx ? colors[i] : 'var(--dim)') + ';text-align:right">' + labels[i] + '</span>'
+        + '<div style="flex:1;background:var(--surface);border-radius:6px;height:22px;overflow:hidden;border:1px solid var(--border)">'
+        + '<div style="width:'+w+'%;height:100%;background:'+colors[i]+';border-radius:6px;transition:width .3s ease;opacity:'+(pct>=20?'1':'0.6')+'"></div>'
+        + '</div>'
+        + '<span style="min-width:36px;font-size:12px;font-family:monospace;color:var(--text)">'+pct+'%</span>'
+        + '</div>';
+    }
+    document.getElementById('sa-bars').innerHTML = bh;
+
+    // Formula
+    document.getElementById('sa-formula').innerHTML =
+      'Attention(<span style="color:'+colors[queryIdx]+'">'+labels[queryIdx]+'</span>) = softmax(Q<sub>'+labels[queryIdx]+'</sub> &middot; K<sup>T</sup> / &radic;d<sub>k</sub>) &middot; V';
+
+    // Insight
+    var maxI = 0;
+    for(var i=1;i<row.length;i++){if(row[i]>row[maxI])maxI=i;}
+    var secondI = maxI===0?1:0;
+    for(var i=0;i<row.length;i++){if(i!==maxI && row[i]>row[secondI])secondI=i;}
+    document.getElementById('sa-insight').innerHTML =
+      '<span style="color:'+colors[queryIdx]+'">'+labels[queryIdx]+'</span> attends most to <strong style="color:'+colors[maxI]+'">'+labels[maxI]+' ('+Math.round(row[maxI]*100)+'%)</strong>'
+      + ' and <strong style="color:'+colors[secondI]+'">'+labels[secondI]+' ('+Math.round(row[secondI]*100)+'%)</strong>.'
+      + ' Semantically related elements receive higher attention weights.';
+  }
+
+  window.saClick = function(i){ queryIdx = i; render(); };
+  render();
+})();
+</script>
+</body>
+</html>
