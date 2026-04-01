@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learning Materials</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e1a;--card:#131a2e;--surface:#0d1224;--accent:#6366f1;--accentL:#818cf8;--pos:#60a5fa;--neg:#f97316;--green:#34d399;--red:#ef4444;--cyan:#22d3ee;--pink:#f472b6;--purple:#a78bfa;--yellow:#fbbf24;--text:#e2e8f0;--dim:#94a3b8;--muted:#64748b;--border:#1e293b;--radius:12px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.6;overflow-x:hidden}
+.container{max-width:960px;margin:0 auto;padding:48px 16px 80px}
+.hero{text-align:center;margin-bottom:56px}
+.hero h1{font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--accentL),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.hero p{color:var(--dim);font-size:15px;max-width:520px;margin:0 auto}
+.section{margin-bottom:48px}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.section-icon{font-size:22px}
+.section-header h2{font-size:20px;font-weight:700}
+.section-tag{display:inline-block;padding:2px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.5px;margin-left:auto}
+.index-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.index-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-decoration:none;transition:all .2s;display:block}
+.index-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.index-card .ic{font-size:28px;margin-bottom:12px}
+.index-card h3{color:var(--text);font-size:16px;font-weight:700;margin-bottom:6px}
+.index-card p{color:var(--dim);font-size:13px;line-height:1.5}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px;margin-top:10px}
+.tag-blue{background:rgba(96,165,250,.12);color:var(--pos)}
+.tag-green{background:rgba(52,211,153,.12);color:var(--green)}
+.tag-purple{background:rgba(167,139,250,.12);color:var(--purple)}
+.tag-amber{background:rgba(251,191,36,.12);color:var(--yellow)}
+.tag-red{background:rgba(239,68,68,.12);color:var(--red)}
+.tag-cyan{background:rgba(34,211,238,.12);color:var(--cyan)}
+.tag-pink{background:rgba(244,114,182,.12);color:var(--pink)}
+.divider{border:none;border-top:1px solid var(--border);margin:48px 0}
+@media(max-width:600px){
+  .hero h1{font-size:24px}
+  .section-header h2{font-size:18px}
+  .index-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <h1>Learning Materials</h1>
+    <p>A curated collection of interactive guides, system design deep-dives, and interview prep resources.</p>
+  </div>
+
+  <!-- ── Java to Python ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">&#x2615;</span>
+      <h2>Java to Python</h2>
+    </div>
+    <div class="index-grid">
+      <a href="Java2Python/java_to_python_guide.html" class="index-card">
+        <div class="ic">&#x1f4d6;</div>
+        <h3>Java to Python Guide</h3>
+        <p>Comprehensive reference for transitioning from Java to Python — syntax, data structures, idioms, and interview patterns.</p>
+        <span class="tag tag-amber">INTERVIEW PREP</span>
+      </a>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── System Design: ML Courses ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">&#x1f9e0;</span>
+      <h2>ML Courses</h2>
+    </div>
+    <div class="index-grid">
+      <a href="SystemDesign/ML/nn-explorer/index.html" class="index-card">
+        <div class="ic">&#x1f50d;</div>
+        <h3>Neural Network Explorer</h3>
+        <p>Interactive journey from a single neuron to multimodal AI — building blocks, CNNs, attention, transformers, ViT, LLMs, and VLMs.</p>
+        <span class="tag tag-blue">7 CHAPTERS</span>
+      </a>
+      <a href="SystemDesign/ML/llm-infra/index.html" class="index-card">
+        <div class="ic">&#x1f5a7;</div>
+        <h3>LLM Infrastructure Explorer</h3>
+        <p>From transformer architecture to production serving — pre-training, fine-tuning, alignment, distributed training, inference, and eval.</p>
+        <span class="tag tag-blue">8 CHAPTERS</span>
+      </a>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── System Design: General ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">&#x1f3d7;&#xfe0f;</span>
+      <h2>General System Design</h2>
+    </div>
+    <div class="index-grid">
+      <a href="SystemDesign/General/ads.html" class="index-card">
+        <div class="ic">&#x1f4e2;</div>
+        <h3>Ads Platform Design</h3>
+        <p>Staff-level CAX platform system design — ad serving, auction mechanics, targeting, and real-time bidding infrastructure.</p>
+        <span class="tag tag-green">CASE STUDY</span>
+      </a>
+      <a href="SystemDesign/General/aws_network.html" class="index-card">
+        <div class="ic">&#x2601;&#xfe0f;</div>
+        <h3>AWS Networking</h3>
+        <p>VPCs, subnets, security groups, load balancers, and networking fundamentals on AWS.</p>
+        <span class="tag tag-green">INFRASTRUCTURE</span>
+      </a>
+      <a href="SystemDesign/General/gpu_orchestration.html" class="index-card">
+        <div class="ic">&#x1f4bb;</div>
+        <h3>GPU Orchestration Platform</h3>
+        <p>Staff-level system design for GPU orchestration — scheduling, resource management, and multi-tenant GPU infrastructure.</p>
+        <span class="tag tag-green">CASE STUDY</span>
+      </a>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── System Design: Robotics ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">&#x1f916;</span>
+      <h2>Robotics System Design</h2>
+    </div>
+    <div class="index-grid">
+      <a href="SystemDesign/Robotics/data_platform.html" class="index-card">
+        <div class="ic">&#x1f4be;</div>
+        <h3>Data Platform</h3>
+        <p>Robotics data platform deep dive — ingestion, storage, processing, and analytics for fleet-scale data.</p>
+        <span class="tag tag-red">CASE STUDY</span>
+      </a>
+      <a href="SystemDesign/Robotics/fleet_mgmt.html" class="index-card">
+        <div class="ic">&#x1f69a;</div>
+        <h3>Fleet Management</h3>
+        <p>Designing fleet management systems — scheduling, monitoring, dispatch, and real-time coordination.</p>
+        <span class="tag tag-red">CASE STUDY</span>
+      </a>
+      <a href="SystemDesign/Robotics/nimble.html" class="index-card">
+        <div class="ic">&#x1f4e6;</div>
+        <h3>Nimble Robotics</h3>
+        <p>Nimble Robotics system design — warehouse automation, pick-and-place, and robotic fulfillment.</p>
+        <span class="tag tag-red">CASE STUDY</span>
+      </a>
+      <a href="SystemDesign/Robotics/nimble_simulation.html" class="index-card">
+        <div class="ic">&#x1f3ae;</div>
+        <h3>Nimble Simulation</h3>
+        <p>Simulation platform for robotics — digital twins, physics engines, and sim-to-real transfer.</p>
+        <span class="tag tag-red">CASE STUDY</span>
+      </a>
+      <a href="SystemDesign/Robotics/supervised_autonomy.html" class="index-card">
+        <div class="ic">&#x1f441;&#xfe0f;</div>
+        <h3>Supervised Autonomy</h3>
+        <p>Human-in-the-loop autonomy systems — intervention policies, confidence thresholds, and escalation.</p>
+        <span class="tag tag-red">CASE STUDY</span>
+      </a>
+      <a href="SystemDesign/Robotics/teleop_platform.html" class="index-card">
+        <div class="ic">&#x1f579;&#xfe0f;</div>
+        <h3>Teleoperation Platform</h3>
+        <p>Remote robot operation — low-latency control, video streaming, and operator interfaces.</p>
+        <span class="tag tag-red">CASE STUDY</span>
+      </a>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── System Design: Wearables ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">&#x231a;</span>
+      <h2>Wearable AI</h2>
+    </div>
+    <div class="index-grid">
+      <a href="SystemDesign/Wearables/system_design_wearable_ai.md" class="index-card">
+        <div class="ic">&#x1f4d0;</div>
+        <h3>Wearable AI System Design</h3>
+        <p>End-to-end system design for AI-powered wearable devices — sensors, edge compute, cloud sync, and ML pipelines.</p>
+        <span class="tag tag-purple">DESIGN GUIDE</span>
+      </a>
+      <a href="SystemDesign/Wearables/wearable_ai_memory_reasoning.md" class="index-card">
+        <div class="ic">&#x1f4ad;</div>
+        <h3>Memory &amp; Reasoning</h3>
+        <p>Memory architectures and reasoning systems for wearable AI — context retention, on-device inference, and personalization.</p>
+        <span class="tag tag-purple">DESIGN GUIDE</span>
+      </a>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:48px;padding:24px;color:var(--muted);font-size:12px">
+    <p>Each resource is self-contained with diagrams, comparison tables, and real-world architecture patterns.</p>
+  </div>
+
+</div>
+</body>
+</html>
