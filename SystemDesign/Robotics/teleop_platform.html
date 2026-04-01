@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teleoperation Platform — System Design Study Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1a2234;
+  --bg-card: #151d2e;
+  --bg-code: #0d1117;
+  --border: #1e2d44;
+  --border-bright: #2a3f5f;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-cyan: #22d3ee;
+  --accent-blue: #3b82f6;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-purple: #a78bfa;
+  --accent-pink: #f472b6;
+  --sidebar-w: 280px;
+  --header-h: 0px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 24px;
+}
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 100;
+  padding: 20px 0;
+}
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+.sidebar-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.sidebar-title span {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.nav-group {
+  padding: 8px 0;
+}
+
+.nav-group-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  padding: 8px 20px 4px;
+}
+
+.nav-link {
+  display: block;
+  padding: 5px 20px 5px 28px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 400;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background: rgba(34, 211, 238, 0.04);
+  border-left-color: var(--accent-cyan);
+}
+
+.nav-link.active {
+  color: var(--accent-cyan);
+  background: rgba(34, 211, 238, 0.06);
+  border-left-color: var(--accent-cyan);
+  font-weight: 500;
+}
+
+.nav-link.sub {
+  padding-left: 40px;
+  font-size: 12px;
+}
+
+/* ── Main Content ── */
+.main {
+  margin-left: var(--sidebar-w);
+  padding: 40px 60px 120px;
+  max-width: 1000px;
+}
+
+/* ── Headings ── */
+h1 {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+h1 .sub {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+h2 {
+  font-family: 'IBM Plex Serif', serif;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 56px 0 20px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+h3 {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  margin: 36px 0 12px;
+}
+
+h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-amber);
+  margin: 24px 0 8px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Text ── */
+p { margin-bottom: 14px; color: var(--text-secondary); }
+strong { color: var(--text-primary); font-weight: 600; }
+em { color: var(--accent-amber); font-style: normal; font-weight: 500; }
+
+a.ref {
+  color: var(--accent-blue);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--accent-blue);
+  font-size: 13px;
+}
+a.ref:hover { color: var(--accent-cyan); border-bottom-color: var(--accent-cyan); }
+
+/* ── Code / ASCII blocks ── */
+pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  overflow-x: auto;
+  margin: 16px 0 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+pre .hl { color: var(--accent-cyan); font-weight: 600; }
+pre .hl2 { color: var(--accent-green); font-weight: 500; }
+pre .hl3 { color: var(--accent-amber); font-weight: 500; }
+pre .hl4 { color: var(--accent-purple); font-weight: 500; }
+pre .hl5 { color: var(--accent-pink); font-weight: 500; }
+pre .dim { color: var(--text-muted); }
+
+code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-cyan);
+}
+
+/* ── Cards / Callouts ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 16px 0;
+}
+
+.card.warn {
+  border-left: 3px solid var(--accent-amber);
+}
+
+.card.info {
+  border-left: 3px solid var(--accent-blue);
+}
+
+.card.success {
+  border-left: 3px solid var(--accent-green);
+}
+
+.card.danger {
+  border-left: 3px solid var(--accent-red);
+}
+
+.card-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.card.warn .card-label { color: var(--accent-amber); }
+.card.info .card-label { color: var(--accent-blue); }
+.card.success .card-label { color: var(--accent-green); }
+.card.danger .card-label { color: var(--accent-red); }
+
+/* ── Tables ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+}
+
+th {
+  background: var(--bg-tertiary);
+  color: var(--accent-cyan);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-bright);
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+tr:hover td { background: rgba(34, 211, 238, 0.02); }
+
+/* ── Collapsible sections ── */
+details {
+  margin: 12px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+details[open] {
+  border-color: var(--border-bright);
+}
+
+summary {
+  padding: 14px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary::before {
+  content: '▸';
+  color: var(--accent-cyan);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.details-body {
+  padding: 0 20px 16px;
+}
+
+/* ── Metric pills ── */
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.metric {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.metric .val {
+  color: var(--accent-cyan);
+  font-weight: 700;
+  font-size: 16px;
+  display: block;
+}
+
+.metric .label {
+  color: var(--text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── Flow steps ── */
+.flow-step {
+  display: flex;
+  gap: 16px;
+  margin: 12px 0;
+  align-items: flex-start;
+}
+
+.flow-num {
+  min-width: 32px;
+  height: 32px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--accent-cyan);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+
+.flow-content {
+  padding-top: 4px;
+}
+
+.flow-content strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* ── Tag labels ── */
+.tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+
+.tag.latency { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+.tag.protocol { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+.tag.pattern { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+.tag.industry { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
+.tag.interview { background: rgba(244,114,182,0.15); color: var(--accent-pink); }
+
+/* ── Reading order badge ── */
+.reading-order {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bg-primary);
+  background: var(--accent-cyan);
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* ── Separator ── */
+.sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
+/* ── Mobile ── */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ SIDEBAR ═══════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-title">
+    Teleoperation Platform
+    <span>System Design Guide</span>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Overview</div>
+    <a href="#overview" class="nav-link">Industry Context</a>
+    <a href="#taxonomy" class="nav-link">Teleoperation Taxonomy</a>
+    <a href="#latency-budget" class="nav-link">Latency Budget Analysis</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Architecture</div>
+    <a href="#high-level" class="nav-link">High-Level Architecture</a>
+    <a href="#mid-level" class="nav-link">Mid-Level Architecture</a>
+    <a href="#low-level" class="nav-link">Low-Level Architecture</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Deep Dives</div>
+    <a href="#dd-robot" class="nav-link">Robot Layer</a>
+    <a href="#dd-edge" class="nav-link">Edge Server</a>
+    <a href="#dd-control" class="nav-link">Control Plane</a>
+    <a href="#dd-assignment" class="nav-link sub">Assignment Service</a>
+    <a href="#dd-session" class="nav-link sub">Session Manager</a>
+    <a href="#dd-access" class="nav-link sub">Access Control</a>
+    <a href="#dd-data" class="nav-link">Data Plane</a>
+    <a href="#dd-streaming" class="nav-link sub">Video Streaming</a>
+    <a href="#dd-telemetry" class="nav-link sub">Telemetry Pipeline</a>
+    <a href="#dd-commands" class="nav-link sub">Command Delivery</a>
+    <a href="#dd-operator" class="nav-link">Operator UI</a>
+    <a href="#dd-inspection" class="nav-link sub">Inspection Mode</a>
+    <a href="#dd-recording" class="nav-link">Recording &amp; Episodes</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Flows</div>
+    <a href="#uf-assistance" class="nav-link">Assistance Request Flow</a>
+    <a href="#uf-inspection" class="nav-link">Inspection Mode Flow</a>
+    <a href="#uf-failover" class="nav-link">Failover Flow</a>
+    <a href="#df-data" class="nav-link">Data Flow Diagrams</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Non-Functional</div>
+    <a href="#reliability" class="nav-link">Reliability</a>
+    <a href="#scaling" class="nav-link">Scaling</a>
+    <a href="#security" class="nav-link">Security</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Interview</div>
+    <a href="#cheatsheet" class="nav-link">Cheat Sheet</a>
+    <a href="#qa" class="nav-link">Staff-Level Q&amp;A</a>
+    <a href="#references" class="nav-link">References</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════ MAIN ═══════════════════════════════════════════════ -->
+<div class="main">
+
+<!-- ──────────────────────────── OVERVIEW ──────────────────────────── -->
+<h1 id="overview">
+  <span class="sub">System Design Study Guide</span>
+  Robotics Teleoperation Platform
+</h1>
+<p>End-to-end design for a multi-warehouse, multi-operator remote assistance platform. Informed by production architectures at Waymo, Cruise, Zoox, Nimble Robotics, Phantom Auto, Ottopia, DriveU.auto, Boston Dynamics, and academic research from CoRL, IEEE, and TUM.</p>
+
+<div class="card info">
+  <div class="card-label">Problem Statement</div>
+  <p style="margin-bottom:0">Design a platform where warehouse robots request human judgment on perception tasks (pick setpoint marking, drop confirmation). Operators are in Southeast Asia, robots in North America. Normal operation is <strong>8 seconds</strong> — every millisecond of teleoperation latency directly impacts throughput. The platform must handle assignment, session lifecycle, real-time streaming, and graceful degradation.</p>
+</div>
+
+<div class="metrics">
+  <div class="metric"><span class="val">8s</span><span class="label">Operation Time</span></div>
+  <div class="metric"><span class="val">~200ms</span><span class="label">NA→SEA RTT</span></div>
+  <div class="metric"><span class="val">5-10%</span><span class="label">Intervention Rate</span></div>
+  <div class="metric"><span class="val">1:300-500</span><span class="label">Operator:Robot Ratio</span></div>
+</div>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── TAXONOMY ──────────────────────────── -->
+<h2 id="taxonomy">Teleoperation Taxonomy</h2>
+<p>The industry distinguishes three modes of teleoperation, each with fundamentally different latency requirements and system architectures. Understanding which mode your system implements is the <strong>first</strong> thing to clarify in an interview.</p>
+
+<table>
+  <tr>
+    <th>Mode</th>
+    <th>Latency Req</th>
+    <th>Who Drives</th>
+    <th>Industry Examples</th>
+  </tr>
+  <tr>
+    <td><strong>Direct Remote Driving</strong></td>
+    <td>&lt;100ms glass-to-glass</td>
+    <td>Human has full vehicle control (steering, throttle, brake)</td>
+    <td>Vay, Phantom Auto, Nuro (low-speed)</td>
+  </tr>
+  <tr>
+    <td><strong>Supervisory Assistance</strong></td>
+    <td>&lt;500ms E2E</td>
+    <td>Robot drives; human provides waypoints, path guidance, or object classification</td>
+    <td>Waymo, Cruise, Zoox, Aurora</td>
+  </tr>
+  <tr>
+    <td><strong>Exception-Based Intervention</strong></td>
+    <td>&lt;2s E2E (per-task)</td>
+    <td>Robot operates autonomously 90-95%; human resolves perception failures</td>
+    <td><strong>Nimble Robotics</strong>, Covariant, Cognicept</td>
+  </tr>
+</table>
+
+<div class="card warn">
+  <div class="card-label">Interview Insight</div>
+  <p style="margin-bottom:0">Our target system is <strong>exception-based intervention</strong> — the robot asks for help only when its vision model fails. This is NOT direct remote driving. The distinction matters because it means: (1) we don't need continuous video streaming during normal operation, (2) the latency budget is per-request not per-frame, and (3) we can tolerate higher assignment latency since the robot is safely stopped while waiting.</p>
+</div>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── LATENCY BUDGET ──────────────────────────── -->
+<h2 id="latency-budget">Latency Budget Analysis <span class="reading-order">READ FIRST</span></h2>
+<p><span class="tag interview">Interview</span> <strong>Lead with this.</strong> Decomposing the latency budget should be your opening frame in any teleoperation system design interview. It forces every downstream decision to be justified against a concrete number.</p>
+
+<h3>The 8-Second Constraint</h3>
+<p>Normal pick operation takes 8 seconds. When intervention is needed, the robot is paused. Every second of intervention latency is a second of lost throughput. If average intervention takes 10 seconds and 5% of picks need intervention, that's a <strong>6.25% throughput loss</strong>. Our goal: keep total intervention time under 5 seconds (2.5% throughput loss at 5% intervention rate).</p>
+
+<pre>
+<span class="hl">TOTAL INTERVENTION BUDGET: ≤5,000ms</span>
+<span class="dim">─────────────────────────────────────────────────────────────</span>
+
+<span class="hl3">Phase 1: Assignment</span>         ≤500ms
+  ├─ Request reaches cloud        ~50ms  (edge→cloud)
+  ├─ Assignment decision           ~20ms  (priority queue lookup)
+  ├─ Notification to operator      ~80ms  (cloud→SEA WebSocket)
+  └─ Operator accepts              ~350ms (UI render + click)
+
+<span class="hl3">Phase 2: Session Setup</span>       ≤800ms
+  ├─ WebRTC signaling              ~200ms (SDP offer/answer via cloud)
+  ├─ ICE connectivity check        ~300ms (STUN/TURN)
+  ├─ First keyframe delivery       ~200ms (I-frame at session start)
+  └─ UI context loading            ~100ms (robot state, task context)
+
+<span class="hl3">Phase 3: Human Decision</span>      ≤2,500ms
+  ├─ Operator orients to scene     ~1,000ms (visual comprehension)
+  ├─ Operator marks setpoint       ~1,000ms (mouse click on image)
+  └─ Confirmation / review         ~500ms
+
+<span class="hl3">Phase 4: Command Delivery</span>    ≤400ms
+  ├─ Command encode + transmit     ~150ms (SEA→cloud→edge)
+  ├─ Edge→robot WiFi               ~20ms
+  ├─ Robot processes command        ~30ms  (validates, plans)
+  └─ Margin                        ~200ms
+
+<span class="hl">Total worst-case: ~4,200ms → within 5s budget ✓</span>
+</pre>
+
+<div class="card success">
+  <div class="card-label">Key Insight from Research</div>
+  <p style="margin-bottom:0"><strong>Network transmission is only ~10% of total glass-to-glass latency</strong> (2025 research finding). The real bottlenecks are: camera capture/exposure (5-33ms), encoding (5-30ms), decoding (2-10ms), and human reaction time (1-3s). This is why Phantom Auto, Ottopia, and DriveU invest heavily in codec optimization, not just network improvements. <a class="ref" href="https://arxiv.org/html/2602.17381v1" target="_blank">arXiv 2602.17381</a></p>
+</div>
+
+<h3>Latency Optimization Strategies</h3>
+
+<table>
+  <tr><th>Strategy</th><th>Latency Saved</th><th>How</th></tr>
+  <tr>
+    <td><strong>Pre-warm WebRTC connections</strong></td>
+    <td>~500ms from Phase 2</td>
+    <td>Maintain idle DataChannels between edge servers and operator pool. On assignment, promote to active — skip ICE negotiation entirely.</td>
+  </tr>
+  <tr>
+    <td><strong>Snapshot-first, stream-second</strong></td>
+    <td>~300ms from Phase 2</td>
+    <td>Send a high-res JPEG snapshot with the assignment notification. Operator can start deciding while video stream establishes.</td>
+  </tr>
+  <tr>
+    <td><strong>Predictive assignment</strong></td>
+    <td>~200ms from Phase 1</td>
+    <td>ML model predicts which robots are about to need help (low confidence scores trending down). Pre-assign operator before request fires.</td>
+  </tr>
+  <tr>
+    <td><strong>Edge-local video encoding</strong></td>
+    <td>~15ms from Phase 2</td>
+    <td>Encode video on edge server (NVIDIA T4/L4) instead of robot Jetson. Better encoder, lower latency.</td>
+  </tr>
+  <tr>
+    <td><strong>Operator UI pre-loading</strong></td>
+    <td>~100ms from Phase 2</td>
+    <td>When operator pool is warm, pre-load robot context (SKU info, recent failures) in background tabs.</td>
+  </tr>
+</table>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── HIGH-LEVEL ARCHITECTURE ──────────────────────────── -->
+<h2 id="high-level">High-Level Architecture</h2>
+<p><span class="tag pattern">Pattern</span> The architecture follows a <strong>three-plane separation</strong> — management plane (auth, RBAC, operator lifecycle), control plane (assignment, session orchestration), and data plane (video, telemetry, commands). This mirrors how every major AV company structures their teleoperation stack.</p>
+
+<pre>
+<span class="hl">HIGH-LEVEL ARCHITECTURE — ROBOTICS TELEOPERATION PLATFORM</span>
+<span class="dim">═══════════════════════════════════════════════════════════════════════════</span>
+
+  <span class="hl3">WAREHOUSE (NA) × N</span>                    <span class="hl">CLOUD (AWS)</span>                  <span class="hl4">OPERATORS (SEA)</span>
+  ┌─────────────────────┐        ┌──────────────────────────────┐   ┌─────────────────┐
+  │                     │        │    <span class="hl2">MANAGEMENT PLANE</span>           │   │                 │
+  │  ┌─────┐ ┌─────┐   │        │  ┌──────┐ ┌──────┐ ┌──────┐ │   │  ┌───────────┐  │
+  │  │Robot│ │Robot│   │        │  │ Auth │ │ RBAC │ │Onbrd │ │   │  │ Operator  │  │
+  │  │  1  │ │  2  │   │        │  └──────┘ └──────┘ └──────┘ │   │  │    UI     │  │
+  │  └──┬──┘ └──┬──┘   │        ├──────────────────────────────┤   │  │ (Browser) │  │
+  │     │  WiFi │      │        │    <span class="hl">CONTROL PLANE</span>              │   │  └─────┬─────┘  │
+  │  ┌──┴───────┴──┐   │        │  ┌──────────┐ ┌───────────┐ │   │        │        │
+  │  │    Edge     │   │◄──────►│  │Assignment│ │  Session   │ │◄──┼────────┘        │
+  │  │   Server    │   │  ctrl  │  │ Service  │ │  Manager   │ │ws │                 │
+  │  └──────┬──────┘   │        │  └──────────┘ └───────────┘ │   │                 │
+  │         │          │        ├──────────────────────────────┤   │                 │
+  └─────────┼──────────┘        │    <span class="hl5">DATA PLANE</span>                │   │                 │
+            │                   │  ┌──────────┐ ┌───────────┐ │   │                 │
+            │    data streams   │  │  Media   │ │ Telemetry │ │   │                 │
+            └──────────────────►│  │  Relay   │ │  Ingest   │ │───┼────────►        │
+                                │  │  (SFU)   │ │           │ │   │   video/data    │
+                                │  └──────────┘ └───────────┘ │   │                 │
+                                ├──────────────────────────────┤   └─────────────────┘
+                                │    <span class="hl2">STORAGE</span>                  │
+                                │  ┌──────────┐ ┌───────────┐ │
+                                │  │ Episode  │ │ Metrics / │ │
+                                │  │  Store   │ │  Analytics│ │
+                                │  └──────────┘ └───────────┘ │
+                                └──────────────────────────────┘
+</pre>
+
+<div class="card info">
+  <div class="card-label">Architecture Rationale</div>
+  <p><strong>Why not direct robot-to-operator?</strong> Three reasons: (1) robots are behind NAT on warehouse WiFi — you need a relay, (2) operators need to be assigned dynamically — you need a broker, (3) you need audit trails and access control — you need a control plane. The cloud sits in the middle as orchestrator, but the <em>data path</em> can be optimized to minimize hops.</p>
+  <p style="margin-bottom:0"><strong>Why edge servers?</strong> Warehouse internet is limited bandwidth. The edge server aggregates robot streams, transcodes/compresses, buffers during outages, and provides local recording. Without it, 50 robots each pushing 5 Mbps would require 250 Mbps uplink — unrealistic for warehouse internet.</p>
+</div>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── MID-LEVEL ARCHITECTURE ──────────────────────────── -->
+<h2 id="mid-level">Mid-Level Architecture</h2>
+<p>Each plane decomposed into services with data flow paths.</p>
+
+<h3>Control Plane Detail</h3>
+<pre>
+<span class="hl">CONTROL PLANE — ASSIGNMENT + SESSION ORCHESTRATION</span>
+<span class="dim">════════════════════════════════════════════════════════════════════</span>
+
+  Robot Request                                        Operator
+  (via Edge)                                          (Browser)
+      │                                                   │
+      ▼                                                   │
+ ┌─────────────────────────────────────────────────────────┼──────┐
+ │  <span class="hl">API Gateway (ALB + WebSocket)</span>                         │      │
+ │     │                                                   │      │
+ │     ▼                                                   │      │
+ │  ┌──────────────┐      ┌──────────────────┐             │      │
+ │  │  Request     │─────►│  Assignment      │             │      │
+ │  │  Intake      │      │  Service         │             │      │
+ │  │              │      │                  │             │      │
+ │  │ • validate   │      │ • eligible pool  │──── notify ─┘      │
+ │  │ • dedup      │      │ • priority score │                    │
+ │  │ • enrich     │      │ • assign         │                    │
+ │  └──────────────┘      └────────┬─────────┘                    │
+ │                                 │                              │
+ │                                 ▼                              │
+ │                        ┌──────────────────┐                    │
+ │                        │  Session         │                    │
+ │                        │  Manager         │                    │
+ │                        │                  │                    │
+ │                        │ • state machine  │                    │
+ │                        │ • TTL watchdog   │                    │
+ │                        │ • signal broker  │                    │
+ │                        │ • episode writer │                    │
+ │                        └──────────────────┘                    │
+ │                                                                │
+ │  <span class="hl3">Backing Services:</span>                                           │
+ │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────────┐   │
+ │  │ Redis    │ │ DynamoDB │ │ SQS/     │ │ EventBridge    │   │
+ │  │ (state,  │ │ (persist)│ │ Kinesis  │ │ (audit events) │   │
+ │  │  pubsub) │ │          │ │          │ │                │   │
+ │  └──────────┘ └──────────┘ └──────────┘ └────────────────┘   │
+ └────────────────────────────────────────────────────────────────┘
+</pre>
+
+<h3>Data Plane Detail</h3>
+<pre>
+<span class="hl">DATA PLANE — STREAMING + TELEMETRY + COMMANDS</span>
+<span class="dim">════════════════════════════════════════════════════════════════════</span>
+
+  Robot Camera/Sensors              Edge Server              Cloud Media
+  ┌──────────────┐            ┌──────────────────┐     ┌─────────────────┐
+  │  • RGB Cam   │───WiFi────►│ <span class="hl2">Stream Processor</span> │────►│  <span class="hl">Media SFU</span>       │
+  │  • Depth     │   ROS2/    │  • H.264 encode  │     │  (LiveKit/      │
+  │  • Joints    │   Zenoh    │  • Adaptive rate  │     │   custom)       │
+  │  • Force/    │            │  • Local buffer   │     │  • WebRTC relay │──► Operator
+  │    Torque    │            │  • MCAP record    │     │  • SFU cascade  │    Browser
+  └──────────────┘            └────────┬─────────┘     │  • ABR control  │
+                                       │               └─────────────────┘
+                                       │
+                                       ▼
+                              ┌──────────────────┐     ┌─────────────────┐
+                              │ <span class="hl3">Telemetry Agent</span>  │────►│ <span class="hl3">Telemetry Ingest</span>│
+                              │  • MQTT publish  │     │  (Kinesis)      │
+                              │  • Heartbeat     │     │  • Time-series  │
+                              │  • Error codes   │     │  • Alerting     │
+                              └──────────────────┘     └─────────────────┘
+
+  Operator Commands                                    Robot Actuation
+  ┌──────────────┐     ┌─────────────────┐        ┌──────────────────┐
+  │  • Setpoint  │────►│ <span class="hl4">Command Router</span>  │───────►│ Edge → Robot     │
+  │  • Confirm   │     │  • Validate     │        │ • WiFi delivery  │
+  │  • Override  │     │  • Timestamp    │        │ • ACK required   │
+  │  • Abort     │     │  • Encrypt      │        │ • Timeout→retry  │
+  └──────────────┘     └─────────────────┘        └──────────────────┘
+</pre>
+
+<h3>Edge Server Internal Architecture</h3>
+<pre>
+<span class="hl">EDGE SERVER — WAREHOUSE-LOCAL COMPUTE</span>
+<span class="dim">════════════════════════════════════════════════════════════════════</span>
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  <span class="hl">Edge Server</span> (per-warehouse, e.g. Dell PowerEdge + NVIDIA T4) │
+  │                                                              │
+  │  ┌──────────────────────────────────────────────────────┐   │
+  │  │  <span class="hl2">Robot Communication Layer</span>                            │   │
+  │  │  • ROS2/Zenoh bridge (subscribes to robot topics)    │   │
+  │  │  • mDNS discovery (auto-detect robots on WiFi)       │   │
+  │  │  • Connection pool (persistent per-robot)            │   │
+  │  └──────────────────────────────────────────────────────┘   │
+  │                                                              │
+  │  ┌───────────────┐  ┌───────────────┐  ┌────────────────┐  │
+  │  │ <span class="hl3">Stream Mux</span>    │  │ <span class="hl3">Telemetry</span>    │  │ <span class="hl3">Command</span>       │  │
+  │  │               │  │ <span class="hl3">Agent</span>        │  │ <span class="hl3">Dispatcher</span>    │  │
+  │  │ • N:1 mux     │  │               │  │               │  │
+  │  │ • HW encode   │  │ • MQTT broker │  │ • Cloud→robot │  │
+  │  │   (NVENC)     │  │ • Local store │  │ • ACK tracker │  │
+  │  │ • Adaptive    │  │ • Conditional │  │ • Retry queue │  │
+  │  │   bitrate     │  │   upload      │  │ • Validation  │  │
+  │  └───────────────┘  └───────────────┘  └────────────────┘  │
+  │                                                              │
+  │  ┌───────────────┐  ┌───────────────┐  ┌────────────────┐  │
+  │  │ <span class="hl4">MCAP</span>          │  │ <span class="hl4">Cloud</span>        │  │ <span class="hl4">Health</span>        │  │
+  │  │ <span class="hl4">Recorder</span>      │  │ <span class="hl4">Connector</span>   │  │ <span class="hl4">Monitor</span>       │  │
+  │  │               │  │               │  │               │  │
+  │  │ • Episode     │  │ • WebSocket   │  │ • Disk usage  │  │
+  │  │   recording   │  │   to cloud    │  │ • Network BW  │  │
+  │  │ • Ring buffer │  │ • S3 upload   │  │ • Robot conn  │  │
+  │  │ • S3 offload  │  │ • Reconnect   │  │ • Self-heal   │  │
+  │  └───────────────┘  └───────────────┘  └────────────────┘  │
+  └──────────────────────────────────────────────────────────────┘
+</pre>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── LOW-LEVEL ARCHITECTURE ──────────────────────────── -->
+<h2 id="low-level">Low-Level Architecture</h2>
+
+<h3>Assignment Service — Internal Design</h3>
+<pre>
+<span class="hl">ASSIGNMENT SERVICE — PRIORITY-BASED OPERATOR MATCHING</span>
+<span class="dim">════════════════════════════════════════════════════════════════════</span>
+
+  Incoming Request (from robot via edge)
+  {robot_id, warehouse_id, request_type, priority, snapshot_url, context}
+      │
+      ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  <span class="hl">Step 1: Eligible Pool Filter</span>                                   │
+  │                                                                  │
+  │  SELECT operators WHERE                                          │
+  │    status = 'AVAILABLE'                                          │
+  │    AND warehouse_id IN operator.authorized_warehouses            │
+  │    AND operator.skill_level >= request.required_skill            │
+  │    AND operator.current_queue_depth < MAX_QUEUE (3)              │
+  │                                                                  │
+  │  Source: Redis sorted set (O(log N) per lookup)                  │
+  └──────────────────────┬───────────────────────────────────────────┘
+                         │
+                         ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  <span class="hl2">Step 2: Priority Scoring</span>                                       │
+  │                                                                  │
+  │  score(op) = w1 × <span class="hl3">availability_score</span>                              │
+  │            + w2 × <span class="hl3">success_rate</span>                                    │
+  │            + w3 × <span class="hl3">avg_completion_time_inverse</span>                      │
+  │            + w4 × <span class="hl3">time_since_last_request</span>  (fairness)              │
+  │            + w5 × <span class="hl3">warehouse_familiarity</span>                             │
+  │                                                                  │
+  │  Weights: w1=0.30, w2=0.25, w3=0.20, w4=0.15, w5=0.10          │
+  │                                                                  │
+  │  Sort by score DESC → pick top candidate                         │
+  └──────────────────────┬───────────────────────────────────────────┘
+                         │
+                         ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  <span class="hl4">Step 3: Assign + Notify</span>                                        │
+  │                                                                  │
+  │  1. Atomic Redis MULTI:                                          │
+  │     ZADD operator:{id}:queue {timestamp} {request_id}            │
+  │     SET request:{id}:status ASSIGNED                             │
+  │     SET request:{id}:operator {operator_id}                      │
+  │     SET request:{id}:ttl {now + 30s}                             │
+  │                                                                  │
+  │  2. WebSocket push to operator:                                  │
+  │     {type: "assignment", request_id, snapshot_url, context}      │
+  │                                                                  │
+  │  3. Start TTL watchdog (30s):                                    │
+  │     if no ACCEPT → reassign to next candidate                    │
+  └──────────────────────────────────────────────────────────────────┘
+</pre>
+
+<h3>Session State Machine</h3>
+<pre>
+<span class="hl">SESSION LIFECYCLE STATE MACHINE</span>
+<span class="dim">════════════════════════════════════════════════════════════════════</span>
+
+                    ┌──────────┐
+          robot     │          │
+          request──►│ REQUESTED│
+                    │          │
+                    └────┬─────┘
+                         │ assignment service picks operator
+                         ▼
+                    ┌──────────┐       30s timeout
+                    │          │──────────────────────┐
+                    │ ASSIGNED │                      │
+                    │          │◄─────────┐           ▼
+                    └────┬─────┘          │    ┌──────────┐
+                         │ operator       │    │          │
+                         │ accepts        │    │ EXPIRED  │
+                         ▼                │    │ (reassign│
+                    ┌──────────┐          │    │  or fail)│
+                    │          │          │    └──────────┘
+                    │CONNECTING│──timeout─┘
+                    │ (WebRTC) │
+                    └────┬─────┘
+                         │ ICE connected + first frame
+                         ▼
+                    ┌──────────┐     disconnect
+                    │          │────────────────┐
+                    │  ACTIVE  │                ▼
+                    │          │         ┌──────────────┐
+                    └────┬─────┘         │ RECONNECTING │
+                         │               │  (15s grace) │
+                         │               └──────┬───────┘
+                         │                      │ reconnect OK
+                         │◄─────────────────────┘
+                         │
+                         │ operator submits command
+                         ▼
+                    ┌──────────┐
+                    │          │
+                    │COMPLETING│─── write episode, update metrics
+                    │          │
+                    └────┬─────┘
+                         │
+                         ▼
+                    ┌──────────┐
+                    │          │
+                    │  CLOSED  │
+                    │          │
+                    └──────────┘
+</pre>
+
+<h3>WebRTC Signaling Sequence</h3>
+<pre>
+<span class="hl">WEBRTC SESSION ESTABLISHMENT — LOW-LEVEL SIGNALING</span>
+<span class="dim">════════════════════════════════════════════════════════════════════</span>
+
+  Edge Server            Cloud Signal Server          Operator Browser
+      │                         │                          │
+      │  1. PRE-WARM (idle)     │                          │
+      │────WSS connect─────────►│◄──────WSS connect────────│
+      │                         │                          │
+      │  <span class="hl3">... assignment happens ...</span>                         │
+      │                         │                          │
+      │  2. Session.Start       │                          │
+      │◄────────────────────────│                          │
+      │                         │  3. Assignment + snapshot│
+      │                         │─────────────────────────►│
+      │                         │                          │
+      │  4. SDP Offer           │                          │
+      │  (H.264, opus, datachn) │                          │
+      │────────────────────────►│  5. Forward SDP offer    │
+      │                         │─────────────────────────►│
+      │                         │                          │
+      │                         │  6. SDP Answer           │
+      │  7. Forward SDP answer  │◄─────────────────────────│
+      │◄────────────────────────│                          │
+      │                         │                          │
+      │  8. ICE Candidates (trickle)                       │
+      │◄───────────────────────────────────────────────────│
+      │                         │                          │
+      │  <span class="hl">9. DTLS-SRTP handshake (direct P2P or via TURN)</span>    │
+      │◄══════════════════════════════════════════════════►│
+      │                         │                          │
+      │  <span class="hl2">10. First I-frame</span>      │                          │
+      │════════════════════════════════════════════════════►│
+      │                         │                          │
+      │  11. Bidirectional media + data channels           │
+      │◄═══════════════════════════════════════════════════►│
+</pre>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── DEEP DIVES ──────────────────────────── -->
+<h2 id="dd-robot">Deep Dive: Robot Layer</h2>
+
+<p>Each robot runs an onboard computer (e.g. NVIDIA Jetson Orin) with a ROS 2 stack. The teleoperation subsystem is a set of ROS 2 nodes that run alongside the autonomous manipulation pipeline.</p>
+
+<details>
+<summary>Robot Software Architecture</summary>
+<div class="details-body">
+<pre>
+<span class="hl">ROBOT-SIDE TELEOPERATION NODES (ROS 2)</span>
+<span class="dim">───────────────────────────────────────────────</span>
+  ┌─────────────────────────────────────────┐
+  │  <span class="hl2">Autonomous Pipeline</span>                     │
+  │  • Perception (vision model)            │
+  │  • Planning (task sequencing)           │
+  │  • Control (arm/gripper actuation)      │
+  └───────────────┬─────────────────────────┘
+                  │ confidence < threshold
+                  ▼
+  ┌─────────────────────────────────────────┐
+  │  <span class="hl3">Intervention Request Node</span>               │
+  │  • Monitors /perception/confidence      │
+  │  • Captures snapshot (high-res JPEG)    │
+  │  • Publishes /teleop/request            │
+  │  • Transitions state → WAITING_ASSIST   │
+  └───────────────┬─────────────────────────┘
+                  │
+                  ▼
+  ┌─────────────────────────────────────────┐
+  │  <span class="hl4">Teleop Communication Node</span>               │
+  │  • Zenoh bridge to edge server          │
+  │  • Publishes camera topics:             │
+  │    /camera/rgb/compressed (H.264)       │
+  │    /camera/depth/compressedDepth        │
+  │  • Subscribes:                          │
+  │    /teleop/command (setpoints, confirm) │
+  │    /teleop/session_state                │
+  │  • Local timeout: if no response in     │
+  │    60s → retry autonomously or re-req   │
+  └─────────────────────────────────────────┘
+</pre>
+
+<h4>Robot State Machine</h4>
+<pre>
+  AUTONOMOUS ──confidence_low──► REQUESTING_HELP
+      ▲                              │
+      │                    assigned + connected
+      │                              ▼
+  EXECUTING_CMD ◄───command──── WAITING_INPUT
+      │                              │
+      │ success                  timeout (60s)
+      ▼                              ▼
+  AUTONOMOUS                   RE_REQUEST
+</pre>
+
+<p><strong>Key design decisions:</strong></p>
+<p><strong>Why Zenoh over DDS for robot↔edge?</strong> Standard ROS 2 DDS middleware suffers significant performance degradation over WiFi due to IP fragmentation from large UDP payloads. Zenoh uses TCP with built-in fragmentation handling, achieving 3-10x better throughput over lossy wireless links. <a class="ref" href="https://arxiv.org/html/2508.11366v1" target="_blank">arXiv 2508.11366</a></p>
+<p><strong>Why H.264 on-robot?</strong> Jetson Orin has hardware H.264/H.265 encoders (NVENC). Encoding on-robot reduces WiFi bandwidth by 10-50x vs raw frames. Use <code>ultrafast</code> preset + <code>zerolatency</code> tune for minimum encode latency (~5ms).</p>
+</div>
+</details>
+
+<hr class="sep">
+
+<h2 id="dd-edge">Deep Dive: Edge Server</h2>
+
+<details>
+<summary>Edge Server Architecture & Failure Modes</summary>
+<div class="details-body">
+<p>The edge server is the <strong>most critical single point of failure</strong> in the warehouse. It must be designed for high availability.</p>
+
+<h4>Hardware Specification</h4>
+<table>
+  <tr><th>Component</th><th>Spec</th><th>Why</th></tr>
+  <tr><td>Compute</td><td>Dell PowerEdge R750 or similar</td><td>Rack-mount, redundant PSU</td></tr>
+  <tr><td>GPU</td><td>NVIDIA T4 or L4</td><td>NVENC for video transcode (up to 30 streams)</td></tr>
+  <tr><td>Storage</td><td>2TB NVMe RAID-1</td><td>MCAP episode ring buffer (~48hr)</td></tr>
+  <tr><td>Network</td><td>Dual 10GbE + WiFi 6 AP</td><td>LAN to robots, WAN to cloud</td></tr>
+  <tr><td>Internet</td><td>Dual ISP (primary + cellular backup)</td><td>Resilience</td></tr>
+</table>
+
+<h4>Edge Failure Scenarios</h4>
+<pre>
+<span class="hl3">Failure 1: Edge loses internet (WAN down)</span>
+  → Robots continue autonomous operation
+  → Intervention requests buffer locally (SQLite queue)
+  → When connectivity restores, drain queue LIFO
+  → If buffer > 5min, robots fall back to skip-and-continue
+
+<span class="hl3">Failure 2: Edge server crashes (hardware)</span>
+  → Robots detect via heartbeat timeout (5s)
+  → Robot falls back to DIRECT CLOUD mode:
+    • Robot has pre-provisioned cloud endpoint
+    • Connects via warehouse internet directly
+    • Higher latency but still functional
+  → Alert ops team for hardware replacement
+
+<span class="hl3">Failure 3: WiFi degradation</span>
+  → Edge monitors per-robot link quality (RSSI, packet loss)
+  → Adaptive: reduce video quality (720p→480p→JPEG snapshots)
+  → If link drops entirely, robot stops and waits
+  → Consider: mesh WiFi (Rajant) for large warehouses
+</pre>
+
+<p><strong>Industry reference:</strong> Boston Dynamics' Spot supports WiFi, LTE, 5G, Rajant mesh, and Starlink as connectivity options through its Orbit platform. <a class="ref" href="https://bostondynamics.com/blog/robot-fleet-management-lifts-off-with-spot/" target="_blank">Boston Dynamics Blog</a></p>
+</div>
+</details>
+
+<hr class="sep">
+
+<h2 id="dd-control">Deep Dive: Control Plane</h2>
+
+<h3 id="dd-assignment">Assignment Service</h3>
+<details>
+<summary>Priority Scoring, Fairness, and Elastic Scaling</summary>
+<div class="details-body">
+<p><span class="tag industry">Industry</span> The operator scheduling problem is <strong>NP-Hard</strong> (proven by Patel et al., IEEE IROS 2022). In practice, greedy priority-queue approaches work well. The Fleet-DAgger framework from CoRL 2022 formalizes the <strong>Return on Human Effort (ROHE)</strong> metric for scheduling. <a class="ref" href="https://proceedings.mlr.press/v205/hoque23a/hoque23a.pdf" target="_blank">Fleet-DAgger Paper</a></p>
+
+<h4>Priority Score Formula</h4>
+<p>For each eligible operator <code>op</code> and request <code>req</code>:</p>
+<pre>
+score(op, req) =
+    0.30 × <span class="hl2">availability</span>(op)           // 1.0 if idle, 0.5 if queue_depth=1, 0.0 if full
+  + 0.25 × <span class="hl2">success_rate</span>(op, req.type) // rolling 100-request window
+  + 0.20 × <span class="hl2">speed</span>(op, req.type)        // 1.0 - (avg_time / max_time)
+  + 0.15 × <span class="hl2">fairness</span>(op)               // time_since_last_request / max_idle_time
+  + 0.10 × <span class="hl2">familiarity</span>(op, req.wh_id) // requests_at_warehouse / total_requests
+</pre>
+
+<h4>Data Model (DynamoDB)</h4>
+<pre>
+<span class="hl">Table: Operators</span>
+PK: operator_id
+Attributes:
+  status: AVAILABLE | BUSY | OFFLINE
+  authorized_warehouses: Set&lt;warehouse_id&gt;
+  skill_level: 1-5
+  current_queue_depth: Number
+  rolling_success_rate: Map&lt;request_type, Number&gt;
+  rolling_avg_time: Map&lt;request_type, Number&gt;
+  last_request_timestamp: Number
+  warehouse_familiarity: Map&lt;warehouse_id, Number&gt;
+
+<span class="hl">Table: Requests</span>
+PK: request_id
+SK: timestamp
+Attributes:
+  robot_id, warehouse_id, request_type, priority
+  status: REQUESTED | ASSIGNED | ACTIVE | COMPLETED | EXPIRED
+  assigned_operator_id, assigned_at, completed_at
+  snapshot_url, context_json
+  episode_id (links to recording)
+
+<span class="hl">Redis Hot State:</span>
+  available_operators:{warehouse_id} → Sorted Set (score = priority_score)
+  operator:{id}:queue → Sorted Set (score = timestamp)
+  request:{id}:state → Hash (status, operator, ttl)
+  operator:{id}:ws → WebSocket connection reference
+</pre>
+
+<h4>Elastic Scaling Strategy</h4>
+<p>Operator pool scales based on <strong>request queue depth</strong> and <strong>time-of-day patterns</strong>:</p>
+<pre>
+<span class="hl3">Tier 1: Cross-warehouse rebalancing</span>
+  If warehouse_A queue_depth > threshold AND warehouse_B idle operators exist:
+    Expand operator ACLs temporarily to cover both warehouses
+    (requires pre-training on warehouse_A layout)
+
+<span class="hl3">Tier 2: Shift extension</span>
+  If global queue_depth > 2× baseline for 5min:
+    Alert shift managers, request overtime operators
+
+<span class="hl3">Tier 3: Degraded mode</span>
+  If operator pool exhausted:
+    Robots fall back to skip-and-requeue behavior
+    Non-critical requests deprioritized
+    Critical path items (high-value SKUs) prioritized
+</pre>
+
+<p><strong>Industry benchmark:</strong> Cognicept Systems reports needing <strong>300-500 robots to fully employ one operator</strong> for exception-based intervention. <a class="ref" href="https://www.wholesaleinvestor.com/cognicept-systems-develop-a-human-in-the-loop-teleoperation-service-to-reduce-robot-failure-rates/" target="_blank">Cognicept</a></p>
+</div>
+</details>
+
+<h3 id="dd-session">Session Manager</h3>
+<details>
+<summary>State Machine, TTL, Reconnection, Episode Curation</summary>
+<div class="details-body">
+<p>The session manager is the orchestrator that binds an operator to a robot for the duration of a single intervention. It owns the state machine shown in the Low-Level Architecture section.</p>
+
+<h4>Implementation: Temporal.io Workflow</h4>
+<p>Each session is a <strong>Temporal workflow</strong> with durable timers, automatic retries, and audit trails. Why Temporal over a custom state machine? Because session state must survive service restarts, and Temporal gives you exactly-once execution semantics and built-in timeout handling.</p>
+
+<pre>
+<span class="hl">SessionWorkflow (Temporal)</span>
+<span class="dim">───────────────────────────────</span>
+workflow SessionWorkflow(request):
+  // Phase 1: Assignment
+  operator = await activity.AssignOperator(request)
+  if operator is null:
+    return SessionResult.NO_OPERATOR_AVAILABLE
+
+  // Phase 2: Wait for acceptance (30s timeout)
+  accepted = await signal.WaitForAcceptance(timeout=30s)
+  if not accepted:
+    await activity.ReassignToNext(request)
+    continue  // retry with next candidate
+
+  // Phase 3: WebRTC session setup
+  session = await activity.EstablishWebRTC(operator, request.edge_id)
+  timer.Start("session_ttl", duration=120s)
+
+  // Phase 4: Wait for command or timeout
+  select:
+    case command = await signal.OperatorCommand():
+      await activity.DeliverCommand(command, request.robot_id)
+      await activity.WriteEpisode(session, command)
+      return SessionResult.COMPLETED
+
+    case await signal.OperatorDisconnect():
+      reconnected = await signal.WaitForReconnect(timeout=15s)
+      if reconnected: goto Phase 4
+      else: await activity.ReassignToNext(request)
+
+    case await timer.Fired("session_ttl"):
+      await activity.TimeoutSession(session)
+      return SessionResult.TIMEOUT
+</pre>
+
+<h4>Session Metrics (per-session, emitted to CloudWatch)</h4>
+<table>
+  <tr><th>Metric</th><th>Target</th><th>Alert Threshold</th></tr>
+  <tr><td>Assignment latency (P99)</td><td>&lt;500ms</td><td>&gt;1s</td></tr>
+  <tr><td>Session setup time (P99)</td><td>&lt;800ms</td><td>&gt;2s</td></tr>
+  <tr><td>Human decision time (P50)</td><td>&lt;2.5s</td><td>&gt;5s</td></tr>
+  <tr><td>Command delivery time (P99)</td><td>&lt;400ms</td><td>&gt;1s</td></tr>
+  <tr><td>Total intervention time (P95)</td><td>&lt;5s</td><td>&gt;8s</td></tr>
+  <tr><td>Reassignment rate</td><td>&lt;5%</td><td>&gt;15%</td></tr>
+  <tr><td>Session success rate</td><td>&gt;95%</td><td>&lt;90%</td></tr>
+</table>
+</div>
+</details>
+
+<h3 id="dd-access">Access Control</h3>
+<details>
+<summary>RBAC + ABAC Hierarchy, Zero-Trust Model</summary>
+<div class="details-body">
+<h4>Permission Hierarchy</h4>
+<pre>
+<span class="hl">Organization</span>
+  └─ <span class="hl2">Site (Warehouse)</span>
+       └─ <span class="hl3">Robot Group</span> (e.g., "picking-arms", "sorting-bots")
+            └─ <span class="hl4">Individual Robot</span>
+
+<span class="hl">Roles:</span>
+  ADMIN       → full CRUD on all resources
+  SITE_MANAGER → manage operators + view analytics for assigned sites
+  OPERATOR    → receive assignments + control robots at authorized sites
+  VIEWER      → inspection mode only (read-only streams)
+</pre>
+
+<h4>ABAC Dynamic Policies</h4>
+<pre>
+  rule: "Only certified forklift operators can control forklift robots"
+    subject.certifications CONTAINS "forklift"
+    AND resource.robot_type == "forklift"
+
+  rule: "Operators can only control robots during their shift hours"
+    current_time BETWEEN subject.shift_start AND subject.shift_end
+
+  rule: "New operators (< 100 interventions) limited to low-priority requests"
+    subject.total_interventions < 100
+    AND resource.priority != "CRITICAL"
+</pre>
+
+<p><strong>Industry reference:</strong> Cruise implemented a zero-trust model where the vehicle's autonomous brain only initiates outbound connections — it never accepts inbound. Even the telecom ECU is treated as untrusted. All streams encrypted with DTLS-SRTP. <a class="ref" href="https://medium.com/@sanidhyacomnetinfo/what-digital-security-precautions-has-cruise-implemented-for-their-remote-access-software-caef1cddcb76" target="_blank">Cruise Security</a></p>
+</div>
+</details>
+
+<hr class="sep">
+
+<h2 id="dd-data">Deep Dive: Data Plane</h2>
+
+<h3 id="dd-streaming">Video Streaming Pipeline</h3>
+<details>
+<summary>WebRTC vs Proprietary, Codec Selection, SFU Architecture, Adaptive Bitrate</summary>
+<div class="details-body">
+
+<div class="card warn">
+  <div class="card-label">Critical Design Decision</div>
+  <p style="margin-bottom:0"><strong>WebRTC is the pragmatic choice for browser-based operator UIs.</strong> None of the three dedicated teleoperation platform companies (Phantom Auto, Ottopia, DriveU) use standard WebRTC for their core pipeline — they all built proprietary protocols. But they target direct remote driving at &lt;100ms. For exception-based intervention at &lt;2s budget, WebRTC's ~200-400ms over cellular is well within budget. <a class="ref" href="https://driveu.auto/blog/the-complete-guide-to-av-teleoperation/" target="_blank">DriveU Guide</a></p>
+</div>
+
+<h4>Codec Selection Matrix</h4>
+<table>
+  <tr><th>Codec</th><th>Encode Latency</th><th>Compression</th><th>HW Support</th><th>Verdict</th></tr>
+  <tr><td>H.264 Baseline</td><td>~5ms (ultrafast)</td><td>Baseline</td><td>Ubiquitous (Jetson, browser)</td><td><strong>Default choice</strong></td></tr>
+  <tr><td>H.265/HEVC</td><td>~8ms</td><td>30-50% better than H.264</td><td>Jetson NVENC; limited browser</td><td>Edge transcode only</td></tr>
+  <tr><td>VP8/VP9</td><td>~10ms</td><td>Similar to H.264/H.265</td><td>Software only on Jetson</td><td>Avoid</td></tr>
+  <tr><td>AV1</td><td>~15ms (HW)</td><td>30-50% better than H.265</td><td>Jetson Orin NVENC</td><td>Future (bandwidth-constrained)</td></tr>
+</table>
+
+<p><strong>Industry first:</strong> DriveU.auto was the first to implement AV1 encoding on NVIDIA Jetson Orin, achieving 4-10x better compression than H.265 without additional latency. <a class="ref" href="https://driveu.auto/press-release/driveu-auto-connectivity-platform-accelerates-av1-video-encoding-with-nvidia-jetson-orin-an-industry-first-and-is-implemented-in-coco-delivery-robots/" target="_blank">DriveU AV1 Press Release</a></p>
+
+<h4>SFU Architecture for Fleet Scale</h4>
+<pre>
+<span class="hl">SFU MEDIA ROUTING — LIVEKIT-BASED</span>
+<span class="dim">─────────────────────────────────────────────────</span>
+
+  Edge Server A (NA-West)    Edge Server B (NA-East)
+       │                          │
+       │  WebRTC publish          │  WebRTC publish
+       ▼                          ▼
+  ┌──────────┐  cascading   ┌──────────┐
+  │ SFU Node │◄────────────►│ SFU Node │
+  │ (us-west)│   mesh link  │ (us-east)│
+  └────┬─────┘              └────┬─────┘
+       │                         │
+       │  WebRTC subscribe       │  WebRTC subscribe
+       ▼                         ▼
+  Operator (SEA)           Operator (SEA)
+  via SFU Edge (ap-southeast)
+       │
+       ▼
+  ┌──────────┐
+  │ SFU Node │  ◄── closest to operators, reduces RTT
+  │(ap-south)│
+  └──────────┘
+</pre>
+
+<p><strong>Why SFU not MCU?</strong> MCU (Multipoint Control Unit) transcodes all streams into a single composite — adds 50-100ms latency and massive CPU cost. SFU just forwards packets — sub-1ms added latency. For 1:1 robot-to-operator, SFU is perfect. <a class="ref" href="https://docs.livekit.io/reference/internals/livekit-sfu/" target="_blank">LiveKit SFU Internals</a></p>
+
+<h4>Adaptive Bitrate Strategy</h4>
+<pre>
+<span class="hl3">Bandwidth Available    Video Config              Fallback</span>
+  > 5 Mbps             1080p @ 30fps, H.264      Full quality
+  2-5 Mbps             720p @ 15fps, H.264       Standard
+  500KB-2MB            480p @ 10fps, H.264       Degraded
+  100-500KB            Keyframes only (1fps)     Minimal
+  < 100KB              JPEG snapshots (on-demand) Emergency
+  0 (disconnected)     Buffered last frame       Stale indicator
+</pre>
+</div>
+</details>
+
+<h3 id="dd-telemetry">Telemetry Pipeline</h3>
+<details>
+<summary>MQTT, Time-Series, Conditional Upload, Alerting</summary>
+<div class="details-body">
+<pre>
+<span class="hl">TELEMETRY PIPELINE</span>
+<span class="dim">──────────────────────────────────────────────────</span>
+
+  Robot                 Edge                      Cloud
+  ┌─────┐  Zenoh  ┌─────────┐   MQTT/S    ┌──────────────┐
+  │joint │───────►│Telemetry│────────────►│ IoT Core     │
+  │state │        │ Agent   │             │ (MQTT broker)│
+  │force │        │         │             └──────┬───────┘
+  │error │        │ • 10Hz  │                    │
+  │codes │        │   local │                    ▼
+  └──────┘        │ • 1Hz   │             ┌──────────────┐
+                  │   cloud │             │ Kinesis      │
+                  │ • alert │             │ Data Streams │
+                  │   on    │             └──────┬───────┘
+                  │   error │                    │
+                  └─────────┘                    ├──► TimeStream (metrics)
+                                                 ├──► S3 (raw archive)
+                                                 └──► Lambda (alerts)
+</pre>
+
+<p><strong>Tiered upload strategy</strong> (critical for bandwidth conservation):</p>
+<table>
+  <tr><th>Tier</th><th>Data</th><th>Frequency</th><th>Bandwidth</th></tr>
+  <tr><td>Heartbeat</td><td>robot_id, status, battery, position</td><td>Every 5s</td><td>~50 bytes/msg</td></tr>
+  <tr><td>Telemetry</td><td>Joint states, force/torque, gripper</td><td>10Hz local, 1Hz to cloud</td><td>~2 KB/s to cloud</td></tr>
+  <tr><td>Alerts</td><td>Error codes, confidence drops, faults</td><td>On-event</td><td>~200 bytes/event</td></tr>
+  <tr><td>Episodes</td><td>Full MCAP recording of intervention</td><td>Post-session S3 upload</td><td>~50 MB/episode</td></tr>
+</table>
+
+<p><strong>Industry reference:</strong> DroneDeploy's robotics toolkit streams telemetry only when a client requests it — stopping when the client disconnects. This on-demand pattern is critical for fleets of 1000+ robots. <a class="ref" href="https://docs-automate.dronedeploy.com/robotics-toolkit/general-usage/streaming-telemetry-data/" target="_blank">DroneDeploy Docs</a></p>
+</div>
+</details>
+
+<h3 id="dd-commands">Command Delivery</h3>
+<details>
+<summary>Command Types, Validation, ACK/Retry, Freshness Check</summary>
+<div class="details-body">
+<h4>Command Types</h4>
+<pre>
+<span class="hl">SetpointCommand</span>
+  { type: "setpoint", x: 0.342, y: 0.518,  // normalized image coords
+    frame_id: "camera_rgb_frame_12847",     // which frame this was drawn on
+    frame_timestamp: 1711234567890,         // ms since epoch
+    confidence: "high" }                    // operator's self-assessed confidence
+
+<span class="hl">ConfirmCommand</span>
+  { type: "confirm", action: "retry_pick" | "skip_item" | "flag_for_review",
+    frame_id: "...", frame_timestamp: ... }
+
+<span class="hl">OverrideCommand</span>
+  { type: "override", perception_class: "box",  // reclassify detected object
+    bounding_box: {x1, y1, x2, y2},
+    frame_id: "...", frame_timestamp: ... }
+</pre>
+
+<h4>Freshness Validation</h4>
+<p><span class="tag pattern">Pattern</span> <strong>Frame-timestamped commands</strong> — a critical safety mechanism. Every command references the video frame the operator was looking at when they made their decision. If the command arrives at the robot and the referenced frame is older than 500ms, the robot drops it and requests a fresh decision.</p>
+
+<pre>
+<span class="dim">// On robot side:</span>
+func validateCommand(cmd Command) bool {
+  currentTime := now()
+  frameAge := currentTime - cmd.FrameTimestamp
+  if frameAge > 500ms {
+    log.Warn("Stale command", "age", frameAge)
+    return false  <span class="dim">// reject — operator saw old data</span>
+  }
+  return true
+}
+</pre>
+
+<p><strong>Industry reference:</strong> Transitive Robotics implements this exact pattern — control commands are timestamped against the last received video frame, and stale commands are dropped. <a class="ref" href="https://transitiverobotics.com/caps/transitive-robotics/remote-teleop/" target="_blank">Transitive Robotics</a></p>
+</div>
+</details>
+
+<hr class="sep">
+
+<h2 id="dd-operator">Deep Dive: Operator UI</h2>
+<details>
+<summary>Browser Architecture, Request Queue, Intervention Interface, Inspection Mode</summary>
+<div class="details-body">
+<pre>
+<span class="hl">OPERATOR UI — BROWSER-BASED (React + WebRTC)</span>
+<span class="dim">═══════════════════════════════════════════════════════════════════</span>
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  <span class="hl">Tab 1: Request Queue</span>                                       │
+  │  ┌───────────────────────────────────────────────────────┐  │
+  │  │ #1247 │ WH-03 │ Pick Failed │ 3s ago │ [ACCEPT]      │  │
+  │  │ #1248 │ WH-01 │ Drop Detect │ 5s ago │ [ACCEPT]      │  │
+  │  │ #1249 │ WH-03 │ Unknown Obj │ 8s ago │ [ACCEPT]      │  │
+  │  └───────────────────────────────────────────────────────┘  │
+  │                                                             │
+  │  <span class="hl2">Tab 2: Active Session</span>                                      │
+  │  ┌─────────────────────────────┬─────────────────────────┐  │
+  │  │                             │  Robot: ARM-037          │  │
+  │  │     [LIVE VIDEO FEED]       │  Warehouse: WH-03       │  │
+  │  │                             │  Task: Pick #8472       │  │
+  │  │   ← click to set point →   │  SKU: Blue Widget XL    │  │
+  │  │                             │  Confidence: 0.23       │  │
+  │  │                             │  ──────────────────     │  │
+  │  │   ● 720p @ 15fps           │  Recent history:        │  │
+  │  │   ● Latency: 187ms         │  • Pick OK (2m ago)     │  │
+  │  │   ● Bandwidth: 2.1 Mbps    │  • Pick OK (3m ago)     │  │
+  │  │                             │  • Assist   (5m ago)    │  │
+  │  ├─────────────────────────────┤                         │  │
+  │  │  [RETRY PICK] [SKIP ITEM]  │  [FLAG FOR REVIEW]      │  │
+  │  │  [SET PICK POINT ◎]        │  [ABORT SESSION]        │  │
+  │  └─────────────────────────────┴─────────────────────────┘  │
+  │                                                             │
+  │  <span class="hl3">Tab 3: Manage Robots (Inspection Mode)</span>                     │
+  │  ┌───────────────────────────────────────────────────────┐  │
+  │  │  WH-01 (14 robots)  │  WH-03 (22 robots)             │  │
+  │  │  ARM-001 ● Online   │  ARM-037 ● Waiting assist      │  │
+  │  │  ARM-002 ● Online   │  ARM-038 ● Online              │  │
+  │  │  ARM-003 ◌ Offline  │  ARM-039 ● Online              │  │
+  │  │        [INSPECT →]  │        [INSPECT →]              │  │
+  │  └───────────────────────────────────────────────────────┘  │
+  └─────────────────────────────────────────────────────────────┘
+</pre>
+
+<h4>Queue Management: Max 3 Concurrent</h4>
+<p>Each operator has a queue depth of <strong>max 3</strong>. This is based on CMU research showing that open queues (operators freely choose) achieve the best resolution rates. The operator sees all pending requests for their authorized warehouses and can accept in any order — not forced FIFO.</p>
+
+<h4 id="dd-inspection">Inspection Mode (Requirement C.2)</h4>
+<p>Operators with VIEWER or OPERATOR role can connect to any authorized robot for read-only inspection <strong>without an active assistance request</strong>.</p>
+
+<pre>
+<span class="hl">INSPECTION MODE — ON-DEMAND STREAMING</span>
+<span class="dim">─────────────────────────────────────────────────</span>
+
+  <span class="hl3">Key design: streams are NOT always-on.</span>
+  Bandwidth budget: 50 robots × 5 Mbps = 250 Mbps
+  Warehouse uplink: ~50-100 Mbps
+  → Cannot afford always-on streaming for all robots
+
+  <span class="hl2">Solution: Tiered approach</span>
+  Level 1 (always): Telemetry heartbeats only (50 bytes/5s)
+  Level 2 (dashboard): Periodic JPEG thumbnails (1 per 10s, ~50KB each)
+  Level 3 (inspect): Full video stream on-demand (operator clicks "Inspect")
+
+  Inspection flow:
+  1. Operator clicks robot in Manage tab
+  2. Cloud sends START_STREAM to edge for that robot
+  3. Edge begins forwarding robot's camera feed to SFU
+  4. WebRTC subscription established to operator
+  5. Operator gets read-only view (no command channel)
+  6. When operator closes, STOP_STREAM sent → edge stops forwarding
+</pre>
+</div>
+</details>
+
+<hr class="sep">
+
+<h2 id="dd-recording">Deep Dive: Recording & Episodes</h2>
+<details>
+<summary>MCAP Format, Episode Structure, Data Flywheel</summary>
+<div class="details-body">
+<p>Every intervention session is recorded as an <strong>episode</strong> — a self-contained data bundle used for ML training, quality review, and compliance. This is the data flywheel that makes the robots progressively more autonomous.</p>
+
+<pre>
+<span class="hl">EPISODE STRUCTURE (MCAP format)</span>
+<span class="dim">─────────────────────────────────────────────────</span>
+
+  episode_2024_03_24_1247.mcap
+  ├── /camera/rgb/compressed          (H.264 video, 15fps)
+  ├── /camera/depth/compressedDepth   (depth frames, 5fps)
+  ├── /joint_states                   (arm positions, 50Hz)
+  ├── /gripper/force_torque           (F/T sensor, 100Hz)
+  ├── /perception/detections          (bounding boxes, classes)
+  ├── /perception/confidence          (model confidence scores)
+  ├── /teleop/request                 (the original request)
+  ├── /teleop/command                 (operator's response)
+  └── /metadata
+       ├── robot_id, warehouse_id
+       ├── operator_id, session_id
+       ├── request_type, outcome (success/failure)
+       ├── intervention_duration_ms
+       └── operator_decision_time_ms
+</pre>
+
+<p><strong>MCAP is the ROS 2 default recording format</strong> (since Iron Irwini, 2023), replacing the SQLite3-based format. It supports append-only writes (corruption-safe during crashes), built-in compression, and stores any serialization format in a single file. <a class="ref" href="https://foxglove.dev/blog/mcap-as-the-ros2-default-bag-format" target="_blank">Foxglove Blog</a></p>
+
+<h4>Data Flywheel</h4>
+<pre>
+  Intervention episode
+       │
+       ▼
+  S3 upload (post-session)
+       │
+       ▼
+  Data labeling pipeline
+  (operator's command = ground truth label)
+       │
+       ▼
+  Retrain perception model
+  (human demonstrations → imitation learning)
+       │
+       ▼
+  Deploy updated model to fleet
+       │
+       ▼
+  Intervention rate drops
+  (5% → 4% → 3% → ...)
+</pre>
+
+<p><strong>Industry reference:</strong> This is exactly Nimble Robotics' strategy — human demonstrations during teleoperation feed a deep imitation learning pipeline, progressively reducing intervention rates toward a fully autonomous "dark warehouse." Covariant achieves &lt;0.1% intervention rate through the same approach. <a class="ref" href="https://www.therobotreport.com/nimble-picks-up-106m-scale-general-purpose-fulfillment-robot/" target="_blank">Nimble Robotics</a></p>
+</div>
+</details>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── USER FLOWS ──────────────────────────── -->
+<h2 id="uf-assistance">User Flow: Assistance Request</h2>
+<p>The primary flow — a robot needs help and an operator provides it.</p>
+
+<div class="flow-step">
+  <div class="flow-num">1</div>
+  <div class="flow-content">
+    <strong>Robot detects perception failure</strong>
+    <p>Vision model confidence drops below threshold (e.g., 0.3). Robot transitions to <code>REQUESTING_HELP</code> state. Captures high-res snapshot. Publishes request to <code>/teleop/request</code> topic on Zenoh.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">2</div>
+  <div class="flow-content">
+    <strong>Edge server receives and forwards</strong>
+    <p>Edge's Robot Communication Layer receives the request. Uploads snapshot to S3 (pre-signed URL). Forwards enriched request to cloud via WebSocket: <code>{robot_id, warehouse_id, request_type, priority, snapshot_url, context}</code>.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">3</div>
+  <div class="flow-content">
+    <strong>Assignment Service matches operator</strong>
+    <p>Filters eligible operators (ACL + availability + queue depth). Scores candidates. Atomically assigns top candidate in Redis. Pushes assignment notification via WebSocket to operator's browser.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">4</div>
+  <div class="flow-content">
+    <strong>Operator sees request + snapshot</strong>
+    <p>Browser receives assignment with snapshot URL. Renders snapshot immediately (operator can start forming intent). Audio chime alerts operator. Request appears in queue tab with [ACCEPT] button.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">5</div>
+  <div class="flow-content">
+    <strong>Operator accepts → WebRTC session starts</strong>
+    <p>Operator clicks ACCEPT. Session Manager initiates WebRTC signaling. SDP offer/answer exchange via cloud signaling server. ICE connectivity established (STUN first, TURN fallback). First I-frame delivered — live video begins.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">6</div>
+  <div class="flow-content">
+    <strong>Operator makes decision</strong>
+    <p>Operator views live video feed + context sidebar. Clicks on image to set pick point, or selects action (retry/skip/flag). Command created with frame_id and timestamp for freshness validation.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">7</div>
+  <div class="flow-content">
+    <strong>Command delivered to robot</strong>
+    <p>Command sent via WebRTC DataChannel → cloud → edge → robot. Robot validates freshness (frame age &lt; 500ms). Robot executes command (moves to setpoint, retries pick, etc.). Robot ACKs completion.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">8</div>
+  <div class="flow-content">
+    <strong>Session closes, episode recorded</strong>
+    <p>Session Manager transitions to COMPLETING. Episode MCAP file finalized on edge. Metrics emitted (intervention duration, decision time). Episode uploaded to S3 for ML training pipeline. Robot resumes autonomous operation.</p>
+  </div>
+</div>
+
+<hr class="sep">
+
+<h2 id="uf-inspection">User Flow: Inspection Mode</h2>
+
+<div class="flow-step">
+  <div class="flow-num">1</div>
+  <div class="flow-content">
+    <strong>Operator opens Manage Robots tab</strong>
+    <p>Sees list of authorized warehouses and robots. Each robot shows: status (online/offline/assisting), battery level, last heartbeat time. Data comes from telemetry heartbeats (no video streaming yet).</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">2</div>
+  <div class="flow-content">
+    <strong>Operator clicks [INSPECT] on a robot</strong>
+    <p>Cloud sends <code>START_STREAM</code> command to edge server for that robot. Edge begins encoding and forwarding robot's camera feed to SFU.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">3</div>
+  <div class="flow-content">
+    <strong>Read-only video stream established</strong>
+    <p>WebRTC subscription established between SFU and operator browser. Operator sees live camera feed + telemetry overlay. <strong>No command channel</strong> — inspection is strictly read-only.</p>
+  </div>
+</div>
+
+<div class="flow-step">
+  <div class="flow-num">4</div>
+  <div class="flow-content">
+    <strong>Operator closes inspection</strong>
+    <p>Cloud sends <code>STOP_STREAM</code> to edge. Edge stops forwarding. Bandwidth freed.</p>
+  </div>
+</div>
+
+<hr class="sep">
+
+<h2 id="uf-failover">User Flow: Failover Scenarios</h2>
+
+<details>
+<summary>Operator Disconnects Mid-Session</summary>
+<div class="details-body">
+<div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><strong>WebRTC connection drops</strong><p>Browser detects via <code>RTCPeerConnection.oniceconnectionstatechange → "disconnected"</code>.</p></div></div>
+<div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><strong>Session enters RECONNECTING (15s grace)</strong><p>Session Manager starts reconnect timer. If ICE restart succeeds within 15s, session resumes from ACTIVE state.</p></div></div>
+<div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><strong>Grace period expires → reassign</strong><p>Assignment Service picks next eligible operator. New operator receives full context (snapshot + previous operator's partial actions if any). Robot remains in WAITING_INPUT state throughout.</p></div></div>
+</div>
+</details>
+
+<details>
+<summary>Edge Server Loses Internet</summary>
+<div class="details-body">
+<div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><strong>Cloud detects via heartbeat timeout (10s)</strong><p>Edge's WebSocket to cloud drops. Cloud marks all robots at that warehouse as EDGE_DISCONNECTED.</p></div></div>
+<div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><strong>Edge buffers requests locally</strong><p>New intervention requests from robots are queued in SQLite on edge. Edge continues local MCAP recording.</p></div></div>
+<div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><strong>Connectivity restores</strong><p>Edge reconnects WebSocket. Buffered requests drained LIFO (most recent first — older requests may be stale). Active sessions that were interrupted attempt reconnection.</p></div></div>
+<div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><strong>Extended outage (&gt;5 min)</strong><p>Robots fall back to skip-and-continue for non-critical items. Critical items queued for manual handling. Alert sent to warehouse ops team.</p></div></div>
+</div>
+</details>
+
+<details>
+<summary>Edge Server Hardware Failure</summary>
+<div class="details-body">
+<div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><strong>Robots detect edge down via heartbeat (5s)</strong><p>Zenoh connection to edge fails.</p></div></div>
+<div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><strong>Robots switch to DIRECT CLOUD mode</strong><p>Each robot has pre-provisioned cloud endpoint (TURN server credentials baked into firmware). Robot connects directly via warehouse internet. Higher latency (~100ms more) but functional.</p></div></div>
+<div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><strong>Bandwidth throttling</strong><p>50 robots × 5 Mbps = 250 Mbps would saturate warehouse internet. Cloud-side admission control limits to 5 concurrent streams. Remaining robots fall back to snapshot-based intervention.</p></div></div>
+</div>
+</details>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── DATA FLOW ──────────────────────────── -->
+<h2 id="df-data">Data Flow Diagrams</h2>
+
+<h3>Request Data Flow (Control Plane)</h3>
+<pre>
+<span class="hl">CONTROL FLOW: INTERVENTION REQUEST → RESOLUTION</span>
+<span class="dim">═══════════════════════════════════════════════════════════════════</span>
+
+  Robot            Edge              Cloud                    Operator
+    │                │                 │                        │
+    │─<span class="hl3">request</span>───────►│                 │                        │
+    │ {type,snapshot} │                 │                        │
+    │                │─<span class="hl3">enriched_req</span>──►│                        │
+    │                │ {+snapshot_url}  │                        │
+    │                │                 │──<span class="hl2">assign</span>───────────────►│
+    │                │                 │  {req, snapshot_url}    │
+    │                │                 │                        │
+    │                │                 │◄──<span class="hl2">accept</span>──────────────│
+    │                │                 │                        │
+    │                │◄─<span class="hl4">start_stream</span>──│──<span class="hl4">sdp_offer</span>────────────►│
+    │                │                 │                        │
+    │                │                 │◄──<span class="hl4">sdp_answer</span>──────────│
+    │                │─────────────────┼──<span class="hl5">video_stream</span>─────────►│
+    │                │                 │                        │
+    │                │                 │◄──<span class="hl">command</span>──────────────│
+    │                │◄─<span class="hl">command</span>───────│                        │
+    │◄─<span class="hl">command</span>──────│                 │                        │
+    │                │                 │                        │
+    │─<span class="hl2">ack</span>───────────►│─<span class="hl2">session_done</span>──►│──<span class="hl2">session_closed</span>──────►│
+    │                │                 │                        │
+</pre>
+
+<h3>Video Data Flow (Data Plane)</h3>
+<pre>
+<span class="hl">VIDEO DATA PATH: CAMERA → OPERATOR SCREEN</span>
+<span class="dim">═══════════════════════════════════════════════════════════════════</span>
+
+  Camera      Robot Jetson       Edge Server        SFU (Cloud)      Browser
+  Sensor      (NVENC)           (NVENC T4)          (LiveKit)        (WebRTC)
+    │             │                  │                  │               │
+    │ raw frame   │                  │                  │               │
+    │ (1080p      │                  │                  │               │
+    │  ~6MB)      │                  │                  │               │
+    │────────────►│                  │                  │               │
+    │  USB3/CSI   │                  │                  │               │
+    │  (~2ms)     │                  │                  │               │
+    │             │ H.264 encode     │                  │               │
+    │             │ (ultrafast,      │                  │               │
+    │             │  ~5ms)           │                  │               │
+    │             │ ~50KB/frame      │                  │               │
+    │             │─────────────────►│                  │               │
+    │             │  WiFi 6          │                  │               │
+    │             │  (~5ms)          │                  │               │
+    │             │                  │ optional         │               │
+    │             │                  │ transcode        │               │
+    │             │                  │ (ABR adjust)     │               │
+    │             │                  │─────────────────►│               │
+    │             │                  │  Internet        │               │
+    │             │                  │  (~30-50ms)      │               │
+    │             │                  │                  │ WebRTC fwd    │
+    │             │                  │                  │───────────────►│
+    │             │                  │                  │  (~150ms      │
+    │             │                  │                  │   NA→SEA)     │
+    │             │                  │                  │               │ decode
+    │             │                  │                  │               │ (~5ms)
+    │             │                  │                  │               │ render
+    │             │                  │                  │               │ (~8ms)
+    │             │                  │                  │               │
+  <span class="hl3">TOTAL GLASS-TO-GLASS: ~205ms (well within 500ms budget)</span>
+</pre>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── RELIABILITY ──────────────────────────── -->
+<h2 id="reliability">Reliability & Fault Tolerance</h2>
+
+<div class="card danger">
+  <div class="card-label">Design Principle</div>
+  <p style="margin-bottom:0"><strong>Graceful degradation hierarchy:</strong> Full teleoperation → reduced quality → keyframes only → JPEG snapshots → local autonomy → safe stop. As connectivity degrades, the system progressively reduces reliance on the network. The robot must <strong>always</strong> have a safe local fallback. This mirrors BSI Flex 1886's requirement that autonomous systems must be able to perform a Minimal Risk Manoeuvre when connectivity is lost. <a class="ref" href="https://driveu.auto/blog/autonomous-vehicle-teleoperation-is-one-network-enough-for-remote-driving/" target="_blank">DriveU Network Redundancy</a></p>
+</div>
+
+<table>
+  <tr><th>Failure</th><th>Detection</th><th>Mitigation</th><th>Recovery Time</th></tr>
+  <tr>
+    <td>Operator disconnect</td>
+    <td>WebRTC ICE state change</td>
+    <td>15s reconnect grace → reassign</td>
+    <td>15-45s</td>
+  </tr>
+  <tr>
+    <td>Edge internet outage</td>
+    <td>Cloud heartbeat timeout (10s)</td>
+    <td>Local request buffer + direct cloud fallback</td>
+    <td>10-30s</td>
+  </tr>
+  <tr>
+    <td>Edge hardware failure</td>
+    <td>Robot heartbeat timeout (5s)</td>
+    <td>Direct cloud mode (bandwidth-limited)</td>
+    <td>5-15s</td>
+  </tr>
+  <tr>
+    <td>WiFi degradation</td>
+    <td>RSSI/packet loss monitoring</td>
+    <td>Adaptive bitrate → snapshot fallback</td>
+    <td>Continuous</td>
+  </tr>
+  <tr>
+    <td>SFU node failure</td>
+    <td>LiveKit health check</td>
+    <td>Client auto-retry to different node</td>
+    <td>2-5s</td>
+  </tr>
+  <tr>
+    <td>Cloud region outage</td>
+    <td>Route53 health check</td>
+    <td>Multi-region failover (hot standby)</td>
+    <td>30-60s</td>
+  </tr>
+  <tr>
+    <td>Assignment service down</td>
+    <td>ALB health check</td>
+    <td>ECS auto-restart + buffered requests in SQS</td>
+    <td>10-30s</td>
+  </tr>
+</table>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── SCALING ──────────────────────────── -->
+<h2 id="scaling">Scaling & Capacity Planning</h2>
+
+<h3>Scenario: 100 warehouses, 5,000 robots, 5% intervention rate</h3>
+<div class="metrics">
+  <div class="metric"><span class="val">100</span><span class="label">Warehouses</span></div>
+  <div class="metric"><span class="val">5,000</span><span class="label">Total Robots</span></div>
+  <div class="metric"><span class="val">~50</span><span class="label">Robots/Warehouse</span></div>
+  <div class="metric"><span class="val">5%</span><span class="label">Intervention Rate</span></div>
+  <div class="metric"><span class="val">~1 req/8s</span><span class="label">Per-Robot Pick Rate</span></div>
+</div>
+
+<pre>
+<span class="hl">CAPACITY MATH</span>
+<span class="dim">───────────────────────────────────────────────</span>
+
+  Per warehouse (50 robots):
+    Pick rate: 50 robots × 1 pick/8s = 6.25 picks/sec
+    Intervention rate: 6.25 × 5% = <span class="hl3">0.3125 requests/sec</span>
+    Per hour: ~1,125 requests/hour
+
+  Global (100 warehouses):
+    Total intervention rate: <span class="hl">31.25 requests/sec</span>
+    Per hour: ~112,500 requests/hour
+
+  Operator capacity:
+    Average intervention time: 5s
+    Operator throughput: 60s/5s = 12 requests/min = <span class="hl2">720 requests/hour</span>
+    Required operators: 112,500/720 = <span class="hl">~157 concurrent operators</span>
+    With 80% utilization target: ~196 operators
+    With shift coverage (3 shifts): ~600 total operators
+
+  <span class="hl3">Operator-to-robot ratio: 1:~32 (concurrent) or 1:~8 (total roster)</span>
+  <span class="dim">Note: as intervention rate drops from 5% to 2%, ratio improves to 1:80</span>
+</pre>
+
+<h4>Horizontal Scaling Components</h4>
+<table>
+  <tr><th>Component</th><th>Scaling Strategy</th><th>Bottleneck</th></tr>
+  <tr><td>Assignment Service</td><td>ECS auto-scale on CPU; Redis cluster for state</td><td>Redis throughput (~100K ops/s is plenty)</td></tr>
+  <tr><td>Session Manager</td><td>Temporal workers auto-scale; workflow state persisted</td><td>Temporal server cluster size</td></tr>
+  <tr><td>Media SFU</td><td>LiveKit nodes auto-scale on bandwidth/CPU; SFU cascading across regions</td><td>Per-node bandwidth (~10Gbps, ~2000 streams)</td></tr>
+  <tr><td>Edge Servers</td><td>Vertical scale per warehouse; add second edge for HA</td><td>GPU encode slots (T4: ~30 concurrent)</td></tr>
+  <tr><td>Telemetry Ingest</td><td>Kinesis shard auto-split; Lambda consumers scale per-shard</td><td>5,000 robots × 1Hz = 5K msgs/sec (trivial)</td></tr>
+</table>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── SECURITY ──────────────────────────── -->
+<h2 id="security">Security Architecture</h2>
+
+<pre>
+<span class="hl">SECURITY LAYERS</span>
+<span class="dim">═══════════════════════════════════════════════════════════════════</span>
+
+  <span class="hl3">Transport</span>
+  ├─ Robot ↔ Edge:    Zenoh + TLS (mutual TLS with device certificates)
+  ├─ Edge ↔ Cloud:    WSS (WebSocket Secure) + API key rotation
+  ├─ Cloud ↔ Operator: HTTPS + WSS + OAuth2/OIDC
+  └─ Media streams:   DTLS-SRTP (mandatory in WebRTC)
+
+  <span class="hl3">Authentication</span>
+  ├─ Operators: SSO (Okta/Auth0) with MFA
+  ├─ Robots:    mTLS device certificates (provisioned at manufacturing)
+  └─ Edge:      API keys rotated via AWS Secrets Manager
+
+  <span class="hl3">Authorization</span>
+  ├─ RBAC: Organization → Site → Robot Group → Robot
+  ├─ ABAC: Dynamic policies (shift hours, certifications, queue depth)
+  └─ Per-session: operator can only control assigned robot during session
+
+  <span class="hl3">Data Protection</span>
+  ├─ Video streams: encrypted in transit (DTLS-SRTP), not stored in cloud
+  ├─ Episodes (MCAP): encrypted at rest in S3 (SSE-KMS)
+  ├─ PII: no operator PII in episode recordings
+  └─ Audit: every action logged to EventBridge → CloudWatch Logs
+
+  <span class="hl3">Zero-Trust Principles (Cruise model)</span>
+  ├─ Robot only initiates outbound connections (never accepts inbound)
+  ├─ Edge server is treated as semi-trusted (no direct internet access)
+  └─ Every command validated and rate-limited at every hop
+</pre>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── CHEATSHEET ──────────────────────────── -->
+<h2 id="cheatsheet">Interview Cheat Sheet</h2>
+
+<div class="card success">
+  <div class="card-label">Opening Frame (First 2 minutes)</div>
+  <p>"This is an <strong>exception-based intervention</strong> system — not direct remote driving. The critical constraint is the 8-second pick cycle. Let me decompose the latency budget: 500ms assignment, 800ms session setup, 2.5s human decision, 400ms command delivery = 4.2s total, within a 5s target. This means every architectural decision must be justified against that budget."</p>
+  <p style="margin-bottom:0">"The architecture follows a three-plane separation used by every major AV company: management plane for auth/RBAC, control plane for assignment/sessions, data plane for video/telemetry/commands. The key innovation is the edge server layer that aggregates robot streams, compresses for WAN, and provides local buffering during outages."</p>
+</div>
+
+<h3>Key Numbers to Cite</h3>
+<table>
+  <tr><th>Metric</th><th>Value</th><th>Source</th></tr>
+  <tr><td>NA → SEA RTT</td><td>~150-200ms</td><td>Network physics</td></tr>
+  <tr><td>H.264 ultrafast encode</td><td>~5ms</td><td>NVIDIA NVENC benchmarks</td></tr>
+  <tr><td>WebRTC glass-to-glass (cellular)</td><td>200-400ms</td><td>Transitive Robotics</td></tr>
+  <tr><td>Proprietary pipeline best-case</td><td>50ms glass-to-glass</td><td>Phantom Auto/Voysys</td></tr>
+  <tr><td>Network = only 10% of E2E latency</td><td>—</td><td>arXiv 2602.17381</td></tr>
+  <tr><td>Robots per operator (exception-based)</td><td>300-500</td><td>Cognicept Systems</td></tr>
+  <tr><td>Nimble intervention rate</td><td>5-10%</td><td>CEO statement</td></tr>
+  <tr><td>Covariant intervention rate</td><td>&lt;0.1%</td><td>Covariant case study</td></tr>
+  <tr><td>Ottopia AI super-res bandwidth saving</td><td>20-50%</td><td>Ottopia technology page</td></tr>
+  <tr><td>AV1 compression vs H.265</td><td>4-10x better</td><td>DriveU press release</td></tr>
+</table>
+
+<h3>Traps to Avoid</h3>
+<div class="card danger">
+  <div class="card-label">Common Mistakes</div>
+  <p><strong>1. Designing for direct remote driving.</strong> The problem says "mark a pick setpoint on an image" — that's supervisory, not driving. Don't over-engineer for sub-100ms latency you don't need.</p>
+  <p><strong>2. Ignoring the bandwidth constraint.</strong> "Warehouse internet is limited" is in the problem statement. If you propose always-on video for 50 robots, you're immediately at 250 Mbps — way too much. Must design for on-demand streaming.</p>
+  <p><strong>3. Skipping the latency budget.</strong> The single biggest differentiator at L6. Open with it.</p>
+  <p><strong>4. No reliability discussion.</strong> The problem explicitly lists three failure scenarios. Name them and sketch mitigations.</p>
+  <p style="margin-bottom:0"><strong>5. Auction-based assignment.</strong> Adds latency and complexity without clear benefit over priority scoring for this use case. Auctions make sense when operators bid on prices — not when you're optimizing for speed.</p>
+</div>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── Q&A ──────────────────────────── -->
+<h2 id="qa">Staff-Level Q&A</h2>
+
+<details>
+<summary>Q: Why WebRTC and not a custom protocol?</summary>
+<div class="details-body">
+<p><strong>A:</strong> For exception-based intervention with a ~5s budget, WebRTC's 200-400ms glass-to-glass is well within our latency envelope. The benefit is zero-plugin browser support, built-in DTLS-SRTP encryption, NAT traversal, and adaptive congestion control — all out of the box. Phantom Auto, Ottopia, and DriveU built custom protocols because they target direct remote driving at &lt;100ms, which WebRTC can't reliably achieve. We don't need that. The pragmatic engineering choice is WebRTC with SFU for fleet scale, and invest our engineering effort in the harder problems: assignment optimization, edge reliability, and the ML data flywheel.</p>
+</div>
+</details>
+
+<details>
+<summary>Q: How do you handle the bandwidth constraint at the warehouse?</summary>
+<div class="details-body">
+<p><strong>A:</strong> Three-layer approach. First, <strong>on-demand streaming only</strong> — no robot streams video until an intervention is requested or an operator opens inspection mode. Second, <strong>edge-local encoding with adaptive bitrate</strong> — the edge server uses NVENC to compress streams and dynamically adjusts quality based on available WAN bandwidth. Third, <strong>snapshot-first pattern</strong> — when a request arrives, we send a JPEG snapshot (~100KB) immediately and start the video stream in parallel. The operator can begin forming intent from the snapshot while the stream starts. At 5% intervention rate with 50 robots, we average ~1.5 concurrent streams per warehouse — well within even a 50 Mbps uplink.</p>
+</div>
+</details>
+
+<details>
+<summary>Q: What happens when the edge server goes down?</summary>
+<div class="details-body">
+<p><strong>A:</strong> Robots detect via heartbeat timeout (5s) and switch to direct cloud mode. Each robot has pre-provisioned TURN server credentials. The problem: 50 robots trying to stream directly would saturate the WAN. Solution: cloud-side admission control limits to ~5 concurrent video streams. Remaining robots fall back to snapshot-based intervention (upload JPEG, get command back). For HA, deploy dual edge servers with leader election (etcd). But honestly, a single edge with hardware redundancy (RAID, dual PSU, dual NIC) and 4-hour replacement SLA is more cost-effective for a warehouse deployment.</p>
+</div>
+</details>
+
+<details>
+<summary>Q: How do you ensure operators aren't making decisions on stale video?</summary>
+<div class="details-body">
+<p><strong>A:</strong> Frame-timestamped commands. Every command the operator sends references the video frame they were looking at. The robot validates that the referenced frame is less than 500ms old. If the command is stale (e.g., network hiccup delayed delivery), the robot drops it and the operator is prompted to re-confirm. This is the same pattern used by Transitive Robotics in their production teleoperation system. Additionally, the operator UI shows real-time latency and bandwidth indicators — if latency exceeds a threshold, the UI shows a "STALE" warning overlay on the video.</p>
+</div>
+</details>
+
+<details>
+<summary>Q: How does the system get smarter over time?</summary>
+<div class="details-body">
+<p><strong>A:</strong> Every intervention session is recorded as an MCAP episode containing video, telemetry, and the operator's command as ground truth. This feeds an imitation learning pipeline — the operator's setpoint annotation becomes a training label for the vision model. Over time, the model learns to handle cases it previously failed on, reducing the intervention rate. Nimble Robotics uses exactly this flywheel to push toward a fully autonomous "dark warehouse." Covariant achieved &lt;0.1% intervention rate through cloud-aggregated fleet learning across continents. The key architectural support is: (1) MCAP recording at the edge with S3 offload, (2) structured episode metadata for filtering/querying, (3) Airflow pipeline for batch retraining, (4) canary deployment of updated models to subset of robots.</p>
+</div>
+</details>
+
+<details>
+<summary>Q: Why not always-on video for monitoring?</summary>
+<div class="details-body">
+<p><strong>A:</strong> Math kills it. 50 robots × 5 Mbps = 250 Mbps from a single warehouse — that's datacenter-grade bandwidth, and the problem says warehouse internet is limited. Instead, we use tiered monitoring: heartbeat telemetry (always on, 50 bytes/5s), periodic JPEG thumbnails (1/10s, ~50KB each = 250 KB/s total for 50 robots), and full video on-demand when an operator opens inspection mode. This is the same pattern DroneDeploy uses — streams start when a client requests them and stop when the client disconnects.</p>
+</div>
+</details>
+
+<hr class="sep">
+
+<!-- ──────────────────────────── REFERENCES ──────────────────────────── -->
+<h2 id="references">References & Further Reading</h2>
+
+<h3>Industry Systems</h3>
+<table>
+  <tr><th>Company</th><th>System</th><th>Resource</th></tr>
+  <tr><td>Waymo</td><td>Fleet Response</td><td><a class="ref" href="https://thelastdriverlicenseholder.com/2026/02/09/are-waymos-remote-controlled-or-not-the-answer-is-no/" target="_blank">Fleet Response Architecture</a></td></tr>
+  <tr><td>Cruise</td><td>Remote Assistance / Terminal</td><td><a class="ref" href="http://www.cherylwang.me/remote-assistance" target="_blank">Cheryl Wang — RA Design</a></td></tr>
+  <tr><td>Ottopia</td><td>Teleoperation Platform</td><td><a class="ref" href="https://www.ottopia.tech/technology" target="_blank">Ottopia Technology</a></td></tr>
+  <tr><td>DriveU.auto</td><td>Connectivity Platform</td><td><a class="ref" href="https://driveu.auto/blog/the-complete-guide-to-av-teleoperation/" target="_blank">Complete Guide to AV Teleoperation</a></td></tr>
+  <tr><td>DriveU.auto</td><td>AV1 on Jetson Orin</td><td><a class="ref" href="https://driveu.auto/press-release/driveu-auto-connectivity-platform-accelerates-av1-video-encoding-with-nvidia-jetson-orin-an-industry-first-and-is-implemented-in-coco-delivery-robots/" target="_blank">AV1 Press Release</a></td></tr>
+  <tr><td>Phantom Auto → Serve Robotics</td><td>Voysys Teleoperation</td><td><a class="ref" href="https://investors.serverobotics.com/news-releases/news-release-details/following-acquisition-phantom-auto-serve-robotics-adds-voysys" target="_blank">Serve Robotics Acquisition</a></td></tr>
+  <tr><td>Nimble Robotics</td><td>Cloud Logistics Platform</td><td><a class="ref" href="https://www.therobotreport.com/nimble-picks-up-106m-scale-general-purpose-fulfillment-robot/" target="_blank">Robot Report — Nimble $106M</a></td></tr>
+  <tr><td>Boston Dynamics</td><td>Orbit Fleet Management</td><td><a class="ref" href="https://bostondynamics.com/blog/robot-fleet-management-lifts-off-with-spot/" target="_blank">Spot Fleet Management</a></td></tr>
+  <tr><td>Transitive Robotics</td><td>WebRTC Teleop for ROS 2</td><td><a class="ref" href="https://transitiverobotics.com/caps/transitive-robotics/remote-teleop/" target="_blank">Remote Teleop Capability</a></td></tr>
+  <tr><td>Cognicept Systems</td><td>Supervised Autonomy Center</td><td><a class="ref" href="https://www.wholesaleinvestor.com/cognicept-systems-develop-a-human-in-the-loop-teleoperation-service-to-reduce-robot-failure-rates/" target="_blank">Cognicept HITL</a></td></tr>
+</table>
+
+<h3>Academic Papers & Standards</h3>
+<table>
+  <tr><th>Paper</th><th>Key Contribution</th><th>Link</th></tr>
+  <tr><td>Fleet-DAgger (Hoque et al., CoRL 2022)</td><td>ROHE metric, priority-based fleet scheduling</td><td><a class="ref" href="https://proceedings.mlr.press/v205/hoque23a/hoque23a.pdf" target="_blank">PDF</a></td></tr>
+  <tr><td>Lu et al., 2022</td><td>Comprehensive teleoperation survey for CAVs</td><td><a class="ref" href="https://weisongshi.org/papers/lu22-teleoperation.pdf" target="_blank">PDF</a></td></tr>
+  <tr><td>End-to-End Latency Measurement (2025)</td><td>Latency decomposition methodology</td><td><a class="ref" href="https://arxiv.org/html/2602.17381v1" target="_blank">arXiv</a></td></tr>
+  <tr><td>5G Teleoperated Driving (2025)</td><td>WebRTC vs RTSP latency comparison</td><td><a class="ref" href="https://arxiv.org/html/2503.14186" target="_blank">arXiv</a></td></tr>
+  <tr><td>ROS 2 Wireless Optimization</td><td>DDS vs Zenoh over WiFi</td><td><a class="ref" href="https://arxiv.org/html/2508.11366v1" target="_blank">arXiv</a></td></tr>
+  <tr><td>Network Latency in Teleoperation (2024)</td><td>Mitigation strategies survey</td><td><a class="ref" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11207977/" target="_blank">PMC</a></td></tr>
+  <tr><td>TUM Teleoperation (open source)</td><td>ROS 2 modular teleop stack</td><td><a class="ref" href="https://arxiv.org/html/2506.13933v1" target="_blank">arXiv</a></td></tr>
+  <tr><td>MCAP Format</td><td>ROS 2 default bag format</td><td><a class="ref" href="https://foxglove.dev/blog/mcap-as-the-ros2-default-bag-format" target="_blank">Foxglove Blog</a></td></tr>
+  <tr><td>Open-RMF</td><td>Open-source fleet management</td><td><a class="ref" href="https://github.com/open-rmf/rmf/blob/main/README.md" target="_blank">GitHub</a></td></tr>
+</table>
+
+<h3>Technology References</h3>
+<table>
+  <tr><th>Technology</th><th>Use</th><th>Link</th></tr>
+  <tr><td>LiveKit SFU</td><td>Scalable WebRTC media routing</td><td><a class="ref" href="https://docs.livekit.io/reference/internals/livekit-sfu/" target="_blank">Docs</a></td></tr>
+  <tr><td>DriveU Network Redundancy</td><td>Multi-carrier cellular bonding</td><td><a class="ref" href="https://driveu.auto/blog/autonomous-vehicle-teleoperation-is-one-network-enough-for-remote-driving/" target="_blank">Blog</a></td></tr>
+  <tr><td>Foxglove + ROS 2</td><td>Web-based visualization</td><td><a class="ref" href="https://docs.ros.org/en/rolling/Related-Projects/Visualizing-ROS-2-Data-With-Foxglove.html" target="_blank">ROS Docs</a></td></tr>
+  <tr><td>DroneDeploy Telemetry</td><td>On-demand streaming pattern</td><td><a class="ref" href="https://docs-automate.dronedeploy.com/robotics-toolkit/general-usage/streaming-telemetry-data/" target="_blank">Docs</a></td></tr>
+  <tr><td>Motional + Ottopia</td><td>RVA for L4 autonomy</td><td><a class="ref" href="https://motional.com/news/path-forward-using-ai-improve-remote-vehicle-assistance-avs" target="_blank">Blog</a></td></tr>
+</table>
+
+<div style="height:80px"></div>
+
+</div><!-- /main -->
+
+<script>
+// ── Active nav highlighting on scroll ──
+(function() {
+  const links = document.querySelectorAll('.nav-link');
+  const sections = [];
+  links.forEach(function(link) {
+    const href = link.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      const el = document.getElementById(href.slice(1));
+      if (el) sections.push({ el: el, link: link });
+    }
+  });
+
+  function onScroll() {
+    const scrollY = window.scrollY + 100;
+    let current = null;
+    for (let i = sections.length - 1; i >= 0; i--) {
+      if (sections[i].el.offsetTop <= scrollY) {
+        current = sections[i];
+        break;
+      }
+    }
+    links.forEach(function(l) { l.classList.remove('active'); });
+    if (current) current.link.classList.add('active');
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

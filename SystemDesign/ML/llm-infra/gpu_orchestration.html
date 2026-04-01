@@ -1,0 +1,3189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPU Orchestration Platform — Staff-Level System Design</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@400;500&display=swap');
+
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-secondary: #111827;
+    --bg-tertiary: #1a2235;
+    --bg-card: #151d2e;
+    --bg-code: #0d1220;
+    --border: #1e2d45;
+    --border-bright: #2a3f5f;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent-cyan: #22d3ee;
+    --accent-blue: #3b82f6;
+    --accent-green: #34d399;
+    --accent-orange: #fb923c;
+    --accent-purple: #a78bfa;
+    --accent-red: #f87171;
+    --accent-yellow: #fbbf24;
+    --accent-pink: #f472b6;
+    --sidebar-width: 280px;
+    --diagram-green: #4ade80;
+    --diagram-blue: #60a5fa;
+    --diagram-orange: #fbbf24;
+    --diagram-red: #fb7185;
+    --diagram-purple: #c084fc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 20px 0;
+  }
+
+  .sidebar-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    padding: 0 20px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .nav-group {
+    margin-bottom: 6px;
+  }
+
+  .nav-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 10px 20px 4px;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 5px 20px 5px 28px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+
+  .nav-link:hover {
+    color: var(--accent-cyan);
+    background: rgba(34, 211, 238, 0.05);
+    border-left-color: var(--accent-cyan);
+  }
+
+  .nav-link.active {
+    color: var(--accent-cyan);
+    background: rgba(34, 211, 238, 0.08);
+    border-left-color: var(--accent-cyan);
+    font-weight: 500;
+  }
+
+  /* MAIN CONTENT */
+  .main {
+    margin-left: var(--sidebar-width);
+    padding: 40px 60px 100px;
+    max-width: 1100px;
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 15px;
+    margin-bottom: 40px;
+    font-family: 'IBM Plex Serif', serif;
+    font-style: italic;
+  }
+
+  h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin: 50px 0 16px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    margin: 32px 0 12px;
+  }
+
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent-green);
+    margin: 24px 0 8px;
+  }
+
+  p {
+    margin-bottom: 14px;
+    color: var(--text-secondary);
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* DIAGRAM BLOCKS */
+  .diagram-container {
+    background: var(--bg-code);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 18px 0 22px;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .diagram-container pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    white-space: pre;
+    margin: 0;
+  }
+
+  .diagram-label {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: rgba(34, 211, 238, 0.15);
+    color: var(--accent-cyan);
+  }
+
+  .diagram-label.mid { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+  .diagram-label.low { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); }
+  .diagram-label.detail { background: rgba(251, 146, 60, 0.15); color: var(--accent-orange); }
+
+  /* COLLAPSIBLE SECTIONS */
+  .collapsible {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 14px 0;
+    overflow: hidden;
+  }
+
+  .collapsible-header {
+    padding: 14px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .collapsible-header:hover {
+    background: rgba(255,255,255,0.03);
+  }
+
+  .collapsible-header .arrow {
+    font-size: 11px;
+    color: var(--accent-cyan);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .collapsible.open .arrow {
+    transform: rotate(90deg);
+  }
+
+  .collapsible-body {
+    display: none;
+    padding: 0 20px 18px;
+    border-top: 1px solid var(--border);
+  }
+
+  .collapsible.open .collapsible-body {
+    display: block;
+  }
+
+  /* KEY-VALUE HIGHLIGHT BOXES */
+  .info-box {
+    background: var(--bg-tertiary);
+    border-left: 3px solid var(--accent-cyan);
+    padding: 14px 18px;
+    margin: 14px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 13.5px;
+  }
+
+  .info-box.orange { border-left-color: var(--accent-orange); }
+  .info-box.green { border-left-color: var(--accent-green); }
+  .info-box.red { border-left-color: var(--accent-red); }
+  .info-box.purple { border-left-color: var(--accent-purple); }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: rgba(34, 211, 238, 0.08);
+    color: var(--accent-cyan);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  /* COMPARISON TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+
+  th {
+    background: var(--bg-tertiary);
+    color: var(--accent-cyan);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  td {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  .section { scroll-margin-top: 20px; }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-right: 4px;
+  }
+  .tag.training { background: rgba(59,130,246,0.2); color: var(--accent-blue); }
+  .tag.inference { background: rgba(52,211,153,0.2); color: var(--accent-green); }
+  .tag.both { background: rgba(167,139,250,0.2); color: var(--accent-purple); }
+
+  .metric {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-yellow);
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR NAVIGATION -->
+<nav class="sidebar">
+  <div class="sidebar-title">GPU Orchestration<br>Platform Design</div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Overview</div>
+    <a class="nav-link" href="#overview">System Overview</a>
+    <a class="nav-link" href="#high-level-arch">High-Level Architecture</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Layer 1: Hardware</div>
+    <a class="nav-link" href="#gpu-nodes">GPU Node Anatomy</a>
+    <a class="nav-link" href="#cluster-topology">Cluster Topology</a>
+    <a class="nav-link" href="#networking">Networking Stack</a>
+    <a class="nav-link" href="#storage">Storage Architecture</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Layer 2: Cluster Mgmt</div>
+    <a class="nav-link" href="#health-monitoring">Health Monitoring</a>
+    <a class="nav-link" href="#node-lifecycle">Node Lifecycle</a>
+    <a class="nav-link" href="#provisioning">Provisioning Stack</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Layer 3: Scheduling</div>
+    <a class="nav-link" href="#scheduler-arch">Scheduler Architecture</a>
+    <a class="nav-link" href="#k8s-gpu">K8s GPU Orchestration</a>
+    <a class="nav-link" href="#volcano-deep">Volcano Deep Dive</a>
+    <a class="nav-link" href="#kueue-deep">Kueue Deep Dive</a>
+    <a class="nav-link" href="#slurm-vs-k8s">Slurm vs K8s</a>
+    <a class="nav-link" href="#gang-scheduling">Gang Scheduling</a>
+    <a class="nav-link" href="#topology-aware">Topology-Aware Placement</a>
+    <a class="nav-link" href="#fair-share">Fair-Share & Preemption</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Layer 4: Training</div>
+    <a class="nav-link" href="#training-arch">Training Orchestration</a>
+    <a class="nav-link" href="#parallelism">Parallelism Strategies</a>
+    <a class="nav-link" href="#nccl">NCCL Communication</a>
+    <a class="nav-link" href="#checkpointing">Checkpoint System</a>
+    <a class="nav-link" href="#fault-recovery">Fault Recovery</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Layer 5: Inference</div>
+    <a class="nav-link" href="#inference-arch">Inference Architecture</a>
+    <a class="nav-link" href="#serving-engine">Serving Engine Internals</a>
+    <a class="nav-link" href="#disaggregated">Disaggregated Serving</a>
+    <a class="nav-link" href="#autoscaling">Autoscaling & Multi-Model</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Layer 6: Control Plane</div>
+    <a class="nav-link" href="#control-plane">Control Plane Design</a>
+    <a class="nav-link" href="#api-design">API & Job Lifecycle</a>
+    <a class="nav-link" href="#observability">Observability Stack</a>
+    <a class="nav-link" href="#multi-tenancy">Multi-Tenancy & Isolation</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Reference</div>
+    <a class="nav-link" href="#real-world">Real-World Deployments</a>
+    <a class="nav-link" href="#design-principles">Design Principles</a>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<h1>Building a GPU Cluster Orchestration Platform from Scratch</h1>
+<p class="subtitle">Staff-level system design — from bare metal to production-scale training & inference</p>
+
+<!-- ============================================================ -->
+<!-- SECTION: OVERVIEW -->
+<!-- ============================================================ -->
+<section class="section" id="overview">
+<h2>System Overview</h2>
+
+<p>This platform solves a deceptively complex problem: given a pool of bare-metal GPU servers, build a service that accepts training jobs (identify idle clusters, schedule distributed training) and inference workloads (deploy models on separate clusters with autoscaling). Every component must handle <strong>continuous hardware failures</strong> — at 10K+ GPUs, something breaks every 1-3 hours.</p>
+
+<div class="info-box">
+<strong>Core Insight:</strong> At scale, hardware failures are not exceptions but continuous background noise. Meta experienced 419 failures in 54 days across 16K H100s — one every ~3 hours. Every design decision must account for this reality.
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: HIGH LEVEL ARCHITECTURE -->
+<!-- ============================================================ -->
+<section class="section" id="high-level-arch">
+<h2>High-Level Architecture</h2>
+
+<p>The platform decomposes into six layers. The diagram below shows the complete system from user-facing APIs down to bare-metal hardware.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           USER / CLIENT LAYER                                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
+│  │  Web UI  │  │ CLI/SDK  │  │ REST API │  │ gRPC API │  │ Notebook/IDE     │  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────────┬─────────┘  │
+└───────┼──────────────┼──────────────┼──────────────┼────────────────┼────────────┘
+        │              │              │              │                │
+        └──────────────┴──────┬───────┴──────────────┴────────────────┘
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        LAYER 6: CONTROL PLANE                                   │
+│                                                                                 │
+│  ┌─────────────┐  ┌──────────────┐  ┌─────────────┐  ┌──────────────────────┐  │
+│  │ API Gateway │  │  Job Manager │  │  Quota Mgr  │  │  Observability       │  │
+│  │ + Auth/RBAC │  │  + Workflow   │  │  + Billing  │  │  (Prometheus/Grafana)│  │
+│  └──────┬──────┘  └──────┬───────┘  └──────┬──────┘  └──────────┬───────────┘  │
+└─────────┼────────────────┼──────────────────┼────────────────────┼──────────────┘
+          │                │                  │                    │
+          └────────┬───────┴──────────────────┴────────────────────┘
+                   ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                      LAYER 5: WORKLOAD ORCHESTRATION                             │
+│                                                                                  │
+│  ┌─────────────────────────────┐    ┌──────────────────────────────────────────┐ │
+│  │     TRAINING PLANE          │    │         INFERENCE PLANE                  │ │
+│  │                             │    │                                          │ │
+│  │ ┌────────────┐ ┌─────────┐ │    │ ┌───────────┐ ┌───────────┐ ┌─────────┐ │ │
+│  │ │ Distributed│ │Checkpoint│ │    │ │  Model    │ │ Autoscaler│ │ Traffic │ │ │
+│  │ │ Training   │ │ Manager │ │    │ │  Server   │ │ (HPA+VPA) │ │ Router  │ │ │
+│  │ │ Launcher   │ │         │ │    │ │ (vLLM/    │ │           │ │ (A/B,   │ │ │
+│  │ │ (torchrun) │ │         │ │    │ │  TRT-LLM) │ │           │ │  canary)│ │ │
+│  │ └────────────┘ └─────────┘ │    │ └───────────┘ └───────────┘ └─────────┘ │ │
+│  └─────────────────────────────┘    └──────────────────────────────────────────┘ │
+└───────────────────────────────┬──────────────────────────────────────────────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                    LAYER 4: RESOURCE SCHEDULER                                   │
+│                                                                                  │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │    Kueue    │  │  Gang Sched  │  │   Topology   │  │   Preemption         │  │
+│  │  (Admission │  │  (Volcano /  │  │   Aware      │  │   Engine             │  │
+│  │   Control)  │  │   PodGroup)  │  │   Placement  │  │   (checkpoint-then-  │  │
+│  │             │  │              │  │              │  │    preempt)          │  │
+│  └─────────────┘  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+└───────────────────────────────┬──────────────────────────────────────────────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                  LAYER 3: CLUSTER MANAGEMENT                                     │
+│                                                                                  │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │   Health    │  │    Node      │  │   Software   │  │   Kubernetes /       │  │
+│  │  Monitoring │  │  Lifecycle   │  │   Stack      │  │   Slurm              │  │
+│  │  (DCGM/HMA)│  │  (provision/ │  │  (drivers/   │  │   Cluster            │  │
+│  │             │  │   replace)   │  │   CUDA/NCCL) │  │                      │  │
+│  └─────────────┘  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+└───────────────────────────────┬──────────────────────────────────────────────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                 LAYERS 1-2: HARDWARE + NETWORK + STORAGE                         │
+│                                                                                  │
+│  ┌───────────────────┐  ┌──────────────────────┐  ┌───────────────────────────┐  │
+│  │   GPU Servers     │  │    Network Fabric     │  │     Storage Tiers        │  │
+│  │  (8×H100/H200/B200│  │  (InfiniBand / EFA /  │  │  (NVMe → Lustre/FSx →   │  │
+│  │   per node,       │  │   RoCE, NVLink        │  │   S3/GCS)               │  │
+│  │   NVSwitch)       │  │   fat-tree topology)  │  │                         │  │
+│  └───────────────────┘  └──────────────────────┘  └───────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<p>Now let's drill into each layer with mid-level and low-level diagrams.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: GPU NODES -->
+<!-- ============================================================ -->
+<section class="section" id="gpu-nodes">
+<h2>Layer 1: GPU Node Anatomy</h2>
+
+<h3>High-Level: What is a GPU server?</h3>
+<p>The fundamental compute unit is a GPU server containing <strong>8 GPUs</strong> interconnected via NVSwitch, with multiple high-speed NICs for inter-node communication, local NVMe storage, and dual CPUs for host operations.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+                    ┌─────────────────────────────────────────┐
+                    │          GPU SERVER (1 Node)            │
+                    │                                         │
+                    │   ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐     │
+                    │   │GPU 0│ │GPU 1│ │GPU 2│ │GPU 3│     │
+                    │   └──┬──┘ └──┬──┘ └──┬──┘ └──┬──┘     │
+                    │      └───────┴───┬───┴───────┘         │
+                    │              NVSwitch                   │
+                    │      ┌───────┬───┴───┬───────┐         │
+                    │   ┌──┴──┐ ┌──┴──┐ ┌──┴──┐ ┌──┴──┐     │
+                    │   │GPU 4│ │GPU 5│ │GPU 6│ │GPU 7│     │
+                    │   └─────┘ └─────┘ └─────┘ └─────┘     │
+                    │                                         │
+                    │   ┌──────┐  ┌──────┐  ┌──────────────┐ │
+                    │   │2×CPU │  │2TB RAM│  │ 30TB NVMe    │ │
+                    │   └──────┘  └──────┘  └──────────────┘ │
+                    │                                         │
+                    │   ┌─────┐┌─────┐┌─────┐...┌─────┐     │
+                    │   │NIC 0││NIC 1││NIC 2│   │NIC 31│    │
+                    │   └──┬──┘└──┬──┘└──┬──┘   └──┬──┘     │
+                    └──────┼──────┼──────┼─────────┼─────────┘
+                           │      │      │         │
+                     To Network Fabric (3,200 Gbps aggregate)
+</pre>
+</div>
+
+<h3>Mid-Level: Intra-Node GPU Interconnect</h3>
+<p>Inside a server, NVSwitch creates a <strong>full-mesh</strong> between all 8 GPUs. Every GPU can talk to every other GPU at the full NVLink bandwidth — no hop penalty, no congestion from shared links. This is why tensor parallelism (the most communication-intensive) stays intra-node.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+                   NVSwitch Full-Mesh (H100 Server)
+                   ═══════════════════════════════
+
+                   GPU 0 ◄══900GB/s══► GPU 1
+                    ▲ ╲                  ╱ ▲
+                    ║   ╲   900GB/s    ╱   ║
+                 900║    ╲            ╱    ║900
+                 GB/s     NVSwitch ×6     GB/s
+                    ║    ╱   Chips    ╲    ║
+                    ▼ ╱                  ╲ ▼
+                   GPU 2 ◄══900GB/s══► GPU 3
+                    ▲ ╲                  ╱ ▲
+                    ║   ╲              ╱   ║
+                    ║    ╲            ╱    ║
+                    ▼     ╲          ╱     ▼
+                   GPU 4 ◄══900GB/s══► GPU 5
+                    ▲ ╲                  ╱ ▲
+                    ║   ╲              ╱   ║
+                    ║    ╲            ╱    ║
+                    ▼     ╲          ╱     ▼
+                   GPU 6 ◄══900GB/s══► GPU 7
+
+         Each GPU: 80GB HBM3 | 3,958 TFLOPS FP8 | 900 GB/s NVLink
+         Total intra-node bandwidth: 7,200 GB/s bisection
+</pre>
+</div>
+
+<h3>Low-Level: GPU-NIC Affinity (Rail-Optimized)</h3>
+<p>Each GPU is <strong>physically wired</strong> to a specific NIC through its local PCIe switch. This "rail" topology is critical for inter-node scheduling — NCCL exploits this affinity so data parallel all-reduces map cleanly to specific network rails.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label low">Low Level</span>
+<pre>
+   GPU-NIC Affinity Map (p5.48xlarge / DGX H100)
+   ══════════════════════════════════════════════
+
+   ┌───────┐ PCIe ┌────────┐      ┌───────┐ PCIe ┌────────┐
+   │ GPU 0 │─────►│ NIC 0  │──────│ GPU 1 │─────►│ NIC 1  │
+   │80GB   │ Gen5 │100Gbps │ EFA  │80GB   │ Gen5 │100Gbps │
+   └───┬───┘      └────┬───┘      └───┬───┘      └────┬───┘
+       │ NVLink        │ Rail 0       │ NVLink        │ Rail 1
+       │               │              │               │
+   ┌───┴───┐      ┌────┴───┐      ┌───┴───┐      ┌────┴───┐
+   │ GPU 2 │─────►│ NIC 2  │──────│ GPU 3 │─────►│ NIC 3  │
+   └───┬───┘      └────┬───┘      └───┬───┘      └────┬───┘
+       │               │ Rail 2       │               │ Rail 3
+       │               │              │               │
+   ┌───┴───┐      ┌────┴───┐      ┌───┴───┐      ┌────┴───┐
+   │ GPU 4 │─────►│ NIC 4  │──────│ GPU 5 │─────►│ NIC 5  │
+   └───┬───┘      └────┬───┘      └───┬───┘      └────┬───┘
+       │               │ Rail 4       │               │ Rail 5
+       │               │              │               │
+   ┌───┴───┐      ┌────┴───┐      ┌───┴───┐      ┌────┴───┐
+   │ GPU 6 │─────►│ NIC 6  │──────│ GPU 7 │─────►│ NIC 7  │
+   └───────┘      └────┬───┘      └───────┘      └────┬───┘
+                       │ Rail 6                       │ Rail 7
+                       ▼                              ▼
+              To Leaf Switch 6                To Leaf Switch 7
+
+   Key: Each GPU→NIC pair forms a "rail"
+        NCCL maps DP ranks to same rail across nodes
+        TP stays on NVLink (never touches NICs)
+</pre>
+</div>
+
+<div class="collapsible">
+  <div class="collapsible-header" >
+    <span class="arrow">▶</span> GPU Generation Comparison Table
+  </div>
+  <div class="collapsible-body">
+    <table>
+      <tr><th>Spec</th><th>A100</th><th>H100 SXM</th><th>H200</th><th>B200</th></tr>
+      <tr><td>HBM</td><td>80GB HBM2e</td><td>80GB HBM3</td><td>141GB HBM3e</td><td>192GB HBM3e</td></tr>
+      <tr><td>BF16 TFLOPS</td><td>312</td><td>989</td><td>989</td><td>2,250</td></tr>
+      <tr><td>FP8 TFLOPS</td><td>—</td><td>3,958</td><td>3,958</td><td>9,000</td></tr>
+      <tr><td>NVLink BW</td><td>600 GB/s</td><td>900 GB/s</td><td>900 GB/s</td><td>1,800 GB/s</td></tr>
+      <tr><td>NVLink Gen</td><td>3.0</td><td>4.0</td><td>4.0</td><td>5.0</td></tr>
+      <tr><td>MIG Partitions</td><td>Up to 7</td><td>Up to 7</td><td>Up to 7</td><td>Up to 7</td></tr>
+      <tr><td>TDP</td><td>400W</td><td>700W</td><td>700W</td><td>1,000W</td></tr>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: CLUSTER TOPOLOGY -->
+<!-- ============================================================ -->
+<section class="section" id="cluster-topology">
+<h2>Cluster Topology</h2>
+
+<h3>High-Level: Rail-Optimized Fat-Tree</h3>
+<p>The dominant network topology for GPU clusters is the <strong>rail-optimized fat-tree</strong>. Each GPU's NIC connects to a specific leaf switch "rail" — GPU 0 across ALL servers connects to Rail-0 leaf switches, GPU 1 to Rail-1, etc. This aligns with NCCL's communication patterns.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+                     ┌───────────────────────────────┐
+                     │         SPINE SWITCHES         │
+                     │    (Quantum-2 QM9700 / SN5600) │
+                     │   ┌────┐┌────┐┌────┐┌────┐    │
+                     │   │Sp 0││Sp 1││Sp 2││Sp 3│    │
+                     │   └─┬──┘└─┬──┘└─┬──┘└─┬──┘    │
+                     └─────┼─────┼─────┼─────┼────────┘
+                           │     │     │     │
+             ┌─────────────┼─────┼─────┼─────┼──────────────┐
+             │             │     │     │     │              │
+        ┌────┴────┐   ┌────┴────┐   ┌────┴────┐   ┌────┴────┐
+        │ Rail 0  │   │ Rail 1  │   │  ...    │   │ Rail 7  │
+        │ Leaf Sw │   │ Leaf Sw │   │ Leaf Sw │   │ Leaf Sw │
+        └─┬──┬──┬─┘   └─┬──┬──┬─┘   └─┬──┬──┬─┘   └─┬──┬──┬─┘
+          │  │  │       │  │  │       │  │  │       │  │  │
+        NIC0 NIC0 NIC0  NIC1 NIC1    ...           NIC7 NIC7
+        of   of   of    of   of                    of   of
+       Srv0 Srv1 Srv2  Srv0 Srv1                  Srv0 Srv1
+
+   Key insight: GPU-i across ALL servers share the same rail
+   → NCCL all-reduce for data parallelism = single-hop within a rail
+   → Tensor parallelism stays on NVLink (never leaves the node)
+</pre>
+</div>
+
+<h3>Mid-Level: 3-Tier Fat-Tree for 10K+ GPUs</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   3-Tier Fat-Tree (10,000+ GPUs)
+   ══════════════════════════════
+
+   Tier 3 (Core):    ┌──────┐   ┌──────┐   ┌──────┐   ┌──────┐
+                      │Core 0│   │Core 1│   │Core 2│   │Core 3│
+                      └──┬───┘   └──┬───┘   └──┬───┘   └──┬───┘
+                         │  ╲       │  ╲       │  ╲       │  ╲
+                         │   ╲      │   ╲      │   ╲      │   ╲
+   Tier 2 (Spine):  ┌────┴──┐ ┌────┴──┐ ┌────┴──┐ ┌────┴──┐
+                    │Spine 0│ │Spine 1│ │Spine 2│ │Spine 3│ ... ×N
+                    └──┬──┬─┘ └──┬──┬─┘ └──┬──┬─┘ └──┬──┬─┘
+                       │  │      │  │      │  │      │  │
+   Tier 1 (Leaf):  ┌───┴┐┌┴───┐┌┴──┐┌┴───┐
+                   │Lf 0││Lf 1││Lf 2││Lf 3│ ... ×M (one per rail)
+                   └┬┬┬┬┘└┬┬┬┬┘└┬┬┬┬┘└┬┬┬┬┘
+                    ││││   ││││   ││││   ││││
+                   GPU NICs (32-64 ports per leaf)
+
+   Scale points:
+   ├─ 2-tier: ≤ 2,048 GPUs  (leaf + spine)
+   ├─ 3-tier: 2K - 32K GPUs (leaf + spine + core)
+   └─ Multi-plane: 32K+ GPUs (parallel independent fat-trees)
+
+   Bandwidth guarantee:
+   └─ Full bisection = 1:1 oversubscription (every GPU pair gets full BW)
+   └─ Common cost optimization: 2:1 oversubscription at spine-core
+</pre>
+</div>
+
+<h3>Low-Level: NVL72 Rack-Scale NVLink Domain (Blackwell)</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label low">Low Level</span>
+<pre>
+   GB200 NVL72: 72 GPUs in ONE NVLink Domain
+   ════════════════════════════════════════════
+
+   ┌──────────────────── Single Rack ────────────────────┐
+   │                                                      │
+   │  ┌──────────────────────────────────────────────┐   │
+   │  │          9 × NVLink Switch Trays              │   │
+   │  │  ┌─────┐┌─────┐┌─────┐┌─────┐...┌─────┐     │   │
+   │  │  │NVSw0││NVSw1││NVSw2││NVSw3│   │NVSw8│     │   │
+   │  │  └──┬──┘└──┬──┘└──┬──┘└──┬──┘   └──┬──┘     │   │
+   │  │     │      │      │      │         │         │   │
+   │  │     └──────┴──┬───┴──────┴─────────┘         │   │
+   │  │            FULL MESH                          │   │
+   │  │     ┌──────┬──┴───┬──────┬─────────┐         │   │
+   │  └─────┼──────┼──────┼──────┼─────────┼─────────┘   │
+   │        │      │      │      │         │              │
+   │  ┌─────┴────┐ │ ┌────┴────┐ │ ┌──────┴─────┐       │
+   │  │ Compute  │ │ │Compute  │ │ │ Compute    │ ×18   │
+   │  │ Tray 0   │ │ │Tray 1   │ │ │ Tray 17    │       │
+   │  │ 2×Grace  │ │ │2×Grace  │ │ │ 2×Grace    │       │
+   │  │ 4×B200   │ │ │4×B200   │ │ │ 4×B200     │       │
+   │  └──────────┘   └─────────┘   └────────────┘       │
+   │                                                      │
+   │  18 trays × 4 GPUs = 72 GPUs                        │
+   │  Aggregate NVLink BW: 130 TB/s                       │
+   │  Per-GPU NVLink BW: 1,800 GB/s                       │
+   │  ALL 72 GPUs: full-mesh via NVSwitch                 │
+   └──────────────────────────────────────────────────────┘
+
+   Impact: TP=72 possible within a SINGLE NVLink domain
+           (vs TP=8 on H100 where NVLink is node-local)
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: NETWORKING -->
+<!-- ============================================================ -->
+<section class="section" id="networking">
+<h2>Networking Stack</h2>
+
+<h3>High-Level: Two Network Planes</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Every GPU cluster has TWO separate network planes:
+   ═══════════════════════════════════════════════════
+
+   ┌─────────────────────────────────────────────────────┐
+   │              HIGH-SPEED DATA PLANE                   │
+   │         (GPU-to-GPU collective communication)        │
+   │                                                      │
+   │  Options:                                            │
+   │  ├─ InfiniBand NDR/XDR  (400-800 Gbps/port, RDMA)  │
+   │  ├─ AWS EFA + SRD       (3,200 Gbps/node, 64-path) │
+   │  ├─ RoCE v2             (400 Gbps/port, Ethernet)   │
+   │  └─ Spectrum-X + UEC    (next-gen lossless Ethernet)│
+   │                                                      │
+   │  Protocol: NCCL → libfabric/IB verbs → RDMA         │
+   │  Topology: Rail-optimized fat-tree                   │
+   └─────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────┐
+   │              MANAGEMENT / CONTROL PLANE              │
+   │       (Kubernetes API, SSH, monitoring, storage)     │
+   │                                                      │
+   │  Standard 25-100 GbE Ethernet                        │
+   │  Separate VPC / VLAN from data plane                 │
+   │  Also carries storage traffic (FSx, S3)              │
+   └─────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────┐
+   │              BMC / OUT-OF-BAND NETWORK               │
+   │     (IPMI, power management, serial consoles)        │
+   │                                                      │
+   │  Dedicated 1 GbE (SN2201 switches in SuperPOD)      │
+   │  Accessible even when host OS is down                │
+   └─────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Mid-Level: NCCL Communication Path</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   How NCCL all-reduce works across 2 nodes:
+   ══════════════════════════════════════════
+
+   Node A (GPU 0)                          Node B (GPU 0)
+   ┌──────────────┐                        ┌──────────────┐
+   │   Gradients  │                        │   Gradients  │
+   │  (GPU HBM)   │                        │  (GPU HBM)   │
+   └──────┬───────┘                        └──────┬───────┘
+          │                                        │
+          ▼                                        ▼
+   ┌──────────────┐                        ┌──────────────┐
+   │  NCCL Proxy  │  (user-space daemon)   │  NCCL Proxy  │
+   │  Thread      │                        │  Thread      │
+   └──────┬───────┘                        └──────┬───────┘
+          │ GDR (GPU Direct RDMA)                  │
+          ▼                                        ▼
+   ┌──────────────┐                        ┌──────────────┐
+   │   NIC 0      │ ◄═══  RDMA Send  ════►│   NIC 0      │
+   │ (100Gbps EFA)│     (zero-copy,        │ (100Gbps EFA)│
+   └──────┬───────┘      kernel bypass)    └──────┬───────┘
+          │                                        │
+          ▼                                        ▼
+   ┌──────────────────────────────────────────────────────┐
+   │                  NETWORK FABRIC                       │
+   │          Rail-0 Leaf Switch (single hop)              │
+   └──────────────────────────────────────────────────────┘
+
+   Data path: GPU HBM → PCIe → NIC → Fabric → NIC → PCIe → GPU HBM
+   Latency:   ~2-5 μs (RDMA, no kernel involvement)
+   Bandwidth: 100 Gbps per NIC × 8 NICs = 800 Gbps per node per rail
+</pre>
+</div>
+
+<div class="collapsible">
+  <div class="collapsible-header" >
+    <span class="arrow">▶</span> Network Technology Comparison: InfiniBand vs RoCE vs EFA
+  </div>
+  <div class="collapsible-body">
+    <table>
+      <tr><th>Feature</th><th>InfiniBand NDR</th><th>RoCE v2</th><th>AWS EFA (SRD)</th></tr>
+      <tr><td>BW per port</td><td>400 Gbps</td><td>400 Gbps</td><td>100 Gbps ×32</td></tr>
+      <tr><td>Flow control</td><td>Credit-based (lossless)</td><td>PFC (lossless)</td><td>SRD (lossy OK)</td></tr>
+      <tr><td>Adaptive routing</td><td>Hardware (switch)</td><td>ECMP (limited)</td><td>64-path spraying</td></tr>
+      <tr><td>In-network compute</td><td>SHARP (all-reduce)</td><td>No</td><td>No</td></tr>
+      <tr><td>Congestion control</td><td>Hardware CC</td><td>DCQCN</td><td>SRD built-in</td></tr>
+      <tr><td>Cost</td><td>$$$ (proprietary)</td><td>$$ (standard HW)</td><td>$$$ (AWS only)</td></tr>
+      <tr><td>Who uses</td><td>NVIDIA DGX, Azure</td><td>Meta, Google</td><td>AWS SageMaker</td></tr>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: STORAGE -->
+<!-- ============================================================ -->
+<section class="section" id="storage">
+<h2>Storage Architecture</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Three-Tier Storage Architecture
+   ════════════════════════════════
+
+                                      ┌──────────────────────┐
+   Tier 1: LOCAL NVMe                 │  30 TB per node      │
+   (lowest latency, ephemeral)        │  ~6 GB/s read        │
+   Used for: staging, local cache,    │  Survives reboot,    │
+   async checkpoint buffer            │  NOT node replacement │
+                                      └──────────────────────┘
+                                               │
+                                      Flush every N minutes
+                                               ▼
+                                      ┌──────────────────────┐
+   Tier 2: PARALLEL FS                │  FSx for Lustre /    │
+   (high throughput, shared)          │  WekaFS / GPFS       │
+   Used for: training data,           │  1.2 TB/s per client │
+   hot checkpoints, shared code       │  with GPUDirect Stor │
+                                      └──────────────────────┘
+                                               │
+                                      Background archive
+                                               ▼
+                                      ┌──────────────────────┐
+   Tier 3: OBJECT STORAGE             │  S3 / GCS            │
+   (unlimited, durable, cheap)        │  99.999999999%       │
+   Used for: checkpoint archive,      │  durability           │
+   dataset master copy, model         │  ~100 Gbps per node  │
+   registry                           │                      │
+                                      └──────────────────────┘
+</pre>
+</div>
+
+<h3>Mid-Level: Checkpoint Storage Flow</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Async Distributed Checkpoint (405B model ≈ 6.5 TB)
+   ═══════════════════════════════════════════════════
+
+   Step 1: GPU → CPU (blocking, fast)
+   ┌─────────┐   cudaMemcpyAsync   ┌──────────────┐
+   │GPU HBM  │ ──────────────────► │ Pinned CPU    │
+   │(sharded │   ~2 seconds for    │ Memory Buffer │
+   │ params) │   local shard       │ (per rank)    │
+   └─────────┘                     └──────┬───────┘
+                                          │
+   Step 2: CPU → Storage (non-blocking, background process)
+                                          │ fork() new process
+                                          ▼ (avoids GIL)
+                                   ┌──────────────┐
+                                   │ Serializer   │
+                                   │ Process      │──► Local NVMe (fast)
+                                   │ (separate    │──► FSx Lustre (shared)
+                                   │  from train) │──► S3 (archive)
+                                   └──────────────┘
+
+   Step 3: Training continues IMMEDIATELY after Step 1
+   ┌─────────┐
+   │GPU HBM  │ ──► next training iteration (no blocking!)
+   └─────────┘
+
+   Google's innovation: skip persistent storage entirely
+   ┌─────────┐  NCCL   ┌─────────┐
+   │ Node A  │ ═══════►│ Node B  │  In-memory replicas
+   │ (shard) │◄═══════ │ (copy)  │  Goodput: 85% → 97%
+   └─────────┘         └─────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: HEALTH MONITORING -->
+<!-- ============================================================ -->
+<section class="section" id="health-monitoring">
+<h2>Health Monitoring System</h2>
+
+<h3>High-Level: Three-Tier Health Architecture</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   ┌────────────────────────────────────────────────────────────────┐
+   │                  HEALTH MONITORING SYSTEM                      │
+   │                                                                │
+   │  Tier 1: CONTINUOUS PASSIVE MONITORING (always-on)             │
+   │  ┌──────────────────────────────────────────────────────────┐  │
+   │  │ DCGM Exporter → Prometheus → Alert Manager               │  │
+   │  │ Checks: GPU count, temp, power, ECC counters, NVLink     │  │
+   │  │ Frequency: every 10-30 seconds                           │  │
+   │  │ Impact: ZERO (read-only metrics)                         │  │
+   │  └──────────────────────────────────────────────────────────┘  │
+   │                         │ anomaly detected                     │
+   │                         ▼                                      │
+   │  Tier 2: ACTIVE HEALTH CHECKS (on-demand, ~5 min)             │
+   │  ┌──────────────────────────────────────────────────────────┐  │
+   │  │ Quick diagnostics: GPU memory test, PCIe BW test,        │  │
+   │  │ NIC loopback, basic NCCL point-to-point                  │  │
+   │  │ Triggered: on scheduling, after job failure, periodic     │  │
+   │  │ Impact: Node tainted, no new jobs during check            │  │
+   │  └──────────────────────────────────────────────────────────┘  │
+   │                         │ suspicious results                   │
+   │                         ▼                                      │
+   │  Tier 3: DEEP STRESS TEST (~2 hours)                           │
+   │  ┌──────────────────────────────────────────────────────────┐  │
+   │  │ Full GPU stress (DCGM Level 3-4), NCCL all-reduce BW    │  │
+   │  │ test with minimum thresholds, EFA connectivity matrix,   │  │
+   │  │ NVLink bandwidth per-pair validation                     │  │
+   │  │ Outcome: PASS → return to pool | FAIL → replace node     │  │
+   │  └──────────────────────────────────────────────────────────┘  │
+   └────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Mid-Level: Failure Detection & Response Pipeline</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   GPU Failure Detection → Response Pipeline
+   ══════════════════════════════════════════
+
+   ┌──────────┐     ┌──────────────┐     ┌──────────────┐
+   │  DCGM    │────►│  Classifier  │────►│   Action     │
+   │  Metrics │     │              │     │   Engine     │
+   └──────────┘     └──────────────┘     └──────────────┘
+
+   Classifier rules:
+   ┌──────────────────────────────────────────────────────────┐
+   │  XID 48 (double-bit ECC)        → IMMEDIATE REPLACE     │
+   │  XID 79 (GPU off bus)           → IMMEDIATE REPLACE     │
+   │  XID 95 (uncontained ECC)       → IMMEDIATE REPLACE     │
+   │  XID 63 (row remap) >4 events   → SCHEDULE REPLACE     │
+   │  XID 94 rate > 10/day           → SCHEDULE REPLACE     │
+   │  NCCL BW < 80% expected         → DEEP TEST → REPLACE  │
+   │  Temperature > 83°C sustained   → THROTTLE → ALERT     │
+   │  PCIe replay counter rising     → DEEP TEST            │
+   │  ECC SRAM uncorrectable > 4     → REPLACE              │
+   └──────────────────────────────────────────────────────────┘
+
+   Action Engine response:
+   ┌─────────────┐    ┌──────────────┐    ┌──────────────┐
+   │ 1. Taint    │───►│ 2. Drain     │───►│ 3. Replace   │
+   │    node     │    │    running   │    │    (new HW)  │
+   │ (no new     │    │    jobs +    │    │              │
+   │  scheduling)│    │    checkpoint│    │              │
+   └─────────────┘    └──────────────┘    └──────┬───────┘
+                                                  │
+                                           ┌──────┴───────┐
+                                           │ 4. Provision │
+                                           │    new node  │
+                                           │ 5. Run deep  │
+                                           │    health    │
+                                           │ 6. Untaint   │
+                                           │ 7. Re-join   │
+                                           │    cluster   │
+                                           └──────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: NODE LIFECYCLE / PROVISIONING -->
+<!-- ============================================================ -->
+<section class="section" id="node-lifecycle">
+<h2>Node Lifecycle</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Node Lifecycle State Machine
+   ════════════════════════════
+
+   ┌─────────┐   provision   ┌───────────┐   health    ┌──────────┐
+   │ PENDING │──────────────►│PROVISIONING│───check────►│ HEALTHY  │
+   └─────────┘               └─────┬─────┘   pass      └────┬─────┘
+                                   │                         │
+                              fail │                    schedule│
+                                   ▼                    jobs   │
+                             ┌───────────┐                     ▼
+                             │  FAILED   │              ┌──────────┐
+                             │  PROVISION│              │ RUNNING  │
+                             └───────────┘              │ WORKLOAD │
+                                                        └────┬─────┘
+                                                              │
+                                    ┌─────────────────────────┤
+                                    │                         │
+                               fault│                    job  │
+                              detect│                  ends   │
+                                    ▼                         ▼
+                             ┌───────────┐              ┌──────────┐
+                             │  DRAINING │              │   IDLE   │◄──┐
+                             │ (tainted) │              │ (in pool)│   │
+                             └─────┬─────┘              └──────────┘   │
+                                   │                         │         │
+                                   │ drained                 │ reclaim │
+                                   ▼                         └─────────┘
+                             ┌───────────┐
+                             │ REPLACING │──► new node → PROVISIONING
+                             └───────────┘
+</pre>
+</div>
+</section>
+
+<section class="section" id="provisioning">
+<h2>Provisioning Stack</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Software Stack Provisioning (bottom-up)
+   ════════════════════════════════════════
+
+   ┌────────────────────────────────────────────────────────┐
+   │  Layer 7: ML FRAMEWORKS                                │
+   │  PyTorch 2.x + torchrun + Megatron-LM / NeMo          │
+   ├────────────────────────────────────────────────────────┤
+   │  Layer 6: COLLECTIVE COMMUNICATION                     │
+   │  NCCL 2.x + aws-ofi-nccl (EFA plugin)                │
+   ├────────────────────────────────────────────────────────┤
+   │  Layer 5: COMPUTE LIBRARIES                            │
+   │  cuDNN 9.x + cuBLAS + Transformer Engine (FP8)        │
+   ├────────────────────────────────────────────────────────┤
+   │  Layer 4: CUDA RUNTIME                                 │
+   │  CUDA 12.x + NVRTC + libcuda                          │
+   ├────────────────────────────────────────────────────────┤
+   │  Layer 3: FABRIC MANAGER + GPU DRIVER                  │
+   │  nvidia-fabricmanager (NVSwitch config, MUST match     │
+   │  driver version exactly) + nvidia-driver 550.x         │
+   ├────────────────────────────────────────────────────────┤
+   │  Layer 2: CONTAINER RUNTIME + GPU SUPPORT              │
+   │  containerd + NVIDIA Container Toolkit + device plugin │
+   ├────────────────────────────────────────────────────────┤
+   │  Layer 1: OS + ORCHESTRATOR                            │
+   │  Ubuntu 22.04 + Kubernetes 1.29 / Slurm 24.05         │
+   │  + EFA drivers + Lustre client                         │
+   ├────────────────────────────────────────────────────────┤
+   │  Layer 0: HARDWARE + FIRMWARE                          │
+   │  BIOS + BMC + GPU VBIOS + NIC firmware                 │
+   └────────────────────────────────────────────────────────┘
+
+   Key: Fabric Manager + Driver version MUST match exactly
+        Version skew → NVSwitch doesn't initialize → GPUs isolated
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: SCHEDULER -->
+<!-- ============================================================ -->
+<section class="section" id="scheduler-arch">
+<h2>Scheduler Architecture</h2>
+
+<h3>High-Level: Scheduling System Overview</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   ┌──────────────────────────────────────────────────────────────────┐
+   │                    SCHEDULING SYSTEM                             │
+   │                                                                  │
+   │  ┌────────────────┐                                              │
+   │  │  Job Submitted  │                                             │
+   │  │  (suspended)    │                                             │
+   │  └───────┬────────┘                                              │
+   │          ▼                                                       │
+   │  ┌────────────────┐     ┌──────────────┐    ┌────────────────┐  │
+   │  │  ADMISSION     │────►│  QUEUE        │───►│  SCHEDULING    │  │
+   │  │  CONTROL       │     │  MANAGEMENT   │    │  DECISION      │  │
+   │  │  (Kueue)       │     │  (priority,   │    │  (gang, topo,  │  │
+   │  │                │     │   fair-share)  │    │   bin-pack)    │  │
+   │  │  - quota check │     │               │    │                │  │
+   │  │  - resource fit│     │  - DRF calc   │    │  - find nodes  │  │
+   │  │  - flavor match│     │  - preemption │    │  - verify gang │  │
+   │  └────────────────┘     └──────────────┘    │  - bind pods   │  │
+   │                                              └───────┬────────┘  │
+   │                                                      ▼           │
+   │                                              ┌────────────────┐  │
+   │                                              │  POD CREATION  │  │
+   │                                              │  (unsuspend    │  │
+   │                                              │   job, create  │  │
+   │                                              │   all pods)    │  │
+   │                                              └────────────────┘  │
+   └──────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: KUBERNETES GPU ORCHESTRATION -->
+<!-- ============================================================ -->
+<section class="section" id="k8s-gpu">
+<h2>Kubernetes GPU Orchestration</h2>
+
+<h3>High-Level: How Kubernetes Sees GPUs</h3>
+<p>Kubernetes doesn't natively understand GPUs. The entire GPU integration relies on a <strong>device plugin framework</strong> — NVIDIA's <code>k8s-device-plugin</code> registers GPUs as extended resources, and the GPU Operator automates the entire driver + runtime + monitoring stack. Without this, K8s has zero GPU awareness.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   How Kubernetes Manages GPUs (End-to-End)
+   ═════════════════════════════════════════
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │                    KUBERNETES CONTROL PLANE                   │
+   │                                                               │
+   │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────┐ │
+   │  │  API Server  │  │   Scheduler  │  │  Controller Manager  │ │
+   │  │  (etcd)      │  │  (kube-sched │  │  (watches resources) │ │
+   │  │              │  │   + plugins) │  │                      │ │
+   │  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘ │
+   └─────────┼──────────────────┼──────────────────────┼───────────┘
+             │                  │                      │
+             ▼                  ▼                      ▼
+   ┌──────────────────────────────────────────────────────────────┐
+   │                    EACH GPU WORKER NODE                       │
+   │                                                               │
+   │  ┌─────────────────────────────────────────────────────────┐  │
+   │  │              NVIDIA GPU OPERATOR (DaemonSet)             │  │
+   │  │  Automates deployment of ALL GPU components below        │  │
+   │  └──┬──────────┬──────────┬──────────┬──────────┬──────────┘  │
+   │     │          │          │          │          │              │
+   │     ▼          ▼          ▼          ▼          ▼              │
+   │  ┌───────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌───────────┐   │
+   │  │NVIDIA │ │NVIDIA  │ │NVIDIA  │ │DCGM    │ │GPU Feature│   │
+   │  │Device │ │Container│ │Driver  │ │Exporter│ │Discovery  │   │
+   │  │Plugin │ │Toolkit │ │(DaemonS│ │(metrics│ │(labels    │   │
+   │  │       │ │(runtime│ │  et)   │ │ to     │ │ nodes w/  │   │
+   │  │Registers│ hook)  │ │        │ │Promeths│ │ GPU info) │   │
+   │  │GPUs as│ │        │ │        │ │        │ │           │   │
+   │  │extend-│ │        │ │        │ │        │ │gpu.count=8│   │
+   │  │ed res │ │        │ │        │ │        │ │gpu.prod=  │   │
+   │  └───┬───┘ └────────┘ └────────┘ └────────┘ │ H100-SXM │   │
+   │      │                                        └───────────┘   │
+   │      │  Advertises to kubelet:                                │
+   │      │  "nvidia.com/gpu: 8"                                   │
+   │      │                                                        │
+   │  ┌───┴──────────────────────────────────────────────────────┐ │
+   │  │                      KUBELET                              │ │
+   │  │  Node allocatable:                                        │ │
+   │  │    cpu: 192                                               │ │
+   │  │    memory: 2048Gi                                         │ │
+   │  │    nvidia.com/gpu: 8      ← from device plugin           │ │
+   │  │    vpc.amazonaws.com/efa: 32  ← from EFA plugin          │ │
+   │  └──────────────────────────────────────────────────────────┘ │
+   └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Mid-Level: GPU Pod Scheduling Flow</h3>
+<p>When a pod requests GPUs, the standard K8s scheduler filters nodes by resource availability, but it has <strong>no understanding of GPU topology</strong> — it doesn't know about NVLink domains, PCIe affinity, or switch hierarchy. That's why Volcano and Kueue exist.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   GPU Pod Scheduling: What Happens Step-by-Step
+   ══════════════════════════════════════════════
+
+   Step 1: User submits pod spec
+   ┌──────────────────────────────────────────────┐
+   │  apiVersion: v1                               │
+   │  kind: Pod                                    │
+   │  spec:                                        │
+   │    containers:                                │
+   │    - name: training                           │
+   │      image: nvcr.io/nvidia/pytorch:24.01      │
+   │      resources:                               │
+   │        limits:                                │
+   │          nvidia.com/gpu: 8    ← request GPUs  │
+   │          vpc.amazonaws.com/efa: 4  ← EFA NICs │
+   │    schedulerName: volcano    ← or default     │
+   └──────────────────────────────────────────────┘
+              │
+              ▼
+   Step 2: API Server → Scheduler
+   ┌──────────────────────────────────────────────────────────┐
+   │  kube-scheduler pipeline:                                 │
+   │                                                           │
+   │  ┌─────────────┐   ┌─────────────┐   ┌───────────────┐  │
+   │  │  FILTERING   │──►│  SCORING     │──►│  BINDING      │  │
+   │  │              │   │              │   │               │  │
+   │  │ NodeHasGPU?  │   │ MostRequest │   │ Assign pod    │  │
+   │  │ gpu >= 8?    │   │ (bin-pack)   │   │ to node       │  │
+   │  │ EFA >= 4?    │   │ OR           │   │               │  │
+   │  │ Taints OK?   │   │ LeastRequest │   │ Kubelet gets  │  │
+   │  │ Affinity?    │   │ (spread)     │   │ assignment    │  │
+   │  └─────────────┘   └─────────────┘   └───────┬───────┘  │
+   └───────────────────────────────────────────────┼──────────┘
+                                                   │
+              ▼                                    │
+   Step 3: Kubelet → Device Plugin                 │
+   ┌──────────────────────────────────────────────┐│
+   │  kubelet calls device plugin's Allocate()     ││
+   │                                               ││
+   │  Device Plugin response:                      ││
+   │  {                                            ││
+   │    devices: [GPU-0, GPU-1, ..., GPU-7],       ││
+   │    envs: {                                    ││
+   │      NVIDIA_VISIBLE_DEVICES: "0,1,2,3,4,5,6,7"│
+   │      CUDA_VISIBLE_DEVICES: "0,1,2,3,4,5,6,7" ││
+   │    },                                         ││
+   │    mounts: [/dev/nvidia0, /dev/nvidiactl, ...] │
+   │  }                                            ││
+   └──────────────────────────────────────────────┘│
+              │                                    │
+              ▼                                    │
+   Step 4: Container Runtime                       │
+   ┌──────────────────────────────────────────────┐│
+   │  containerd → nvidia-container-runtime        ││
+   │  → injects GPU devices + drivers into container│
+   │  → sets CUDA_VISIBLE_DEVICES                  ││
+   │  → mounts /dev/nvidia*, libnvidia-ml, etc.    ││
+   └──────────────────────────────────────────────┘│
+</pre>
+</div>
+
+<h3>Low-Level: The Device Plugin gRPC Interface</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label low">Low Level</span>
+<pre>
+   NVIDIA Device Plugin Internal Architecture
+   ═══════════════════════════════════════════
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │               nvidia-device-plugin (DaemonSet)               │
+   │                                                               │
+   │  ┌─────────────────────────────────────────────────────────┐  │
+   │  │  gRPC Server (unix:///var/lib/kubelet/device-plugins/   │  │
+   │  │               nvidia.sock)                               │  │
+   │  │                                                          │  │
+   │  │  Implements DevicePlugin interface:                       │  │
+   │  │                                                          │  │
+   │  │  Register()  → tells kubelet "I manage nvidia.com/gpu"   │  │
+   │  │                                                          │  │
+   │  │  ListAndWatch() → streams device list to kubelet:        │  │
+   │  │    [{ID:"GPU-0",Health:"Healthy"},                       │  │
+   │  │     {ID:"GPU-1",Health:"Healthy"},                       │  │
+   │  │     ...                                                  │  │
+   │  │     {ID:"GPU-7",Health:"Unhealthy"}]  ← ECC error!      │  │
+   │  │    Kubelet removes unhealthy GPU from allocatable        │  │
+   │  │                                                          │  │
+   │  │  Allocate(deviceIDs) → called when pod gets scheduled:   │  │
+   │  │    Input:  ["GPU-0","GPU-1","GPU-2","GPU-3"]             │  │
+   │  │    Output: {                                             │  │
+   │  │      envs: {NVIDIA_VISIBLE_DEVICES: "0,1,2,3"},         │  │
+   │  │      mounts: [{/usr/lib/x86_64-linux-gnu/libnvidia-ml}] │  │
+   │  │      devices: [{/dev/nvidia0}, {/dev/nvidia1}, ...]      │  │
+   │  │    }                                                     │  │
+   │  │                                                          │  │
+   │  │  GetPreferredAllocation() → topology hint:               │  │
+   │  │    "For 4 GPUs, prefer {0,1,2,3} over {0,2,5,7}"        │  │
+   │  │    (NVLink connected set vs PCIe-only set)               │  │
+   │  └─────────────────────────────────────────────────────────┘  │
+   │                                                               │
+   │  ┌─────────────────────────────────────────────────────────┐  │
+   │  │  GPU Health Monitor (background goroutine)               │  │
+   │  │  Uses NVML library:                                      │  │
+   │  │  - nvmlDeviceGetCount()                                  │  │
+   │  │  - nvmlDeviceGetHandleByIndex()                          │  │
+   │  │  - nvmlDeviceGetMemoryErrorCounter() → ECC check         │  │
+   │  │  - Marks device Unhealthy → kubelet stops scheduling     │  │
+   │  └─────────────────────────────────────────────────────────┘  │
+   └──────────────────────────────────────────────────────────────┘
+
+   Limitation: device plugin gives kubelet a FLAT list of GPUs.
+   Kubelet has NO concept of:
+   ├─ NVLink topology (which GPUs are NVLink-connected)
+   ├─ PCIe switch groups
+   ├─ NIC affinity (which GPU maps to which NIC)
+   └─ Cross-node switch hierarchy
+
+   → This is why Volcano/Kueue/custom schedulers are REQUIRED
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: VOLCANO DEEP DIVE -->
+<!-- ============================================================ -->
+<section class="section" id="volcano-deep">
+<h2>Volcano Deep Dive</h2>
+
+<h3>High-Level: What is Volcano?</h3>
+<p>Volcano is a <strong>batch scheduling system for Kubernetes</strong> built specifically for HPC, AI/ML, and big data workloads. It replaces the default kube-scheduler with a GPU-aware scheduler that understands gang scheduling, fair-share queues, and topology. It's the most widely deployed GPU scheduler in production K8s clusters.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Volcano System Architecture
+   ════════════════════════════
+
+   ┌─────────────────────────────────────────────────────────────────┐
+   │                   VOLCANO COMPONENTS                             │
+   │                                                                  │
+   │   ┌─────────────────┐                                            │
+   │   │  volcano-admission│ (Webhook)                                │
+   │   │  Validates &      │                                          │
+   │   │  mutates CRDs     │                                          │
+   │   └────────┬──────────┘                                          │
+   │            │                                                     │
+   │   ┌────────▼──────────────────────────────────────────────────┐  │
+   │   │                volcano-controller                          │  │
+   │   │                                                            │  │
+   │   │  Watches these Custom Resources:                           │  │
+   │   │  ┌────────────┐  ┌────────────┐  ┌────────────────────┐   │  │
+   │   │  │  Job (vcjob)│  │  Queue     │  │  PodGroup          │   │  │
+   │   │  │             │  │            │  │  (gang unit)       │   │  │
+   │   │  │ Manages job │  │ Resource   │  │  Tracks min/max    │   │  │
+   │   │  │ lifecycle,  │  │ quota per  │  │  members, status   │   │  │
+   │   │  │ creates pods│  │ namespace/ │  │  of pod group      │   │  │
+   │   │  │ and PodGroup│  │ team       │  │                    │   │  │
+   │   │  └────────────┘  └────────────┘  └────────────────────┘   │  │
+   │   └────────────────────────────────────────────────────────────┘  │
+   │            │ creates pods (suspended)                             │
+   │            ▼                                                      │
+   │   ┌──────────────────────────────────────────────────────────┐   │
+   │   │                 volcano-scheduler                         │   │
+   │   │                                                           │   │
+   │   │   Replaces kube-scheduler for GPU workloads               │   │
+   │   │   Runs scheduling cycle:  Actions + Plugins               │   │
+   │   │                                                           │   │
+   │   │   ┌─────────────────────────────────────────────────┐     │   │
+   │   │   │  Session: one complete scheduling cycle          │     │   │
+   │   │   │                                                  │     │   │
+   │   │   │  Actions (ordered pipeline):                     │     │   │
+   │   │   │  ┌──────────┐ ┌──────────┐ ┌────────────────┐   │     │   │
+   │   │   │  │enqueue   │►│allocate  │►│preempt         │   │     │   │
+   │   │   │  │(queue→   │ │(bind pods│ │(evict lower    │   │     │   │
+   │   │   │  │ ready)   │ │ to nodes)│ │ priority)      │   │     │   │
+   │   │   │  └──────────┘ └──────────┘ └────────────────┘   │     │   │
+   │   │   │  ┌──────────┐ ┌──────────┐                      │     │   │
+   │   │   │  │reclaim   │►│backfill  │                      │     │   │
+   │   │   │  │(return   │ │(fill gaps│                      │     │   │
+   │   │   │  │ borrowed)│ │ w/ small │                      │     │   │
+   │   │   │  │          │ │ jobs)    │                      │     │   │
+   │   │   │  └──────────┘ └──────────┘                      │     │   │
+   │   │   └─────────────────────────────────────────────────┘     │   │
+   │   └──────────────────────────────────────────────────────────┘   │
+   └─────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Mid-Level: Volcano Scheduling Cycle (Actions + Plugins)</h3>
+<p>Each scheduling cycle is a <strong>Session</strong>. Within a session, Volcano runs a pipeline of <strong>Actions</strong>, and each action consults <strong>Plugins</strong> for scoring, filtering, and ordering decisions. This is fundamentally different from kube-scheduler's per-pod approach — Volcano reasons about <strong>groups of pods simultaneously</strong>.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Volcano Scheduling Session (one cycle)
+   ═══════════════════════════════════════
+
+   ┌─────────────────────────────────────────────────────────────────┐
+   │  SESSION START (triggered every 1 second by default)            │
+   │                                                                  │
+   │  Input state:                                                    │
+   │  ├─ Pending PodGroups (from all Queues)                          │
+   │  ├─ Node status (GPU capacity, allocatable, taints)              │
+   │  └─ Running jobs (current allocations)                           │
+   │                                                                  │
+   │  ═══════════════════════════════════════════════════════════════  │
+   │                                                                  │
+   │  ACTION 1: ENQUEUE                                               │
+   │  ┌──────────────────────────────────────────────────────────┐   │
+   │  │  For each Queue, sort PodGroups by priority               │   │
+   │  │  Move "ready" PodGroups to scheduling pipeline            │   │
+   │  │                                                           │   │
+   │  │  Plugins consulted:                                       │   │
+   │  │  ├─ proportion: check queue hasn't exceeded its share     │   │
+   │  │  └─ overcommit: allow queue to exceed share if others idle│   │
+   │  └──────────────────────────────────────────────────────────┘   │
+   │                          │                                       │
+   │                          ▼                                       │
+   │  ACTION 2: ALLOCATE                                              │
+   │  ┌──────────────────────────────────────────────────────────┐   │
+   │  │  For each PodGroup (highest priority first):              │   │
+   │  │                                                           │   │
+   │  │  Step 2a: Check if ALL pods can be placed (gang check)   │   │
+   │  │  ┌─────────────────────────────────────────────────────┐  │   │
+   │  │  │ Plugin: GANG                                         │  │   │
+   │  │  │ if podgroup.spec.minMember > schedulable_count:      │  │   │
+   │  │  │   SKIP entire group (don't partially allocate!)      │  │   │
+   │  │  │ else:                                                │  │   │
+   │  │  │   proceed to node selection                          │  │   │
+   │  │  └─────────────────────────────────────────────────────┘  │   │
+   │  │                                                           │   │
+   │  │  Step 2b: For each pod in group, select best node        │   │
+   │  │  ┌─────────────────────────────────────────────────────┐  │   │
+   │  │  │ Plugin: PREDICATES (filtering)                       │  │   │
+   │  │  │ - NodeHasEnoughGPU? (nvidia.com/gpu >= requested)    │  │   │
+   │  │  │ - NodeNotTainted? (health-check taint absent)        │  │   │
+   │  │  │ - PodAffinityMet? (co-locate with same job pods)     │  │   │
+   │  │  │ - EFA available? (vpc.amazonaws.com/efa >= needed)    │  │   │
+   │  │  │                                                      │  │   │
+   │  │  │ Plugin: NODEORDER (scoring)                          │  │   │
+   │  │  │ - binpack: prefer most-utilized node (pack tightly)  │  │   │
+   │  │  │ - topology: prefer nodes under same leaf switch      │  │   │
+   │  │  │ - numaaware: prefer NUMA-local GPU placement         │  │   │
+   │  │  └─────────────────────────────────────────────────────┘  │   │
+   │  │                                                           │   │
+   │  │  Step 2c: BIND all pods atomically                       │   │
+   │  │  ┌─────────────────────────────────────────────────────┐  │   │
+   │  │  │ All pods in PodGroup get node assignment together    │  │   │
+   │  │  │ → kubelet starts containers on all nodes             │  │   │
+   │  │  │ → PodGroup status → "Running"                        │  │   │
+   │  │  └─────────────────────────────────────────────────────┘  │   │
+   │  └──────────────────────────────────────────────────────────┘   │
+   │                          │                                       │
+   │                          ▼                                       │
+   │  ACTION 3: PREEMPT                                               │
+   │  ┌──────────────────────────────────────────────────────────┐   │
+   │  │  If high-priority PodGroup couldn't be allocated:         │   │
+   │  │  ├─ Find lowest-priority running PodGroups                │   │
+   │  │  ├─ Check if evicting them frees enough GPUs              │   │
+   │  │  ├─ Evict ENTIRE PodGroup (gang-aware preemption)         │   │
+   │  │  └─ Re-try allocation for high-priority job               │   │
+   │  │                                                           │   │
+   │  │  Plugin: GANG (ensures whole group evicted, not partial)  │   │
+   │  │  Plugin: PRIORITY (determines eviction order)             │   │
+   │  └──────────────────────────────────────────────────────────┘   │
+   │                          │                                       │
+   │                          ▼                                       │
+   │  ACTION 4: RECLAIM                                               │
+   │  ┌──────────────────────────────────────────────────────────┐   │
+   │  │  If a Queue is under its guaranteed share:                │   │
+   │  │  ├─ Find PodGroups in OTHER queues exceeding their share  │   │
+   │  │  ├─ Preempt "borrowing" jobs to return resources          │   │
+   │  │  └─ Queue gets back its guaranteed allocation             │   │
+   │  │                                                           │   │
+   │  │  Plugin: PROPORTION (calculates per-queue fair share)     │   │
+   │  └──────────────────────────────────────────────────────────┘   │
+   │                          │                                       │
+   │                          ▼                                       │
+   │  ACTION 5: BACKFILL                                              │
+   │  ┌──────────────────────────────────────────────────────────┐   │
+   │  │  Fill remaining gaps with small jobs that:                │   │
+   │  │  ├─ Have lower priority                                   │   │
+   │  │  ├─ Don't block pending large gang jobs                   │   │
+   │  │  └─ Can start immediately without gang constraints        │   │
+   │  │                                                           │   │
+   │  │  Critical for utilization: without backfill, gaps left    │   │
+   │  │  by gang scheduling waste 10-15% of cluster GPUs          │   │
+   │  └──────────────────────────────────────────────────────────┘   │
+   │                                                                  │
+   │  SESSION END → repeat in 1 second                                │
+   └─────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Mid-Level: Volcano Custom Resources (CRDs)</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Volcano CRD Relationships
+   ═════════════════════════
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │                                                               │
+   │   QUEUE (cluster-scoped)          Defines team GPU budget     │
+   │   ┌───────────────────────────────────────────────┐          │
+   │   │ apiVersion: scheduling.volcano.sh/v1beta1      │          │
+   │   │ kind: Queue                                    │          │
+   │   │ metadata:                                      │          │
+   │   │   name: training-team                          │          │
+   │   │ spec:                                          │          │
+   │   │   weight: 4           ← fair-share ratio       │          │
+   │   │   reclaimable: true   ← can reclaim borrowed   │          │
+   │   │   capability:         ← hard cap               │          │
+   │   │     nvidia.com/gpu: 256                        │          │
+   │   └───────────────────────┬───────────────────────┘          │
+   │                           │ jobs submitted to this queue      │
+   │                           ▼                                   │
+   │   VCJOB (namespaced)             Defines training job         │
+   │   ┌───────────────────────────────────────────────┐          │
+   │   │ apiVersion: batch.volcano.sh/v1alpha1          │          │
+   │   │ kind: Job                                      │          │
+   │   │ metadata:                                      │          │
+   │   │   name: llama-70b-pretrain                     │          │
+   │   │ spec:                                          │          │
+   │   │   schedulerName: volcano     ← use volcano     │          │
+   │   │   queue: training-team       ← target queue    │          │
+   │   │   minAvailable: 4            ← gang: need 4    │          │
+   │   │   priorityClassName: high-priority              │          │
+   │   │   policies:                                    │          │
+   │   │   - event: PodEvicted                          │          │
+   │   │     action: RestartJob       ← auto-restart    │          │
+   │   │   tasks:                                       │          │
+   │   │   - replicas: 4              ← 4 worker pods   │          │
+   │   │     name: worker                               │          │
+   │   │     template:                                  │          │
+   │   │       spec:                                    │          │
+   │   │         containers:                            │          │
+   │   │         - image: training:latest               │          │
+   │   │           resources:                           │          │
+   │   │             limits:                            │          │
+   │   │               nvidia.com/gpu: 8                │          │
+   │   └───────────────────────┬───────────────────────┘          │
+   │                           │ controller creates               │
+   │                           ▼                                   │
+   │   PODGROUP (auto-created)        Gang scheduling unit         │
+   │   ┌───────────────────────────────────────────────┐          │
+   │   │ apiVersion: scheduling.volcano.sh/v1beta1      │          │
+   │   │ kind: PodGroup                                 │          │
+   │   │ metadata:                                      │          │
+   │   │   name: llama-70b-pretrain                     │          │
+   │   │ spec:                                          │          │
+   │   │   minMember: 4      ← ALL 4 pods or NOTHING   │          │
+   │   │   queue: training-team                         │          │
+   │   │   priorityClassName: high-priority              │          │
+   │   │ status:                                        │          │
+   │   │   phase: Running    ← Pending→Running→Succeeded │          │
+   │   │   running: 4                                   │          │
+   │   │   succeeded: 0                                 │          │
+   │   └───────────────────────────────────────────────┘          │
+   │                                                               │
+   └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Low-Level: Volcano Plugin Architecture</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label low">Low Level</span>
+<pre>
+   Volcano Plugin Interface & Built-in Plugins
+   ═════════════════════════════════════════════
+
+   Each plugin implements one or more of these hooks:
+   ┌──────────────────────────────────────────────────────────────┐
+   │  Plugin Interface                                             │
+   │                                                               │
+   │  OnSessionOpen()    → initialize plugin state for this cycle  │
+   │  OnSessionClose()   → cleanup after cycle                     │
+   │                                                               │
+   │  Scheduling hooks (called by Actions):                        │
+   │  ├─ QueueOrder()      → sort queues for scheduling order     │
+   │  ├─ JobOrder()        → sort jobs within a queue             │
+   │  ├─ TaskOrder()       → sort pods within a job               │
+   │  ├─ PredicateFn()     → filter: "can this pod go here?"     │
+   │  ├─ NodeOrderFn()     → score: "how good is this node?"     │
+   │  ├─ PreemptableFn()   → "can this job be preempted?"        │
+   │  ├─ ReclaimableFn()   → "should this job return resources?" │
+   │  └─ JobReadyFn()      → gang check: "can ALL pods start?"  │
+   └──────────────────────────────────────────────────────────────┘
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │  BUILT-IN PLUGINS                                             │
+   │                                                               │
+   │  ┌─────────────────────────────────────────────────────────┐  │
+   │  │ GANG Plugin                                              │  │
+   │  │ JobReadyFn(): return podgroup.running >= minMember       │  │
+   │  │ PreemptableFn(): evict entire PodGroup or nothing        │  │
+   │  │ Key: prevents partial scheduling that causes deadlocks   │  │
+   │  └─────────────────────────────────────────────────────────┘  │
+   │                                                               │
+   │  ┌─────────────────────────────────────────────────────────┐  │
+   │  │ PROPORTION Plugin                                        │  │
+   │  │ QueueOrder(): sort by (allocated/deserved) ascending     │  │
+   │  │ Deserved = total_resources × (queue_weight / sum_weights)│  │
+   │  │ Guarantees fair GPU distribution across teams            │  │
+   │  │                                                          │  │
+   │  │ Example: 2 queues, weights 3:1, 256 total GPUs          │  │
+   │  │ Queue A deserved: 256 × 3/4 = 192 GPUs                  │  │
+   │  │ Queue B deserved: 256 × 1/4 = 64 GPUs                   │  │
+   │  └─────────────────────────────────────────────────────────┘  │
+   │                                                               │
+   │  ┌─────────────────────────────────────────────────────────┐  │
+   │  │ BINPACK Plugin                                           │  │
+   │  │ NodeOrderFn(): score = used_gpu / total_gpu              │  │
+   │  │ Prefers MOST utilized nodes → packs jobs tightly         │  │
+   │  │ Keeps empty nodes free for large gang-scheduled jobs     │  │
+   │  │ NVIDIA achieved 90% GPU occupancy with this plugin       │  │
+   │  └─────────────────────────────────────────────────────────┘  │
+   │                                                               │
+   │  ┌─────────────────────────────────────────────────────────┐  │
+   │  │ DRF (Dominant Resource Fairness) Plugin                  │  │
+   │  │ JobOrder(): sort by dominant share ascending              │  │
+   │  │ dominant_share = max(gpu_frac, cpu_frac, mem_frac)       │  │
+   │  │ Serve the "least served" job next                        │  │
+   │  └─────────────────────────────────────────────────────────┘  │
+   │                                                               │
+   │  ┌─────────────────────────────────────────────────────────┐  │
+   │  │ TOPOLOGY Plugin (SIG-scheduling integration)             │  │
+   │  │ NodeOrderFn(): prefer nodes sharing same switch          │  │
+   │  │ Reads topology labels from nodes:                        │  │
+   │  │   topology.kubernetes.io/zone                            │  │
+   │  │   topology.kubernetes.io/rack                            │  │
+   │  │   nvidia.com/gpu.machine (NVLink domain ID)              │  │
+   │  └─────────────────────────────────────────────────────────┘  │
+   └──────────────────────────────────────────────────────────────┘
+
+   Configuration (volcano-scheduler-configmap):
+   ┌──────────────────────────────────────────────┐
+   │ actions: "enqueue, allocate, preempt,         │
+   │          reclaim, backfill"                    │
+   │ tiers:                                        │
+   │ - plugins:                                    │
+   │   - name: gang                                │
+   │     enablePreemptable: true                   │
+   │   - name: priority                            │
+   │   - name: proportion                          │
+   │   - name: binpack                             │
+   │     arguments:                                │
+   │       binpack.weight: 10                      │
+   │       binpack.resources: nvidia.com/gpu        │
+   │       binpack.resources.weight: 5              │
+   │   - name: nodeorder                           │
+   └──────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Low-Level: End-to-End Volcano Training Job Flow</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label low">Low Level</span>
+<pre>
+   Complete Lifecycle: Volcano Training Job on 32 GPUs (4 nodes)
+   ══════════════════════════════════════════════════════════════
+
+   User                  Volcano              K8s                 Nodes
+    │                   Controller           Scheduler
+    │                      │                    │                    │
+    │ kubectl apply        │                    │                    │
+    │ (vcjob YAML) ───────►│                    │                    │
+    │                      │                    │                    │
+    │                      │ 1. Create PodGroup │                    │
+    │                      │   minMember: 4     │                    │
+    │                      │ 2. Create 4 Pods   │                    │
+    │                      │   (all pending)    │                    │
+    │                      │──────────────────►│                    │
+    │                      │                    │                    │
+    │                      │    3. Scheduling Session starts         │
+    │                      │                    │                    │
+    │                      │    ENQUEUE action:  │                    │
+    │                      │    PodGroup moves   │                    │
+    │                      │    to "ready" queue  │                    │
+    │                      │                    │                    │
+    │                      │    ALLOCATE action: │                    │
+    │                      │    Gang check:      │                    │
+    │                      │    4 nodes with     │                    │
+    │                      │    8 free GPUs each?│                    │
+    │                      │    YES → proceed    │                    │
+    │                      │                    │                    │
+    │                      │    Predicate:      │                    │
+    │                      │    Node 0: 8 GPU ✓ │                    │
+    │                      │    Node 1: 8 GPU ✓ │                    │
+    │                      │    Node 2: 8 GPU ✓ │                    │
+    │                      │    Node 3: 8 GPU ✓ │                    │
+    │                      │                    │                    │
+    │                      │    Score (binpack): │                    │
+    │                      │    Pick most-used   │                    │
+    │                      │    nodes first      │                    │
+    │                      │                    │                    │
+    │                      │    4. BIND all 4   │                    │
+    │                      │       pods atomically                  │
+    │                      │                    │──────────────────►│
+    │                      │                    │                    │
+    │                      │                    │  5. kubelet on     │
+    │                      │                    │     each node:     │
+    │                      │                    │     - Pull image   │
+    │                      │                    │     - Call device  │
+    │                      │                    │       plugin       │
+    │                      │                    │       Allocate()   │
+    │                      │                    │     - Inject GPUs  │
+    │                      │                    │     - Start        │
+    │                      │                    │       container    │
+    │                      │                    │                    │
+    │                      │                    │  6. Container runs:│
+    │                      │                    │  torchrun          │
+    │                      │                    │   --nnodes=4       │
+    │                      │                    │   --nproc=8        │
+    │                      │                    │   --rdzv=c10d      │
+    │                      │                    │   train.py         │
+    │                      │                    │                    │
+    │                      │  7. PodGroup       │  NCCL init_process │
+    │                      │     status →       │  _group across all │
+    │   Job Running ◄──────│     "Running"      │  32 GPUs           │
+    │                      │                    │                    │
+    │   ...training...     │                    │                    │
+    │                      │                    │                    │
+    │   (GPU 5 on Node 2 fails — XID 79)        │                    │
+    │                      │                    │    ┌──────────┐    │
+    │                      │  8. DCGM detects   │◄───│ XID 79   │    │
+    │                      │     unhealthy GPU  │    │ GPU off  │    │
+    │                      │                    │    │ PCIe bus │    │
+    │                      │  9. Device plugin  │    └──────────┘    │
+    │                      │     marks GPU      │                    │
+    │                      │     Unhealthy      │                    │
+    │                      │                    │                    │
+    │                      │ 10. NCCL timeout   │                    │
+    │                      │     Pod exits ≠ 0  │                    │
+    │                      │                    │                    │
+    │                      │ 11. Policy:        │                    │
+    │                      │     PodEvicted →   │                    │
+    │                      │     RestartJob     │                    │
+    │                      │                    │                    │
+    │                      │ 12. Kill all pods  │                    │
+    │                      │     Re-create      │                    │
+    │                      │     PodGroup       │                    │
+    │                      │     (new session   │                    │
+    │                      │      reschedules   │                    │
+    │                      │      avoiding      │                    │
+    │                      │      bad node)     │                    │
+    │                      │                    │                    │
+    │   Job Restarted      │  13. Pods resume   │                    │
+    │   (from checkpoint)◄─│      from latest   │                    │
+    │                      │      checkpoint    │                    │
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: KUEUE DEEP DIVE -->
+<!-- ============================================================ -->
+<section class="section" id="kueue-deep">
+<h2>Kueue Deep Dive</h2>
+
+<h3>High-Level: Kueue vs Volcano — Different Philosophies</h3>
+<p>Kueue is a <strong>job queueing system</strong> that works WITH the default kube-scheduler rather than replacing it. It controls <strong>admission</strong> — deciding WHEN a job enters the cluster — while leaving pod-to-node binding to kube-scheduler. Volcano replaces the scheduler entirely. Kueue is now the recommended approach for GKE and is maturing rapidly.</p>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Kueue Architecture: Admission Control Layer
+   ═════════════════════════════════════════════
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │                                                               │
+   │  Job submitted    ┌──────────────────────────────────┐       │
+   │  (suspended=true) │         KUEUE CONTROLLER          │       │
+   │  ─────────────────►                                    │       │
+   │                   │  1. Job → Workload CR (internal)   │       │
+   │                   │  2. Queue lookup (LocalQueue →     │       │
+   │                   │     ClusterQueue)                   │       │
+   │                   │  3. Admission check:                │       │
+   │                   │     ├─ Quota available?             │       │
+   │                   │     ├─ ResourceFlavor match?        │       │
+   │                   │     ├─ Fair-share position?         │       │
+   │                   │     └─ Topology constraints?        │       │
+   │                   │                                     │       │
+   │                   │  IF admitted:                        │       │
+   │                   │     Set job suspended=false          │       │
+   │                   │     Assign ResourceFlavor            │       │
+   │                   │     (nodeSelector labels injected)   │       │
+   │                   │                                     │       │
+   │                   │  IF NOT admitted:                    │       │
+   │                   │     Job stays in queue (suspended)   │       │
+   │                   │     Workload status = "Inadmissible" │       │
+   │                   └──────────────────┬───────────────────┘       │
+   │                                      │                           │
+   │                                      │ job.suspended = false     │
+   │                                      ▼                           │
+   │                   ┌──────────────────────────────────┐          │
+   │                   │       DEFAULT KUBE-SCHEDULER      │          │
+   │                   │   (or volcano, if also installed)  │          │
+   │                   │                                    │          │
+   │                   │   Does normal pod scheduling:      │          │
+   │                   │   filter → score → bind            │          │
+   │                   │   (Kueue already guaranteed that   │          │
+   │                   │    enough resources exist)          │          │
+   │                   └──────────────────────────────────┘          │
+   │                                                               │
+   │  KEY DIFFERENCE FROM VOLCANO:                                  │
+   │  Kueue = "gatekeeper" (controls admission)                    │
+   │  Volcano = "replacement scheduler" (controls placement too)   │
+   │  You CAN use both together: Kueue for admission + Volcano for │
+   │  topology-aware placement                                      │
+   └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h3>Mid-Level: Kueue Resource Model (CRDs)</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Kueue CRD Hierarchy and Relationships
+   ═══════════════════════════════════════
+
+   ┌──────────────────────── COHORT ────────────────────────────┐
+   │  (logical group that can share/borrow resources)            │
+   │                                                              │
+   │  ┌────────────────────────┐   ┌────────────────────────┐   │
+   │  │   CLUSTER QUEUE        │   │   CLUSTER QUEUE        │   │
+   │  │   "training-cq"        │   │   "inference-cq"       │   │
+   │  │                        │   │                        │   │
+   │  │ spec:                  │   │ spec:                  │   │
+   │  │  cohort: "gpu-pool"    │   │  cohort: "gpu-pool"    │   │
+   │  │  namespaceSelector:    │   │  namespaceSelector:    │   │
+   │  │   matchLabels:         │   │   matchLabels:         │   │
+   │  │    team: training      │   │    team: inference     │   │
+   │  │                        │   │                        │   │
+   │  │  resourceGroups:       │   │  resourceGroups:       │   │
+   │  │  - coveredResources:   │   │  - coveredResources:   │   │
+   │  │    - nvidia.com/gpu    │   │    - nvidia.com/gpu    │   │
+   │  │    flavors:            │   │    flavors:            │   │
+   │  │    - name: h100-sxm   │   │    - name: h100-sxm   │   │
+   │  │      resources:        │   │      resources:        │   │
+   │  │      - name: gpu       │   │      - name: gpu       │   │
+   │  │        nominalQuota:128│   │        nominalQuota:64 │   │
+   │  │        borrowingLimit: │   │        borrowingLimit: │   │
+   │  │          192           │   │          96            │   │
+   │  │                        │   │                        │   │
+   │  │  fairSharing:          │   │  fairSharing:          │   │
+   │  │    weight: 3           │   │    weight: 1           │   │
+   │  └────────────┬───────────┘   └────────────┬───────────┘   │
+   │               │                             │               │
+   └───────────────┼─────────────────────────────┼───────────────┘
+                   │                             │
+   ┌───────────────▼───────────┐  ┌──────────────▼──────────────┐
+   │   LOCAL QUEUE             │  │   LOCAL QUEUE               │
+   │   "training-lq"          │  │   "inference-lq"            │
+   │   (in namespace:         │  │   (in namespace:            │
+   │    training-team)         │  │    inference-team)          │
+   │                           │  │                             │
+   │   spec:                   │  │   spec:                     │
+   │    clusterQueue:          │  │    clusterQueue:            │
+   │     training-cq           │  │     inference-cq            │
+   └───────────────┬───────────┘  └──────────────┬──────────────┘
+                   │                              │
+   ┌───────────────▼───────────┐  ┌──────────────▼──────────────┐
+   │   WORKLOAD                │  │   WORKLOAD                  │
+   │   (auto-created from Job) │  │   (auto-created from Job)   │
+   │                           │  │                             │
+   │   Tracks admission status │  │   Tracks admission status   │
+   │   and quota consumption   │  │   and quota consumption     │
+   └───────────────────────────┘  └─────────────────────────────┘
+
+   RESOURCE FLAVOR (cluster-scoped, maps to hardware):
+   ┌──────────────────────────────────────────────────────────────┐
+   │  apiVersion: kueue.x-k8s.io/v1beta1                         │
+   │  kind: ResourceFlavor                                        │
+   │  metadata:                                                   │
+   │    name: h100-sxm                                            │
+   │  spec:                                                       │
+   │    nodeLabels:                                               │
+   │      nvidia.com/gpu.product: H100-SXM-80GB                  │
+   │      topology.kubernetes.io/zone: us-east-1a                 │
+   │    tolerations:                                              │
+   │    - key: nvidia.com/gpu                                     │
+   │      operator: Exists                                        │
+   │      effect: NoSchedule                                      │
+   └──────────────────────────────────────────────────────────────┘
+
+   When Kueue admits a workload, it INJECTS the flavor's nodeLabels
+   into the pod spec → kube-scheduler naturally lands it on matching
+   nodes. Elegant: Kueue never touches scheduling, only admission.
+</pre>
+</div>
+
+<h3>Mid-Level: Kueue Admission Decision Flow</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Kueue Admission Algorithm (per scheduling cycle)
+   ═════════════════════════════════════════════════
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │  For each ClusterQueue (sorted by fair-share, most-underserved │
+   │  first):                                                       │
+   │                                                                │
+   │  For each pending Workload (sorted by priority, then FIFO):   │
+   │                                                                │
+   │  ┌────────────────────────────────────────────────────────┐   │
+   │  │  Step 1: FLAVOR ASSIGNMENT                              │   │
+   │  │  For each podSet in Workload:                           │   │
+   │  │    Find a ResourceFlavor where:                         │   │
+   │  │    ├─ nominalQuota - used >= requested                  │   │
+   │  │    │  (within own quota)                                │   │
+   │  │    │  OR                                                │   │
+   │  │    ├─ borrowingLimit allows borrowing from cohort       │   │
+   │  │    │  AND cohort has idle capacity                      │   │
+   │  │    └─ If no flavor fits → Workload is "Inadmissible"   │   │
+   │  └────────────────────────────────────────────────────────┘   │
+   │                         │                                      │
+   │                         ▼                                      │
+   │  ┌────────────────────────────────────────────────────────┐   │
+   │  │  Step 2: PREEMPTION CHECK (if can't fit in quota)       │   │
+   │  │                                                          │   │
+   │  │  Can we free space by preempting lower-priority          │   │
+   │  │  workloads in the same ClusterQueue or cohort?           │   │
+   │  │                                                          │   │
+   │  │  Preemption candidates (in order):                       │   │
+   │  │  1. Workloads BORROWING from other queues (cheapest)    │   │
+   │  │  2. Lower-priority workloads in SAME queue              │   │
+   │  │  3. Lower-priority workloads in SAME cohort             │   │
+   │  │                                                          │   │
+   │  │  Selection: fewest preemptions that free enough GPUs     │   │
+   │  │  Constraint: never preempt higher-priority workload      │   │
+   │  └────────────────────────────────────────────────────────┘   │
+   │                         │                                      │
+   │                         ▼                                      │
+   │  ┌────────────────────────────────────────────────────────┐   │
+   │  │  Step 3: ADMIT                                          │   │
+   │  │                                                          │   │
+   │  │  a. Reserve quota in ClusterQueue                        │   │
+   │  │  b. Set Workload.status.admission:                       │   │
+   │  │       clusterQueue: training-cq                          │   │
+   │  │       podSetAssignments:                                 │   │
+   │  │       - name: worker                                     │   │
+   │  │         flavors:                                         │   │
+   │  │           nvidia.com/gpu: h100-sxm                       │   │
+   │  │  c. Inject nodeSelector from flavor into pod template    │   │
+   │  │  d. Set job.spec.suspend = false                         │   │
+   │  │  e. kube-scheduler takes over from here                  │   │
+   │  └────────────────────────────────────────────────────────┘   │
+   └─────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: SLURM vs K8S -->
+<!-- ============================================================ -->
+<section class="section" id="slurm-vs-k8s">
+<h2>Slurm vs Kubernetes for GPU Scheduling</h2>
+
+<h3>Architecture Comparison</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   SLURM Architecture (HPC-native)     KUBERNETES Architecture (cloud-native)
+   ════════════════════════════════     ═══════════════════════════════════════
+
+   ┌──────────────┐                    ┌──────────────────────────────────────┐
+   │  slurmctld   │  (centralized)     │  API Server + etcd (HA, distributed)│
+   │  (controller)│                    │  ┌──────────┐  ┌──────────────────┐ │
+   │              │                    │  │Kueue     │  │Volcano Scheduler │ │
+   │ Job Queue    │                    │  │(admission│  │(placement)       │ │
+   │ Backfill     │                    │  │ control) │  │                  │ │
+   │ Fair-share   │                    │  └──────────┘  └──────────────────┘ │
+   │ Topology     │                    │  ┌──────────────────────────────┐   │
+   │ Gang (native)│                    │  │ Controller Manager           │   │
+   └──────┬───────┘                    │  │ (Job, Deployment, DaemonSet) │   │
+          │                            │  └──────────────────────────────┘   │
+          │  sbatch/srun               └──────────────┬───────────────────────┘
+          │                                           │
+   ┌──────▼───────┐                    ┌──────────────▼──────────────┐
+   │   slurmd     │ (per node)         │   kubelet + containerd      │ (per node)
+   │              │                    │   + NVIDIA device plugin     │
+   │ Executes job │                    │   + GPU Operator             │
+   │ Manages cgrps│                    │                              │
+   │ Health check │                    │  Manages pods + containers   │
+   └──────────────┘                    └──────────────────────────────┘
+
+   ┌───────────────────────────────────────────────────────────────────┐
+   │  FEATURE COMPARISON                                               │
+   │                                                                   │
+   │  Feature               │ Slurm           │ K8s + Volcano/Kueue  │
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  Gang scheduling       │ Native (backfill│ Volcano PodGroup /   │
+   │                        │  handles gaps)  │ Kueue Workload       │
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  Topology awareness    │ topology.conf   │ Kueue Topology CR /  │
+   │                        │ (tree/block)    │ Volcano topology plug│
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  Fair-share            │ Multifactor     │ Kueue cohort/weights │
+   │                        │ priority plugin │ Volcano proportion   │
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  GPU-aware GRES        │ gres.conf native│ Device plugin (flat  │
+   │                        │ w/ GPU topology │ list, no topology)   │
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  Container support     │ Pyxis/Enroot    │ Native (containerd)  │
+   │                        │ (bolted on)     │                      │
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  Microservices/inference│ Weak (batch-    │ Native (Services,    │
+   │                        │  oriented)      │ Ingress, HPA)        │
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  Ecosystem             │ MPI, PMI,       │ Helm, Operators,     │
+   │                        │ srun, sbatch    │ GitOps, Prometheus   │
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  Scale ceiling          │ ~100K nodes     │ ~5K nodes/cluster   │
+   │                        │ (single slurmctld│ (etcd limit, need   │
+   │                        │  proven at Meta) │  federation beyond) │
+   │  ──────────────────────┼─────────────────┼──────────────────────│
+   │  Who uses              │ Meta, HyperPod  │ OpenAI (K8s),        │
+   │                        │ ORNL, most HPC  │ Google (GKE+Kueue), │
+   │                        │                 │ CoreWeave            │
+   └───────────────────────────────────────────────────────────────────┘
+
+   HYBRID PATTERN (SageMaker HyperPod):
+   ┌──────────────────────────────────────────────────────────────┐
+   │  Slurm for TRAINING          K8s/EKS for INFERENCE           │
+   │  (gang sched, topology,      (autoscaling, services,         │
+   │   MPI-native, proven at      multi-model endpoints,          │
+   │   100K+ node scale)          Kueue admission, GitOps)        │
+   │                                                               │
+   │  Both on SAME physical GPU cluster                            │
+   │  Health monitoring shared (HMA agent on all nodes)            │
+   └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="info-box purple">
+<strong>Interview Recommendation:</strong> When asked "Slurm or K8s?" — the answer is "both, for different workloads." Slurm excels at large-scale training (proven at Meta's 16K+ GPU scale, native topology/gang/MPI). K8s excels at inference serving (autoscaling, services, multi-model). HyperPod's dual-orchestrator pattern is the production standard. Kueue + Volcano together on K8s is catching up for training but isn't yet proven at Slurm's scale.
+</div>
+</section>
+
+<section class="section" id="gang-scheduling">
+<h3>Gang Scheduling Deep Dive</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Gang Scheduling: Why ALL-or-NOTHING matters
+   ═════════════════════════════════════════════
+
+   WITHOUT gang scheduling (DEADLOCK scenario):
+
+   Cluster: 4 nodes × 8 GPUs = 32 GPUs total
+
+   Job A needs 24 GPUs (3 nodes)    Job B needs 24 GPUs (3 nodes)
+   ┌────────┐┌────────┐┌────────┐┌────────┐
+   │ Node 0 ││ Node 1 ││ Node 2 ││ Node 3 │
+   │ 8 GPUs ││ 8 GPUs ││ 8 GPUs ││ 8 GPUs │
+   │  [A A] ││  [A A] ││  [B B] ││  [B B] │  ← partial alloc!
+   └────────┘└────────┘└────────┘└────────┘
+   Job A has 16/24 GPUs → BLOCKED
+   Job B has 16/24 GPUs → BLOCKED
+   DEADLOCK: neither can proceed!
+
+   WITH gang scheduling:
+
+   ┌────────┐┌────────┐┌────────┐┌────────┐
+   │ Node 0 ││ Node 1 ││ Node 2 ││ Node 3 │
+   │ 8 GPUs ││ 8 GPUs ││ 8 GPUs ││ 8 GPUs │
+   │  [A A] ││  [A A] ││  [A A] ││ [idle] │  ← Job A gets all 3
+   └────────┘└────────┘└────────┘└────────┘
+   Job A: 24 GPUs → RUNNING
+   Job B: QUEUED (waiting for A to finish)
+
+   Implementation in Kueue:
+   ┌─────────────────────────────────────────────────────────┐
+   │  Workload CR                                            │
+   │  spec:                                                  │
+   │    podSets:                                             │
+   │    - name: worker                                       │
+   │      count: 3        ← must schedule all 3 or none     │
+   │      template:                                          │
+   │        spec:                                            │
+   │          containers:                                    │
+   │          - resources:                                   │
+   │              limits:                                    │
+   │                nvidia.com/gpu: 8   ← full node          │
+   └─────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section class="section" id="topology-aware">
+<h3>Topology-Aware Placement</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Topology-Aware vs Topology-Ignorant Placement
+   ══════════════════════════════════════════════
+
+   Job: 16 GPUs (2 nodes), using TP=8 + DP=2
+
+   GOOD placement (topology-aware):
+   ┌─────────────────────┐  ┌─────────────────────┐
+   │      Node A          │  │      Node B          │
+   │  Same leaf switch    │  │  Same leaf switch    │
+   │                      │  │                      │
+   │ GPU0─GPU1─GPU2─GPU3  │  │ GPU0─GPU1─GPU2─GPU3  │
+   │  │    │    │    │    │  │  │    │    │    │    │
+   │ GPU4─GPU5─GPU6─GPU7  │  │ GPU4─GPU5─GPU6─GPU7  │
+   │ TP rank 0-7 (NVLink) │  │ TP rank 0-7 (NVLink) │
+   └──────────┬───────────┘  └──────────┬───────────┘
+              │          DP all-reduce           │
+              └──── 1 switch hop (same leaf) ────┘
+                    Latency: ~2 μs
+
+   BAD placement (topology-ignorant):
+   ┌─────────────────────┐  ┌─────────────────────┐
+   │      Node A          │  │      Node C          │
+   │  Leaf switch 1       │  │  Leaf switch 5       │
+   └──────────┬───────────┘  └──────────┬───────────┘
+              │                          │
+              └──── 3 switch hops ───────┘
+                   (leaf → spine → core → spine → leaf)
+                    Latency: ~10 μs (5× worse)
+                    Congestion risk: HIGH
+
+   Scheduler MUST encode switch hierarchy:
+   ┌──────────────────────────────────────────┐
+   │  Slurm topology.conf:                    │
+   │  SwitchName=leaf0 Nodes=node[00-15]      │
+   │  SwitchName=leaf1 Nodes=node[16-31]      │
+   │  SwitchName=spine0 Switches=leaf[0-3]    │
+   │  SwitchName=core0 Switches=spine[0-7]    │
+   └──────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section class="section" id="fair-share">
+<h3>Fair-Share Scheduling & Preemption</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Kueue Cohort-Based Fair Sharing
+   ════════════════════════════════
+
+   ┌───────────────── Cohort: "GPU-Pool" ─────────────────┐
+   │                                                       │
+   │  ┌──────────────────┐    ┌──────────────────┐        │
+   │  │ ClusterQueue:    │    │ ClusterQueue:    │        │
+   │  │ "training-team"  │    │ "inference-team" │        │
+   │  │                  │    │                  │        │
+   │  │ nominalQuota:    │    │ nominalQuota:    │        │
+   │  │   gpu: 128       │    │   gpu: 64        │        │
+   │  │                  │    │                  │        │
+   │  │ borrowingLimit:  │    │ borrowingLimit:  │        │
+   │  │   gpu: 192       │    │   gpu: 96        │        │
+   │  └────────┬─────────┘    └────────┬─────────┘        │
+   │           │                       │                   │
+   │           ▼                       ▼                   │
+   │  When inference-team is idle:     When both are busy: │
+   │  training-team BORROWS up to      Each gets their     │
+   │  192 GPUs (128 own + 64 idle)     nominal quota       │
+   │                                   guaranteed          │
+   └───────────────────────────────────────────────────────┘
+
+   Preemption flow (checkpoint-then-preempt):
+   ┌─────────────────────────────────────────────────────────┐
+   │ 1. High-priority job arrives, needs preemption          │
+   │ 2. Scheduler identifies lowest-priority borrowing jobs  │
+   │ 3. Send SIGTERM + grace period (120 seconds)            │
+   │ 4. Job writes checkpoint (async to NVMe + Lustre)       │
+   │ 5. All pods in workload terminated atomically           │
+   │ 6. Job re-queued with higher priority (preempted bonus) │
+   │ 7. High-priority job admitted and scheduled              │
+   │ 8. Preempted job resumes from checkpoint when capacity  │
+   │    becomes available                                    │
+   └─────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: TRAINING ORCHESTRATION -->
+<!-- ============================================================ -->
+<section class="section" id="training-arch">
+<h2>Training Orchestration</h2>
+
+<h3>High-Level: End-to-End Training Job Flow</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Training Job: Submission → Completion
+   ═══════════════════════════════════════
+
+   User                 Control Plane           Cluster
+    │                       │                      │
+    │ submit_training_job() │                      │
+    │──────────────────────►│                      │
+    │                       │ validate + queue      │
+    │                       │──────┐               │
+    │                       │      │ wait for      │
+    │                       │◄─────┘ resources     │
+    │                       │                      │
+    │                       │ gang-schedule N nodes │
+    │                       │─────────────────────►│
+    │                       │                      │ provision containers
+    │                       │                      │ mount FSx / S3
+    │                       │                      │ setup NCCL env vars
+    │                       │                      │
+    │                       │     torchrun --nproc_per_node=8
+    │                       │     --nnodes=N --rdzv_backend=c10d
+    │                       │─────────────────────►│
+    │                       │                      │ ┌─────────────┐
+    │                       │                      │ │ NCCL init   │
+    │                       │                      │ │ rendezvous  │
+    │                       │                      │ │ all ranks   │
+    │   metrics stream      │                      │ └──────┬──────┘
+    │◄──────────────────────│◄─────────────────────│        │
+    │ (loss, LR, MFU,      │                      │  training loop
+    │  tokens/sec)          │                      │  ┌─────┴──────┐
+    │                       │                      │  │ forward    │
+    │                       │     ┌────────────────│──│ backward   │
+    │                       │     │ async          │  │ all-reduce │
+    │                       │     │ checkpoint     │  │ optimizer  │
+    │                       │     │ every N steps  │  │ checkpoint │
+    │                       │     ▼                │  └─────┬──────┘
+    │                       │  ┌──────┐            │        │
+    │                       │  │ S3 / │            │   ...N steps...
+    │                       │  │Lustre│            │        │
+    │                       │  └──────┘            │  ┌─────┴──────┐
+    │  job_complete          │                      │  │ final ckpt │
+    │◄──────────────────────│◄─────────────────────│  │ + metrics  │
+    │                       │                      │  └────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: PARALLELISM -->
+<!-- ============================================================ -->
+<section class="section" id="parallelism">
+<h2>Parallelism Strategies (4D/5D)</h2>
+
+<h3>High-Level: How Parallelism Dimensions Map to Hardware</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Parallelism → Hardware Mapping (Llama 3 405B on 16K H100s)
+   ══════════════════════════════════════════════════════════
+
+   ┌─── NVLink Domain (1 server, 900 GB/s) ──────────────────────┐
+   │                                                               │
+   │  TP=8 (Tensor Parallelism)                                    │
+   │  Splits weight matrices across 8 GPUs                         │
+   │  Communication: 4 all-reduces per transformer block           │
+   │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ │
+   │  │TP=0│ │TP=1│ │TP=2│ │TP=3│ │TP=4│ │TP=5│ │TP=6│ │TP=7│ │
+   │  │GPU0│ │GPU1│ │GPU2│ │GPU3│ │GPU4│ │GPU5│ │GPU6│ │GPU7│ │
+   │  └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ │
+   └───────────────────────────────────────────────────────────────┘
+         │                                        │
+    InfiniBand / EFA (400 Gbps per port)     InfiniBand / EFA
+         │                                        │
+   ┌─────┴─────── PP=16 (Pipeline Parallelism) ──┴──────────────┐
+   │                                                              │
+   │  Stage 0      Stage 1      Stage 2     ...    Stage 15      │
+   │  (Layers 0-4) (Layers 5-9) (Layers 10-14)   (Layers 75-79)│
+   │  ┌─ Node 0 ─┐ ┌─ Node 1 ─┐ ┌─ Node 2 ─┐   ┌─ Node 15 ─┐ │
+   │  │ 8 GPUs   │►│ 8 GPUs   │►│ 8 GPUs   │►..│ 8 GPUs    │ │
+   │  │ (TP=8)   │ │ (TP=8)   │ │ (TP=8)   │   │ (TP=8)    │ │
+   │  └──────────┘ └──────────┘ └──────────┘   └───────────┘ │
+   │                                                          │
+   │  activations flow forward ────────────────────────►      │
+   │  ◄──────────────────────────────── gradients flow back   │
+   └──────────────────────────────────────────────────────────┘
+         │                    │                    │
+    DP / FSDP (Data Parallel) replicated across groups
+         │                    │                    │
+   ┌─────┴────┐         ┌────┴─────┐        ┌────┴─────┐
+   │ Replica 0│         │ Replica 1│        │ Replica N│
+   │ (16 nodes│         │ (16 nodes│        │ (16 nodes│
+   │  TP×PP)  │         │  TP×PP)  │        │  TP×PP)  │
+   └──────────┘         └──────────┘        └──────────┘
+   All see different data; gradients synchronized via all-reduce
+
+   Total: 16 nodes/replica × N replicas = 16K GPUs
+   Throughput: ~400 TFLOPS/GPU (57% of peak)
+</pre>
+</div>
+
+<h3>Mid-Level: Pipeline Parallelism — 1F1B Schedule</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   1F1B Pipeline Schedule (4 stages, 8 micro-batches)
+   ═══════════════════════════════════════════════════
+
+   Time ──────────────────────────────────────────────────────►
+
+   Stage 0: │F0│F1│F2│F3│  B0│  B1│  B2│  B3│F4│  B4│F5│  B5│F6│  B6│F7│  B7│
+   Stage 1: │  │F0│F1│F2│F3│  B0│  B1│  B2│  B3│F4│  B4│F5│  B5│F6│  B6│F7│  B7│
+   Stage 2: │  │  │F0│F1│F2│F3│  B0│  B1│  B2│  B3│F4│  B4│F5│  B5│F6│  B6│...│
+   Stage 3: │  │  │  │F0│F1│F2│F3│  B0│  B1│  B2│  B3│F4│  B4│F5│  B5│  B6│...│
+
+            ├warmup─┤├───── steady state (1F1B) ───────────────────────────┤├cool─┤
+
+   F = forward micro-batch    B = backward micro-batch
+
+   Bubble fraction = (p-1) / (m+p-1)
+   With p=4 stages, m=8 micro-batches:
+   Bubble = 3/11 = 27.3%
+
+   To reduce bubbles:
+   ├─ Increase micro-batches (m >> p)
+   ├─ Interleaved schedule: assign non-contiguous stages
+   │  e.g., GPU 0 gets stages {0, 4}, GPU 1 gets {1, 5}
+   │  Bubble drops by factor of virtual_stages
+   └─ Llama 3 custom schedule: removed m % PP == 0 constraint
+</pre>
+</div>
+
+<h3>Mid-Level: FSDP Memory Savings</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Memory per GPU: DDP vs FSDP (70B parameter model)
+   ══════════════════════════════════════════════════
+
+   DDP (each GPU holds full copy):
+   ┌──────────────────────────────────────────────┐
+   │  Parameters (BF16):  70B × 2 bytes = 140 GB  │
+   │  Gradients (BF16):   70B × 2 bytes = 140 GB  │
+   │  Optimizer (FP32):   70B × 8 bytes = 560 GB  │ (Adam: m + v + master)
+   │  ─────────────────────────────────────────── │
+   │  Total per GPU:                     840 GB   │ ← Impossible! > 80GB HBM
+   └──────────────────────────────────────────────┘
+
+   FSDP with 8 GPUs (shard everything):
+   ┌──────────────────────────────────────────────┐
+   │  Sharded params:     140 GB / 8 =  17.5 GB  │
+   │  Sharded grads:      140 GB / 8 =  17.5 GB  │
+   │  Sharded optimizer:  560 GB / 8 =  70.0 GB  │
+   │  ─────────────────────────────────────────── │
+   │  Total per GPU:                    105 GB    │ ← Still tight!
+   │                                               │
+   │  + Activation memory for current micro-batch  │
+   │  + Temporary all-gather buffers (1 layer)     │
+   └──────────────────────────────────────────────┘
+
+   FSDP operation during forward pass:
+   ┌─────────┐  all-gather  ┌─────────────┐  compute  ┌──────────┐
+   │ Sharded │─────────────►│ Full params  │─────────►│ Discard  │
+   │ params  │  (NVLink)    │ (1 layer)    │          │ full copy│
+   │ (1/8th) │              │ (temporary)  │          │ keep shard│
+   └─────────┘              └─────────────┘          └──────────┘
+   Key: only 1 layer's full params exist at any time!
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: NCCL -->
+<!-- ============================================================ -->
+<section class="section" id="nccl">
+<h2>NCCL Communication</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   NCCL Ring All-Reduce (4 GPUs simplified)
+   ═════════════════════════════════════════
+
+   Phase 1: Reduce-Scatter (each GPU gets 1/4 of the final sum)
+
+   GPU 0: [A0|A1|A2|A3]  GPU 1: [B0|B1|B2|B3]
+   GPU 2: [C0|C1|C2|C3]  GPU 3: [D0|D1|D2|D3]
+
+   Step 1: GPU 0→1 sends A3, GPU 1→2 sends B0, GPU 2→3 sends C1, GPU 3→0 sends D2
+   Step 2: Accumulated chunks rotate...
+   Step 3: After 3 steps, each GPU has 1/4 of the total sum
+
+   GPU 0: [  |  |  |S3]  GPU 1: [S0|  |  |  ]
+   GPU 2: [  |S1|  |  ]  GPU 3: [  |  |S2|  ]
+   (S = sum of all A+B+C+D for that chunk)
+
+   Phase 2: All-Gather (broadcast the reduced chunks)
+
+   3 more steps → every GPU has the complete [S0|S1|S2|S3]
+
+   Total data transferred per GPU: 2 × (N-1)/N × data_size
+   For N=8 GPUs, 1GB gradient: 2 × 7/8 × 1GB = 1.75 GB per GPU
+   At 900 GB/s NVLink: ~2ms
+
+   Algorithm selection by NCCL:
+   ┌─────────────────────────────────────────────────────┐
+   │  Message Size    │  Algorithm        │  Why          │
+   │  < 256 KB        │  Tree (LL)        │  Low latency  │
+   │  256 KB - 4 MB   │  Tree (Simple)    │  Log(N) hops  │
+   │  > 4 MB          │  Ring (Simple)    │  BW-optimal   │
+   │  > 4 MB + NVLink │  NVLink SHARP     │  In-switch     │
+   └─────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: CHECKPOINTING -->
+<!-- ============================================================ -->
+<section class="section" id="checkpointing">
+<h2>Checkpoint System</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Checkpoint Strategies Comparison
+   ════════════════════════════════
+
+   Strategy 1: Synchronous (naive)
+   ┌─Train──┐┌─BLOCKED──┐┌─Train──┐┌─BLOCKED──┐
+   │ step N ││ write ckpt││step N+1││ write ckpt│   Training stalls!
+   └────────┘└───────────┘└────────┘└───────────┘
+   Overhead: 5-10 minutes per checkpoint for 405B model
+
+   Strategy 2: Async (PyTorch DCP)
+   ┌─Train──┐┌─copy─┐┌──── Train (continues) ──────────────┐
+   │ step N ││GPU→CPU││ step N+1 │ step N+2 │ step N+3 ... │
+   └────────┘└───────┘└──────────┴──────────┴───────────────┘
+                │                                  ▲
+                └── background process writes ─────┘
+                    to storage (non-blocking)
+   Overhead: ~2 seconds pause (GPU→CPU copy), then zero
+
+   Strategy 3: In-Memory Redundant (Google Gemini)
+   ┌─ Train ─────────────────────────────────────────────────┐
+   │ step N │ step N+1 │ step N+2 │ ... (no persistent I/O) │
+   └────────┴──────────┴──────────┴──────────────────────────┘
+        │ NCCL replicate to peer node (overlapped)
+        ▼
+   Node A shard ◄══► Node B replica  (always in sync)
+   On failure: recover from replica in seconds
+   Goodput: 85% → 97%
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: FAULT RECOVERY -->
+<!-- ============================================================ -->
+<section class="section" id="fault-recovery">
+<h2>Fault Recovery</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Automated Fault Recovery Pipeline
+   ══════════════════════════════════
+
+   Normal Training                GPU Failure Detected
+   ┌─────────────┐               ┌──────────────────┐
+   │ All N nodes │               │ XID 79: GPU 3 on │
+   │ training    │──────────────►│ Node 7 fell off   │
+   │ step 45,231 │  DCGM alert   │ PCIe bus          │
+   └─────────────┘               └────────┬─────────┘
+                                           │
+                                           ▼
+                                  ┌──────────────────┐
+                                  │ 1. NCCL timeout   │
+                                  │    detected       │
+                                  │    (30s watchdog) │
+                                  └────────┬─────────┘
+                                           │
+                                           ▼
+                                  ┌──────────────────┐
+                                  │ 2. TorchElastic   │
+                                  │    kills all local│
+                                  │    workers on     │
+                                  │    Node 7         │
+                                  └────────┬─────────┘
+                                           │
+                                           ▼
+                                  ┌──────────────────┐
+                                  │ 3. HyperPod       │
+                                  │    taints Node 7   │
+                                  │    requests        │
+                                  │    replacement     │
+                                  └────────┬─────────┘
+                                           │
+                              ┌────────────┴────────────┐
+                              ▼                         ▼
+                    ┌──────────────────┐     ┌──────────────────┐
+                    │ 4a. New Node 7'  │     │ 4b. Surviving    │
+                    │     provisioned  │     │     agents       │
+                    │     health check │     │     re-rendezvous│
+                    │     (~5-10 min)  │     │     new world    │
+                    └────────┬─────────┘     │     size = N or  │
+                             │               │     N-1 (elastic)│
+                             ▼               └────────┬─────────┘
+                    ┌──────────────────┐               │
+                    │ 5. All workers   │◄──────────────┘
+                    │    load latest   │
+                    │    checkpoint    │
+                    │    (step 45,200) │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ 6. Resume train  │
+                    │    from step     │
+                    │    45,201        │
+                    │    Lost: ~31     │
+                    │    steps (~2 min)│
+                    └──────────────────┘
+</pre>
+</div>
+
+<div class="info-box red">
+<strong>Meta's Llama 3 Numbers:</strong> 419 failures in 54 days across 16K H100s. 58.7% GPU-related (NVLink: 148, HBM3: 72, SRAM: 19). Only 3 required manual intervention. >90% effective training time maintained through automation.
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: INFERENCE ARCHITECTURE -->
+<!-- ============================================================ -->
+<section class="section" id="inference-arch">
+<h2>Inference Architecture</h2>
+
+<h3>High-Level: Inference Serving Platform</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   ┌──────────────────────────────────────────────────────────────────┐
+   │                    INFERENCE SERVING PLATFORM                    │
+   │                                                                  │
+   │     ┌──────────┐                                                 │
+   │     │  Client  │                                                 │
+   │     │ Requests │                                                 │
+   │     └────┬─────┘                                                 │
+   │          ▼                                                       │
+   │     ┌──────────────────────────────────────────────┐             │
+   │     │              LOAD BALANCER / ROUTER           │             │
+   │     │  (traffic split for A/B, canary, blue/green)  │             │
+   │     └────────┬─────────────────────┬───────────────┘             │
+   │              │                     │                              │
+   │              ▼                     ▼                              │
+   │     ┌────────────────┐    ┌────────────────┐                     │
+   │     │  MODEL         │    │  MODEL         │                     │
+   │     │  ENDPOINT A    │    │  ENDPOINT B    │                     │
+   │     │  (Production)  │    │  (Canary 5%)   │                     │
+   │     └────────┬───────┘    └────────────────┘                     │
+   │              │                                                    │
+   │              ▼                                                    │
+   │     ┌──────────────────────────────────────────────┐             │
+   │     │            SERVING ENGINE (per endpoint)      │             │
+   │     │                                               │             │
+   │     │  ┌───────────┐  ┌────────────┐  ┌──────────┐ │             │
+   │     │  │ Continuous │  │ KV Cache   │  │ Request  │ │             │
+   │     │  │ Batching   │  │ Manager    │  │ Scheduler│ │             │
+   │     │  │ Engine     │  │(PagedAttn) │  │(priority)│ │             │
+   │     │  └───────────┘  └────────────┘  └──────────┘ │             │
+   │     └──────────────────────────────────────────────┘             │
+   │              │                                                    │
+   │              ▼                                                    │
+   │     ┌──────────────────────────────────────────────┐             │
+   │     │              GPU CLUSTER (Inference)          │             │
+   │     │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐            │             │
+   │     │  │TP=0 │ │TP=1 │ │TP=2 │ │TP=3 │ (4-GPU TP) │             │
+   │     │  └─────┘ └─────┘ └─────┘ └─────┘            │             │
+   │     └──────────────────────────────────────────────┘             │
+   │              │                                                    │
+   │     ┌────────┴──────────┐                                        │
+   │     │   AUTOSCALER      │                                        │
+   │     │  (scale 0→N based │                                        │
+   │     │   on queue depth, │                                        │
+   │     │   latency SLOs)   │                                        │
+   │     └───────────────────┘                                        │
+   └──────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: SERVING ENGINE -->
+<!-- ============================================================ -->
+<section class="section" id="serving-engine">
+<h2>Serving Engine Internals</h2>
+
+<h3>Mid-Level: Continuous Batching + PagedAttention</h3>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Continuous Batching (iteration-level scheduling)
+   ═════════════════════════════════════════════════
+
+   Static Batching (OLD — wasteful):
+   ┌──────────────────────────────────────────────────┐
+   │ Iter 1  │ Iter 2  │ Iter 3  │ Iter 4 │ Iter 5   │
+   │ Req A ● │ Req A ● │ Req A ● │ Req A ●│ Req A ●  │ A: 5 tokens
+   │ Req B ● │ Req B ● │ Req B ● │ ░░░░░░░│ ░░░░░░░  │ B: 3 tokens
+   │ Req C ● │ Req C ● │ ░░░░░░░│ ░░░░░░░│ ░░░░░░░  │ C: 2 tokens
+   └──────────────────────────────────────────────────┘
+   ░ = GPU idle (padding waste!)  Batch stuck until longest finishes
+
+   Continuous Batching (NEW — fill every slot):
+   ┌──────────────────────────────────────────────────┐
+   │ Iter 1  │ Iter 2  │ Iter 3  │ Iter 4 │ Iter 5   │
+   │ Req A ● │ Req A ● │ Req A ● │ Req A ●│ Req A ●  │
+   │ Req B ● │ Req B ● │ Req B ✓ │ Req D ●│ Req D ●  │ B done → D starts!
+   │ Req C ● │ Req C ✓ │ Req D ● │ Req E ●│ Req E ●  │ C done → D→E fill
+   └──────────────────────────────────────────────────┘
+   ✓ = completed, slot immediately filled
+   Result: 2-4× throughput improvement
+
+   PagedAttention KV Cache (virtual memory for attention):
+   ┌──────────────────────────────────────────────────────┐
+   │                    GPU HBM (80 GB)                    │
+   │                                                       │
+   │  ┌─────────────── Block Table (per request) ───────┐  │
+   │  │ Request A:  [Block 7] [Block 2] [Block 14] ...  │  │
+   │  │ Request B:  [Block 3] [Block 9] [Block 7*] ...  │  │
+   │  │                              (* = CoW shared!)   │  │
+   │  └─────────────────────────────────────────────────┘  │
+   │                                                       │
+   │  ┌─────────── Physical Blocks (16 tokens each) ────┐  │
+   │  │ Blk 0: [free]    Blk 1: [free]    Blk 2: [A]   │  │
+   │  │ Blk 3: [B]       Blk 4: [free]    Blk 5: [free] │  │
+   │  │ Blk 6: [free]    Blk 7: [A+B CoW] Blk 8: [free] │  │
+   │  │ Blk 9: [B]       ...              Blk 14: [A]   │  │
+   │  └─────────────────────────────────────────────────┘  │
+   │                                                       │
+   │  Waste: < 4% (vs 60-80% with contiguous allocation)  │
+   └──────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: DISAGGREGATED SERVING -->
+<!-- ============================================================ -->
+<section class="section" id="disaggregated">
+<h2>Disaggregated Prefill/Decode</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   Why Disaggregate: Prefill vs Decode have opposite needs
+   ═══════════════════════════════════════════════════════
+
+   Prefill Phase:                      Decode Phase:
+   ┌──────────────────────┐            ┌──────────────────────┐
+   │ Process all input    │            │ Generate 1 token at  │
+   │ tokens at once       │            │ a time, sequentially │
+   │                      │            │                      │
+   │ COMPUTE-BOUND        │            │ MEMORY-BW-BOUND      │
+   │ (GEMM saturated)     │            │ (reading KV cache)   │
+   │                      │            │                      │
+   │ Benefits from:       │            │ Benefits from:       │
+   │ - High TP (more SMs) │            │ - Large batches      │
+   │ - FP8 / FP4          │            │ - KV cache optim     │
+   │ - Fewer, bigger GPUs │            │ - More, smaller GPUs │
+   └──────────────────────┘            └──────────────────────┘
+
+   Disaggregated Architecture:
+
+   ┌─────────────────┐
+   │  Client Request  │
+   │  "Tell me about  │
+   │   black holes"   │
+   └────────┬────────┘
+            │
+            ▼
+   ┌──────────────────┐
+   │   ROUTER          │ ← Routes based on request phase
+   └───┬──────────┬───┘
+       │          │
+       ▼          │
+   ┌──────────┐   │   PREFILL POOL (compute-optimized)
+   │ Prefill  │   │   ┌─────┐┌─────┐┌─────┐
+   │ Instance │   │   │TP=8 ││TP=8 ││TP=8 │  High TP, fewer instances
+   │ (TP=8)   │   │   └─────┘└─────┘└─────┘
+   └────┬─────┘   │
+        │         │   KV Cache Transfer
+        │ RDMA    │   (NIXL / GPUDirect)
+        │ transfer│
+        ▼         │
+   ┌──────────┐   │   DECODE POOL (memory-BW-optimized)
+   │ Decode   │◄──┘   ┌─────┐┌─────┐┌─────┐┌─────┐┌─────┐┌─────┐
+   │ Instance │       │TP=2 ││TP=2 ││TP=2 ││TP=2 ││TP=2 ││TP=2 │
+   │ (TP=2)   │       └─────┘└─────┘└─────┘└─────┘└─────┘└─────┘
+   └────┬─────┘       Lower TP, more instances, larger batch sizes
+        │
+        ▼
+   ┌──────────┐
+   │ Stream   │  ← Tokens streamed back to client
+   │ Response │
+   └──────────┘
+
+   Result: 2-4× goodput improvement (DistServe, OSDI'24)
+   Each pool scales independently based on load patterns
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: AUTOSCALING -->
+<!-- ============================================================ -->
+<section class="section" id="autoscaling">
+<h2>Autoscaling & Multi-Model Serving</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Multi-LoRA Serving (1 base model, N adapters)
+   ══════════════════════════════════════════════
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │                    GPU HBM (80 GB)                           │
+   │                                                              │
+   │  ┌────────────────────────────────────────────────┐          │
+   │  │         Base Model Weights (70B, ~140 GB)       │ Shared  │
+   │  │         Distributed across TP GPUs              │         │
+   │  └────────────────────────────────────────────────┘          │
+   │                                                              │
+   │  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐         │
+   │  │LoRA A │ │LoRA B │ │LoRA C │ │LoRA D │ │LoRA E │ Hot     │
+   │  │ 50 MB │ │ 50 MB │ │ 50 MB │ │ 50 MB │ │ 50 MB │ cache   │
+   │  └───────┘ └───────┘ └───────┘ └───────┘ └───────┘         │
+   │                                                              │
+   │  ┌────────────────────────────────────────────────┐          │
+   │  │  Punica SGMV Kernel: batches different LoRAs    │          │
+   │  │  in a SINGLE kernel launch                      │          │
+   │  │                                                  │          │
+   │  │  y = Wx + ΣᵢAᵢBᵢxᵢ  (per-request adapter)      │          │
+   │  └────────────────────────────────────────────────┘          │
+   └──────────────────────────────────────────────────────────────┘
+
+   Adapter swap overhead: ~2ms (load from NVMe to HBM)
+   Throughput: 12× higher than separate model instances
+
+   Autoscaling Decision Flow:
+   ┌──────────────┐    ┌────────────────┐    ┌──────────────┐
+   │  Metrics:    │───►│  Scale Policy  │───►│  Action      │
+   │ ConcurrentReq│    │                │    │              │
+   │ per Model   │    │  if QueueDepth │    │  Add/Remove  │
+   │  TTFT P99    │    │  > threshold   │    │  Replicas    │
+   │  GPU Util    │    │  for 60s       │    │  (cooldown:  │
+   │  Queue Depth │    │  → scale up    │    │   5 min)     │
+   └──────────────┘    └────────────────┘    └──────────────┘
+
+   Scale-to-zero:
+   │ No requests for 10 min → terminate GPU instance
+   │ Next request → cold start (30s-5min for 70B model load)
+   │ Mitigation: keep 1 warm replica, predictive pre-scaling
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: CONTROL PLANE -->
+<!-- ============================================================ -->
+<section class="section" id="control-plane">
+<h2>Control Plane Design</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   ┌──────────────────────────────────────────────────────────────────┐
+   │                      CONTROL PLANE ARCHITECTURE                  │
+   │                                                                  │
+   │  ┌────────────────────────────────────────────────────────────┐  │
+   │  │                    API GATEWAY (Kong / Envoy)               │  │
+   │  │   Rate limiting · Auth (OIDC/JWT) · Request routing        │  │
+   │  └─────────┬──────────────────────────────────┬───────────────┘  │
+   │            │                                  │                  │
+   │            ▼                                  ▼                  │
+   │  ┌─────────────────┐              ┌─────────────────────────┐   │
+   │  │  JOB SERVICE    │              │  ENDPOINT SERVICE       │   │
+   │  │                 │              │                         │   │
+   │  │ CreateTrainJob  │              │ CreateEndpoint          │   │
+   │  │ GetJobStatus    │              │ UpdateModel             │   │
+   │  │ StopJob         │              │ SetTrafficSplit         │   │
+   │  │ ListJobs        │              │ GetEndpointMetrics      │   │
+   │  └────────┬────────┘              └────────────┬────────────┘   │
+   │           │                                    │                 │
+   │           ▼                                    ▼                 │
+   │  ┌──────────────────────────────────────────────────────────┐   │
+   │  │                   STATE STORE                             │   │
+   │  │                                                           │   │
+   │  │  ┌────────────┐  ┌────────────┐  ┌────────────────────┐  │   │
+   │  │  │  etcd       │  │ PostgreSQL │  │  S3 (artifacts)    │  │   │
+   │  │  │ (K8s state, │  │ (job meta, │  │  (checkpoints,     │  │   │
+   │  │  │  <5K nodes) │  │  metrics,  │  │   model weights,   │  │   │
+   │  │  │             │  │  billing)  │  │   training logs)   │  │   │
+   │  │  └────────────┘  └────────────┘  └────────────────────┘  │   │
+   │  └──────────────────────────────────────────────────────────┘   │
+   │           │                                    │                 │
+   │           ▼                                    ▼                 │
+   │  ┌──────────────────────────────────────────────────────────┐   │
+   │  │                  ORCHESTRATION LAYER                      │   │
+   │  │                                                           │   │
+   │  │  ┌────────────┐  ┌────────────┐  ┌────────────────────┐  │   │
+   │  │  │ Kubernetes  │  │  Kueue     │  │  Custom Operators  │  │   │
+   │  │  │ Scheduler   │  │ (admission │  │  (TrainingJob CR,  │  │   │
+   │  │  │ + Volcano   │  │  + quota)  │  │   InferenceEndpt   │  │   │
+   │  │  │             │  │            │  │   CR, HealthCheck  │  │   │
+   │  │  │             │  │            │  │   CR)              │  │   │
+   │  │  └────────────┘  └────────────┘  └────────────────────┘  │   │
+   │  └──────────────────────────────────────────────────────────┘   │
+   └──────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: API DESIGN -->
+<!-- ============================================================ -->
+<section class="section" id="api-design">
+<h2>API & Job Lifecycle</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label mid">Mid Level</span>
+<pre>
+   Training Job State Machine
+   ══════════════════════════
+
+                  ┌────────────┐
+                  │  SUBMITTED  │
+                  └──────┬─────┘
+                         │ validate
+                         ▼
+                  ┌────────────┐
+              ┌───│   QUEUED   │◄───────────────────────────┐
+              │   └──────┬─────┘                             │
+              │          │ resources available                │ re-queue
+              │          ▼                                    │ after
+         quota│   ┌────────────┐                             │ preempt
+         error│   │ SCHEDULING │                             │
+              │   └──────┬─────┘                             │
+              │          │ all pods bound                     │
+              │          ▼                                    │
+              │   ┌────────────┐    ┌───────────────┐        │
+              │   │  STARTING  │───►│  HEALTH CHECK │        │
+              │   │ (container │    │  (pre-flight) │        │
+              │   │  pull/init)│    └───────┬───────┘        │
+              │   └────────────┘            │ pass           │
+              │                             ▼                │
+              │                      ┌────────────┐          │
+              │                      │  RUNNING   │──────────┤
+              │                      └──┬───┬───┬─┘          │
+              │                    done│  │fail│  preempt    │
+              ▼                        ▼  │   ▼              │
+        ┌──────────┐          ┌─────────┐ │ ┌────────────┐   │
+        │ REJECTED │          │SUCCEEDED│ │ │  FAILED    │   │
+        └──────────┘          └─────────┘ │ │ (retryable │   │
+                                          │ │  vs fatal) │   │
+                                          │ └─────┬──────┘   │
+                                          │       │ retryable│
+                                          │       └──────────┘
+                                          │
+                                          ▼
+                                   ┌────────────┐
+                                   │ PREEMPTED  │───────────►
+                                   │ (ckpt save │  re-queue with
+                                   │  in grace) │  preempted bonus
+                                   └────────────┘  priority
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: OBSERVABILITY -->
+<!-- ============================================================ -->
+<section class="section" id="observability">
+<h2>Observability Stack</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   ┌──────────────────────────────────────────────────────────────┐
+   │                    OBSERVABILITY ARCHITECTURE                 │
+   │                                                               │
+   │  ┌─── Per Node ────────────────────────────────────────────┐  │
+   │  │                                                          │  │
+   │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │  │
+   │  │  │ DCGM Exporter│  │ Node Exporter│  │ cAdvisor     │  │  │
+   │  │  │ (GPU metrics)│  │ (CPU/mem/net)│  │ (container)  │  │  │
+   │  │  │              │  │              │  │              │  │  │
+   │  │  │ • SM util %  │  │ • CPU load   │  │ • GPU mem/   │  │  │
+   │  │  │ • HBM used   │  │ • Network BW │  │   container  │  │  │
+   │  │  │ • Temp/Power │  │ • Disk I/O   │  │ • OOM events │  │  │
+   │  │  │ • ECC errors │  │ • PCIe stats │  │              │  │  │
+   │  │  │ • NVLink BW  │  │              │  │              │  │  │
+   │  │  │ • XID events │  │              │  │              │  │  │
+   │  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │  │
+   │  └─────────┼──────────────────┼──────────────────┼─────────┘  │
+   │            └──────────────────┼──────────────────┘            │
+   │                               ▼                               │
+   │                      ┌──────────────────┐                     │
+   │                      │    PROMETHEUS     │                     │
+   │                      │  (scrape every   │                     │
+   │                      │   15-30 seconds) │                     │
+   │                      └────────┬─────────┘                     │
+   │                               │                               │
+   │              ┌────────────────┼────────────────┐              │
+   │              ▼                ▼                ▼              │
+   │     ┌──────────────┐ ┌──────────────┐ ┌──────────────┐      │
+   │     │   GRAFANA    │ │ ALERT MANAGER│ │  THANOS /    │      │
+   │     │              │ │              │ │  MIMIR       │      │
+   │     │ Dashboards:  │ │ GPU failure  │ │ (long-term   │      │
+   │     │ • Training   │ │ alerts →     │ │  storage,    │      │
+   │     │   loss curve │ │ PagerDuty    │ │  cross-      │      │
+   │     │ • MFU/GPU%   │ │              │ │  cluster     │      │
+   │     │ • TTFT/ITL   │ │ Straggler    │ │  federation) │      │
+   │     │ • Cost/team  │ │ detection    │ │              │      │
+   │     └──────────────┘ └──────────────┘ └──────────────┘      │
+   └──────────────────────────────────────────────────────────────┘
+
+   Key Training Metrics:
+   • tokens/sec/GPU (throughput)
+   • MFU = actual_FLOPS / peak_FLOPS (target > 40%)
+   • gradient norm (detect instabilities)
+   • loss curve + learning rate
+
+   Key Inference Metrics:
+   • TTFT: time to first token (target < 500ms)
+   • ITL: inter-token latency (target ~6 tok/s)
+   • Goodput: % requests meeting SLO
+   • GPU SM utilization (target > 70%)
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: MULTI-TENANCY -->
+<!-- ============================================================ -->
+<section class="section" id="multi-tenancy">
+<h2>Multi-Tenancy & GPU Isolation</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label">High Level</span>
+<pre>
+   GPU Sharing Strategies
+   ═══════════════════════
+
+   Strategy 1: MIG (Hardware Isolation) — Production Inference
+   ┌───────────────────────────────────────────────────────────┐
+   │                     H100 (80 GB)                          │
+   │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌───────────────┐  │
+   │  │ 1g.10gb │ │ 1g.10gb │ │ 2g.20gb │ │   4g.40gb     │  │
+   │  │ Team A  │ │ Team B  │ │ Team C  │ │   Team D      │  │
+   │  │ (small  │ │ (small  │ │ (medium │ │   (large      │  │
+   │  │  model) │ │  model) │ │  model) │ │    model)     │  │
+   │  └─────────┘ └─────────┘ └─────────┘ └───────────────┘  │
+   │  Dedicated SMs, L2 cache, memory controllers per slice   │
+   │  Fault isolation: crash in A doesn't affect B            │
+   └───────────────────────────────────────────────────────────┘
+
+   Strategy 2: Time-Slicing (No Isolation) — Dev Workloads
+   ┌───────────────────────────────────────────────────────────┐
+   │                     H100 (80 GB)                          │
+   │  ┌───────────────────────────────────────────────────┐   │
+   │  │ All 80 GB shared, context-switched between pods    │   │
+   │  │ Pod A → 100ms → Pod B → 100ms → Pod C → 100ms    │   │
+   │  │ No memory isolation! One pod can OOM all others    │   │
+   │  └───────────────────────────────────────────────────┘   │
+   └───────────────────────────────────────────────────────────┘
+
+   Strategy 3: Exclusive (Full Node) — Training
+   ┌───────────────────────────────────────────────────────────┐
+   │                   8 × H100 (640 GB total)                 │
+   │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐ │
+   │  │ G0  │ │ G1  │ │ G2  │ │ G3  │ │ G4  │ │ G5  │ │ G6  │ │ G7  │ │
+   │  │ ALL │ │ ALL │ │ ALL │ │ ALL │ │ ALL │ │ ALL │ │ ALL │ │ ALL │ │
+   │  │JOB A│ │JOB A│ │JOB A│ │JOB A│ │JOB A│ │JOB A│ │JOB A│ │JOB A│ │
+   │  └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ └─────┘ │
+   │  No sharing = maximum performance + NVLink fully utilized │
+   └───────────────────────────────────────────────────────────┘
+
+   Platform recommendation:
+   ┌─────────────┬──────────────┬──────────────────────────┐
+   │ Workload    │ Strategy     │ Why                      │
+   ├─────────────┼──────────────┼──────────────────────────┤
+   │ Training    │ Exclusive    │ Needs all NVLink BW      │
+   │ Prod Infer  │ MIG          │ Needs isolation + QoS    │
+   │ Dev/Test    │ Time-slice   │ Cost > isolation          │
+   │ Fine-tune   │ MIG or Excl  │ Depends on model size    │
+   └─────────────┴──────────────┴──────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: REAL-WORLD DEPLOYMENTS -->
+<!-- ============================================================ -->
+<section class="section" id="real-world">
+<h2>Real-World Deployments</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label detail">Reference</span>
+<pre>
+   Production GPU Clusters at Scale
+   ═════════════════════════════════
+
+   ┌────────────────────────────────────────────────────────────────┐
+   │  META                                                          │
+   │  Scale: 2 × 24K H100 clusters + Llama 3 on 16K H100s         │
+   │  Network: RoCE + InfiniBand (both proven equivalent)          │
+   │  Scheduler: Slurm + custom health checks                     │
+   │  Parallelism: TP=8 × PP=16 × CP × FSDP                      │
+   │  MFU: 400 TFLOPS/GPU (57% of BF16 peak)                      │
+   │  Failures: 419 in 54 days, only 3 manual interventions        │
+   │  Storage: Tectonic (custom DFS) + Hammerspace                 │
+   └────────────────────────────────────────────────────────────────┘
+
+   ┌────────────────────────────────────────────────────────────────┐
+   │  xAI (COLOSSUS)                                                │
+   │  Scale: 200K GPUs (150K H100 + 50K H200 + 30K GB200)         │
+   │  Network: Spectrum-X Ethernet (NOT InfiniBand!)               │
+   │  Achievement: Largest single cluster, built in 122 days       │
+   │  Data throughput: 95% on Spectrum-X (vs ~60% standard ETH)    │
+   │  Target: 350K → 1M GPUs                                       │
+   └────────────────────────────────────────────────────────────────┘
+
+   ┌────────────────────────────────────────────────────────────────┐
+   │  OPENAI                                                        │
+   │  Scale: 7,500+ nodes per K8s cluster (on Azure)               │
+   │  Orchestrator: Kubernetes (heavily customized)                 │
+   │  Key innovations:                                              │
+   │  • etcd on dedicated SSD nodes (2ms → 200μs latency)          │
+   │  • Preflight taints (GPU test before accepting workloads)     │
+   │  • Balloon pods (low-pri fill, instant preempt)               │
+   │  • Team-based taint system for capacity borrowing             │
+   │  MTTF: ~2.5 hours at their scale                              │
+   └────────────────────────────────────────────────────────────────┘
+
+   ┌────────────────────────────────────────────────────────────────┐
+   │  GOOGLE (AI HYPERCOMPUTER)                                     │
+   │  Hardware: TPU v5p (8,960 chips/pod, 3D torus)                │
+   │           Ironwood (9,216 chips/pod, 42.5 ExaFLOPS)           │
+   │  Orchestrator: GKE + Kueue + Multislice                      │
+   │  Checkpoint: In-memory redundant (goodput 85% → 97%)         │
+   │  Innovation: Optical circuit switches for reconfigurable topo │
+   │  Gemini: trained across multiple data centers with Pathways   │
+   └────────────────────────────────────────────────────────────────┘
+
+   ┌────────────────────────────────────────────────────────────────┐
+   │  AWS (SAGEMAKER HYPERPOD)                                      │
+   │  Orchestrator: Slurm + EKS (dual mode)                        │
+   │  Network: EFA + SRD (3,200 Gbps per P5 node)                 │
+   │  Key: Managed resilience (auto node replacement)              │
+   │       3-tier health monitoring (HMA + basic + deep)           │
+   │       UltraServer NVL72 support                                │
+   │  Storage: FSx Lustre (1,200 Gbps with GPUDirect) + S3        │
+   └────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION: DESIGN PRINCIPLES -->
+<!-- ============================================================ -->
+<section class="section" id="design-principles">
+<h2>Eight Design Principles</h2>
+
+<div class="diagram-container">
+  <span class="diagram-label detail">Summary</span>
+<pre>
+   ┌──────────────────────────────────────────────────────────────┐
+   │  1. TREAT FAILURES AS CONTINUOUS                             │
+   │     MTTF at 10K GPUs = hours. Every component must be       │
+   │     failure-aware by default, not as an exception handler.   │
+   │                                                              │
+   │  2. TOPOLOGY AWARENESS PERMEATES SCHEDULING                  │
+   │     28× BW difference (NVLink vs PCIe) means topology-      │
+   │     ignorant placement wastes enormous compute.              │
+   │                                                              │
+   │  3. SEPARATE TRAINING AND INFERENCE CLUSTERS                 │
+   │     Training: throughput + fault tolerance                    │
+   │     Inference: latency + autoscaling + multi-tenancy         │
+   │                                                              │
+   │  4. ASYNC DISTRIBUTED CHECKPOINTING FROM DAY ONE             │
+   │     Google's in-memory ckpt: 85% → 97% goodput.             │
+   │     Millions of GPU-hours saved at scale.                    │
+   │                                                              │
+   │  5. USE KUEUE FOR K8S-BASED SCHEDULING                       │
+   │     Gang scheduling + cohort fair-sharing + topology         │
+   │     awareness + workload-level preemption in one system.     │
+   │                                                              │
+   │  6. ADOPT DISAGGREGATED PREFILL/DECODE                       │
+   │     Now standard across every major serving framework.       │
+   │     2-4× goodput improvement.                                │
+   │                                                              │
+   │  7. INVEST HEAVILY IN HEALTH MONITORING                      │
+   │     3-tier system: continuous passive + active checks +      │
+   │     deep stress tests with automatic replacement.            │
+   │                                                              │
+   │  8. PLAN NETWORKING FOR NEXT GENERATION                      │
+   │     UEC 1.0 + Spectrum-X + NVLink 5.0 domains are           │
+   │     actively changing optimal fabric architecture.           │
+   └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="info-box green">
+<strong>The Gap:</strong> The difference between naive deployment and production-grade orchestration at 10K+ GPUs is not incremental — it is the difference between 50% and 95% effective training time, representing hundreds of millions of dollars in compute efficiency.
+</div>
+</section>
+
+</div> <!-- end main -->
+
+<script>
+// Polyfill console methods for sandbox environments
+(function() {
+  var noop = function(){};
+  var methods = ['debug','log','warn','error','info','trace','dir','group','groupEnd','time','timeEnd'];
+  for (var i = 0; i < methods.length; i++) {
+    if (typeof console === 'undefined' || typeof console[methods[i]] !== 'function') {
+      if (typeof console === 'undefined') window.console = {};
+      console[methods[i]] = noop;
+    }
+  }
+})();
+
+try {
+  // Sidebar active state tracking
+  var sections = document.querySelectorAll('.section');
+  var navLinks = document.querySelectorAll('.nav-link');
+
+  // Collapsible toggle handler (event delegation)
+  document.addEventListener('click', function(e) {
+    var header = e.target.closest('.collapsible-header');
+    if (header) {
+      header.parentElement.classList.toggle('open');
+    }
+  });
+
+  // Smooth scroll for nav links
+  navLinks.forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // IntersectionObserver for active nav tracking
+  if (typeof IntersectionObserver !== 'undefined') {
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          navLinks.forEach(function(link) { link.classList.remove('active'); });
+          var activeLink = document.querySelector('.nav-link[href="#' + entry.target.id + '"]');
+          if (activeLink) activeLink.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    sections.forEach(function(section) { observer.observe(section); });
+  }
+} catch(e) {
+  // Silent fail for sandbox environments
+}
+</script>
+
+</body>
+</html>

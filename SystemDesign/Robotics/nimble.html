@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nimble Robotics — Warehouse Fulfillment Orchestration · System Design Study Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg0:#070a0e;--bg1:#0c1018;--bg2:#121722;--bg3:#1a2030;--bg4:#222838;--br:#2a3348;--br2:#3a4565;--t1:#e4e9f2;--t2:#8a96b0;--t3:#5a6680;--cyan:#22d3ee;--blue:#4d8ef7;--green:#34d399;--amber:#fbbf24;--rose:#f472b6;--purple:#a78bfa;--orange:#fb923c;--red:#ef4444;--teal:#14b8a6;--sidebar:260px;--font-mono:'JetBrains Mono',monospace;--font-body:'DM Sans',sans-serif;--font-head:'Playfair Display',serif}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-body);background:var(--bg0);color:var(--t1);line-height:1.72;display:flex;min-height:100vh;font-size:14.5px}
+::selection{background:rgba(34,211,238,.2)}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--br);border-radius:3px}
+
+/* ── sidebar ── */
+.sb{position:fixed;top:0;left:0;width:var(--sidebar);height:100vh;background:var(--bg1);border-right:1px solid var(--br);overflow-y:auto;z-index:100;padding:20px 0;scrollbar-width:thin;scrollbar-color:var(--br) transparent}
+.sb-title{font-family:var(--font-head);font-size:14px;font-weight:800;padding:0 16px 4px;color:var(--cyan);letter-spacing:.3px}
+.sb-sub{font-size:10px;color:var(--t3);padding:0 16px 14px;border-bottom:1px solid var(--br);margin-bottom:8px}
+.ng{padding:6px 0}.ng-label{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;padding:6px 16px 2px}
+.nl{display:flex;align-items:center;gap:8px;padding:5px 16px;font-size:12px;color:var(--t2);text-decoration:none;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.nl:hover{color:var(--t1);background:var(--bg3)}.nl.ac{color:var(--cyan);background:rgba(34,211,238,.04);border-left-color:var(--cyan)}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* ── main ── */
+.mn{margin-left:var(--sidebar);flex:1;padding:32px 48px 120px;max-width:1020px}
+.hero{margin-bottom:40px;padding-bottom:24px;border-bottom:1px solid var(--br)}
+.hero h1{font-family:var(--font-head);font-size:32px;font-weight:800;line-height:1.15;margin-bottom:10px;background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:15px;color:var(--t2);max-width:680px}
+
+/* ── sections ── */
+.sec{margin-bottom:48px;scroll-margin-top:20px}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.sec-n{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--bg0);background:var(--cyan);padding:2px 8px;border-radius:3px}
+.sec h2{font-size:20px;font-weight:700}.sec h3{font-size:16px;font-weight:600;color:var(--t1);margin:20px 0 10px}
+.sec p,.sec li{color:var(--t2);margin-bottom:10px}.sec ul,.sec ol{padding-left:18px}
+.sec a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(34,211,238,.3)}.sec a:hover{border-bottom-color:var(--cyan)}
+
+/* ── diagrams ── */
+.dg{background:var(--bg0);border:1px solid var(--br);border-radius:8px;margin:18px 0;overflow:hidden}
+.dg-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--br)}
+.dg-bar .dots{display:flex;gap:5px}.dg-bar .d{width:9px;height:9px;border-radius:50%}
+.dg-bar .lbl{font-family:var(--font-mono);font-size:10px;color:var(--t3)}
+.badge{font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600}
+pre.dia{font-family:var(--font-mono);font-size:11px;line-height:1.5;padding:16px 20px;overflow-x:auto;color:var(--t2);white-space:pre;scrollbar-width:thin;scrollbar-color:var(--br) transparent}
+
+/* span color helpers */
+.cc{color:var(--cyan)}.cb{color:var(--blue)}.cg{color:var(--green)}.ca{color:var(--amber)}.cr{color:var(--rose)}.cp{color:var(--purple)}.co{color:var(--orange)}.crd{color:var(--red)}.ct{color:var(--teal)}.cm{color:var(--t3)}.cw{color:var(--t1)}.b{font-weight:700}
+
+/* ── callouts ── */
+.co-box{padding:12px 16px;border-radius:7px;margin:14px 0;font-size:13px;border-left:3px solid}
+.co-box.insight{background:rgba(34,211,238,.05);border-color:var(--cyan);color:var(--cyan)}
+.co-box.staff{background:rgba(167,139,250,.05);border-color:var(--purple);color:var(--purple)}
+.co-box.warn{background:rgba(251,191,36,.05);border-color:var(--amber);color:var(--amber)}
+.co-box.danger{background:rgba(239,68,68,.05);border-color:var(--red);color:var(--red)}
+.co-box strong{display:block;margin-bottom:3px;font-weight:700}
+
+/* ── tables ── */
+.dt{width:100%;border-collapse:collapse;margin:14px 0;font-size:12px}
+.dt th{text-align:left;padding:8px 12px;background:var(--bg3);color:var(--t3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--br)}
+.dt td{padding:8px 12px;border-bottom:1px solid var(--br);color:var(--t2);font-family:var(--font-mono);font-size:11.5px}
+
+/* ── collapsible ── */
+details{background:var(--bg2);border:1px solid var(--br);border-radius:7px;margin:10px 0}
+details summary{padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--t1);list-style:none;display:flex;align-items:center;gap:7px}
+details summary::before{content:'▸';color:var(--cyan);font-size:11px;transition:transform .2s}
+details[open] summary::before{transform:rotate(90deg)}
+details .db{padding:0 14px 14px;border-top:1px solid var(--br)}
+
+/* ── info grid ── */
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.ic{background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:12px 14px}
+.ic .il{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.ic .iv{font-family:var(--font-mono);font-size:12px;color:var(--t1)}
+
+/* ── ref links ── */
+.ref{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--cyan);text-decoration:none;background:rgba(34,211,238,.06);padding:2px 8px;border-radius:3px;border:1px solid rgba(34,211,238,.15);margin:2px;transition:all .15s}
+.ref:hover{background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.3)}
+
+/* ── responsive ── */
+@media(max-width:900px){.sb{display:none}.mn{margin-left:0;padding:20px 16px 80px}.ig{grid-template-columns:1fr}pre.dia{font-size:9.5px}}
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<nav class="sb">
+<div class="sb-title">Nimble Robotics</div>
+<div class="sb-sub">Warehouse Fulfillment Orchestration — Complete System Design Prep</div>
+
+<div class="ng"><div class="ng-label">Context</div>
+<a class="nl ac" href="#overview"><span class="dot" style="background:var(--cyan)"></span>Company Overview</a>
+<a class="nl" href="#requirements"><span class="dot" style="background:var(--cyan)"></span>Requirements & Scale</a>
+<a class="nl" href="#latency"><span class="dot" style="background:var(--cyan)"></span>Latency Budget</a>
+</div>
+
+<div class="ng"><div class="ng-label">High Level</div>
+<a class="nl" href="#L0"><span class="dot" style="background:var(--blue)"></span>L0 System Context</a>
+<a class="nl" href="#L1"><span class="dot" style="background:var(--blue)"></span>L1 Container View</a>
+<a class="nl" href="#tech-stack"><span class="dot" style="background:var(--blue)"></span>Tech Stack Matrix</a>
+</div>
+
+<div class="ng"><div class="ng-label">Mid Level — Deep Dives</div>
+<a class="nl" href="#ingestion"><span class="dot" style="background:var(--green)"></span>Order Ingestion</a>
+<a class="nl" href="#decomp"><span class="dot" style="background:var(--amber)"></span>Task DAG Decomposition</a>
+<a class="nl" href="#saga"><span class="dot" style="background:var(--rose)"></span>Saga State Machine</a>
+<a class="nl" href="#cqrs"><span class="dot" style="background:var(--purple)"></span>CQRS Inventory</a>
+<a class="nl" href="#eventsource"><span class="dot" style="background:var(--orange)"></span>Event Sourcing</a>
+<a class="nl" href="#temporal"><span class="dot" style="background:var(--cyan)"></span>Temporal.io Workflows</a>
+<a class="nl" href="#mrta"><span class="dot" style="background:var(--teal)"></span>MRTA Auction</a>
+</div>
+
+<div class="ng"><div class="ng-label">Low Level</div>
+<a class="nl" href="#db"><span class="dot" style="background:var(--green)"></span>Database Schema</a>
+<a class="nl" href="#inv-write"><span class="dot" style="background:var(--amber)"></span>Inventory Write Path</a>
+<a class="nl" href="#robot-fsm"><span class="dot" style="background:var(--rose)"></span>Robot State Machine</a>
+<a class="nl" href="#shipping"><span class="dot" style="background:var(--blue)"></span>Shipping & Labels</a>
+<a class="nl" href="#inbound"><span class="dot" style="background:var(--purple)"></span>Inbound: Receive → Putaway</a>
+</div>
+
+<div class="ng"><div class="ng-label">Infrastructure</div>
+<a class="nl" href="#aws"><span class="dot" style="background:var(--orange)"></span>AWS Deployment</a>
+<a class="nl" href="#ecs-eks"><span class="dot" style="background:var(--amber)"></span>ECS vs EKS</a>
+<a class="nl" href="#fog"><span class="dot" style="background:var(--rose)"></span>Fog/Edge Cluster</a>
+<a class="nl" href="#zones"><span class="dot" style="background:var(--teal)"></span>Zone Affinity</a>
+</div>
+
+<div class="ng"><div class="ng-label">Flows & Tradeoffs</div>
+<a class="nl" href="#user-flows"><span class="dot" style="background:var(--cyan)"></span>User Flows</a>
+<a class="nl" href="#data-flow"><span class="dot" style="background:var(--green)"></span>E2E Data Flow</a>
+<a class="nl" href="#tradeoffs"><span class="dot" style="background:var(--t3)"></span>Key Tradeoffs</a>
+<a class="nl" href="#interview"><span class="dot" style="background:var(--t3)"></span>Interview Signals</a>
+<a class="nl" href="#refs"><span class="dot" style="background:var(--t3)"></span>References</a>
+</div>
+</nav>
+
+<!-- ═══ MAIN ═══ -->
+<main class="mn">
+
+<div class="hero">
+<h1>Warehouse Fulfillment Orchestration Platform</h1>
+<p class="hero-sub">Staff-level system design for Nimble Robotics — covering order ingestion, saga orchestration, CQRS inventory, event sourcing, Temporal.io workflows, MRTA fleet management, fog/edge compute, and AWS deployment. 15+ diagrams across L0→L2, deep dives on every component, user flows, data flows, and concrete interview framing.</p>
+</div>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: COMPANY OVERVIEW -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="overview">
+<div class="sec-h"><span class="sec-n">01</span><h2>Company Overview — Nimble Robotics</h2></div>
+
+<p>Nimble (nimble.ai) is a <strong>$1B-valued robotic 3PL</strong> founded in 2017 by Simon Kalouche (Stanford AI Lab under Fei-Fei Li). They raised $221M through Series C (led by FedEx and Cedar Pine, October 2024). Their board includes Marc Raibert (Boston Dynamics founder), Fei-Fei Li, and Sebastian Thrun.</p>
+
+<div class="ig">
+<div class="ic"><div class="il" style="color:var(--cyan)">Business Model</div><div class="iv">Robotic 3PL — brands outsource fulfillment, pay per task, zero CapEx</div></div>
+<div class="ic"><div class="il" style="color:var(--green)">Fulfillment Centers</div><div class="iv">Haslet TX · Burlington NJ · Bay Area · expanding to Chicago, Atlanta, Tijuana</div></div>
+<div class="ic"><div class="il" style="color:var(--amber)">Robot Fleet</div><div class="iv">200+ "superhumanoid" mobile manipulators per FC, ~90-95% autonomy, deep imitation learning</div></div>
+<div class="ic"><div class="il" style="color:var(--rose)">Customers</div><div class="iv">FedEx · Best Buy · Victoria's Secret · Puma · iHerb</div></div>
+<div class="ic"><div class="il" style="color:var(--purple)">Tech Stack (from job postings)</div><div class="iv">Rust · Python · Go · PostgreSQL · ScyllaDB · Temporal.io · Kafka · AWS · Kubernetes</div></div>
+<div class="ic"><div class="il" style="color:var(--orange)">Platform</div><div class="iv">All-in-one Cloud Logistics: WMS / OMS / TMS / IMS / RMS — built by ~10-person team</div></div>
+</div>
+
+<p>Nimble's proprietary robots use <strong>deep imitation learning</strong> — they learn from human teleoperation demonstrations and generalize to novel objects. The 5-10% of picks that the AI can't handle are assisted by remote human operators, creating a data flywheel that continuously improves autonomy. Pick accuracy is 99.9%.</p>
+
+<div class="co-box staff"><strong>Why This Matters for the Interview</strong>Nimble operates as a 3PL integrating with Shopify/NetSuite — multi-tenant by design. The Cloud Logistics Platform is the software moat, not just the robots. Every design choice should reflect their actual stack (Rust, Temporal.io, Kafka) and their position as a multi-brand fulfillment provider.</div>
+
+<a class="ref" href="https://nimble.ai/" target="_blank">nimble.ai</a>
+<a class="ref" href="https://www.therobotreport.com/nimble-picks-up-106m-scale-general-purpose-fulfillment-robot/" target="_blank">Robot Report — $106M raise</a>
+<a class="ref" href="https://jobs.lever.co/NimbleAI/e52c68a6-53c6-412e-a39d-616889e7c50a" target="_blank">Senior SWE — Cloud Logistics job posting</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: REQUIREMENTS & SCALE -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="requirements">
+<div class="sec-h"><span class="sec-n">02</span><h2>Requirements & Scale Estimation</h2></div>
+
+<h3>Functional Requirements</h3>
+<ol>
+<li>Ingest orders from Shopify (webhooks) and NetSuite (REST/polling) with idempotent processing</li>
+<li>Decompose multi-item orders into robot-executable task DAGs (pick → consolidate → pack → label → ship)</li>
+<li>Manage distributed transactions across pick-pack-ship with compensating actions (saga pattern)</li>
+<li>Maintain real-time inventory at the bin level with strong write consistency and eventual read consistency (CQRS)</li>
+<li>Provide immutable audit trail for every inventory movement (event sourcing)</li>
+<li>Orchestrate long-running fulfillment workflows with durable execution (Temporal.io)</li>
+<li>Assign tasks to 200+ robots per FC using optimal multi-robot task allocation (MRTA)</li>
+<li>Generate shipping labels via multi-carrier rate shopping and write back tracking to sales channels</li>
+<li>Handle inbound receiving, QC inspection, and velocity-based putaway</li>
+<li>Support partial fulfillment, split shipments, and backorders</li>
+</ol>
+
+<h3>Non-Functional Requirements</h3>
+
+<table class="dt">
+<tr><th>Metric</th><th>Target</th><th>Rationale</th></tr>
+<tr><td>Order throughput</td><td>50K orders/day peak, ~5 orders/sec sustained</td><td>3 FCs × ~17K orders/FC/day</td></tr>
+<tr><td>Webhook response</td><td>&lt;5 seconds</td><td>Shopify drops subscription after 8 consecutive failures &gt;5s</td></tr>
+<tr><td>Inventory write latency</td><td>&lt;50ms (Redis), &lt;200ms (PG commit)</td><td>Prevent overselling during flash sales</td></tr>
+<tr><td>Inventory read latency</td><td>&lt;1ms (Redis), &lt;100ms (search)</td><td>Customer-facing availability checks</td></tr>
+<tr><td>Robot control loop</td><td>&lt;10ms</td><td>Collision avoidance safety requirement</td></tr>
+<tr><td>MRTA auction</td><td>&lt;5ms</td><td>Continuous waveless picking, new tasks every ~2s</td></tr>
+<tr><td>FC dwell time</td><td>~130 seconds (ingestion to label)</td><td>Competitive with Amazon same-day</td></tr>
+<tr><td>Pick accuracy</td><td>99.9%</td><td>3PL SLA with brands</td></tr>
+<tr><td>Availability</td><td>99.95% (cloud), 99.99% (edge/fog)</td><td>Robot fleet can't stop during cloud outage</td></tr>
+<tr><td>Offline autonomy</td><td>30+ minutes</td><td>Edge continues during VPN disruption</td></tr>
+</table>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: LATENCY BUDGET -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="latency">
+<div class="sec-h"><span class="sec-n">03</span><h2>Latency Budget Decomposition</h2></div>
+
+<div class="co-box staff"><strong>Open with This in the Interview</strong>Latency budget decomposition should be your opening framing device, not an afterthought. It shows the interviewer you think about systems as end-to-end pipelines with concrete timing constraints, not abstract boxes.</div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">latency_budget.arch</span><span class="badge" style="background:rgba(34,211,238,.12);color:var(--cyan)">OPEN WITH THIS</span></div>
+<pre class="dia">
+<span class="cw b">ORDER-TO-SHIP LATENCY BUDGET: ~130 seconds total</span>
+
+<span class="cm">Phase              Duration     Where         Constraint</span>
+<span class="cm">─────────────────  ───────────  ────────────  ─────────────────────────</span>
+<span class="cg">Webhook → ACK</span>      <span class="cw">&lt;0.5s</span>        Cloud (ECS)   Shopify 5s timeout
+<span class="cg">Normalize + dedup</span>  <span class="cw">~0.5s</span>        Cloud (ECS)   Kafka consumer lag
+<span class="ca">Start workflow</span>     <span class="cw">~0.2s</span>        Temporal      Workflow task scheduling
+<span class="ca">Reserve inventory</span>  <span class="cw">~0.1s</span>        Redis DECR    Sub-ms atomic, async PG commit
+<span class="cp">Create task DAG</span>    <span class="cw">~0.3s</span>        Cloud (ECS)   Query bin locations + FFD cartonize
+<span class="cr">MRTA auction</span>       <span class="cw">~0.005s</span>      <span class="crd b">Edge fog</span>      Broadcast + collect bids, in-memory
+<span class="cr">Robot navigate</span>     <span class="cw">20-50s</span>       <span class="crd b">Physical</span>     Distance to bin, traffic, zone
+<span class="cr">Robot pick</span>         <span class="cw">5-15s</span>        <span class="crd b">Physical</span>     Deep imitation learning grasp
+<span class="cr">Deliver to pack</span>   <span class="cw">10-20s</span>       <span class="crd b">Physical</span>     Navigate to pack station
+<span class="cb">Consolidation</span>     <span class="cw">5-30s</span>        Physical      Barrier: wait for all picks
+<span class="cb">Pack + verify</span>     <span class="cw">15-25s</span>       Physical      Robot pack + weight check (±5g)
+<span class="co">Label generate</span>    <span class="cw">~2s</span>          Cloud → API   EasyPost rate shop + buy
+<span class="co">Label print</span>       <span class="cw">~1s</span>          Edge          ZPL to thermal printer
+<span class="cc">Write-back</span>        <span class="cw">~1s</span>          Cloud (ECS)   Shopify fulfillmentCreateV2
+
+<span class="cm">──────────────────────────────────────────────────────────────────</span>
+<span class="cw b">THREE COMPUTE TIERS:</span>
+  <span class="cg">Cloud (ECS/EKS)</span>  — business logic, 50-500ms acceptable
+  <span class="crd">Edge (fog)</span>       — robot control, &lt;10ms required
+  <span class="co">Physical</span>        — robot movement, constrained by physics
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: L0 SYSTEM CONTEXT -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="L0">
+<div class="sec-h"><span class="sec-n">04</span><h2>L0 — System Context Diagram</h2></div>
+<p>The 30,000-foot view. Nimble's Cloud Logistics Platform sits at the center, mediating between e-commerce channels, ERP systems, the physical robot fleet, carrier networks, and operations dashboards.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">L0_system_context.arch</span><span class="badge" style="background:rgba(34,211,238,.12);color:var(--cyan)">HIGH LEVEL</span></div>
+<pre class="dia">
+<span class="cm">┌─────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>                         <span class="cw b">EXTERNAL ACTORS & SYSTEMS</span>                                   <span class="cm">│</span>
+<span class="cm">└─────────────────────────────────────────────────────────────────────────────────────┘</span>
+
+   <span class="cg">┌──────────────┐</span>  <span class="ca">┌──────────────┐</span>  <span class="cp">┌──────────────┐</span>  <span class="cr">┌──────────────┐</span>
+   <span class="cg">│   Shopify    │</span>  <span class="ca">│   NetSuite   │</span>  <span class="cp">│   Brand      │</span>  <span class="cr">│  End         │</span>
+   <span class="cg">│   Stores     │</span>  <span class="ca">│   ERP        │</span>  <span class="cp">│   Portal     │</span>  <span class="cr">│  Customer    │</span>
+   <span class="cg">└──────┬───────┘</span>  <span class="ca">└──────┬───────┘</span>  <span class="cp">└──────┬───────┘</span>  <span class="cr">└──────┬───────┘</span>
+          <span class="cg">│ webhooks</span>        <span class="ca">│ REST/SuiteQL</span>      <span class="cp">│ GraphQL</span>         <span class="cr">│ tracking</span>
+          <span class="cg">│ orders/create</span>   <span class="ca">│ polling 60s</span>       <span class="cp">│ queries</span>         <span class="cr">│ emails</span>
+          <span class="cg">▼</span>                 <span class="ca">▼</span>                   <span class="cp">▼</span>                 <span class="cr">▼</span>
+<span class="cc">╔═════════════════════════════════════════════════════════════════════════════════╗</span>
+<span class="cc">║                                                                                 ║</span>
+<span class="cc">║</span>            <span class="cc b">NIMBLE CLOUD LOGISTICS PLATFORM</span>                                      <span class="cc">║</span>
+<span class="cc">║</span>            <span class="cm">All-in-one WMS / OMS / TMS / IMS / RMS</span>                                <span class="cc">║</span>
+<span class="cc">║</span>            <span class="cm">Rust · Python · Go · PostgreSQL · ScyllaDB · Kafka</span>                    <span class="cc">║</span>
+<span class="cc">║</span>            <span class="cm">Temporal.io · AWS · Kubernetes</span>                                       <span class="cc">║</span>
+<span class="cc">║</span>                                                                                 <span class="cc">║</span>
+<span class="cc">╚═════════════════════════════════════════════════════════════════════════════════╝</span>
+          <span class="co">│</span>                 <span class="cb">│</span>                   <span class="cg">│</span>                 <span class="cr">│</span>
+          <span class="co">│ gRPC/MQTT</span>       <span class="cb">│ REST API</span>          <span class="cg">│ REST</span>            <span class="cr">│ webhooks</span>
+          <span class="co">│ commands</span>        <span class="cb">│ EasyPost</span>          <span class="cg">│ Fulfillment</span>    <span class="cr">│ status</span>
+          <span class="co">▼</span>                 <span class="cb">▼</span>                   <span class="cg">▼</span>                 <span class="cr">▼</span>
+   <span class="co">┌──────────────┐</span>  <span class="cb">┌──────────────┐</span>  <span class="cg">┌──────────────┐</span>  <span class="cr">┌──────────────┐</span>
+   <span class="co">│  Robot Fleet │</span>  <span class="cb">│  Carrier     │</span>  <span class="cg">│  Shopify     │</span>  <span class="cr">│  Ops         │</span>
+   <span class="co">│  200+ robots │</span>  <span class="cb">│  Network     │</span>  <span class="cg">│  Fulfillment │</span>  <span class="cr">│  Dashboard   │</span>
+   <span class="co">│  3 FCs       │</span>  <span class="cb">│  UPS/FedEx   │</span>  <span class="cg">│  Write-back  │</span>  <span class="cr">│  Grafana     │</span>
+   <span class="co">└──────────────┘</span>  <span class="cb">└──────────────┘</span>  <span class="cg">└──────────────┘</span>  <span class="cr">└──────────────┘</span>
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: L1 CONTAINER VIEW -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="L1">
+<div class="sec-h"><span class="sec-n">05</span><h2>L1 — Container / Service Architecture</h2></div>
+<p>8 core services, 3 infrastructure services (Temporal, Kafka, Redis), and 5 data stores. Each service owns its domain and communicates via Kafka events or direct gRPC for latency-sensitive paths.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">L1_container_view.arch</span><span class="badge" style="background:rgba(77,142,247,.12);color:var(--blue)">HIGH LEVEL</span></div>
+<pre class="dia">
+<span class="cm">                        ┌─────────────────────────────────────┐</span>
+<span class="cm">                        │</span>     <span class="cw b">API Gateway (Envoy / Istio)</span>       <span class="cm">│</span>
+<span class="cm">                        │</span>  <span class="cm">Rate limit · Auth · TLS termination</span> <span class="cm">│</span>
+<span class="cm">                        └──────┬──────────┬──────────┬────────┘</span>
+<span class="cm">          ┌────────────────────┼──────────┼──────────┼──────────────────────┐</span>
+<span class="cm">          │</span>                    <span class="cm">▼          ▼          ▼</span>    <span class="cw b">APPLICATION TIER</span>  <span class="cm">│</span>
+<span class="cm">          │</span>  <span class="cg">┌─────────────┐</span> <span class="ca">┌────────────┐</span> <span class="cp">┌──────────────┐</span>                <span class="cm">│</span>
+<span class="cm">          │</span>  <span class="cg">│  Order      │</span> <span class="ca">│ Inventory  │</span> <span class="cp">│ Fulfillment  │</span>                <span class="cm">│</span>
+<span class="cm">          │</span>  <span class="cg">│  Ingestion  │</span> <span class="ca">│ Service    │</span> <span class="cp">│ Orchestrator │</span>                <span class="cm">│</span>
+<span class="cm">          │</span>  <span class="cg">│  Service    │</span> <span class="ca">│ (CQRS)     │</span> <span class="cp">│ (Temporal)   │</span>                <span class="cm">│</span>
+<span class="cm">          │</span>  <span class="cg">└──────┬──────┘</span> <span class="ca">└──────┬─────┘</span> <span class="cp">└──────┬───────┘</span>                <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>             <span class="ca">│</span>             <span class="cp">│</span>                         <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cr">┌──────────┐</span> <span class="co">┌──────────┐</span> <span class="cb">┌──────────┐</span>         <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cr">│  Task    │</span> <span class="co">│ Robot    │</span> <span class="cb">│ Shipping │</span>         <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cr">│  Decomp. │</span> <span class="co">│ Fleet    │</span> <span class="cb">│ Service  │</span>         <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cr">│  Engine  │</span> <span class="co">│ Mgr      │</span> <span class="cb">│ EasyPost │</span>         <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cr">└──────────┘</span> <span class="co">└──────────┘</span> <span class="cb">└──────────┘</span>         <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cc">┌──────────┐</span> <span class="ca">┌──────────┐</span>                      <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cc">│ Notif.   │</span> <span class="ca">│ Analytics│</span>                      <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cc">│ Service  │</span> <span class="ca">│ Service  │</span>                      <span class="cm">│</span>
+<span class="cm">          │</span>         <span class="cg">│</span>  <span class="cc">└──────────┘</span> <span class="ca">└──────────┘</span>                      <span class="cm">│</span>
+<span class="cm">          └──────────┼────────────────────────────────────────────────────┘</span>
+<span class="cm">  ┌──────────────────┼────────────────────────────────────────────────────────┐</span>
+<span class="cm">  │</span>                  <span class="cm">▼</span>                           <span class="cw b">INFRASTRUCTURE TIER</span>         <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="cc">╔════════════════╗</span>  <span class="cg">╔════════════════╗</span>  <span class="cp">╔════════════════╗</span>          <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="cc">║  Temporal.io   ║</span>  <span class="cg">║  Apache Kafka  ║</span>  <span class="cp">║  Redis Cluster ║</span>          <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="cc">║  Durable Exec. ║</span>  <span class="cg">║  Event Bus     ║</span>  <span class="cp">║  Inv. Cache    ║</span>          <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="cc">╚════════════════╝</span>  <span class="cg">╚════════════════╝</span>  <span class="cp">╚════════════════╝</span>          <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="ca">╔════════════════╗</span>  <span class="co">╔════════════════╗</span>  <span class="cr">╔════════════════╗</span>          <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="ca">║  PostgreSQL    ║</span>  <span class="co">║  ScyllaDB      ║</span>  <span class="cr">║  S3 / Glacier  ║</span>          <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="ca">║  Event Store + ║</span>  <span class="co">║  Robot Telem.  ║</span>  <span class="cr">║  Event Archive ║</span>          <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="ca">║  Inv. Write    ║</span>  <span class="co">║  Time-series   ║</span>  <span class="cr">║  WORM Locked   ║</span>          <span class="cm">│</span>
+<span class="cm">  │</span>  <span class="ca">╚════════════════╝</span>  <span class="co">╚════════════════╝</span>  <span class="cr">╚════════════════╝</span>          <span class="cm">│</span>
+<span class="cm">  └───────────────────────────────────────────────────────────────────────────┘</span>
+</pre>
+</div>
+
+<details><summary>Service Responsibility Summary</summary><div class="db">
+<table class="dt">
+<tr><th>Service</th><th>Bounded Context</th><th>Key Tech</th></tr>
+<tr><td style="color:var(--green)">Order Ingestion</td><td>Accept orders from any channel → canonical format</td><td>Shopify webhooks, NetSuite polling, Kafka producer</td></tr>
+<tr><td style="color:var(--amber)">Inventory (CQRS)</td><td>Bin-level stock truth: reservations, decrements, queries</td><td>Redis DECR hot path, PG optimistic lock, projectors</td></tr>
+<tr><td style="color:var(--purple)">Fulfillment Orch.</td><td>Drive order through pick-pack-ship saga</td><td>Temporal workflows, Activities, Signals, heartbeats</td></tr>
+<tr><td style="color:var(--rose)">Task Decomposition</td><td>Order → DAG of robot tasks</td><td>Bin lookup, FFD cartonization, dependency graph</td></tr>
+<tr><td style="color:var(--orange)">Robot Fleet Mgr</td><td>Assign tasks to robots, manage execution</td><td>MRTA auction (edge), gRPC commands, MQTT telemetry</td></tr>
+<tr><td style="color:var(--blue)">Shipping Service</td><td>Rate shop, buy labels, carrier write-back</td><td>EasyPost API, ZPL labels, manifest generation</td></tr>
+<tr><td style="color:var(--cyan)">Notification</td><td>Customer emails, SMS, Shopify fulfillment write-back</td><td>Kafka consumer, SES/SNS, Shopify GraphQL</td></tr>
+<tr><td style="color:var(--amber)">Analytics</td><td>CQRS read projections, dashboards, SLA monitoring</td><td>ClickHouse, Grafana, Kafka consumer</td></tr>
+</table>
+</div></details>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: TECH STACK -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="tech-stack">
+<div class="sec-h"><span class="sec-n">06</span><h2>Tech Stack Matrix</h2></div>
+
+<table class="dt">
+<tr><th>Layer</th><th>Technology</th><th>AWS Managed</th><th>Purpose</th></tr>
+<tr><td style="color:var(--green)">Language</td><td>Rust (primary), Python, C/C++, Go</td><td>—</td><td>Platform services, ML, robot control, infra</td></tr>
+<tr><td style="color:var(--cyan)">Orchestration</td><td>Temporal.io</td><td>Temporal Cloud</td><td>Durable workflow execution</td></tr>
+<tr><td style="color:var(--amber)">Database</td><td>PostgreSQL</td><td>RDS Multi-AZ</td><td>Event store, inventory write, orders</td></tr>
+<tr><td style="color:var(--amber)">Database</td><td>ScyllaDB</td><td>EC2 i3.xlarge</td><td>Robot telemetry time-series</td></tr>
+<tr><td style="color:var(--purple)">Cache</td><td>Redis Cluster</td><td>ElastiCache</td><td>Inventory hot cache, DECR gate</td></tr>
+<tr><td style="color:var(--blue)">Streaming</td><td>Apache Kafka</td><td>MSK (KRaft)</td><td>Event bus, partitioned by SKU/order</td></tr>
+<tr><td style="color:var(--blue)">Processing</td><td>Spark / Flink</td><td>EMR / Kinesis Analytics</td><td>Stream processing, velocity calc</td></tr>
+<tr><td style="color:var(--orange)">Search</td><td>Elasticsearch</td><td>OpenSearch</td><td>Product search with stock filtering</td></tr>
+<tr><td style="color:var(--orange)">Compute</td><td>Kubernetes / Docker</td><td>EKS or ECS</td><td>Container orchestration</td></tr>
+<tr><td style="color:var(--rose)">Edge</td><td>IoT Greengrass</td><td>Greengrass v2</td><td>Fog cluster management, local MQTT</td></tr>
+<tr><td style="color:var(--rose)">Integration</td><td>Shopify, NetSuite, Skubana</td><td>—</td><td>Order ingestion, fulfillment write-back</td></tr>
+<tr><td style="color:var(--rose)">Shipping</td><td>EasyPost</td><td>—</td><td>Multi-carrier abstraction (100+ carriers)</td></tr>
+</table>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: ORDER INGESTION -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="ingestion">
+<div class="sec-h"><span class="sec-n">07</span><h2>Deep Dive — Order Ingestion Pipeline</h2></div>
+
+<p>Multi-channel ingestion with push (Shopify webhooks) and pull (NetSuite polling), converging into a normalized canonical order format. The architecture separates receipt from processing to meet Shopify's 5-second ACK requirement.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">order_ingestion_pipeline.arch</span><span class="badge" style="background:rgba(52,211,153,.12);color:var(--green)">MID LEVEL</span></div>
+<pre class="dia">
+<span class="cg b">PUSH PATH (Shopify)</span>                                <span class="ca b">PULL PATH (NetSuite)</span>
+
+<span class="cg">┌────────────────┐</span>                                  <span class="ca">┌─────────────────────┐</span>
+<span class="cg">│ Shopify Store  │</span>                                  <span class="ca">│ Cron: every 60s     │</span>
+<span class="cg">│ orders/create  │</span>                                  <span class="ca">│ SuiteTalk REST API  │</span>
+<span class="cg">│ webhook fires  │</span>                                  <span class="ca">│ OAuth 1.0 TBA auth  │</span>
+<span class="cg">└───────┬────────┘</span>                                  <span class="ca">└─────────┬───────────┘</span>
+        <span class="cg">│</span> POST /webhooks/shopify                            <span class="ca">│</span>
+        <span class="cg">│</span> X-Shopify-Hmac-Sha256                              <span class="ca">│</span> SuiteQL:
+        <span class="cg">│</span> X-Shopify-Event-Id                                 <span class="ca">│</span> SELECT id, tranid
+        <span class="cg">▼</span>                                                    <span class="ca">│</span> FROM salesorder
+<span class="cc">┌────────────────────────────────────────────────────────────────────┐</span>
+<span class="cc">│</span>                  <span class="cc b">INGESTION GATEWAY</span>                                <span class="cc">│</span>
+<span class="cc">│</span>                                                                    <span class="cc">│</span>
+<span class="cc">│</span>  <span class="cg">1.</span> HMAC-SHA256 verify (Shopify) │ OAuth verify (NetSuite)        <span class="cc">│</span>
+<span class="cc">│</span>  <span class="cg">2.</span> Store raw payload → append-only <span class="ca">raw_events</span> table              <span class="cc">│</span>
+<span class="cc">│</span>  <span class="cg">3.</span> ACK 200 within 5s (Shopify hard requirement)                  <span class="cc">│</span>
+<span class="cc">│</span>  <span class="cg">4.</span> Enqueue to Kafka: <span class="ca">topic=raw-orders</span>, key=<span class="ca">channel_order_id</span>      <span class="cc">│</span>
+<span class="cc">└────────────────────────────┬───────────────────────────────────────┘</span>
+                             <span class="cm">▼</span>
+<span class="cp">┌────────────────────────────────────────────────────────────────────┐</span>
+<span class="cp">│</span>                  <span class="cp b">ORDER NORMALIZATION WORKER</span>                        <span class="cp">│</span>
+<span class="cp">│</span>                                                                    <span class="cp">│</span>
+<span class="cp">│</span>  <span class="cp">1.</span> Idempotency: INSERT ... ON CONFLICT (channel, channel_id)     <span class="cp">│</span>
+<span class="cp">│</span>  <span class="cp">2.</span> Map channel SKUs → internal SKUs (product_mapping table)      <span class="cp">│</span>
+<span class="cp">│</span>  <span class="cp">3.</span> Standardize addresses (SmartyStreets API)                     <span class="cp">│</span>
+<span class="cp">│</span>  <span class="cp">4.</span> Emit <span class="cc">OrderCreated</span> event → Kafka <span class="ca">canonical-orders</span>              <span class="cp">│</span>
+<span class="cp">│</span>  <span class="cp">5.</span> Start Temporal workflow: <span class="cc">FulfillmentWorkflow(orderId)</span>          <span class="cp">│</span>
+<span class="cp">└────────────────────────────────────────────────────────────────────┘</span>
+
+<span class="cr b">RECONCILIATION SAFETY NET</span> <span class="cm">(cron every 15 min)</span>
+<span class="cm">┌────────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span> Poll Shopify GET /orders.json?updated_at_min={last_sync}          <span class="cm">│</span>
+<span class="cm">│</span> Compare with orders table → backfill any missed webhooks         <span class="cm">│</span>
+<span class="cm">│</span> Shopify auto-deletes webhook subscriptions after 8 failures      <span class="cm">│</span>
+<span class="cm">└────────────────────────────────────────────────────────────────────┘</span>
+</pre>
+</div>
+
+<h3>Shopify Webhook Security</h3>
+<p>Every Shopify webhook includes an <code>X-Shopify-Hmac-Sha256</code> header — the HMAC-SHA256 of the raw request body computed with the app's API secret. The ingestion gateway verifies this before processing. The <code>X-Shopify-Event-Id</code> header provides a unique event identifier for deduplication. Shopify retries failed deliveries up to 8 times over ~48 hours with exponential backoff; 8 consecutive failures auto-delete the subscription.</p>
+
+<h3>NetSuite Integration</h3>
+<p>NetSuite's SuiteTalk REST API exposes sales orders at <code>/services/rest/record/v1/salesOrder</code>. For complex queries, <strong>SuiteQL</strong> provides SQL-like syntax with JOINs, subqueries, and ORDER BY — capabilities missing from the basic REST record API. Authentication uses OAuth 1.0 TBA (Token-Based Authentication). RESTlets offer custom server-side logic for specialized patterns.</p>
+
+<div class="co-box insight"><strong>Staff-Level Insight</strong>Webhooks should never be the sole source of truth. The reconciliation cron catches missed deliveries, ordering issues, and de-registered subscriptions. This is a common failure mode that most candidates miss.</div>
+
+<a class="ref" href="https://shopify.dev/docs/apps/build/webhooks" target="_blank">Shopify Webhooks docs</a>
+<a class="ref" href="https://hookdeck.com/webhooks/guides/implement-webhook-idempotency" target="_blank">Hookdeck — Webhook Idempotency</a>
+<a class="ref" href="https://timdietrich.me/blog/netsuite-suitetalk-rest-overview-issues-advice/" target="_blank">NetSuite SuiteTalk REST Guide</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: TASK DAG DECOMPOSITION -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="decomp">
+<div class="sec-h"><span class="sec-n">08</span><h2>Deep Dive — Order → Task DAG Decomposition</h2></div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">task_dag.arch</span><span class="badge" style="background:rgba(251,191,36,.12);color:var(--amber)">MID LEVEL</span></div>
+<pre class="dia">
+<span class="cw b">ORDER #ORD-8472</span>  <span class="cm">│ 3 line items │ Shopify │ Standard Ship │ FC: Haslet TX</span>
+
+<span class="cg">┌───────────────────────────────────────┐</span>
+<span class="cg">│</span>     <span class="cg b">T1: INVENTORY ALLOCATION</span>          <span class="cg">│</span>   <span class="cm">Soft reserve → Hard on confirm</span>
+<span class="cg">└───────────────┬───────────────────────┘</span>
+                <span class="cm">│</span> all items reserved
+    <span class="cm">┌───────────┼───────────┐</span>
+    <span class="cm">▼           ▼           ▼</span>         <span class="cm">← PARALLEL FORK</span>
+<span class="ca">┌──────────┐</span> <span class="ca">┌──────────┐</span> <span class="ca">┌──────────┐</span>
+<span class="ca">│ T2: PICK │</span> <span class="ca">│ T3: PICK │</span> <span class="ca">│ T4: PICK │</span>   <span class="cm">MRTA assigns robot per pick</span>
+<span class="ca">│ SKU-A    │</span> <span class="ca">│ SKU-B    │</span> <span class="ca">│ SKU-C    │</span>   <span class="cm">Heartbeat → Temporal every 30s</span>
+<span class="ca">│ Bin:A-12 │</span> <span class="ca">│ Bin:B-07 │</span> <span class="ca">│ Bin:C-23 │</span>   <span class="cm">Signal on scan confirm</span>
+<span class="ca">└────┬─────┘</span> <span class="ca">└────┬─────┘</span> <span class="ca">└────┬─────┘</span>
+     <span class="cm">└───────────┼───────────┘</span>
+                <span class="cm">│</span>             <span class="cm">← BARRIER (all picks complete)</span>
+                <span class="cm">▼</span>
+<span class="cp">┌───────────────────────────────────────┐</span>
+<span class="cp">│</span>     <span class="cp b">T5: CONSOLIDATION</span>                  <span class="cp">│</span>   <span class="cm">Verify scan: expected vs actual</span>
+<span class="cp">└───────────────┬───────────────────────┘</span>
+                <span class="cm">▼</span>
+<span class="cr">┌───────────────────────────────────────┐</span>
+<span class="cr">│</span>     <span class="cr b">T6: CARTONIZATION</span>                  <span class="cr">│</span>   <span class="cm">3D bin packing: FFD heuristic</span>
+<span class="cr">│</span>     <span class="cm">Select BOX-M (12×10×6)</span>             <span class="cr">│</span>   <span class="cm">DIM weight vs actual weight</span>
+<span class="cr">└───────────────┬───────────────────────┘</span>
+                <span class="cm">▼</span>
+<span class="cb">┌───────────────────────────────────────┐</span>
+<span class="cb">│</span>     <span class="cb b">T7: PACK + WEIGHT VERIFY</span>           <span class="cb">│</span>   <span class="cm">Robot pack → seal → weigh (±5g)</span>
+<span class="cb">└───────────────┬───────────────────────┘</span>
+                <span class="cm">▼</span>
+<span class="co">┌───────────────────────────────────────┐</span>
+<span class="co">│</span>     <span class="co b">T8: LABEL + SHIP</span>                   <span class="co">│</span>   <span class="cm">EasyPost rate shop → ZPL print</span>
+<span class="co">│</span>     <span class="cm">Sortation → carrier dock</span>           <span class="co">│</span>   <span class="cm">Shopify fulfillmentCreateV2</span>
+<span class="co">└───────────────────────────────────────┘</span>
+</pre>
+</div>
+
+<h3>Cartonization (3D Bin Packing)</h3>
+<p>Selecting the optimal box size is NP-hard. The <strong>First Fit Decreasing (FFD)</strong> heuristic sorts items largest-first, tries each available box size, and picks the smallest that fits all items. FFD achieves ≤ 11/9·OPT + 6/9 approximation ratio. Modern systems like Paccurate add cost-aware cartonization considering carrier DIM weight thresholds and zone-based pricing.</p>
+
+<h3>Waveless vs Wave Picking</h3>
+<p><strong>Waveless (continuous) picking is strongly preferred for robotic warehouses.</strong> Unlike wave picking (batching orders into time-bounded groups), waveless continuously releases tasks and assigns robots in real-time via the MRTA auctioneer. This eliminates inter-wave idle time and maximizes robot utilization.</p>
+
+<a class="ref" href="https://en.wikipedia.org/wiki/Bin_packing_problem" target="_blank">Wikipedia — Bin Packing</a>
+<a class="ref" href="https://www.mdpi.com/2071-1050/17/11/5051" target="_blank">MDPI — Robot Scheduling in Warehouse Systems</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: SAGA STATE MACHINE -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="saga">
+<div class="sec-h"><span class="sec-n">09</span><h2>Deep Dive — Saga State Machine (Pick-Pack-Ship)</h2></div>
+
+<p>Orchestration-based saga with forward transactions (T1–T7) and compensating transactions (C1–C6). <strong>The physical pick (T4) is the pivot transaction</strong> — before it, compensations are cheap database ops; after it, compensations involve real physical work that takes minutes.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">saga_state_machine.arch</span><span class="badge" style="background:rgba(244,114,182,.12);color:var(--rose)">MID LEVEL</span></div>
+<pre class="dia">
+<span class="cw b">FORWARD PATH</span>                                <span class="crd b">COMPENSATION PATH</span>
+
+<span class="cg">┌─────────────────────┐</span>
+<span class="cg">│ T1: Reserve         │</span>── fail ──────────── <span class="crd">C1: Release reservation</span>
+<span class="cg">│     Inventory       │</span>                      <span class="cm">   (DB: status=RELEASED)</span>
+<span class="cg">└──────────┬──────────┘</span>
+           <span class="cg">│</span> ok
+<span class="cg">┌──────────┴──────────┐</span>
+<span class="cg">│ T2: Create Pick     │</span>── fail ──────────── <span class="crd">C2: Cancel pick task + C1</span>
+<span class="cg">│     Tasks (DAG)     │</span>
+<span class="cg">└──────────┬──────────┘</span>
+           <span class="cg">│</span> ok
+<span class="cg">┌──────────┴──────────┐</span>
+<span class="cg">│ T3: Assign Robot    │</span>── fail ──────────── <span class="crd">C3: Unassign + C2 + C1</span>
+<span class="cg">│     (MRTA auction)  │</span>
+<span class="cg">└──────────┬──────────┘</span>
+           <span class="cg">│</span> ok
+<span class="ca">╔══════════╧══════════╗</span>
+<span class="ca">║ T4: PHYSICAL PICK   ║</span>── fail ──────────── <span class="crd b">C4: Return item to bin</span>
+<span class="ca">║ ★ PIVOT TRANSACTION ║</span>                      <span class="cm">   PHYSICAL WORK (~2 min)</span>
+<span class="ca">║   heartbeat/signal  ║</span>                      <span class="cm">   OR: try alternate bin</span>
+<span class="ca">╚══════════╤══════════╝</span>
+           <span class="ca">│</span> ok
+<span class="cp">┌──────────┴──────────┐</span>
+<span class="cp">│ T5: Pack + Verify   │</span>── fail ──────────── <span class="crd">C5: Unpack + re-station</span>
+<span class="cp">└──────────┬──────────┘</span>                      <span class="cm">   PHYSICAL WORK (~3 min)</span>
+           <span class="cp">│</span> ok
+<span class="cb">┌──────────┴──────────┐</span>
+<span class="cb">│ T6: Generate Label  │</span>── fail ──────────── <span class="crd">C6: Void label, try alt carrier</span>
+<span class="cb">└──────────┬──────────┘</span>
+           <span class="cb">│</span> ok
+<span class="cc">┌──────────┴──────────┐</span>
+<span class="cc">│ T7: Ship + Manifest │</span>   <span class="cm">← Terminal state (no compensation)</span>
+<span class="cc">│     Write-back      │</span>
+<span class="cc">└─────────────────────┘</span>
+</pre>
+</div>
+
+<div class="co-box staff"><strong>Staff-Level Signal: Forward Recovery</strong>Prefer forward recovery over full compensation. If a pick fails at Bin A-12, query for alternate bin locations and create a new pick task before resorting to full rollback. ~1 in 22 checkouts enters a failure path — this is steady-state, not edge-case.</div>
+
+<h3>Partial Fulfillment — Parent/Child Sagas</h3>
+<p>When only some items are available, the parent saga spawns <strong>child sagas per shipment</strong>. Business rules are configurable per brand: ship available items and backorder the rest, hold for complete fulfillment with timeout, or cancel unavailable lines.</p>
+
+<a class="ref" href="https://temporal.io/blog/to-choreograph-or-orchestrate-your-saga-that-is-the-question" target="_blank">Temporal.io — Saga Orchestration vs Choreography</a>
+<a class="ref" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/saga" target="_blank">Microsoft — Saga Design Pattern</a>
+<a class="ref" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/saga.html" target="_blank">AWS — Saga Patterns</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: CQRS INVENTORY -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="cqrs">
+<div class="sec-h"><span class="sec-n">10</span><h2>Deep Dive — CQRS Inventory Architecture</h2></div>
+
+<p>Inventory exhibits extreme read/write asymmetry: ~1M+ reads/sec for availability vs ~10K writes/sec for reservations. CQRS separates the command side (strong consistency) from the query side (eventually consistent materialized views).</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">cqrs_inventory.arch</span><span class="badge" style="background:rgba(167,139,250,.12);color:var(--purple)">MID LEVEL</span></div>
+<pre class="dia">
+<span class="ca b">COMMAND SIDE (Strong)</span>                        <span class="cc b">QUERY SIDE (Eventually Consistent)</span>
+
+<span class="ca">┌──────────────────────┐</span>                     <span class="cc">┌──────────────────────┐</span>
+<span class="ca">│ ReserveInventory     │</span>                     <span class="cc">│ GetAvailability      │</span>
+<span class="ca">│ DecrementStock       │</span>                     <span class="cc">│ SearchProducts       │</span>
+<span class="ca">│ AdjustInventory      │</span>                     <span class="cc">│ GetAnalytics         │</span>
+<span class="ca">└──────────┬───────────┘</span>                     <span class="cc">└──────────┬───────────┘</span>
+           <span class="ca">▼</span>                                            <span class="cc">▼</span>
+<span class="ca">┌──────────────────────┐</span>                     <span class="cc">┌──────────────────────┐</span>
+<span class="ca">│ Command Handler      │</span>                     <span class="cc">│ Query Router         │</span>
+<span class="ca">│ ┌──────────────────┐ │</span>                     <span class="cc">│ ┌──────────────────┐ │</span>
+<span class="ca">│ │ Hot path:        │ │</span>                     <span class="cc">│ │ Redis     &lt;1ms   │ │</span>
+<span class="ca">│ │ Redis DECR       │ │</span>                     <span class="cc">│ │ OpenSearch ~50ms  │ │</span>
+<span class="ca">│ │ Cold path:       │ │</span>                     <span class="cc">│ │ ClickHouse ~200ms │ │</span>
+<span class="ca">│ │ PG optimistic    │ │</span>                     <span class="cc">│ └──────────────────┘ │</span>
+<span class="ca">│ └──────────────────┘ │</span>                     <span class="cc">└──────────────────────┘</span>
+<span class="ca">└──────────┬───────────┘</span>                                <span class="cg">▲</span>
+           <span class="ca">│</span> write + emit                               <span class="cg">│</span> project
+           <span class="ca">▼</span>                                            <span class="cg">│</span>
+<span class="ca">╔══════════════════════╗</span>                     <span class="cg">┌──────────┴───────────┐</span>
+<span class="ca">║ PostgreSQL           ║</span>── emit event ──→  <span class="cg">│ Kafka: inv-events    │</span>
+<span class="ca">║ Source of Truth      ║</span>                     <span class="cg">│ partition: SKU hash  │</span>
+<span class="ca">╚══════════════════════╝</span>                     <span class="cg">└──────────────────────┘</span>
+
+<span class="cr b">TWO-PHASE RESERVATION</span>
+<span class="cm">available = on_hand - soft_reserved - hard_reserved</span>
+<span class="cm">Soft reserve: tentative, TTL 15min, auto-expire if not confirmed</span>
+<span class="cm">Hard reserve: committed at pick start, subtracted from available</span>
+</pre>
+</div>
+
+<h3>Redis DECR — The Atomic Inventory Guard</h3>
+<p>Redis <code>DECR</code> is a single atomic operation that decrements a key and returns the new value. Redis is single-threaded — all commands serialize at the server level. No locks needed. If <code>DECR inventory:SKU-A:available</code> returns ≥ 0, the reservation succeeded. If negative (oversold), immediately <code>INCR</code> back and return out-of-stock. ~0.1ms per operation vs ~5-15ms for PostgreSQL <code>SELECT ... FOR UPDATE</code>.</p>
+
+<h3>The Hybrid Approach</h3>
+<p>Redis as "fast gate" (handles burst, rejects oversells in sub-ms), PostgreSQL as "durable commit" (optimistic lock, event store append). Brief consistency window where Redis has decremented but PG hasn't committed — mitigated by TTL-based soft reservations and periodic reconciliation.</p>
+
+<a class="ref" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs" target="_blank">Microsoft — CQRS Pattern</a>
+<a class="ref" href="https://engineering.salesforce.com/event-sourcing-for-an-inventory-availability-solution-3cc0daf5a742/" target="_blank">Salesforce — Event Sourcing for Inventory</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: EVENT SOURCING -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="eventsource">
+<div class="sec-h"><span class="sec-n">11</span><h2>Deep Dive — Event Sourcing Audit Trail</h2></div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">event_store_schema.arch</span><span class="badge" style="background:rgba(251,146,60,.12);color:var(--orange)">MID LEVEL</span></div>
+<pre class="dia">
+<span class="ca b">EVENT STORE SCHEMA (PostgreSQL)</span>
+
+<span class="ca">╔══════════════════════════════════════════════════════════════╗</span>
+<span class="ca">║  events                                                      ║</span>
+<span class="ca">║  ├─ global_position   BIGSERIAL   (total order, projections) ║</span>
+<span class="ca">║  ├─ stream_id         TEXT        ("order-ORD-8472")         ║</span>
+<span class="ca">║  ├─ stream_position   INT         (per-aggregate sequence)   ║</span>
+<span class="ca">║  ├─ event_type        TEXT        ("ItemPicked")             ║</span>
+<span class="ca">║  ├─ data              JSONB       (event payload)            ║</span>
+<span class="ca">║  ├─ metadata          JSONB       (user_id, correlation_id)  ║</span>
+<span class="ca">║  ├─ created_at        TIMESTAMPTZ (NTP-synced)               ║</span>
+<span class="ca">║  ├─ prev_hash         TEXT        (SHA-256 chain link)       ║</span>
+<span class="ca">║  │                                                           ║</span>
+<span class="ca">║  UNIQUE (stream_id, stream_position) ← optimistic concurr.  ║</span>
+<span class="ca">║  REVOKE UPDATE, DELETE              ← immutability enforced  ║</span>
+<span class="ca">╚══════════════════════════════════════════════════════════════╝</span>
+
+<span class="cc b">ITEM CHAIN OF CUSTODY</span>
+
+<span class="cg">ItemReceived</span> → <span class="cg">ItemInspected</span> → <span class="ca">ItemPutaway</span> → <span class="cp">ItemReserved</span>
+                                                   <span class="cm">│</span>
+   <span class="cr">ItemPicked</span> ← ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘
+      <span class="cm">│</span>
+   <span class="cb">ItemPacked</span> → <span class="co">ItemLabeled</span> → <span class="cc">ItemShipped</span> → <span class="cg">ItemDelivered</span>
+
+<span class="cp b">SNAPSHOT STRATEGY</span>  <span class="cm">Every ~100 events per aggregate</span>
+<span class="cm">Rehydrate: load snapshot@200 + fold events #201-#247 (47 replays vs 247)</span>
+
+<span class="cr b">ARCHIVAL</span>
+<span class="cm">PostgreSQL (hot: 90 days) → S3 Parquet + Object Lock (WORM: 7yr) → Glacier</span>
+</pre>
+</div>
+
+<p><strong>Point-in-time queries</strong> are the killer feature: "What was inventory of SKU-X at warehouse Y on December 15 at 3pm?" — answered by replaying events up to that timestamp. Impossible with traditional CRUD.</p>
+
+<p><strong>Tamper-proof logging</strong> uses cryptographic hash chaining — each event includes the SHA-256 hash of the previous event. Any modification breaks the chain. Combined with WORM storage (S3 Object Lock), this satisfies FDA 21 CFR Part 11 audit trail requirements.</p>
+
+<a class="ref" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing" target="_blank">Microsoft — Event Sourcing Pattern</a>
+<a class="ref" href="https://martinfowler.com/eaaDev/EventSourcing.html" target="_blank">Martin Fowler — Event Sourcing</a>
+<a class="ref" href="https://dev.to/tim_derzhavets/building-a-production-ready-event-store-in-postgresql-schema-design-projections-and-replay-25o8" target="_blank">DEV — Production Event Store in PostgreSQL</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: TEMPORAL -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="temporal">
+<div class="sec-h"><span class="sec-n">12</span><h2>Deep Dive — Temporal.io Durable Workflow Execution</h2></div>
+
+<p><strong>Nimble uses Temporal.io in production and is actively expanding it across their stack.</strong> This is the most important technology signal for the interview.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">temporal_workflow.arch</span><span class="badge" style="background:rgba(34,211,238,.12);color:var(--cyan)">MID LEVEL</span></div>
+<pre class="dia">
+<span class="cc b">TEMPORAL FULFILLMENT WORKFLOW</span>
+
+<span class="cg">Order Svc</span> ─── start workflow ───→ <span class="cc">Temporal Server</span> ─── task queue ───→ <span class="cp">Workers</span>
+                WorkflowId=orderId    History Service      poll + execute
+                                      (~10K shards)
+
+<span class="cp b">WORKER ACTIVITIES</span>                                <span class="cp b">TEMPORAL CONCEPTS USED</span>
+<span class="cm">──────────────────────────────────</span>                <span class="cm">──────────────────────────</span>
+<span class="cg">reserveInventory()</span>   retry:3x,5s backoff          <span class="cc">WorkflowId</span> = orderId (unique)
+<span class="cg">createPickTasks()</span>    retry:3x                      <span class="cc">Signals</span> for scan events
+<span class="ca">executePhysicalPick()</span> <span class="cw b">heartbeat:30s</span>                <span class="cc">Heartbeats</span> for long picks
+<span class="ca">  ↑ heartbeat progress (items picked so far)</span>      <span class="cc">Queries</span> for status reads
+<span class="ca">  ↑ on crash: new worker resumes from last</span>        <span class="cc">Child workflows</span> for splits
+<span class="cp">cartonizeAndPack()</span>   retry:2x
+<span class="cb">generateLabel()</span>      retry:5x, alt carrier
+<span class="co">shipAndManifest()</span>    retry:3x
+<span class="cg">writeBackToChannel()</span> retry:5x
+
+<span class="cr b">SAGA COMPENSATION IN CODE</span>
+
+<span class="cm">compensations = []</span>
+<span class="cm">try:</span>
+<span class="cm">    await execute_activity(reserve_inventory, order)</span>
+<span class="cm">    compensations.append(release_inventory)</span>
+<span class="cm">    await execute_activity(pick_items, order)</span>
+<span class="cm">    compensations.append(return_items_to_bin)</span>
+<span class="cm">    # ... continue through pack, label, ship</span>
+<span class="cm">except ActivityFailure:</span>
+<span class="cm">    for compensation in reversed(compensations):</span>
+<span class="cm">        await execute_activity(compensation, order)</span>
+
+<span class="ca b">CRASH RECOVERY</span>
+
+  Worker A: T1 (reserve) ─→ T2 (pick tasks) ─→ <span class="crd b">CRASH</span>
+  Worker B: <span class="cg">replays Event History</span>
+      T1 result from history (no re-execution)
+      T2 result from history (no re-execution)
+      Continues with T3 (assign robot)
+</pre>
+</div>
+
+<h3>Temporal vs Step Functions vs Cadence</h3>
+<table class="dt">
+<tr><th>Feature</th><th>Temporal.io</th><th>AWS Step Functions</th><th>Cadence (Uber)</th></tr>
+<tr><td>Language</td><td>Go/Python/Java/TS/Rust</td><td>JSON (ASL)</td><td>Go/Java only</td></tr>
+<tr><td>Max duration</td><td>Unlimited</td><td>1 year (Standard)</td><td>Unlimited</td></tr>
+<tr><td>Signals</td><td>Native</td><td>Not supported</td><td>Native</td></tr>
+<tr><td>Heartbeats</td><td>Native</td><td>Not supported</td><td>Native</td></tr>
+<tr><td>Saga pattern</td><td>Natural in code</td><td>Catch/Retry states</td><td>Natural in code</td></tr>
+<tr><td>Vendor lock-in</td><td>Open source</td><td>AWS only</td><td>Uber internal</td></tr>
+<tr><td>Cost at scale</td><td>~$2-4K/mo (Cloud)</td><td>$25K+/mo at 50K/day</td><td>Self-host only</td></tr>
+</table>
+
+<a class="ref" href="https://docs.temporal.io/workflows" target="_blank">Temporal — Workflow docs</a>
+<a class="ref" href="https://temporal.io/resources/case-studies/instacart-simplifies-complex-workflows" target="_blank">Temporal — Instacart case study</a>
+<a class="ref" href="https://www.readysetcloud.io/blog/allen.helton/step-functions-vs-temporal/" target="_blank">Step Functions vs Temporal comparison</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: MRTA -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="mrta">
+<div class="sec-h"><span class="sec-n">13</span><h2>Deep Dive — MRTA Auction Algorithm</h2></div>
+
+<p>Multi-Robot Task Allocation treats task assignment as a market: each robot bids on tasks, and the fleet manager awards to the lowest-cost bidder.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">mrta_auction.arch</span><span class="badge" style="background:rgba(20,184,166,.12);color:var(--teal)">MID LEVEL</span></div>
+<pre class="dia">
+<span class="cw b">AUCTION-BASED MRTA — per pick task</span>
+
+  Task arrives: "Pick 2× SKU-A from Bin A-12"
+       <span class="cm">│</span>
+       <span class="cm">▼</span> broadcast to all idle robots
+  <span class="cc">┌─────────────────────────────────────────────────────┐</span>
+  <span class="cc">│</span>  <span class="cc b">BID FORMULA (per robot)</span>                              <span class="cc">│</span>
+  <span class="cc">│</span>                                                       <span class="cc">│</span>
+  <span class="cc">│</span>  bid = w1 × <span class="cg">distance_to_bin</span>                            <span class="cc">│</span>
+  <span class="cc">│</span>       + w2 × <span class="ca">(1 / battery_pct)</span>                        <span class="cc">│</span>
+  <span class="cc">│</span>       + w3 × <span class="cr">gripper_compat_penalty</span>                    <span class="cc">│</span>
+  <span class="cc">│</span>       + w4 × <span class="cp">current_load_factor</span>                       <span class="cc">│</span>
+  <span class="cc">│</span>       + w5 × <span class="co">zone_affinity_penalty</span>                     <span class="cc">│</span>
+  <span class="cc">│</span>                                                       <span class="cc">│</span>
+  <span class="cc">│</span>  <span class="co">zone_penalty</span> = BASE × (1 - overflow_ratio)           <span class="cc">│</span>
+  <span class="cc">│</span>  <span class="cm">// when zone is overloaded, penalty shrinks</span>          <span class="cc">│</span>
+  <span class="cc">│</span>  <span class="cm">// → cross-zone bids become affordable</span>               <span class="cc">│</span>
+  <span class="cc">└─────────────────────────────────────────────────────┘</span>
+
+  <span class="cg">R-042</span>  dist:12m bat:78% grip:OK  load:0 zone:A → <span class="cg b">bid: 6.7 ★ WINNER</span>
+  <span class="ca">R-017</span>  dist:34m bat:92% grip:OK  load:1 zone:B → <span class="ca">bid: 14.9</span>
+  <span class="cr">R-088</span>  dist:8m  bat:22% grip:OK  load:0 zone:A → <span class="cr">bid: 28.4 (low battery)</span>
+  <span class="cp">R-063</span>  dist:45m bat:85% grip:FAIL load:2 zone:C → <span class="cp">bid: 999 (disqualified)</span>
+
+<span class="cw b">RUNS ON EDGE (fog cluster), NOT CLOUD</span>
+<span class="cm">Reason: needs sub-10ms access to robot state (in-memory, 100ms refresh)</span>
+<span class="cm">Cloud round-trip (40-80ms) would make bids stale and collision avoidance dangerous</span>
+</pre>
+</div>
+
+<p><strong>Zone affinity</strong> uses soft penalties rather than hard assignments. Each robot has a home zone that biases its bid downward. When a zone is overloaded (more pending tasks than idle robots), the penalty shrinks, automatically pulling in help from neighboring zones. Steady state: ~80% intra-zone, 20% cross-zone.</p>
+
+<a class="ref" href="https://www.roboticsproceedings.org/rss09/p33.pdf" target="_blank">RSS — Optimal Market-Based MRTA</a>
+<a class="ref" href="https://locusrobotics.com/locusone" target="_blank">Locus Robotics — Fleet Management</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: DATABASE SCHEMA -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="db">
+<div class="sec-h"><span class="sec-n">14</span><h2>Low-Level — Database Schema</h2></div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">core_schema.sql</span><span class="badge" style="background:rgba(52,211,153,.12);color:var(--green)">LOW LEVEL</span></div>
+<pre class="dia">
+<span class="cg b">orders</span>                          <span class="ca b">order_line_items</span>            <span class="cp b">tasks</span>
+<span class="cm">─────────────────────</span>           <span class="cm">─────────────────────</span>       <span class="cm">─────────────────────────</span>
+<span class="cg">id</span>           UUID PK             <span class="ca">id</span>           UUID PK        <span class="cp">id</span>            UUID PK
+<span class="cg">channel</span>      TEXT                <span class="ca">order_id</span>     UUID FK        <span class="cp">order_id</span>      UUID FK
+<span class="cg">channel_id</span>   TEXT                <span class="ca">sku</span>          TEXT           <span class="cp">task_type</span>     ENUM(PICK,PACK,
+<span class="cg">status</span>       ENUM                <span class="ca">quantity</span>     INT                           LABEL,SHIP)
+<span class="cg">raw_payload</span>  JSONB               <span class="ca">unit_price</span>   DECIMAL        <span class="cp">status</span>        ENUM
+<span class="cg">ship_addr</span>    JSONB               <span class="ca">fulfillment</span>  ENUM           <span class="cp">robot_id</span>      TEXT NULLABLE
+<span class="cg">priority</span>     INT                                              <span class="cp">bin_location</span>  TEXT
+<span class="cg">created_at</span>   TIMESTAMPTZ                                      <span class="cp">depends_on</span>    UUID[] (DAG)
+<span class="cm">UNIQUE(channel, channel_id)</span>                                    <span class="cp">heartbeat_at</span>  TIMESTAMPTZ
+
+<span class="cr b">inventory_levels</span>                <span class="co b">reservations</span>                <span class="cc b">bin_locations</span>
+<span class="cm">─────────────────────</span>           <span class="cm">─────────────────────</span>       <span class="cm">─────────────────────────</span>
+<span class="cr">sku</span>              TEXT PK         <span class="co">id</span>           UUID PK        <span class="cc">bin_id</span>        TEXT PK
+<span class="cr">warehouse_id</span>     TEXT PK         <span class="co">order_id</span>     UUID FK        <span class="cc">warehouse_id</span>  TEXT
+<span class="cr">bin_location</span>     TEXT PK FK      <span class="co">sku</span>          TEXT           <span class="cc">zone</span>          ENUM(A,B,C,Q)
+<span class="cr">qty_on_hand</span>      INT             <span class="co">quantity</span>     INT            <span class="cc">aisle</span>         TEXT
+<span class="cr">qty_reserved_soft</span> INT            <span class="co">type</span>         ENUM(SOFT,HARD)<span class="cc">rack</span>          INT
+<span class="cr">qty_reserved_hard</span> INT            <span class="co">expires_at</span>   TIMESTAMPTZ    <span class="cc">shelf_level</span>   INT
+<span class="cr">qty_incoming</span>     INT             <span class="co">status</span>       ENUM           <span class="cc">bin_type</span>      ENUM
+<span class="cr">version</span>          INT                                          <span class="cc">max_capacity</span>  INT
+<span class="cr">last_counted_at</span>  TIMESTAMPTZ                                  <span class="cc">x_coord</span>       FLOAT
+                                                                <span class="cc">y_coord</span>       FLOAT
+
+<span class="ca b">events</span> (event store)             <span class="cg b">sku_velocity</span>
+<span class="cm">─────────────────────────</span>       <span class="cm">─────────────────────</span>
+<span class="ca">global_position</span>  BIGSERIAL       <span class="cg">sku</span>          TEXT PK
+<span class="ca">stream_id</span>        TEXT            <span class="cg">warehouse_id</span> TEXT PK
+<span class="ca">stream_position</span>  INT             <span class="cg">picks_30d</span>    INT
+<span class="ca">event_type</span>       TEXT            <span class="cg">velocity_class</span> ENUM(A,B,C)
+<span class="ca">data</span>             JSONB           <span class="cg">updated_at</span>   TIMESTAMPTZ
+<span class="ca">metadata</span>         JSONB
+<span class="ca">prev_hash</span>        TEXT
+<span class="ca">created_at</span>       TIMESTAMPTZ
+<span class="cm">UNIQUE(stream_id, stream_pos)</span>
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: INVENTORY WRITE PATH -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="inv-write">
+<div class="sec-h"><span class="sec-n">15</span><h2>Low-Level — Inventory Write Path</h2></div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">inventory_write_path.arch</span><span class="badge" style="background:rgba(251,191,36,.12);color:var(--amber)">LOW LEVEL</span></div>
+<pre class="dia">
+<span class="cw b">HYBRID WRITE PATH — Checkout Reservation</span>
+
+  Client ──→ <span class="cg">ReserveInventory(SKU-A, qty=2, orderId)</span>
+                  <span class="cm">│</span>
+                  <span class="cm">▼</span>
+      <span class="cc">┌────────────────────────────────────┐</span>
+      <span class="cc">│ Step 1: Redis DECR (fast gate)     │</span>  <span class="cm">~0.1ms, atomic</span>
+      <span class="cc">│                                    │</span>
+      <span class="cc">│ DECR inventory:SKU-A:available     │</span>
+      <span class="cc">│ result >= 0 → proceed              │</span>
+      <span class="cc">│ result < 0  → INCR back, return OOS│</span>
+      <span class="cc">└──────────────┬─────────────────────┘</span>
+                     <span class="cm">│</span> async
+                     <span class="cm">▼</span>
+      <span class="ca">┌────────────────────────────────────┐</span>
+      <span class="ca">│ Step 2: PostgreSQL (durable commit)│</span>  <span class="cm">~5-15ms</span>
+      <span class="ca">│                                    │</span>
+      <span class="ca">│ BEGIN;                             │</span>
+      <span class="ca">│ UPDATE inventory_levels            │</span>
+      <span class="ca">│   SET qty_reserved_soft += 2,      │</span>
+      <span class="ca">│       version = version + 1        │</span>
+      <span class="ca">│   WHERE sku='SKU-A'               │</span>
+      <span class="ca">│   AND version = :expected;         │</span>  <span class="cm">← optimistic lock</span>
+      <span class="ca">│                                    │</span>
+      <span class="ca">│ INSERT INTO reservations(...)      │</span>
+      <span class="ca">│   VALUES(..., 'SOFT',              │</span>
+      <span class="ca">│     now()+interval '15 min');      │</span>  <span class="cm">← TTL auto-expire</span>
+      <span class="ca">│                                    │</span>
+      <span class="ca">│ INSERT INTO events(...)            │</span>  <span class="cm">← event sourced</span>
+      <span class="ca">│ COMMIT;                            │</span>
+      <span class="ca">└──────────────┬─────────────────────┘</span>
+                     <span class="cm">│</span> emit
+                     <span class="cm">▼</span>
+      <span class="cg">┌────────────────────────────────────┐</span>
+      <span class="cg">│ Kafka: InventoryReserved event     │</span>
+      <span class="cg">│ → Redis projector updates cache    │</span>
+      <span class="cg">│ → OpenSearch projector updates idx │</span>
+      <span class="cg">│ → ClickHouse projector updates OLAP│</span>
+      <span class="cg">└────────────────────────────────────┘</span>
+
+<span class="cr b">SOFT → HARD PROMOTION (at pick start)</span>
+<span class="cm">UPDATE reservations SET type='HARD' WHERE order_id=:id;</span>
+<span class="cm">UPDATE inventory_levels SET qty_reserved_soft -= 2, qty_reserved_hard += 2;</span>
+
+<span class="ca b">TTL REAPER (cron 60s)</span>
+<span class="cm">Release expired soft reservations, INCR Redis back</span>
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: ROBOT STATE MACHINE -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="robot-fsm">
+<div class="sec-h"><span class="sec-n">16</span><h2>Low-Level — Robot Fleet State Machine</h2></div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">robot_state_machine.arch</span><span class="badge" style="background:rgba(244,114,182,.12);color:var(--rose)">LOW LEVEL</span></div>
+<pre class="dia">
+<span class="cw b">ROBOT LIFECYCLE STATE MACHINE</span>
+
+              <span class="cg">task_assigned</span>
+<span class="cg">╔════════════╗</span> ────────────→ <span class="ca">╔════════════╗</span>
+<span class="cg">║    IDLE    ║</span>               <span class="ca">║  ASSIGNED  ║</span>
+<span class="cg">║ available  ║</span>               <span class="ca">║ task queued ║</span>
+<span class="cg">╚═════╤══════╝</span>               <span class="ca">╚═════╤══════╝</span>
+      <span class="cm">│</span>                             <span class="cm">│</span> navigate_start
+      <span class="cm">│</span> battery_low                  <span class="cm">▼</span>
+      <span class="cm">│</span>                       <span class="cp">╔════════════╗</span>
+      <span class="cm">▼</span>                       <span class="cp">║ TRAVELING  ║</span>  <span class="cm">path planning, traffic mgmt</span>
+<span class="cc">╔════════════╗</span>              <span class="cp">╚═════╤══════╝</span>
+<span class="cc">║ CHARGING   ║</span>                    <span class="cm">│</span> arrived_at_bin
+<span class="cc">║ (at dock)  ║</span>                    <span class="cm">▼</span>
+<span class="cc">╚═════╤══════╝</span>              <span class="cr">╔════════════╗</span>
+      <span class="cm">│</span> charged               <span class="cr">║  PICKING   ║</span>  <span class="cm">deep imitation learning</span>
+      <span class="cm">└──→ IDLE ←──┐</span>         <span class="cr">╚═════╤══════╝</span>  <span class="cm">heartbeat → Temporal</span>
+                   <span class="cm">│</span>              <span class="cm">│</span> pick_complete
+                   <span class="cm">│</span>              <span class="cm">▼</span>
+                   <span class="cm">│</span>        <span class="cb">╔════════════╗</span>
+                   <span class="cm">└────────</span><span class="cb">║ DELIVERING ║</span>  <span class="cm">to pack station</span>
+                            <span class="cb">╚════════════╝</span>
+
+<span class="crd b">ERROR</span>: Any State → ERROR → auto-reassign task to nearest idle robot
+<span class="cm">Triggers: hardware_fault, collision_detected, pick_impossible</span>
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: SHIPPING -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="shipping">
+<div class="sec-h"><span class="sec-n">17</span><h2>Low-Level — Shipping & Label Generation</h2></div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">shipping_flow.arch</span><span class="badge" style="background:rgba(77,142,247,.12);color:var(--blue)">LOW LEVEL</span></div>
+<pre class="dia">
+  <span class="cp">Packed Carton</span> ─→ POST /shipments {from, to, parcel} ─→ <span class="cb">EasyPost API</span>
+                                                              <span class="cm">│</span>
+                                                              <span class="cm">▼</span>
+                                                     <span class="cb">┌─────────────────┐</span>
+                                                     <span class="cb">│ RATE SHOPPING    │</span>
+                                                     <span class="cb">│                 │</span>
+                                                     <span class="cb">│ UPS Ground $8.42│</span>
+                                                     <span class="cb">│ FedEx    $7.98  │</span> <span class="cm">← SmartRate AI</span>
+                                                     <span class="cb">│ USPS     $9.15  │</span>
+                                                     <span class="cb">│                 │</span>
+                                                     <span class="cb">│ Pick: FedEx     │</span> <span class="cm">lowest cost ≤ SLA</span>
+                                                     <span class="cb">└────────┬────────┘</span>
+                                                              <span class="cm">│</span> buy
+                                                              <span class="cm">▼</span>
+                    <span class="cm">┌────────────┬────────────┬───────────┐</span>
+                    <span class="cm">▼            ▼            ▼           ▼</span>
+             <span class="cp">Print ZPL</span>   <span class="cg">Shopify</span>    <span class="cc">EasyPost</span>   <span class="ca">EOD</span>
+             <span class="cp">label</span>       <span class="cg">write-back</span> <span class="cc">tracker</span>    <span class="ca">manifest</span>
+</pre>
+</div>
+
+<a class="ref" href="https://www.easypost.com/getting-started" target="_blank">EasyPost — Getting Started</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: INBOUND -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="inbound">
+<div class="sec-h"><span class="sec-n">18</span><h2>Low-Level — Inbound: Receiving → QC → Putaway</h2></div>
+
+<p>The inflow side creates bin-level inventory truth. If receiving and putaway are wrong, every downstream pick fails.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">inbound_pipeline.arch</span><span class="badge" style="background:rgba(167,139,250,.12);color:var(--purple)">LOW LEVEL</span></div>
+<pre class="dia">
+<span class="cm">Brand/Supplier</span>
+      <span class="cm">│</span> ASN via API/EDI (PO, SKU list, qty expected, ETA)
+      <span class="cm">▼</span>
+<span class="ct">┌────────────────────────────────────────────────────┐</span>
+<span class="ct">│ Phase 1: ASN</span> — create expected_receipts (PENDING)   <span class="ct">│</span>  <span class="cm">→ ShipmentExpected event</span>
+<span class="ct">└──────────────────────┬─────────────────────────────┘</span>
+                       <span class="cm">▼</span>
+<span class="co">┌────────────────────────────────────────────────────┐</span>
+<span class="co">│ Phase 2: Dock Receiving</span> — scan barcodes vs ASN     <span class="co">│</span>  <span class="cm">→ ItemReceived event</span>
+<span class="co">│</span> Match → OK | Mismatch → flag short/overage/damage   <span class="co">│</span>
+<span class="co">└──────────────────────┬─────────────────────────────┘</span>
+                       <span class="cm">▼</span>
+<span class="cp">┌────────────────────────────────────────────────────┐</span>
+<span class="cp">│ Phase 3: QC Inspection</span> — configurable per brand    <span class="cp">│</span>  <span class="cm">→ ItemInspected event</span>
+<span class="cp">│</span> Pass → INSPECTED | Fail → QUARANTINE                <span class="cp">│</span>
+<span class="cp">└──────────────────────┬─────────────────────────────┘</span>
+                       <span class="cm">▼</span>
+<span class="ca">┌────────────────────────────────────────────────────┐</span>
+<span class="ca">│ Phase 4: Putaway</span> — velocity-based zone assignment  <span class="ca">│</span>  <span class="cm">→ ItemPutaway event</span>
+<span class="ca">│</span>                                                      <span class="ca">│</span>
+<span class="ca">│</span> 1. Determine velocity: A (fast) / B (med) / C (slow) <span class="ca">│</span>
+<span class="ca">│</span> 2. Filter bins: correct zone + capacity + type       <span class="ca">│</span>
+<span class="ca">│</span> 3. Score: same-SKU bin, near pack, less full         <span class="ca">│</span>
+<span class="ca">│</span> 4. Assign + reserve slot (qty_incoming += N)         <span class="ca">│</span>
+<span class="ca">│</span> 5. Robot carries to bin, scan confirm                <span class="ca">│</span>
+<span class="ca">│</span> 6. qty_on_hand += N, qty_incoming -= N               <span class="ca">│</span>
+<span class="ca">└────────────────────────────────────────────────────┘</span>
+
+<span class="cr b">CYCLE COUNTING</span> <span class="cm">(reconciliation)</span>
+<span class="cm">Triggers: Zone A daily, B weekly, C monthly + pick failures + bin untouched 30d</span>
+<span class="cm">Robot counts bin → compare system vs physical → emit InventoryAdjusted event</span>
+<span class="cm">Event sourcing enables forensic replay to find WHEN drift occurred</span>
+</pre>
+</div>
+
+<div class="co-box insight"><strong>Chaotic Putaway (Amazon Strategy)</strong>Intentionally spread SKUs across multiple bins to reduce pick contention. If 200 units are in one bin, 5 simultaneous orders create a traffic jam. Spread across 4 bins, robots pick in parallel.</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: AWS DEPLOYMENT -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="aws">
+<div class="sec-h"><span class="sec-n">19</span><h2>AWS Production Deployment</h2></div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">aws_deployment.arch</span><span class="badge" style="background:rgba(251,146,60,.12);color:var(--orange)">INFRA</span></div>
+<pre class="dia">
+<span class="cm">Internet</span>
+   <span class="cm">│</span>
+<span class="cm">┌──┴──────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>  <span class="cw b">Route 53 → CloudFront → ALB → WAF</span>                                <span class="cm">│</span>
+<span class="cm">└──┬──────────────────────────────────────────────────────────────────┘</span>
+   <span class="cm">▼</span>
+<span class="cm">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span> <span class="cw b">VPC — 10.0.0.0/16 — multi-AZ (us-east-1a, 1b, 1c)</span>                <span class="cm">│</span>
+<span class="cm">│</span>                                                                     <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cp">EKS/ECS Cluster — Application Services</span>                            <span class="cm">│</span>
+<span class="cm">│</span>  <span class="ct">┌─────────┐┌──────────┐┌───────────┐┌─────────┐┌──────────┐</span>     <span class="cm">│</span>
+<span class="cm">│</span>  <span class="ct">│ Order   ││ Inventory││ Fulfill.  ││ Ship    ││ Notif/   │</span>     <span class="cm">│</span>
+<span class="cm">│</span>  <span class="ct">│ Ingest  ││ CQRS     ││ Temporal  ││ Service ││ Analytics│</span>     <span class="cm">│</span>
+<span class="cm">│</span>  <span class="ct">└─────────┘└──────────┘└───────────┘└─────────┘└──────────┘</span>     <span class="cm">│</span>
+<span class="cm">│</span>                                                                     <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">Infrastructure Services (Managed)</span>                                  <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">┌──────────────┐ ┌──────────────┐ ┌───────────────┐</span>              <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">│ Temporal     │ │ MSK (Kafka)  │ │ ElastiCache   │</span>              <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">│ Cloud        │ │ 3 brokers    │ │ Redis 3-shard │</span>              <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">└──────────────┘ └──────────────┘ └───────────────┘</span>              <span class="cm">│</span>
+<span class="cm">│</span>                                                                     <span class="cm">│</span>
+<span class="cm">│</span>  <span class="ca">Data Stores (Managed, Multi-AZ, automated backups)</span>                <span class="cm">│</span>
+<span class="cm">│</span>  <span class="ca">┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐</span><span class="cm">│</span>
+<span class="cm">│</span>  <span class="ca">│ RDS PG   │ │ ScyllaDB │ │ OpenSrch │ │ S3+Glacr │ │ Secrets │</span><span class="cm">│</span>
+<span class="cm">│</span>  <span class="ca">│ r6g.xl   │ │ i3.xl EC2│ │ 3 nodes  │ │ WORM     │ │ Manager │</span><span class="cm">│</span>
+<span class="cm">│</span>  <span class="ca">└──────────┘ └──────────┘ └──────────┘ └──────────┘ └─────────┘</span><span class="cm">│</span>
+<span class="cm">│</span>                                                                     <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cr">Edge Connection</span>                                                    <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cr">┌──────────────────┐  ┌──────────────────┐</span>                       <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cr">│ IoT Core (MQTT)  │  │ Site-to-Site VPN │</span>                       <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cr">│ Robot telemetry  │  │ FC edge → VPC    │</span>                       <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cr">└──────────────────┘  └──────────────────┘</span>                       <span class="cm">│</span>
+<span class="cm">└─────────────────────────────────────────────────────────────────────┘</span>
+
+<span class="cw b">Estimated cost: ~$15-20K/month</span> <span class="cm">(&lt;1% of revenue at 50K orders/day)</span>
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: ECS vs EKS -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="ecs-eks">
+<div class="sec-h"><span class="sec-n">20</span><h2>ECS vs EKS Decision Framework</h2></div>
+
+<p>Default to ECS on Fargate (minimum ops). Choose EKS only when hard dependencies force it.</p>
+
+<table class="dt">
+<tr><th>Factor</th><th>ECS</th><th>EKS</th></tr>
+<tr><td>Temporal workers</td><td>Works, but all guides target K8s</td><td style="color:var(--green)">Native Helm chart, operators</td></tr>
+<tr><td>Service mesh (Istio)</td><td style="color:var(--red)">Not available. App Mesh only</td><td style="color:var(--green)">First-class Istio support</td></tr>
+<tr><td>K8s operators (ScyllaDB, Kafka)</td><td style="color:var(--red)">Not available</td><td style="color:var(--green)">Full operator ecosystem</td></tr>
+<tr><td>Ops overhead</td><td style="color:var(--green)">Near-zero (Fargate)</td><td style="color:var(--red)">K8s upgrades 3x/year, CRD mgmt</td></tr>
+<tr><td>Control plane cost</td><td style="color:var(--green)">Free</td><td>~$73/month</td></tr>
+<tr><td>Vendor portability</td><td style="color:var(--red)">AWS-locked</td><td style="color:var(--green)">Runs on GKE, AKS, on-prem</td></tr>
+</table>
+
+<div class="co-box staff"><strong>Interview Framing</strong>"My default is ECS Fargate — minimum ops, let the team focus on product. I'd choose EKS specifically because Nimble runs Temporal and benefits from the K8s operator ecosystem. If they used Temporal Cloud and all managed data stores, ECS would be equally valid."</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: FOG CLUSTER -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="fog">
+<div class="sec-h"><span class="sec-n">21</span><h2>Fog / Edge Cluster Architecture</h2></div>
+
+<p>A single edge server managing 200 robots is a massive SPOF. The fog cluster provides HA with 3-5 nodes per FC, managed by AWS IoT Greengrass.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">fog_cluster.arch</span><span class="badge" style="background:rgba(244,114,182,.12);color:var(--rose)">INFRA</span></div>
+<pre class="dia">
+<span class="cw b">FOG CLUSTER — per fulfillment center (3 nodes, 10GbE interconnect)</span>
+
+<span class="co">┌───────────────────┐</span>  <span class="cp">┌───────────────────┐</span>  <span class="ct">┌───────────────────┐</span>
+<span class="co">│ Node 1 (LEADER)   │</span>  <span class="cp">│ Node 2 (FOLLOWER) │</span>  <span class="ct">│ Node 3 (FOLLOWER) │</span>
+<span class="co">│                   │</span>  <span class="cp">│                   │</span>  <span class="ct">│                   │</span>
+<span class="co">│ Greengrass nucleus│</span>  <span class="cp">│ Greengrass nucleus│</span>  <span class="ct">│ Greengrass nucleus│</span>
+<span class="co">│ MQTT primary      │</span>  <span class="cp">│ MQTT replica      │</span>  <span class="ct">│ MQTT replica      │</span>
+<span class="co">│ etcd (Raft)       │</span>  <span class="cp">│ etcd (Raft)       │</span>  <span class="ct">│ etcd (Raft)       │</span>
+<span class="co">│                   │</span>  <span class="cp">│                   │</span>  <span class="ct">│                   │</span>
+<span class="co">│ MRTA auctioneer ★ │</span>  <span class="cp">│ Zone B fleet mgr  │</span>  <span class="ct">│ Zone C fleet mgr  │</span>
+<span class="co">│ Traffic coordinator│</span> <span class="cp">│ Zone B path plan  │</span>  <span class="ct">│ Zone C path plan  │</span>
+<span class="co">│ Zone A fleet mgr  │</span>  <span class="cp">│ Collision avoid.  │</span>  <span class="ct">│ Collision avoid.  │</span>
+<span class="co">│ Zone A path plan  │</span>  <span class="cp">│ Telemetry relay   │</span>  <span class="ct">│ Charging sched.   │</span>
+<span class="co">│ Task queue primary│</span>  <span class="cp">│ Vision inference  │</span>  <span class="ct">│ Vision inference   │</span>
+<span class="co">│ Vision inference  │</span>  <span class="cp">│                   │</span>  <span class="ct">│                   │</span>
+<span class="co">│ Robots: R1-R70    │</span>  <span class="cp">│ Robots: R71-R140  │</span>  <span class="ct">│ Robots: R141-R200 │</span>
+<span class="co">└───────────────────┘</span>  <span class="cp">└───────────────────┘</span>  <span class="ct">└───────────────────┘</span>
+
+<span class="cw b">DEPLOYMENT MODES:</span>
+  <span class="crd">Singleton</span>    (leader only): MRTA auctioneer, traffic coordinator, task queue
+  <span class="cb">Partitioned</span>  (one per zone): fleet manager, path planner
+  <span class="cg">Replicated</span>   (every node):  collision avoidance, telemetry relay, vision
+
+<span class="cw b">FAILOVER:</span> Node 1 dies → etcd elects Node 2 as leader (~2-3s)
+  Node 2 absorbs MRTA + traffic coordinator
+  Node 3 absorbs Zone A robots (MQTT reconnect ~2s)
+  Robots have 5-10s on-board obstacle avoidance during transition
+
+<span class="cw b">AWS PRODUCTS:</span>
+  <span class="cg">IoT Greengrass v2</span> — deploy containers to edge, local MQTT, offline ops
+  <span class="ca">EKS Anywhere</span>       — viable but heavy (full K8s on bare metal)
+  <span class="cr">ECS Anywhere</span>       — simpler but no leader election built-in
+  <span class="cm">Outposts</span>           — overkill ($250K+, solves data sovereignty not edge)
+</pre>
+</div>
+
+<a class="ref" href="https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html" target="_blank">AWS IoT Greengrass v2 docs</a>
+<a class="ref" href="https://anywhere.eks.amazonaws.com/docs/overview/" target="_blank">EKS Anywhere docs</a>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: ZONE AFFINITY -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="zones">
+<div class="sec-h"><span class="sec-n">22</span><h2>Robot Zone Affinity</h2></div>
+
+<p>Robots aren't hard-assigned to zones (destroys utilization) or free-roaming (creates congestion). <strong>Soft zone affinity</strong> biases MRTA bids toward the home zone, with demand-driven override when a zone is overloaded.</p>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">warehouse_floor.arch</span><span class="badge" style="background:rgba(20,184,166,.12);color:var(--teal)">INFRA</span></div>
+<pre class="dia">
+<span class="cm">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="cm">│</span>              <span class="cw b">WAREHOUSE FLOOR — Haslet TX (~80K sq ft)</span>            <span class="cm">│</span>
+<span class="cm">│</span>                                                                 <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">┌──────────────────┐</span>        <span class="cp">┌──────────────────────┐</span>       <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">│ Zone A (fast)    │</span>        <span class="cp">│ Zone B (medium)      │</span>       <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">│ ~100 robots home │</span>        <span class="cp">│ ~60 robots home      │</span>       <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">│ 50% of picks     │</span>        <span class="cp">│ 30% of picks         │</span>       <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">│ [chargers]       │</span>        <span class="cp">│ [chargers]           │</span>       <span class="cm">│</span>
+<span class="cm">│</span>  <span class="co">└──────────────────┘</span>        <span class="cp">└──────────────────────┘</span>       <span class="cm">│</span>
+<span class="cm">│</span>                                                                 <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cm">┌──────────────────┐</span>  <span class="ct">┌────────────┐</span>  <span class="ca">┌──────────────┐</span>    <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cm">│ Zone C (slow)    │</span>  <span class="ct">│ Pack       │</span>  <span class="ca">│ Ship / Dock  │</span>    <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cm">│ ~40 robots home  │</span>  <span class="ct">│ Stations   │</span>  <span class="ca">│ Receiving    │</span>    <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cm">│ 20% of picks     │</span>  <span class="ct">│ (6 pack)   │</span>  <span class="ca">│ Sortation    │</span>    <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cm">│ [chargers]       │</span>  <span class="ct">└────────────┘</span>  <span class="ca">└──────────────┘</span>    <span class="cm">│</span>
+<span class="cm">│</span>  <span class="cm">└──────────────────┘</span>                                          <span class="cm">│</span>
+<span class="cm">└─────────────────────────────────────────────────────────────────┘</span>
+<span class="cm">Pack stations placed centrally — multi-zone orders converge without cross-zone travel</span>
+<span class="cm">Velocity reclassification triggers physical SKU relocation (off-peak slot optimization)</span>
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: USER FLOWS -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="user-flows">
+<div class="sec-h"><span class="sec-n">23</span><h2>User Flows</h2></div>
+
+<h3>Flow 1: Happy Path — Customer Orders via Shopify</h3>
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">user_flow_happy_path.flow</span><span class="badge" style="background:rgba(52,211,153,.12);color:var(--green)">USER FLOW</span></div>
+<pre class="dia">
+<span class="cw b">ACTOR: Customer buying wireless earbuds on Brand X's Shopify store</span>
+
+<span class="cg">1. Customer</span> clicks "Buy Now" → Shopify processes payment
+<span class="cg">2. Shopify</span> fires orders/create webhook to nimble webhook endpoint
+<span class="ca">3. Ingestion Gateway</span> verifies HMAC, stores raw, ACKs 200 in 400ms
+<span class="ca">4. Normalization Worker</span> deduplicates, maps SKU, starts Temporal workflow
+<span class="cp">5. Temporal Workflow</span> calls reserveInventory() → Redis DECR succeeds
+<span class="cp">6. Temporal</span> calls createPickTasks() → single pick from Bin A-12
+<span class="cr">7. Cloud Fleet Mgr</span> publishes task to IoT Core → edge receives
+<span class="cr">8. Edge MRTA</span> auctions task → R-042 wins (closest, best battery)
+<span class="cr">9. R-042</span> navigates to Bin A-12 (~25s), picks earbuds (~8s)
+<span class="cr">10. R-042</span> scans barcode → edge sends completion signal → Temporal unblocks
+<span class="cb">11. R-042</span> delivers to pack station → robot packs → weight verify
+<span class="co">12. Temporal</span> calls generateLabel() → EasyPost FedEx Home $7.98
+<span class="co">13.</span> ZPL label printed, applied to box → sortation → carrier dock
+<span class="cc">14. Temporal</span> calls writeBackToChannel() → Shopify fulfillmentCreateV2
+<span class="cc">15. Customer</span> receives shipping confirmation email with tracking
+
+<span class="cm">Total: ~130 seconds from webhook to label. Events emitted: ~12</span>
+</pre>
+</div>
+
+<h3>Flow 2: Failure — Item Not Found at Bin</h3>
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">user_flow_pick_failure.flow</span><span class="badge" style="background:rgba(239,68,68,.12);color:var(--red)">FAILURE FLOW</span></div>
+<pre class="dia">
+<span class="cw b">SCENARIO: Robot arrives at Bin A-12, item not there (inventory drift)</span>
+
+<span class="cr">1. R-042</span> arrives at A-12, camera confirms bin empty / wrong item
+<span class="cr">2. R-042</span> reports pick_impossible to edge fleet manager
+<span class="co">3. Edge</span> publishes failure signal → Temporal activity fails
+<span class="ca">4. Temporal</span> <span class="cw b">forward recovery</span>: query inventory for alternate bins
+<span class="ca">5.</span> System finds SKU-A also in Bin A-18 (10 units available)
+<span class="ca">6.</span> Create new pick task for Bin A-18 → MRTA re-auctions
+<span class="cg">7. R-042</span> (still nearby) wins re-auction → picks from A-18 → success
+<span class="cp">8.</span> Parallel: trigger cycle count on Bin A-12
+<span class="cp">9.</span> Cycle count robot scans A-12 → discovers 0 units (system said 3)
+<span class="cp">10.</span> Emit InventoryAdjusted(A-12, SKU-A, 3→0, reason=CYCLE_COUNT)
+
+<span class="cm">Result: order fulfilled from alternate bin, drift detected and corrected</span>
+<span class="cm">Full saga rollback only if NO alternate bins have stock</span>
+</pre>
+</div>
+
+<h3>Flow 3: Brand Onboards New Product Line</h3>
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">user_flow_inbound.flow</span><span class="badge" style="background:rgba(167,139,250,.12);color:var(--purple)">INBOUND FLOW</span></div>
+<pre class="dia">
+<span class="cw b">SCENARIO: Brand sends first shipment of 500 units, 5 new SKUs</span>
+
+<span class="cp">1. Brand</span> creates PO in NetSuite → Nimble integration polls, creates ASN
+<span class="ct">2.</span> Product team maps brand SKUs → Nimble internal SKUs
+<span class="ct">3.</span> All 5 SKUs default to velocity class C (new, no history)
+<span class="co">4. Truck</span> arrives at Haslet TX dock → receiving worker scans barcodes
+<span class="co">5.</span> Each scan matched against ASN → 495 match, 5 damaged → quarantine
+<span class="ca">6. QC</span>: brand requires 100% inspection → all 495 pass
+<span class="ca">7. Putaway</span>: velocity C → Zone C bins. Chaotic spread across 8 bins
+<span class="ca">8.</span> Robots carry items to assigned bins, scan to confirm
+<span class="cg">9.</span> 495 ItemPutaway events → qty_on_hand updated → Redis/OpenSearch sync
+<span class="cg">10.</span> Products now searchable and available for sale
+
+<span class="cm">Week 2: SKU-X sells 200 units → Flink reclassifies to velocity A</span>
+<span class="cm">Off-peak: slot optimization workflow relocates SKU-X stock to Zone A bins</span>
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: E2E DATA FLOW -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="data-flow">
+<div class="sec-h"><span class="sec-n">24</span><h2>End-to-End Data Flow</h2></div>
+
+<div class="dg">
+<div class="dg-bar"><div class="dots"><div class="d" style="background:var(--red)"></div><div class="d" style="background:var(--amber)"></div><div class="d" style="background:var(--green)"></div></div><span class="lbl">e2e_data_flow.arch</span><span class="badge" style="background:rgba(52,211,153,.12);color:var(--green)">DATA FLOW</span></div>
+<pre class="dia">
+<span class="cw b">TIME →</span>
+
+<span class="cg">t=0s</span>      Customer clicks "Buy" on Shopify
+<span class="cg">t=0.2s</span>    Shopify fires <span class="cg">orders/create</span> webhook
+<span class="cg">t=0.5s</span>    Gateway: HMAC verify → raw_events → ACK 200 → Kafka
+<span class="ca">t=1s</span>      Worker: dedup → SKU map → canonical order → Kafka
+<span class="ca">t=1.2s</span>    Temporal: start <span class="cc">FulfillmentWorkflow</span>(orderId)
+<span class="cp">t=1.5s</span>    Activity: reserveInventory() — Redis DECR → PG soft reserve
+<span class="cp">t=2s</span>      Activity: createPickTasks() — DAG: 3 parallel picks
+<span class="cr">t=2.5s</span>    Cloud fleet mgr → IoT Core → edge → MRTA auction
+<span class="cr">t=3-60s</span>   Robots navigate → pick → <span class="cr">heartbeat 30s</span> → Temporal
+<span class="cr">t=60s</span>     Scan confirm → <span class="cr">Signal</span> to Temporal: pickCompleted
+<span class="cb">t=90s</span>     Consolidation: all picks at pack station
+<span class="cb">t=95s</span>     Cartonization: FFD → BOX-M (12×10×6)
+<span class="cb">t=120s</span>    Pack complete: weight verified (±5g)
+<span class="co">t=122s</span>    EasyPost: rate shop → buy FedEx Home → ZPL print
+<span class="co">t=125s</span>    Label applied → sortation to carrier dock
+<span class="cc">t=130s</span>    Shopify <span class="cc">fulfillmentCreateV2</span>(tracking, carrier)
+<span class="cc">t=EOD</span>     End-of-day manifest → carrier pickup
+<span class="cg">t+2d</span>      EasyPost tracker webhook → <span class="cg">ItemDelivered</span> event
+
+<span class="cm">Total FC dwell: ~130s │ Events: ~12/order │ Robot utilization: ~85%</span>
+</pre>
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: KEY TRADEOFFS -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="tradeoffs">
+<div class="sec-h"><span class="sec-n">25</span><h2>Key Architectural Tradeoffs</h2></div>
+
+<details><summary>Orchestration vs Choreography Saga</summary><div class="db">
+<p><strong style="color:var(--green)">Chose: Orchestration (Temporal).</strong> Fulfillment is strictly sequential with physical dependencies. Central workflow provides full visibility ("where is this order?"), simplifies debugging (single execution history), and handles complex compensation logic. Choreography would scatter state across 6+ services.</p>
+</div></details>
+
+<details><summary>Waveless vs Wave Picking</summary><div class="db">
+<p><strong style="color:var(--green)">Chose: Waveless (continuous).</strong> Robotic fleets are expensive — idle time is waste. Waveless continuously assigns tasks via MRTA, eliminating inter-wave idle. Support both modes: waveless for e-commerce, wave for B2B wholesale with scheduled carrier departures.</p>
+</div></details>
+
+<details><summary>Redis DECR + PG vs PG-Only Locking</summary><div class="db">
+<p><strong style="color:var(--green)">Chose: Hybrid.</strong> Redis handles 100K+ concurrent checkouts per hot SKU in sub-ms. PG-only optimistic locking fails at ~500 reservations/min/SKU due to version conflicts. Tradeoff: brief Redis-PG divergence window, mitigated by TTL-based soft reservations and reconciliation cron.</p>
+</div></details>
+
+<details><summary>Temporal.io vs AWS Step Functions</summary><div class="db">
+<p><strong style="color:var(--green)">Chose: Temporal.io.</strong> Nimble already uses it. Full programming language vs JSON. Unlimited duration. Native Signals for scan events. Heartbeating for physical picks. ~80% cost reduction self-hosted on EKS. Step Functions wins only for simple, low-volume AWS-native workflows.</p>
+</div></details>
+
+<details><summary>Event Sourcing Everywhere vs Selective</summary><div class="db">
+<p><strong style="color:var(--green)">Chose: Selective.</strong> Event sourcing for inventory (audit, point-in-time, reconciliation) and order lifecycle (chain of custody). NOT for robot telemetry (ScyllaDB time-series) or user sessions. Apply where audit/replay value justifies the complexity.</p>
+</div></details>
+
+<details><summary>MRTA on Edge vs Cloud</summary><div class="db">
+<p><strong style="color:var(--green)">Chose: Edge (fog cluster).</strong> MRTA needs sub-10ms access to robot state (in-memory, 100ms refresh). Cloud round-trip 40-80ms makes bids stale. Edge provides offline resilience (30 min autonomy). MRTA is tightly coupled to path planning, which must also be local.</p>
+</div></details>
+
+<details><summary>Hard Zone Assignment vs Free Roaming vs Soft Affinity</summary><div class="db">
+<p><strong style="color:var(--green)">Chose: Soft zone affinity.</strong> Hard assignment (60-70% utilization, SPOF on zone overload). Free roaming (congestion, long travel). Soft affinity (85-92% utilization, demand-driven rebalancing, zone penalty shrinks when overloaded).</p>
+</div></details>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: INTERVIEW SIGNALS -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="interview">
+<div class="sec-h"><span class="sec-n">26</span><h2>Staff-Level Interview Signals</h2></div>
+
+<div class="co-box staff"><strong>5 Decisions That Differentiate a Staff Answer</strong>
+1. Open with latency budget decomposition — not as an afterthought, as the framing device
+2. Anchor on Temporal.io — Nimble already uses it, maps perfectly to durable fulfillment orchestration
+3. CQRS with Redis hot path + two-phase soft/hard reservations with TTL expiry
+4. Physical pick as pivot transaction — before it compensations are cheap, after it they're physical work
+5. Three-tier compute: cloud (business logic), edge fog cluster (robot control), physical (robot movement)
+</div>
+
+<div class="co-box warn"><strong>Common Pitfalls to Avoid</strong>
+1. Running out of time before NFRs — open with latency budget, weave NFRs throughout
+2. Putting MRTA in the cloud — must be on edge for latency + offline resilience
+3. Single edge server — always design as fog cluster with failover
+4. Ignoring inbound — putaway creates inventory truth, without it outbound fails
+5. Cargo-culting Kubernetes — justify EKS with Temporal dependency, otherwise ECS is simpler
+6. Treating ~1/22 failure rate as edge case — saga compensation is steady-state behavior
+</div>
+</section>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<!-- SECTION: REFERENCES -->
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="sec" id="refs">
+<div class="sec-h"><span class="sec-n">27</span><h2>References & Resources</h2></div>
+
+<h3>Nimble Robotics</h3>
+<a class="ref" href="https://nimble.ai/" target="_blank">nimble.ai — Company site</a>
+<a class="ref" href="https://www.therobotreport.com/nimble-picks-up-106m-scale-general-purpose-fulfillment-robot/" target="_blank">Robot Report — $106M Series C</a>
+<a class="ref" href="https://www.mmh.com/article/nimble_robotics_details_uptake_for_its_ai_enabled_picking_robots" target="_blank">Modern Materials Handling — Nimble AI picking</a>
+<a class="ref" href="https://jobs.lever.co/NimbleAI/e52c68a6-53c6-412e-a39d-616889e7c50a" target="_blank">Lever — Sr SWE Cloud Logistics (tech stack)</a>
+<a class="ref" href="https://mae.osu.edu/news/2021/02/sparking-interest-qa-nimble-robotics-founder-and-ceo-simon-kalouche" target="_blank">OSU — Q&A with Simon Kalouche</a>
+
+<h3>Saga Pattern & Distributed Transactions</h3>
+<a class="ref" href="https://temporal.io/blog/to-choreograph-or-orchestrate-your-saga-that-is-the-question" target="_blank">Temporal — Saga Orchestration vs Choreography</a>
+<a class="ref" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/saga" target="_blank">Microsoft — Saga Design Pattern</a>
+<a class="ref" href="https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/saga.html" target="_blank">AWS — Saga Patterns</a>
+<a class="ref" href="https://www.baeldung.com/cs/saga-pattern-microservices" target="_blank">Baeldung — Saga Pattern</a>
+
+<h3>CQRS & Event Sourcing</h3>
+<a class="ref" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs" target="_blank">Microsoft — CQRS Pattern</a>
+<a class="ref" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing" target="_blank">Microsoft — Event Sourcing Pattern</a>
+<a class="ref" href="https://martinfowler.com/eaaDev/EventSourcing.html" target="_blank">Martin Fowler — Event Sourcing</a>
+<a class="ref" href="https://engineering.salesforce.com/event-sourcing-for-an-inventory-availability-solution-3cc0daf5a742/" target="_blank">Salesforce — Event Sourcing for Inventory</a>
+<a class="ref" href="https://dev.to/tim_derzhavets/building-a-production-ready-event-store-in-postgresql-schema-design-projections-and-replay-25o8" target="_blank">DEV — Production Event Store in PostgreSQL</a>
+
+<h3>Temporal.io</h3>
+<a class="ref" href="https://docs.temporal.io/workflows" target="_blank">Temporal — Workflow documentation</a>
+<a class="ref" href="https://temporal.io/resources/case-studies/instacart-simplifies-complex-workflows" target="_blank">Temporal — Instacart case study</a>
+<a class="ref" href="https://www.readysetcloud.io/blog/allen.helton/step-functions-vs-temporal/" target="_blank">Step Functions vs Temporal comparison</a>
+<a class="ref" href="https://dev.to/aws-builders/from-step-functions-to-temporal-on-eks-durable-workflows-at-scale-without-breaking-the-bank-3cdf" target="_blank">DEV — Step Functions to Temporal on EKS</a>
+
+<h3>Shopify & NetSuite Integration</h3>
+<a class="ref" href="https://shopify.dev/docs/apps/build/webhooks" target="_blank">Shopify — Webhook documentation</a>
+<a class="ref" href="https://hookdeck.com/webhooks/guides/implement-webhook-idempotency" target="_blank">Hookdeck — Webhook Idempotency</a>
+<a class="ref" href="https://timdietrich.me/blog/netsuite-suitetalk-rest-overview-issues-advice/" target="_blank">Tim Dietrich — NetSuite SuiteTalk REST Guide</a>
+
+<h3>Robot Fleet Management & MRTA</h3>
+<a class="ref" href="https://www.roboticsproceedings.org/rss09/p33.pdf" target="_blank">RSS — Optimal Market-Based MRTA</a>
+<a class="ref" href="https://www.mdpi.com/2071-1050/17/11/5051" target="_blank">MDPI — Robot Scheduling in Warehouse Systems</a>
+<a class="ref" href="https://locusrobotics.com/locusone" target="_blank">Locus Robotics — LocusONE Fleet Management</a>
+
+<h3>Shipping & Carrier Integration</h3>
+<a class="ref" href="https://www.easypost.com/getting-started" target="_blank">EasyPost — Getting Started</a>
+<a class="ref" href="https://www.easypost.com/blog/2025-04-22-shipping-api-integration/" target="_blank">EasyPost — Shipping API Integration</a>
+
+<h3>AWS Edge & IoT</h3>
+<a class="ref" href="https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html" target="_blank">AWS IoT Greengrass v2</a>
+<a class="ref" href="https://anywhere.eks.amazonaws.com/docs/overview/" target="_blank">EKS Anywhere</a>
+
+<h3>Warehouse Operations</h3>
+<a class="ref" href="https://www.autostoresystem.com/insights/wes-vs-wms-vs-wcs-unveiling-the-differences" target="_blank">AutoStore — WES vs WMS vs WCS</a>
+<a class="ref" href="https://en.wikipedia.org/wiki/Bin_packing_problem" target="_blank">Wikipedia — Bin Packing Problem</a>
+</section>
+
+</main>
+
+<script>
+var nl=document.querySelectorAll('.nl'),ss=document.querySelectorAll('.sec');
+var obs=new IntersectionObserver(function(e){e.forEach(function(en){if(en.isIntersecting){nl.forEach(function(l){l.classList.remove('ac')});var a=document.querySelector('.nl[href="#'+en.target.id+'"]');if(a)a.classList.add('ac')}})},{rootMargin:'-15% 0px -75% 0px'});
+ss.forEach(function(s){obs.observe(s)});
+</script>
+</body>
+</html>

@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nimble Robotics — Fleet Data & Simulation Infrastructure Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-secondary: #0f1420;
+    --bg-tertiary: #151b2b;
+    --bg-card: #1a2035;
+    --bg-hover: #1e2640;
+    --border: #2a3555;
+    --border-accent: #3d5af1;
+    --text-primary: #e8ecf4;
+    --text-secondary: #8b95b0;
+    --text-muted: #5a6580;
+    --accent-blue: #3d7af1;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00e88f;
+    --accent-orange: #ff9f43;
+    --accent-red: #ff5757;
+    --accent-purple: #a855f7;
+    --accent-yellow: #fbbf24;
+    --sidebar-width: 280px;
+    --diagram-node: #1e2a45;
+    --diagram-node-border: #3d5af1;
+    --diagram-arrow: #4a6fa5;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+    padding-bottom: 2rem;
+  }
+
+  .sidebar-header {
+    padding: 1.5rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, #0d1225 0%, #151d35 100%);
+  }
+
+  .sidebar-header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    letter-spacing: 0.5px;
+    margin-bottom: 0.3rem;
+  }
+
+  .sidebar-header .subtitle {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .nav-group {
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-group-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 0 1.2rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 0.4rem 1.2rem 0.4rem 1.6rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 400;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-link:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-left-color: var(--accent-blue);
+  }
+
+  .nav-link.active {
+    background: var(--bg-tertiary);
+    color: var(--accent-cyan);
+    border-left-color: var(--accent-cyan);
+    font-weight: 500;
+  }
+
+  .nav-link .level-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 0.4rem;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+
+  .level-tag.high { background: rgba(0,212,255,0.15); color: var(--accent-cyan); }
+  .level-tag.mid { background: rgba(61,122,241,0.15); color: var(--accent-blue); }
+  .level-tag.low { background: rgba(168,85,247,0.15); color: var(--accent-purple); }
+  .level-tag.deep { background: rgba(0,232,143,0.15); color: var(--accent-green); }
+
+  /* Main Content */
+  .main {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    padding: 2rem 3rem 4rem;
+    max-width: 1200px;
+  }
+
+  .section {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 1rem;
+  }
+
+  .section-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-header h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.3rem;
+  }
+
+  .section-header .section-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-right: 0.5rem;
+  }
+
+  .section-tag.hl { background: rgba(0,212,255,0.15); color: var(--accent-cyan); }
+  .section-tag.ml { background: rgba(61,122,241,0.15); color: var(--accent-blue); }
+  .section-tag.ll { background: rgba(168,85,247,0.15); color: var(--accent-purple); }
+  .section-tag.dp { background: rgba(0,232,143,0.15); color: var(--accent-green); }
+
+  p { margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-secondary); }
+
+  /* Diagram Container */
+  .diagram-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+  }
+
+  .diagram-container .diagram-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .diagram-title .dt-icon {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+  }
+
+  pre.ascii-diagram {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    line-height: 1.45;
+    color: var(--text-primary);
+    white-space: pre;
+    overflow-x: auto;
+    padding: 0.5rem;
+    tab-size: 4;
+  }
+
+  /* Color coding inside diagrams */
+  .dc { color: var(--accent-cyan); }
+  .db { color: var(--accent-blue); }
+  .dg { color: var(--accent-green); }
+  .do { color: var(--accent-orange); }
+  .dr { color: var(--accent-red); }
+  .dp { color: var(--accent-purple); }
+  .dy { color: var(--accent-yellow); }
+  .dm { color: var(--text-muted); }
+
+  /* SVG Diagram styling */
+  .svg-diagram {
+    width: 100%;
+    min-height: 300px;
+    margin: 0.5rem 0;
+  }
+
+  .svg-diagram text {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Callout boxes */
+  .callout {
+    background: var(--bg-tertiary);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+    font-size: 0.82rem;
+  }
+
+  .callout.warn { border-left-color: var(--accent-orange); }
+  .callout.success { border-left-color: var(--accent-green); }
+  .callout.danger { border-left-color: var(--accent-red); }
+
+  .callout-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .callout.warn .callout-title { color: var(--accent-orange); }
+  .callout.success .callout-title { color: var(--accent-green); }
+  .callout.danger .callout-title { color: var(--accent-red); }
+
+  /* Key-value specs */
+  .specs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.8rem;
+    margin: 1rem 0;
+  }
+
+  .spec-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+  }
+
+  .spec-card .spec-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.2rem;
+  }
+
+  .spec-card .spec-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+  }
+
+  .spec-card .spec-detail {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+  }
+
+  /* Collapsible sections */
+  details {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 0.8rem 0;
+    overflow: hidden;
+  }
+
+  summary {
+    padding: 0.8rem 1rem;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--accent-blue);
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  summary::before {
+    content: '▶';
+    font-size: 0.6rem;
+    transition: transform 0.2s;
+  }
+
+  details[open] summary::before {
+    transform: rotate(90deg);
+  }
+
+  details .detail-content {
+    padding: 0 1rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0.8rem 0;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 0.7rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .legend-color {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ SIDEBAR ═══════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <h1>NIMBLE ROBOTICS</h1>
+    <div class="subtitle">Fleet Data & Sim Infrastructure</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">High-Level Architecture</div>
+    <a href="#hl-overview" class="nav-link">System Overview <span class="level-tag high">L0</span></a>
+    <a href="#hl-dataflow" class="nav-link">End-to-End Data Flow <span class="level-tag high">L0</span></a>
+    <a href="#hl-flywheel" class="nav-link">Data Flywheel Loop <span class="level-tag high">L0</span></a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Mid-Level Subsystems</div>
+    <a href="#ml-telemetry" class="nav-link">Telemetry Ingestion <span class="level-tag mid">L1</span></a>
+    <a href="#ml-datalake" class="nav-link">Data Lake Architecture <span class="level-tag mid">L1</span></a>
+    <a href="#ml-simloop" class="nav-link">Simulation-in-the-Loop <span class="level-tag mid">L1</span></a>
+    <a href="#ml-digitaltwin" class="nav-link">Digital Twin Sync <span class="level-tag mid">L1</span></a>
+    <a href="#ml-mlops" class="nav-link">MLOps Pipeline <span class="level-tag mid">L1</span></a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Low-Level Detail</div>
+    <a href="#ll-kafka" class="nav-link">Kafka Topic Design <span class="level-tag low">L2</span></a>
+    <a href="#ll-iceberg" class="nav-link">Iceberg Table Layout <span class="level-tag low">L2</span></a>
+    <a href="#ll-simci" class="nav-link">Sim CI/CD Pipeline <span class="level-tag low">L2</span></a>
+    <a href="#ll-training" class="nav-link">Training Pipeline Detail <span class="level-tag low">L2</span></a>
+    <a href="#ll-deployment" class="nav-link">Model Deployment Flow <span class="level-tag low">L2</span></a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Deep Dives</div>
+    <a href="#dd-edge" class="nav-link">Edge Processing Stack <span class="level-tag deep">L3</span></a>
+    <a href="#dd-domrand" class="nav-link">Domain Randomization <span class="level-tag deep">L3</span></a>
+    <a href="#dd-security" class="nav-link">Security & OTA <span class="level-tag deep">L3</span></a>
+    <a href="#dd-observability" class="nav-link">Observability Stack <span class="level-tag deep">L3</span></a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════ MAIN ═══════════════════════ -->
+<main class="main">
+
+<!-- ╔══════════════════════════════════════════════════════════╗ -->
+<!-- ║  HIGH-LEVEL ARCHITECTURE                                 ║ -->
+<!-- ╚══════════════════════════════════════════════════════════╝ -->
+
+<section class="section" id="hl-overview">
+  <div class="section-header">
+    <span class="section-tag hl">L0 — HIGH LEVEL</span>
+    <h2>System Overview — 30,000ft Architecture</h2>
+  </div>
+  <p>The entire infrastructure spans four deployment zones: Edge (on-robot), Fog (per-warehouse), Cloud (central platform), and GPU Cloud (training + simulation). Data flows from physical robots through real-time processing to an analytics lake, while models flow in the reverse direction — from training through validation to edge deployment.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(0,212,255,0.2)">◆</span> SYSTEM OVERVIEW — FOUR DEPLOYMENT ZONES</div>
+<pre class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                     <span class="dc">NIMBLE ROBOTICS FLEET INFRASTRUCTURE</span>                              │
+│                                                                                                         │
+│  ┌─── <span class="do">EDGE ZONE</span> ─────────────────┐   ┌─── <span class="dy">FOG ZONE</span> ──────────────┐   ┌─── <span class="db">CLOUD ZONE</span> ──────────────┐  │
+│  │  (Per Robot × 1000)            │   │  (Per Warehouse × N)      │   │  (Central Platform)         │  │
+│  │                                │   │                            │   │                             │  │
+│  │  ┌──────────────────────────┐  │   │  ┌──────────────────────┐  │   │  ┌───────────────────────┐  │  │
+│  │  │ <span class="dc">Jetson Orin AGX</span>          │  │   │  │ <span class="dy">Warehouse Gateway</span>    │  │   │  │ <span class="db">Kafka Cluster</span>         │  │  │
+│  │  │  ┌────────┐ ┌────────┐  │  │   │  │  ROS2 ↔ Kafka Bridge │  │   │  │  12-30 Brokers        │  │  │
+│  │  │  │ VLA    │ │Percept.│  │  │   │  │  Timestamp Normalize │  │   │  │  KRaft (no ZK)        │  │  │
+│  │  │  │ Policy │ │Pipeline│  │  │   │  │  Dedup + Route       │  │   │  │  Schema Registry      │  │  │
+│  │  │  └───┬────┘ └───┬────┘  │  │   │  └──────────┬───────────┘  │   │  └──────────┬────────────┘  │  │
+│  │  │  ┌───┴──────────┴────┐  │  │   │             │              │   │             │              │  │
+│  │  │  │ <span class="dg">ROS 2 (DDS/Zenoh)</span> │  │   │  ┌──────────┴───────────┐  │   │  ┌──────────┴────────────┐  │  │
+│  │  │  │  Sensor Topics    │  │   │  │ <span class="dy">Local Prometheus</span>     │  │   │  │ <span class="db">Apache Flink</span>          │  │  │
+│  │  │  └───┬──────────┬────┘  │  │   │  │  Robot Metrics       │  │   │  │  Real-time Analytics  │  │  │
+│  │  │      │          │       │  │   │  │  Network Monitor      │  │   │  │  Anomaly Detection   │  │  │
+│  │  │  ┌───┴───┐  ┌──┴────┐  │  │   │  └──────────────────────┘  │   │  └──────────┬────────────┘  │  │
+│  │  │  │H.264  │  │Ring   │  │  │   │                            │   │             │              │  │
+│  │  │  │Encode │  │Buffer │  │  │   │  ┌──────────────────────┐  │   │  ┌──────────┴────────────┐  │  │
+│  │  │  │(HW)   │  │60 min │  │  │   │  │ <span class="dy">Fleet Manager</span>        │  │   │  │ <span class="db">Data Lake (Iceberg)</span>   │  │  │
+│  │  │  └───────┘  └───────┘  │  │   │  │  Task Dispatch        │  │   │  │  Bronze → Silver →   │  │  │
+│  │  └──────────────────────────┘  │   │  │  Multi-Robot Coord.  │  │   │  │  Gold (Parquet/S3)   │  │  │
+│  │                                │   │  └──────────────────────┘  │   │  └──────────────────────┘  │  │
+│  └────────────────────────────────┘   └────────────────────────────┘   └─────────────────────────────┘  │
+│                                                                                                         │
+│  ┌─── <span class="dg">GPU CLOUD ZONE</span> ──────────────────────────────────────────────────────────────────────────────────┐  │
+│  │  (Training + Simulation Cluster)                                                                    │  │
+│  │                                                                                                     │  │
+│  │  ┌────────────────────────┐  ┌──────────────────────────┐  ┌────────────────────────────────────┐   │  │
+│  │  │ <span class="dg">Simulation Cluster</span>     │  │ <span class="dg">Training Cluster</span>        │  │ <span class="dg">Digital Twin Platform</span>              │   │  │
+│  │  │  NVIDIA Isaac Lab      │  │  Multi-GPU Nodes         │  │  NVIDIA Omniverse                  │   │  │
+│  │  │  MuJoCo (MJX)         │  │  ACT / Diffusion Policy  │  │  OpenUSD Scene Graph               │   │  │
+│  │  │  Volcano Scheduler    │  │  π0 Fine-tuning          │  │  Sensor RTX Rendering              │   │  │
+│  │  │  Spot Instances       │  │  W&B Experiment Track    │  │  Fleet Visualization               │   │  │
+│  │  │  Nightly Regression   │  │  MLflow Model Registry   │  │  Predictive Maintenance            │   │  │
+│  │  └────────────────────────┘  └──────────────────────────┘  └────────────────────────────────────┘   │  │
+│  └─────────────────────────────────────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-color" style="background:var(--accent-orange)"></div> Edge (Per Robot)</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--accent-yellow)"></div> Fog (Per Warehouse)</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--accent-blue)"></div> Cloud (Central)</div>
+    <div class="legend-item"><div class="legend-color" style="background:var(--accent-green)"></div> GPU Cloud (Train/Sim)</div>
+  </div>
+</section>
+
+
+<section class="section" id="hl-dataflow">
+  <div class="section-header">
+    <span class="section-tag hl">L0 — HIGH LEVEL</span>
+    <h2>End-to-End Data Flow</h2>
+  </div>
+  <p>Data flows left-to-right from physical robots through three processing tiers, while models flow right-to-left from training back to edge deployment. The two flows meet at the Data Lake, which serves both as the sink for operational telemetry and the source for training datasets.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(0,232,143,0.2)">◆</span> BIDIRECTIONAL DATA FLOW — SENSOR DATA → LAKE ← MODEL ARTIFACTS</div>
+<pre class="ascii-diagram">
+<span class="dm">───────────────────────── DATA PLANE (left → right) ─────────────────────────────────────────────────</span>
+
+  <span class="do">ROBOTS</span>              <span class="dy">WAREHOUSE</span>           <span class="db">STREAMING</span>            <span class="db">STORAGE</span>              <span class="dg">ANALYTICS</span>
+  ┌──────┐           ┌──────────┐       ┌──────────────┐    ┌─────────────┐    ┌───────────────┐
+  │Robot │──DDS/──→  │ Gateway  │──────→│ Kafka        │───→│ Bronze      │───→│ Spark Batch   │
+  │  1   │  Zenoh    │  Bridge  │ Proto │ (KRaft)      │    │ (Raw)       │    │ ETL → Silver  │
+  ├──────┤           │          │       │              │    ├─────────────┤    │ ETL → Gold    │
+  │Robot │──DDS/──→  │ Dedup    │       │ ┌──────────┐ │    │ Silver      │    └───────┬───────┘
+  │  2   │  Zenoh    │ Normalize│       │ │Consumer  │ │    │ (Cleaned)   │            │
+  ├──────┤           │ Route    │       │ │Groups:   │ │    ├─────────────┤    ┌───────┴───────┐
+  │ ...  │           └──────────┘       │ │• monitor │ │    │ Gold        │    │ <span class="dg">Training</span>      │
+  ├──────┤                              │ │• anomaly │ │    │ (Curated)   │    │ <span class="dg">Datasets</span>      │
+  │Robot │                              │ │• lake    │ │    │             │    │ (LeRobot fmt) │
+  │  N   │                              │ │• export  │ │    │ <span class="dc">Iceberg +</span>    │    └───────┬───────┘
+  └──────┘                              │ └──────────┘ │    │ <span class="dc">Parquet/S3</span>   │            │
+                                        └──────────────┘    └─────────────┘            │
+                                              │                                        │
+                                              ▼                                        ▼
+                                        ┌──────────────┐                    ┌───────────────────┐
+                                        │ <span class="db">Flink</span>         │                    │ <span class="dg">GPU Training</span>       │
+                                        │ Real-time    │                    │ ACT / π0 / Diff.  │
+                                        │ • Dashboards │                    │ Policy             │
+                                        │ • Alerts     │                    │ • W&B tracking     │
+                                        │ • Anomalies  │                    │ • MLflow registry  │
+                                        └──────────────┘                    └─────────┬─────────┘
+                                                                                      │
+<span class="dm">───────────────────────── MODEL PLANE (right → left) ────────────────────────────────────────────────</span>
+                                                                                      │
+  <span class="do">EDGE DEPLOY</span>          <span class="dy">FLEET MGMT</span>           <span class="db">VALIDATION</span>                            │
+  ┌──────────┐       ┌──────────────┐    ┌─────────────────────┐                      │
+  │ Jetson   │←─OTA──│ OTA Update   │←───│ <span class="dr">Validation Gates</span>    │←─────────────────────┘
+  │ Orin     │ (A/B) │ Manager      │    │ • Sim Benchmark     │
+  │ Runtime  │       │ (Uptane)     │    │ • Safety Checks     │     ┌────────────────┐
+  │ ┌──────┐ │       │ • Canary 1%  │    │ • Statistical Test  │     │ <span class="dg">Sim Regression</span>  │
+  │ │Policy│ │       │ • Rollout 10%│    │ • Human Review      │←────│ Isaac Lab      │
+  │ │v2.3  │ │       │ • Full 100%  │    └─────────────────────┘     │ 1000+ Scenarios│
+  │ └──────┘ │       └──────────────┘                                └────────────────┘
+  └──────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="hl-flywheel">
+  <div class="section-header">
+    <span class="section-tag hl">L0 — HIGH LEVEL</span>
+    <h2>Data Flywheel — The Core Feedback Loop</h2>
+  </div>
+  <p>The data flywheel is the single most important architectural concept. Every deployed robot is simultaneously a production worker AND a data collector. The faster this loop turns — from data collection through training to redeployment — the faster the fleet improves.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(255,159,67,0.2)">◆</span> DATA FLYWHEEL — CONTINUOUS IMPROVEMENT LOOP</div>
+<pre class="ascii-diagram">
+                              ┌──────────────────────────────────────────────┐
+                              │                                              │
+                              ▼                                              │
+                   ┌─────────────────────┐                                   │
+                   │  <span class="do">① DEPLOY & OPERATE</span>  │                                   │
+                   │  Fleet picks/packs  │                                   │
+                   │  in live warehouses │                                   │
+                   └─────────┬───────────┘                                   │
+                             │                                               │
+                     <span class="dm">telemetry streams</span>                                       │
+                     <span class="dm">10-20 TB/day</span>                                            │
+                             │                                               │
+                             ▼                                               │
+                   ┌─────────────────────┐                                   │
+                   │  <span class="db">② COLLECT & CURATE</span>  │                                   │
+                   │  Kafka → Iceberg    │              <span class="dy">cycle time target:</span>    │
+                   │  Bronze→Silver→Gold │              <span class="dy">days, not weeks</span>       │
+                   │  Episode extraction │                                   │
+                   └─────────┬───────────┘                                   │
+                             │                                               │
+                     <span class="dm">curated episodes</span>                                        │
+                     <span class="dm">LeRobot format</span>                                          │
+                             │                                               │
+                             ▼                                               │
+                   ┌─────────────────────┐     ┌───────────────────────┐     │
+                   │  <span class="dg">③ TRAIN & IMPROVE</span>   │────→│  <span class="dg">④ SIM VALIDATE</span>       │     │
+                   │  Fine-tune π0/ACT   │     │  Isaac Lab 1000+ runs │     │
+                   │  on new + old data  │     │  Safety + performance │     │
+                   │  Domain randomize   │     │  gates must pass      │     │
+                   └─────────────────────┘     └───────────┬───────────┘     │
+                                                           │                 │
+                                                    <span class="dm">validated model</span>       │
+                                                    <span class="dm">artifact (OCI)</span>        │
+                                                           │                 │
+                                                           ▼                 │
+                                               ┌───────────────────────┐     │
+                                               │  <span class="dp">⑤ CANARY DEPLOY</span>      │     │
+                                               │  1% → 10% → 100%     │─────┘
+                                               │  A/B success metrics  │
+                                               │  Auto-rollback gates  │
+                                               └───────────────────────┘
+</pre>
+  </div>
+
+  <div class="callout success">
+    <div class="callout-title">Interview Anchor Point</div>
+    <p style="margin:0">The flywheel is what separates a robotics company from a robot company. Nimble's fleet learning advantage compounds: more robots → more data → better models → higher success rates → more customers → more robots. This is the core moat to articulate in the interview.</p>
+  </div>
+</section>
+
+
+<!-- ╔══════════════════════════════════════════════════════════╗ -->
+<!-- ║  MID-LEVEL SUBSYSTEM DIAGRAMS                            ║ -->
+<!-- ╚══════════════════════════════════════════════════════════╝ -->
+
+<section class="section" id="ml-telemetry">
+  <div class="section-header">
+    <span class="section-tag ml">L1 — MID LEVEL</span>
+    <h2>Real-Time Telemetry Ingestion</h2>
+  </div>
+  <p>The three-tier ingestion architecture handles 10–80 GB/s aggregate throughput. Edge compression reduces camera bandwidth by 10×. The fog gateway bridges ROS 2 DDS topics to Kafka with timestamp normalization. Central Kafka fans out to four consumer groups.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(61,122,241,0.2)">◆</span> THREE-TIER TELEMETRY ARCHITECTURE</div>
+<pre class="ascii-diagram">
+<span class="do">╔═══ EDGE (Per Robot) ══════════════════════════╗</span>
+<span class="do">║                                               ║</span>
+<span class="do">║</span>  ┌─────────────┐  ┌──────────┐  ┌──────────┐  <span class="do">║</span>
+<span class="do">║</span>  │ Joints      │  │ Cameras  │  │ F/T      │  <span class="do">║</span>
+<span class="do">║</span>  │ 1KHz/500B   │  │ 30fps×4  │  │ 1KHz/200B│  <span class="do">║</span>
+<span class="do">║</span>  └──────┬──────┘  └────┬─────┘  └────┬─────┘  <span class="do">║</span>
+<span class="do">║</span>         │              │             │        <span class="do">║</span>
+<span class="do">║</span>         │         ┌────┴─────┐       │        <span class="do">║</span>
+<span class="do">║</span>         │         │ <span class="dc">H.264 HW</span> │       │        <span class="do">║</span>
+<span class="do">║</span>         │         │ <span class="dc">Encoder</span>  │       │        <span class="do">║</span>
+<span class="do">║</span>         │         │ <span class="dc">10× ↓</span>    │       │        <span class="do">║</span>
+<span class="do">║</span>         │         └────┬─────┘       │        <span class="do">║</span>
+<span class="do">║</span>         ▼              ▼             ▼        <span class="do">║</span>
+<span class="do">║</span>    ┌────────────────────────────────────────┐  <span class="do">║</span>
+<span class="do">║</span>    │     <span class="dg">ROS 2 Node Graph (DDS / Zenoh)</span>     │  <span class="do">║</span>
+<span class="do">║</span>    │  /joint_states  /camera/compressed     │  <span class="do">║</span>
+<span class="do">║</span>    │  /ft_sensor     /diagnostics            │  <span class="do">║</span>
+<span class="do">║</span>    └────────────────────┬─────────────────────┘  <span class="do">║</span>
+<span class="do">║</span>                         │                        <span class="do">║</span>
+<span class="do">║</span>    ┌────────────────────┴─────────────────────┐  <span class="do">║</span>
+<span class="do">║</span>    │     <span class="do">Ring Buffer (SSD, 60 min)</span>             │  <span class="do">║</span>
+<span class="do">║</span>    │     Back-pressure absorber               │  <span class="do">║</span>
+<span class="do">║</span>    └────────────────────┬─────────────────────┘  <span class="do">║</span>
+<span class="do">╚═════════════════════════╪═════════════════════════╝</span>
+                          │ WiFi 6 / 5G
+                          ▼
+<span class="dy">╔═══ FOG (Per Warehouse) ═══════════════════════════════╗</span>
+<span class="dy">║</span>                                                       <span class="dy">║</span>
+<span class="dy">║</span>  ┌─────────────────────────────────────────────────┐   <span class="dy">║</span>
+<span class="dy">║</span>  │              <span class="dy">Warehouse Gateway</span>                   │   <span class="dy">║</span>
+<span class="dy">║</span>  │                                                 │   <span class="dy">║</span>
+<span class="dy">║</span>  │  ┌───────────┐ ┌───────────┐ ┌───────────────┐  │   <span class="dy">║</span>
+<span class="dy">║</span>  │  │ ROS2→Kafka│ │ Timestamp │ │ Dedup +       │  │   <span class="dy">║</span>
+<span class="dy">║</span>  │  │ Bridge    │ │ Normalize │ │ Schema Enforce│  │   <span class="dy">║</span>
+<span class="dy">║</span>  │  │ (confluent│ │ (UTC/ns)  │ │ (Protobuf)    │  │   <span class="dy">║</span>
+<span class="dy">║</span>  │  │  -kafka)  │ │           │ │               │  │   <span class="dy">║</span>
+<span class="dy">║</span>  │  └─────┬─────┘ └─────┬─────┘ └──────┬────────┘  │   <span class="dy">║</span>
+<span class="dy">║</span>  │        └─────────────┼──────────────┘           │   <span class="dy">║</span>
+<span class="dy">║</span>  │                      ▼                           │   <span class="dy">║</span>
+<span class="dy">║</span>  │        ┌─────────────────────────┐               │   <span class="dy">║</span>
+<span class="dy">║</span>  │        │ <span class="dy">Idempotent Producer</span>     │               │   <span class="dy">║</span>
+<span class="dy">║</span>  │        │ txn.id=wh-east-joints  │               │   <span class="dy">║</span>
+<span class="dy">║</span>  │        │ acks=all               │               │   <span class="dy">║</span>
+<span class="dy">║</span>  │        └────────────┬────────────┘               │   <span class="dy">║</span>
+<span class="dy">║</span>  └──────────────────────┼──────────────────────────┘   <span class="dy">║</span>
+<span class="dy">╚════════════════════════╪══════════════════════════════╝</span>
+                         │ WAN / VPN
+                         ▼
+<span class="db">╔═══ CLOUD (Central) ════════════════════════════════════════════════╗</span>
+<span class="db">║</span>                                                                   <span class="db">║</span>
+<span class="db">║</span>  ┌───────────────────────────────────────────────────────────┐     <span class="db">║</span>
+<span class="db">║</span>  │                 <span class="db">Apache Kafka (KRaft, 12-30 Brokers)</span>      │     <span class="db">║</span>
+<span class="db">║</span>  │                                                           │     <span class="db">║</span>
+<span class="db">║</span>  │  Topics:  wh-east.joint_states.raw (200 partitions)       │     <span class="db">║</span>
+<span class="db">║</span>  │           wh-east.camera.compressed  (500 partitions)     │     <span class="db">║</span>
+<span class="db">║</span>  │           wh-east.force_torque.raw   (100 partitions)     │     <span class="db">║</span>
+<span class="db">║</span>  │           fleet.diagnostics.events   (50 partitions)      │     <span class="db">║</span>
+<span class="db">║</span>  │           fleet.commands.control     (50 partitions)      │     <span class="db">║</span>
+<span class="db">║</span>  │                                                           │     <span class="db">║</span>
+<span class="db">║</span>  │  Schema Registry: Protobuf, BACKWARD compat              │     <span class="db">║</span>
+<span class="db">║</span>  │  Tiered Storage: Hot → S3 (Kafka 3.6+)                   │     <span class="db">║</span>
+<span class="db">║</span>  └──────┬──────────┬───────────┬──────────┬────────────────┘     <span class="db">║</span>
+<span class="db">║</span>         │          │           │          │                       <span class="db">║</span>
+<span class="db">║</span>         ▼          ▼           ▼          ▼                       <span class="db">║</span>
+<span class="db">║</span>    ┌────────┐ ┌────────┐ ┌─────────┐ ┌──────────┐                <span class="db">║</span>
+<span class="db">║</span>    │<span class="dr">Monitor</span> │ │<span class="do">Anomaly</span> │ │<span class="dg">Lake     </span>│ │<span class="dp">ML Export</span> │                <span class="db">║</span>
+<span class="db">║</span>    │<span class="dr">Group  </span> │ │<span class="do">Group  </span> │ │<span class="dg">Sink    </span> │ │<span class="dp">Group   </span> │                <span class="db">║</span>
+<span class="db">║</span>    │<span class="dr">10ms   </span> │ │<span class="do">1-10s  </span> │ │<span class="dg">minutes </span> │ │<span class="dp">on-demand</span>│                <span class="db">║</span>
+<span class="db">║</span>    └───┬────┘ └───┬────┘ └────┬────┘ └────┬─────┘                <span class="db">║</span>
+<span class="db">║</span>        │          │          │           │                       <span class="db">║</span>
+<span class="db">║</span>        ▼          ▼          ▼           ▼                       <span class="db">║</span>
+<span class="db">║</span>    Grafana   PagerDuty    Iceberg     Training                   <span class="db">║</span>
+<span class="db">║</span>    Dashboards  Alerts     Data Lake   Pipeline                   <span class="db">║</span>
+<span class="db">║</span>                                                                   <span class="db">║</span>
+<span class="db">╚═══════════════════════════════════════════════════════════════════╝</span>
+</pre>
+  </div>
+
+  <div class="specs-grid">
+    <div class="spec-card">
+      <div class="spec-label">Aggregate Throughput</div>
+      <div class="spec-value">10–80 GB/s</div>
+      <div class="spec-detail">1000 robots × all sensor modalities</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Safety Latency</div>
+      <div class="spec-value"><100 ms</div>
+      <div class="spec-detail">E-stop propagation budget</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Kafka Brokers</div>
+      <div class="spec-value">12–30</div>
+      <div class="spec-detail">KRaft mode, no ZooKeeper</div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-label">Edge Compression</div>
+      <div class="spec-value">10× reduction</div>
+      <div class="spec-detail">H.264 HW on Jetson Orin</div>
+    </div>
+  </div>
+</section>
+
+
+<section class="section" id="ml-datalake">
+  <div class="section-header">
+    <span class="section-tag ml">L1 — MID LEVEL</span>
+    <h2>Data Lake — Medallion Architecture</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(61,122,241,0.2)">◆</span> BRONZE → SILVER → GOLD MEDALLION WITH ICEBERG + PARQUET</div>
+<pre class="ascii-diagram">
+   <span class="do">Kafka Sink</span>                  <span class="dy">Spark Batch ETL</span>                     <span class="dg">Consumers</span>
+   Connector                  (Airflow DAGs)
+       │                           │                                   │
+       ▼                           ▼                                   ▼
+ ┌───────────────┐    ┌────────────────────────┐    ┌──────────────────────────────┐
+ │ <span class="do">BRONZE</span>         │    │ <span class="dy">SILVER</span>                  │    │ <span class="dg">GOLD</span>                          │
+ │               │    │                        │    │                              │
+ │ Raw Protobuf  │───→│ Calibrated + Aligned   │───→│ Fleet KPIs                   │
+ │ messages      │    │ episodes               │    │ ┌──────────────────────────┐ │
+ │               │    │                        │    │ │ OEE, picks/hr, MTBF     │ │
+ │ Append-only   │    │ • Timestamp normalize  │    │ └──────────────────────────┘ │
+ │ Schema-on-read│    │ • Sensor calibration   │    │                              │
+ │               │    │ • Multi-modal align    │    │ Anomaly Catalogs             │
+ │ Partitioned:  │    │   (SLERP for orient.)  │    │ ┌──────────────────────────┐ │
+ │ date/         │    │ • Dedup + frame unify  │    │ │ Labeled force anomalies  │ │
+ │  robot_id/    │    │ • ACID transactions    │    │ │ Collision near-misses    │ │
+ │   sensor/     │    │                        │    │ └──────────────────────────┘ │
+ │               │    │ Partitioned:           │    │                              │
+ │ Retention:    │    │ date/robot_id/         │    │ <span class="dc">Training Datasets</span>            │
+ │ 90-365 days   │    │  task_type/episode_id/ │    │ ┌──────────────────────────┐ │
+ │               │    │                        │    │ │ <span class="dc">LeRobotDataset format</span>    │ │
+ │ <span class="dm">~10-20 TB/day</span> │    │ <span class="dm">~2-5 TB/day</span>            │    │ │ MP4 video + Parquet     │ │
+ │               │    │                        │    │ │ state/action + metadata  │ │
+ └───────┬───────┘    └────────────┬───────────┘    │ └──────────────────────────┘ │
+         │                         │                └──────────────┬───────────────┘
+         │                         │                               │
+         ▼                         ▼                               ▼
+ ┌────────────────────────────────────────────────────────────────────────────────┐
+ │                         <span class="dc">Apache Iceberg + Parquet on S3</span>                       │
+ │                                                                                │
+ │  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+ │  │ <span class="dc">Partition</span>    │  │ <span class="dc">Time Travel</span>  │  │ <span class="dc">Multi-Engine</span> │  │ <span class="dc">Schema Evolution</span> │   │
+ │  │ Evolution   │  │ Snapshots    │  │ Spark/Trino/ │  │ Add new sensor    │   │
+ │  │ (no rewrite)│  │ (rollback)   │  │ DuckDB/Flink │  │ columns safely    │   │
+ │  └─────────────┘  └──────────────┘  └──────────────┘  └───────────────────┘   │
+ │                                                                                │
+ │  Storage Tiering:  Hot (0-30d) $23/TB  │  Warm (30-90d) $12.50/TB             │
+ │                    Cold (90d+) $1/TB   │  Total: $270K-660K/mo @ 1000 robots  │
+ └────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="ml-simloop">
+  <div class="section-header">
+    <span class="section-tag ml">L1 — MID LEVEL</span>
+    <h2>Simulation-in-the-Loop — Nightly Regression</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(0,232,143,0.2)">◆</span> CI/CD → SIMULATION REGRESSION PIPELINE</div>
+<pre class="ascii-diagram">
+  <span class="dp">Developer Push</span>                     <span class="dg">Simulation Cluster (K8s + Volcano)</span>
+       │
+       ▼
+ ┌───────────┐    ┌────────────┐    ┌──────────────────────────────────────────────┐
+ │ <span class="dp">Git Push</span>   │───→│ <span class="dp">CI Runner</span>  │    │  <span class="dg">NVIDIA Isaac Lab + MuJoCo</span>                     │
+ │ (PR/merge)│    │ (CPU)      │    │                                              │
+ └───────────┘    │ pytest     │    │  ┌──────────────────────────────────────┐    │
+                  │ gtest      │    │  │ <span class="dg">Scenario Generator</span>                   │    │
+                  │ rostest    │    │  │                                      │    │
+                  └─────┬──────┘    │  │  Objects: 8000+ textures, varied    │    │
+                        │ pass      │  │  Environment: shelf layouts, light  │    │
+                        ▼           │  │  Physics: friction 0.3-1.0          │    │
+                  ┌────────────┐    │  │  Failures: sensor noise, delays     │    │
+                  │ <span class="db">Merge Gate</span> │    │  │  Camera: FOV jitter, position       │    │
+                  │ GPU Runner │    │  │                                      │    │
+                  │ 50 picks   │    │  │  Each scenario has <span class="dc">reproducible seed</span> │    │
+                  │ 10-30 min  │    │  └──────────────────┬───────────────────┘    │
+                  └─────┬──────┘    │                     │                        │
+                        │ pass      │                     ▼                        │
+                        ▼           │  ┌──────────────────────────────────────┐    │
+                  ┌────────────┐    │  │ <span class="dg">GPU Pod Fleet (Spot Instances)</span>       │    │
+                  │ <span class="dg">Nightly</span>    │───→│  │                                      │    │
+                  │ <span class="dg">Trigger</span>    │    │  │  ┌──────┐ ┌──────┐ ┌──────┐         │    │
+                  │ (cron 2AM) │    │  │  │Pod 1 │ │Pod 2 │ │Pod N │         │    │
+                  └────────────┘    │  │  │A100  │ │A100  │ │A100  │  ×MIG   │    │
+                                    │  │  │MIG   │ │MIG   │ │MIG   │  7× util│    │
+                  ┌────────────┐    │  │  └──┬───┘ └──┬───┘ └──┬───┘         │    │
+                  │ <span class="dy">Weekly</span>     │───→│  │     │        │        │              │    │
+                  │ <span class="dy">Endurance</span>  │    │  │     ▼        ▼        ▼              │    │
+                  │ 24+ hours  │    │  │  1000+ scenarios across:              │    │
+                  └────────────┘    │  │  • Object categories                  │    │
+                                    │  │  • Gripper configs                    │    │
+                                    │  │  • Failure injection modes            │    │
+                                    │  └──────────────────┬───────────────────┘    │
+                                    └─────────────────────┼────────────────────────┘
+                                                          │
+                                                          ▼
+                                    ┌──────────────────────────────────────────────┐
+                                    │ <span class="dc">Result Aggregation & Gating</span>                   │
+                                    │                                              │
+                                    │  ✓ Pick success rate     > 95%               │
+                                    │  ✓ Zero critical collisions                  │
+                                    │  ✓ Task time             < 15s               │
+                                    │  ✓ Grasp stability       < 1cm drift         │
+                                    │  ✓ Motion planning       < 500ms             │
+                                    │  ✓ Sim-to-real gap       < 5%                │
+                                    │                                              │
+                                    │  <span class="dr">ANY FAIL → Block Deployment + Page On-Call</span>   │
+                                    └──────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="ml-digitaltwin">
+  <div class="section-header">
+    <span class="section-tag ml">L1 — MID LEVEL</span>
+    <h2>Digital Twin Synchronization</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(168,85,247,0.2)">◆</span> PHYSICAL ↔ DIGITAL TWIN SYNC ARCHITECTURE</div>
+<pre class="ascii-diagram">
+  <span class="do">PHYSICAL WORLD</span>                      <span class="dp">SYNC LAYER</span>                    <span class="dc">DIGITAL WORLD</span>
+
+ ┌───────────────────┐         ┌─────────────────────┐      ┌──────────────────────────┐
+ │ <span class="do">Warehouse Floor</span>   │         │ <span class="dp">State Sync Service</span>  │      │ <span class="dc">NVIDIA Omniverse</span>          │
+ │                   │         │                     │      │                          │
+ │ ┌─────┐ ┌─────┐  │  DDS    │ ┌─────────────────┐ │      │  ┌──────────────────────┐│
+ │ │Bot 1│ │Bot 2│  │ 100-   │ │ Joint State     │ │ gRPC │  │ <span class="dc">OpenUSD Scene Graph</span>  ││
+ │ │     │ │     │  │ 1KHz   │ │ Replicator      │ │ ────→│  │                      ││
+ │ └──┬──┘ └──┬──┘  │ <20ms  │ │ (per-robot)     │ │      │  │  ┌────┐  ┌────┐     ││
+ │    │       │     │        │ └─────────────────┘ │      │  │  │DT 1│  │DT 2│     ││
+ │ ┌──┴───────┴──┐  │        │                     │      │  │  │    │  │    │     ││
+ │ │ <span class="do">ROS 2 DDS</span>    │──────────│ ┌─────────────────┐ │      │  │  └────┘  └────┘     ││
+ │ │ /joint_state│  │        │ │ Sensor Stream   │ │      │  │                      ││
+ │ │ /camera     │  │ MQTT   │ │ Proxy           │ │      │  │  ┌─────────────────┐ ││
+ │ │ /ft_sensor  │  │ 0.1-   │ │ (camera, LiDAR) │ │ ────→│  │  │ <span class="dc">Sensor RTX</span>      │ ││
+ │ └─────────────┘  │ 10Hz   │ └─────────────────┘ │      │  │  │ Ray-traced      │ ││
+ │                   │        │                     │      │  │  │ sensor sim      │ ││
+ │ ┌───────────────┐│        │ ┌─────────────────┐ │      │  │  └─────────────────┘ ││
+ │ │<span class="do">Env Sensors</span>    ││        │ │ Conflict Res.   │ │      │  │                      ││
+ │ │ Shelves, bins ││        │ │ • Last-write    │ │      │  │  ┌─────────────────┐ ││
+ │ │ conveyor pos. ││        │ │   wins (state)  │ │      │  │  │ <span class="dc">Physics Sim</span>     │ ││
+ │ └───────────────┘│        │ │ • CRDT merge    │ │      │  │  │ PhysX backend   │ ││
+ └───────────────────┘        │ │   (inventory)   │ │      │  │  └─────────────────┘ ││
+                              │ │ • Forward pred. │ │      │  └──────────────────────┘│
+                              │ │   (disconnect)  │ │      │                          │
+                              │ └─────────────────┘ │      │  <span class="dg">USE CASES:</span>              │
+                              │                     │      │  ├─ Predictive Maint.   │
+                              │ <span class="dm">LATENCY BUDGETS:</span>     │      │  ├─ What-if Analysis    │
+                              │ Teleop:    <20ms    │      │  ├─ Operator Training   │
+                              │ Realtime:  <100ms   │      │  └─ Layout Optimization │
+                              │ Safety:    <50ms    │      │                          │
+                              │ Maint:     <1s      │      └──────────────────────────┘
+                              └─────────────────────┘
+
+                    <span class="dr">NETWORK PARTITION HANDLING:</span>
+                    ┌──────────────────────────────────────────────────────┐
+                    │  1. Twin enters DEGRADED mode                       │
+                    │  2. Forward-simulates from last known state + PhysX │
+                    │  3. All outputs flagged "LOW CONFIDENCE"            │
+                    │  4. On reconnect: fast-forward to physical state    │
+                    │  5. Reconcile buffered telemetry                    │
+                    └──────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="ml-mlops">
+  <div class="section-header">
+    <span class="section-tag ml">L1 — MID LEVEL</span>
+    <h2>MLOps Pipeline — Teleop to Deployment</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(0,232,143,0.2)">◆</span> FULL ML LIFECYCLE: COLLECT → TRAIN → VALIDATE → DEPLOY → MONITOR</div>
+<pre class="ascii-diagram">
+ <span class="dp">① DATA COLLECTION</span>            <span class="db">② CURATION</span>              <span class="dg">③ TRAINING</span>
+ ┌──────────────────────┐   ┌───────────────────┐   ┌────────────────────────────┐
+ │ <span class="dp">Teleoperation</span>        │   │ <span class="db">Episode Pipeline</span>  │   │ <span class="dg">GPU Training Cluster</span>       │
+ │                      │   │                   │   │                            │
+ │ ┌──────────────────┐ │   │ Segmentation      │   │ ┌────────────────────────┐ │
+ │ │ Leader Arms      │ │   │ ├─ VAD for idle   │   │ │ <span class="dg">Foundation Model</span>      │ │
+ │ │ (human operator) │ │   │ ├─ Task boundary  │   │ │                        │ │
+ │ │       ↕          │ │   │ └─ Success/fail   │   │ │ Pre-trained VLM        │ │
+ │ │ Follower Arms    │ │──→│   label           │──→│ │ (PaliGemma 2B)         │ │
+ │ │ (robot mirrors)  │ │   │                   │   │ │        ↓               │ │
+ │ └──────────────────┘ │   │ Quality Filter    │   │ │ Post-train on          │ │
+ │                      │   │ ├─ Smooth traj.   │   │ │ multi-robot data       │ │
+ │ Capture per episode: │   │ ├─ Force limits   │   │ │ (7 configs, 68 tasks)  │ │
+ │ • 14-DOF joints      │   │ └─ Min diversity  │   │ │        ↓               │ │
+ │ • 7-DOF EE poses     │   │                   │   │ │ Fine-tune to task      │ │
+ │ • RGB ×4 cameras     │   │ Format:           │   │ │ (1-20 hrs new data)    │ │
+ │ • Language instruct. │   │ <span class="dc">LeRobotDataset</span>    │   │ └────────────────────────┘ │
+ │ • 30-50 Hz sync      │   │ Parquet + MP4     │   │                            │
+ │                      │   │                   │   │ Tracking: W&B + MLflow     │
+ │ <span class="dm">50-200 demos/day/op</span>  │   │ → Iceberg Gold    │   │ Registry: MLflow Model Reg │
+ └──────────────────────┘   └───────────────────┘   └─────────────┬──────────────┘
+                                                                  │
+ <span class="dr">④ VALIDATION GATES</span>            <span class="do">⑤ CANARY DEPLOY</span>                │
+ ┌──────────────────────┐    ┌──────────────────────┐            │
+ │ <span class="dr">Multi-Stage Gates</span>    │    │ <span class="do">Progressive Rollout</span> │            │
+ │                      │    │                      │            │
+ │ Gate 1: Sim Bench    │    │  ┌────────────────┐  │            │
+ │ ├─ LIBERO 90 tasks   │    │  │ <span class="do">Canary (1%)</span>    │  │            │
+ │ ├─ 50 eps × 15 seeds │←───│  │ 1-10 robots    │  │←───────────┘
+ │ └─ min 95% success   │    │  │ monitor 24hrs  │  │
+ │                      │    │  └───────┬────────┘  │
+ │ Gate 2: Safety       │    │          │ pass      │    <span class="dg">⑥ MONITOR & COLLECT</span>
+ │ ├─ Joint limits      │    │  ┌───────┴────────┐  │    ┌──────────────────┐
+ │ ├─ Force thresholds  │    │  │ <span class="do">Rollout (10%)</span>  │  │    │ <span class="dg">Fleet Monitoring</span> │
+ │ ├─ E-stop latency    │    │  │ monitor 48hrs  │  │───→│                  │
+ │ └─ Collision detect  │    │  └───────┬────────┘  │    │ Success rates    │
+ │                      │    │          │ pass      │    │ Cycle times      │
+ │ Gate 3: Statistical  │    │  ┌───────┴────────┐  │    │ Failure modes    │
+ │ ├─ CI on success %   │    │  │ <span class="dg">Full (100%)</span>    │  │    │                  │
+ │ ├─ Regression test   │    │  │ all robots     │  │    │ <span class="dc">→ feeds back to</span>  │
+ │ └─ vs previous ver.  │    │  └────────────────┘  │    │ <span class="dc">  step ① ②</span>       │
+ │                      │    │                      │    └──────────────────┘
+ │ Gate 4: Human Review │    │ <span class="dr">Auto-rollback if</span>    │
+ │ └─ Operator signs off│    │ <span class="dr">success < threshold</span> │
+ └──────────────────────┘    └──────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<!-- ╔══════════════════════════════════════════════════════════╗ -->
+<!-- ║  LOW-LEVEL DETAIL DIAGRAMS                               ║ -->
+<!-- ╚══════════════════════════════════════════════════════════╝ -->
+
+<section class="section" id="ll-kafka">
+  <div class="section-header">
+    <span class="section-tag ll">L2 — LOW LEVEL</span>
+    <h2>Kafka Topic Design & Partition Strategy</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(168,85,247,0.2)">◆</span> TOPIC HIERARCHY, PARTITIONING, AND CONSUMER GROUPS</div>
+<pre class="ascii-diagram">
+<span class="dc">TOPIC NAMING:  {warehouse}.{sensor_type}.{processing_level}</span>
+
+ ┌──────────────────────────────────────────────────────────────────────────────────────┐
+ │                        <span class="db">KAFKA CLUSTER (KRaft, 12-30 Brokers)</span>                        │
+ │                                                                                      │
+ │  <span class="dc">TOPIC</span>                          <span class="dc">PARTITIONS</span>   <span class="dc">KEY</span>              <span class="dc">COMPAT</span>    <span class="dc">RETENTION</span>  │
+ │  ─────────────────────────────  ──────────   ──────────────   ────────  ─────────  │
+ │  wh-east.joint_states.raw      200          robot_id         BACKWARD  7d+tiered │
+ │  wh-east.camera.compressed     500          robot_id:cam_id  BACKWARD  3d+tiered │
+ │  wh-east.force_torque.raw      100          robot_id         BACKWARD  7d+tiered │
+ │  wh-east.lidar.compressed      100          robot_id         BACKWARD  3d+tiered │
+ │  wh-east.imu.raw               100          robot_id         BACKWARD  7d+tiered │
+ │  wh-west.joint_states.raw      200          robot_id         BACKWARD  7d+tiered │
+ │  ...                                                                              │
+ │  fleet.diagnostics.events      50           robot_id         FULL      30d       │
+ │  fleet.commands.control        50           robot_id         FULL      7d        │
+ │  fleet.ota.status              20           robot_id         FULL      90d       │
+ │                                                                                      │
+ │  <span class="dy">CONSUMER GROUPS:</span>                                                                   │
+ │                                                                                      │
+ │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
+ │  │ <span class="dr">fleet-safety-monitor</span>    fetch.max.wait.ms=10   → Grafana/PagerDuty (P99 <10ms)│  │
+ │  │ <span class="do">fleet-anomaly-detect</span>   Flink micro-batch 1-10s → ML anomaly models           │  │
+ │  │ <span class="dg">fleet-lake-sink</span>        Kafka S3 Sink Connector → Iceberg Bronze (minutes)     │  │
+ │  │ <span class="dp">fleet-ml-export</span>        On-demand, manual trigger → Training pipeline           │  │
+ │  │ <span class="dc">fleet-digital-twin</span>    gRPC streaming → Omniverse state sync (<100ms)          │  │
+ │  └─────────────────────────────────────────────────────────────────────────────────┘  │
+ │                                                                                      │
+ │  <span class="dc">PRODUCER CONFIG (per gateway):</span>                                                    │
+ │  ┌──────────────────────────────────────────┐                                        │
+ │  │ enable.idempotence = true                │                                        │
+ │  │ acks = all                               │                                        │
+ │  │ transactional.id = wh-east-joints-prod-1 │                                        │
+ │  │ compression.type = lz4                   │                                        │
+ │  │ batch.size = 65536                       │                                        │
+ │  │ linger.ms = 5                            │                                        │
+ │  └──────────────────────────────────────────┘                                        │
+ │                                                                                      │
+ │  <span class="dc">SCHEMA REGISTRY (Protobuf):</span>                                                       │
+ │  ┌──────────────────────────────────────────────────────────────────────────┐         │
+ │  │ message JointState {                                                     │         │
+ │  │   string robot_id = 1;                                                   │         │
+ │  │   int64  timestamp_ns = 2;       // UTC nanoseconds                      │         │
+ │  │   repeated float positions = 3;  // 6-14 DOF                            │         │
+ │  │   repeated float velocities = 4;                                         │         │
+ │  │   repeated float efforts = 5;    // torques                              │         │
+ │  │   string frame_id = 6;                                                   │         │
+ │  │   uint32 sequence = 7;           // monotonic per-robot                  │         │
+ │  │ }                                                                        │         │
+ │  └──────────────────────────────────────────────────────────────────────────┘         │
+ └──────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="ll-iceberg">
+  <div class="section-header">
+    <span class="section-tag ll">L2 — LOW LEVEL</span>
+    <h2>Iceberg Table Layout & Storage</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(168,85,247,0.2)">◆</span> ICEBERG METADATA HIERARCHY + S3 STORAGE LAYOUT</div>
+<pre class="ascii-diagram">
+<span class="dc">ICEBERG TABLE: robotics_db.silver.episodes</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="dc">Catalog (AWS Glue / Unity Catalog / Nessie)</span>                         │
+  │   └─ robotics_db                                                    │
+  │       ├─ bronze.joint_states                                        │
+  │       ├─ bronze.camera_frames                                       │
+  │       ├─ silver.episodes        ←── <span class="dy">primary training source</span>        │
+  │       ├─ silver.calibrated_sensors                                  │
+  │       ├─ gold.fleet_kpis                                            │
+  │       └─ gold.training_datasets                                     │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  <span class="dc">ICEBERG METADATA STACK:</span>
+
+  ┌──────────────┐
+  │ <span class="dy">Catalog</span>      │  Pointer to current metadata.json
+  └──────┬───────┘
+         ▼
+  ┌──────────────┐
+  │ <span class="dy">metadata.json</span>│  Table schema, partition spec, snapshot list
+  │ v32          │  Schema: robot_id, episode_id, task_type,
+  └──────┬───────┘         timestamp, joint_positions[14], ...
+         ▼
+  ┌──────────────┐
+  │ <span class="dg">Snapshot</span>     │  snap-1234: {manifest-list → [m1, m2, m3]}
+  │ snap-1234    │  Each snapshot = consistent view of table
+  └──────┬───────┘  Time-travel: SELECT * FROM episodes VERSION AS OF snap-1200
+         ▼
+  ┌──────────────┐
+  │ <span class="dg">Manifest</span>     │  Lists data files with column-level stats
+  │ List         │  (min/max robot_id, date range, row counts)
+  └──────┬───────┘  Enables partition pruning at planning time
+         ▼
+  ┌──────────────┐
+  │ <span class="db">Manifests</span>    │  Groups of Parquet files with per-file stats
+  │ m1, m2, m3   │
+  └──────┬───────┘
+         ▼
+  ┌──────────────────────────────────────────────────────────────┐
+  │ <span class="db">Parquet Data Files on S3</span>                                      │
+  │                                                              │
+  │  s3://nimble-datalake/                                       │
+  │  └─ silver/                                                  │
+  │     └─ episodes/                                             │
+  │        ├─ date=2026-03-23/                                   │
+  │        │  ├─ robot_id=bot-0042/                              │
+  │        │  │  ├─ task_type=pick/                              │
+  │        │  │  │  ├─ episode_0001.parquet   (128 MB row group) │
+  │        │  │  │  ├─ episode_0002.parquet                      │
+  │        │  │  │  └─ ...                                       │
+  │        │  │  └─ task_type=pack/                              │
+  │        │  │     └─ ...                                       │
+  │        │  └─ robot_id=bot-0043/                              │
+  │        │     └─ ...                                          │
+  │        └─ date=2026-03-22/                                   │
+  │           └─ ...                                             │
+  │                                                              │
+  │  <span class="dc">PARTITION SPEC (evolvable):</span>                                  │
+  │  v1: partition by [date]                                     │
+  │  v2: partition by [date, robot_id]        ← no rewrite!     │
+  │  v3: partition by [date, robot_id, task_type]                │
+  └──────────────────────────────────────────────────────────────┘
+
+  <span class="dc">QUERY ENGINES (all read same Parquet files):</span>
+
+  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐
+  │ <span class="dg">Spark</span>     │  │ <span class="db">Trino</span>     │  │ <span class="do">DuckDB</span>    │  │ <span class="dp">Flink</span>     │
+  │ Batch ETL │  │ Ad-hoc SQL│  │ Local dev │  │ Streaming │
+  └───────────┘  └───────────┘  └───────────┘  └───────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="ll-simci">
+  <div class="section-header">
+    <span class="section-tag ll">L2 — LOW LEVEL</span>
+    <h2>Simulation CI/CD Pipeline Detail</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(168,85,247,0.2)">◆</span> KUBERNETES POD LIFECYCLE FOR SIMULATION JOBS</div>
+<pre class="ascii-diagram">
+  ┌────────────────────────────────────────────────────────────────────────────────────┐
+  │                  <span class="dg">KUBERNETES CLUSTER (Simulation Farm)</span>                             │
+  │                                                                                    │
+  │  ┌───────────────────────────────────────────────────────────────────────────────┐  │
+  │  │ <span class="dy">Volcano Scheduler</span>                                                           │  │
+  │  │ • Gang scheduling (all pods in a job start together or none)                 │  │
+  │  │ • Priority queues: P0=safety, P1=nightly, P2=dev-triggered, P3=weekly       │  │
+  │  │ • Preemption: P0/P1 can preempt P2/P3                                       │  │
+  │  │ • Bin-packing: maximize GPU utilization across nodes                         │  │
+  │  └───────────────────────────────────────────────────────────────────────────────┘  │
+  │                                                                                    │
+  │  ┌─ Node Pool: GPU Spot (p4d.24xlarge / g5.12xlarge) ─────────────────────────┐   │
+  │  │                                                                             │   │
+  │  │  ┌─────────────────────────────────────────────────────────────────────┐    │   │
+  │  │  │ <span class="dg">Sim Pod (one per scenario batch)</span>                                   │    │   │
+  │  │  │                                                                     │    │   │
+  │  │  │  ┌─────────────────────────────────────────────────────────────┐   │    │   │
+  │  │  │  │ <span class="dc">Container Image Layers:</span>                                      │   │    │   │
+  │  │  │  │                                                             │   │    │   │
+  │  │  │  │  Layer 1: nvidia/cuda:12.x-runtime     (cached on AMI)     │   │    │   │
+  │  │  │  │  Layer 2: isaac-sim:4.5-base            (cached on AMI)     │   │    │   │
+  │  │  │  │  Layer 3: nimble-robot-usd-models:v2.3  (pulled per deploy) │   │    │   │
+  │  │  │  │  Layer 4: scenario-configs:nightly-0323  (pulled per job)    │   │    │   │
+  │  │  │  │  Layer 5: robot-software-stack:sha-abc123 (under test)       │   │    │   │
+  │  │  │  └─────────────────────────────────────────────────────────────┘   │    │   │
+  │  │  │                                                                     │    │   │
+  │  │  │  Resources:                                                         │    │   │
+  │  │  │    nvidia.com/gpu: 1 (or MIG slice: nvidia.com/mig-1g.5gb: 1)     │    │   │
+  │  │  │    memory: 32Gi                                                     │    │   │
+  │  │  │    cpu: 8                                                           │    │   │
+  │  │  │                                                                     │    │   │
+  │  │  │  Lifecycle:                                                         │    │   │
+  │  │  │    init → load USD scene → run N scenarios → upload results → exit │    │   │
+  │  │  │    Many tests per pod (amortize startup cost)                       │    │   │
+  │  │  │    Spot interruption → checkpoint + reschedule remaining            │    │   │
+  │  │  └─────────────────────────────────────────────────────────────────────┘    │   │
+  │  │                                                                             │   │
+  │  └─────────────────────────────────────────────────────────────────────────────┘   │
+  │                                                                                    │
+  │  ┌─ Results Pipeline ──────────────────────────────────────────────────────────┐   │
+  │  │                                                                              │   │
+  │  │  Pod outputs → S3 (results/nightly/2026-03-23/batch-{id}/)                  │   │
+  │  │      ├─ metrics.json  (success/fail per scenario, timing)                   │   │
+  │  │      ├─ replay.mcap   (full sensor replay for failed scenarios)             │   │
+  │  │      └─ summary.html  (visual report with screenshots)                     │   │
+  │  │                                                                              │   │
+  │  │  Aggregator Job → compares vs baseline → generates go/no-go verdict         │   │
+  │  │  Slack notification → #sim-results channel with summary                     │   │
+  │  │  GitHub check → blocks/allows merge based on verdict                        │   │
+  │  └──────────────────────────────────────────────────────────────────────────────┘   │
+  └────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="ll-training">
+  <div class="section-header">
+    <span class="section-tag ll">L2 — LOW LEVEL</span>
+    <h2>Training Pipeline — VLA Model Architecture</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(168,85,247,0.2)">◆</span> π0 / ACT TRAINING ARCHITECTURE WITH DATA FLOW</div>
+<pre class="ascii-diagram">
+<span class="dc">═══ π0 VISION-LANGUAGE-ACTION MODEL ═══</span>
+
+  ┌───────────────────────────────────────────────────────────────────────────────────────┐
+  │                              <span class="dg">THREE-PHASE TRAINING</span>                                  │
+  │                                                                                       │
+  │  <span class="dp">Phase 1: Pre-trained VLM</span>         <span class="db">Phase 2: Post-training</span>       <span class="dg">Phase 3: Fine-tune</span>     │
+  │  (Internet-scale)               (Multi-robot)                (Task-specific)         │
+  │                                                                                       │
+  │  ┌──────────────────┐          ┌──────────────────┐        ┌──────────────────┐       │
+  │  │ PaliGemma 2B     │          │ Open X-Embodiment│        │ Nimble teleop    │       │
+  │  │ (Google)         │          │ 1M+ trajectories │        │ demonstrations   │       │
+  │  │                  │          │ + Nimble multi-   │        │ 1-20 hours of    │       │
+  │  │ Vision encoder   │──frozen──│   robot data     │──train─│ new task data    │       │
+  │  │ Language encoder │  weights │ 7 configs,68 tasks│        │                  │       │
+  │  └──────────────────┘          └──────────────────┘        └──────────────────┘       │
+  │         │                              │                           │                  │
+  │         └──────────────────────────────┼───────────────────────────┘                  │
+  │                                        ▼                                              │
+  │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
+  │  │ <span class="dc">π0 Model Architecture</span>                                                         │  │
+  │  │                                                                                 │  │
+  │  │  ┌────────────┐    ┌────────────┐    ┌────────────────┐    ┌────────────────┐   │  │
+  │  │  │  <span class="dp">RGB ×4</span>    │    │ <span class="dp">Language</span>  │    │ <span class="dp">Proprioception</span>│    │ <span class="dp">Robot Config</span>  │   │  │
+  │  │  │  Cameras   │    │ Instruct.  │    │ Joint states   │    │ URDF embedding│   │  │
+  │  │  └─────┬──────┘    └─────┬──────┘    └───────┬────────┘    └──────┬─────────┘   │  │
+  │  │        │                 │                    │                    │             │  │
+  │  │        ▼                 ▼                    ▼                    ▼             │  │
+  │  │  ┌──────────────────────────────────────────────────────────────────────────┐   │  │
+  │  │  │                    <span class="db">Transformer Backbone (2B params)</span>                     │   │  │
+  │  │  │                    Cross-attention over all modalities                    │   │  │
+  │  │  └──────────────────────────────────┬───────────────────────────────────────┘   │  │
+  │  │                                     │                                           │  │
+  │  │                                     ▼                                           │  │
+  │  │  ┌──────────────────────────────────────────────────────────────────────────┐   │  │
+  │  │  │              <span class="dg">Flow Matching Action Head</span>                                   │   │  │
+  │  │  │              Generates smooth 50Hz action trajectories                   │   │  │
+  │  │  │              Denoising: noise → action chunk (k future steps)            │   │  │
+  │  │  └──────────────────────────────────┬───────────────────────────────────────┘   │  │
+  │  │                                     │                                           │  │
+  │  │                                     ▼                                           │  │
+  │  │                        <span class="dg">Action Chunk [a_t, a_t+1, ..., a_t+k]</span>                  │  │
+  │  │                        14-DOF joint positions + gripper                          │  │
+  │  └─────────────────────────────────────────────────────────────────────────────────┘  │
+  └───────────────────────────────────────────────────────────────────────────────────────┘
+
+<span class="dc">═══ ACT (ACTION CHUNKING WITH TRANSFORMERS) ═══</span>
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                                                                         │
+  │  ┌────────────┐   ┌────────────┐                                       │
+  │  │ RGB ×4     │   │ Joint pos  │                                       │
+  │  │ cameras    │   │ (14-DOF)   │                                       │
+  │  └─────┬──────┘   └─────┬──────┘                                       │
+  │        │                │                                               │
+  │        ▼                ▼                                               │
+  │  ┌─────────────────────────────┐    ┌──────────────────────────────┐   │
+  │  │ <span class="db">Encoder (CVAE)</span>               │    │ <span class="dg">Decoder (Transformer)</span>        │   │
+  │  │ ResNet-18 vision backbone  │───→│ Cross-attend image features  │   │
+  │  │ Encode style variable z    │    │ Predict k actions at once    │   │
+  │  │ (captures multi-modality)  │    │ k=100 typical (2s @ 50Hz)   │   │
+  │  └─────────────────────────────┘    └──────────────┬───────────────┘   │
+  │                                                    │                   │
+  │  <span class="dm">~80M params  |  Train: 5hrs on RTX 2080 Ti  |  Infer: 0.01s</span>        │
+  │  <span class="dm">10-50 demos sufficient for 80-90% success rate</span>                    │
+  └─────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="ll-deployment">
+  <div class="section-header">
+    <span class="section-tag ll">L2 — LOW LEVEL</span>
+    <h2>Model Deployment — Canary + OTA</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(168,85,247,0.2)">◆</span> BLUE/GREEN + CANARY DEPLOYMENT WITH OTA UPDATE FLOW</div>
+<pre class="ascii-diagram">
+  <span class="dg">Model Registry</span>                    <span class="db">OTA Platform</span>                      <span class="do">Fleet</span>
+
+ ┌───────────────┐           ┌──────────────────────────┐     ┌─────────────────────┐
+ │ <span class="dg">MLflow</span>         │           │ <span class="db">OTA Update Manager</span>       │     │ <span class="do">Robot Fleet</span>          │
+ │               │           │ (Uptane Framework)       │     │                     │
+ │ model:        │           │                          │     │ ┌─────────────────┐ │
+ │  name: pick-  │──promote──│ ┌──────────────────────┐ │     │ │ <span class="do">Jetson Orin AGX</span> │ │
+ │    policy-v2.3│  to prod  │ │ Signing Server       │ │     │ │                 │ │
+ │  stage: prod  │           │ │ Ed25519 + threshold  │ │     │ │ ┌─────┐┌─────┐ │ │
+ │  artifact:    │           │ │ signatures           │ │     │ │ │<span class="dg">Slot</span> ││<span class="dm">Slot</span> │ │ │
+ │   OCI image   │           │ └──────────────────────┘ │     │ │ │<span class="dg"> A  </span> ││<span class="dm"> B  </span> │ │ │
+ │               │           │                          │     │ │ │<span class="dg">v2.3</span> ││<span class="dm">v2.2</span> │ │ │
+ │ metadata:     │           │ ┌──────────────────────┐ │     │ │ │<span class="dg">act.</span> ││<span class="dm">stby</span> │ │ │
+ │  sim_score:97%│           │ │ Rollout Controller   │ │     │ │ └─────┘└─────┘ │ │
+ │  safety: PASS │           │ │                      │ │     │ │                 │ │
+ │  human: ✓     │           │ │ ┌──────────────┐     │ │     │ │ <span class="dc">Atomic A/B</span>     │ │
+ └───────────────┘           │ │ │ <span class="dr">Canary 1%</span>   │     │ │────→│ │ partition swap │ │
+                             │ │ │ bots: 42,87  │     │ │     │ │ on boot        │ │
+                             │ │ │ monitor 24h  │     │ │     │ │                 │ │
+                             │ │ └──────┬───────┘     │ │     │ │ Rollback:       │ │
+                             │ │        │ success     │ │     │ │ reboot into     │ │
+                             │ │ ┌──────▼───────┐     │ │     │ │ Slot B (v2.2)   │ │
+                             │ │ │ <span class="do">Rollout 10%</span> │     │ │     │ └─────────────────┘ │
+                             │ │ │ monitor 48h  │     │ │     │                     │
+                             │ │ └──────┬───────┘     │ │     │ ┌─────────────────┐ │
+                             │ │        │ success     │ │     │ │ <span class="dc">Version Counter</span> │ │
+                             │ │ ┌──────▼───────┐     │ │     │ │ monotonic ++    │ │
+                             │ │ │ <span class="dg">Full 100%</span>   │     │ │     │ │ prevents       │ │
+                             │ │ │ all robots   │     │ │     │ │ downgrade atk  │ │
+                             │ │ └──────────────┘     │ │     │ └─────────────────┘ │
+                             │ │                      │ │     │                     │
+                             │ │ <span class="dr">AUTO-ROLLBACK if:</span>   │ │     │ ┌─────────────────┐ │
+                             │ │ • success < 90%     │ │     │ │ <span class="dy">TPM / HSM</span>       │ │
+                             │ │ • collision detected │ │     │ │ Hardware root   │ │
+                             │ │ • e-stop triggered   │ │     │ │ of trust        │ │
+                             │ │ • latency > 50ms     │ │     │ │ mTLS certs      │ │
+                             │ └──────────────────────┘ │     │ └─────────────────┘ │
+                             └──────────────────────────┘     └─────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<!-- ╔══════════════════════════════════════════════════════════╗ -->
+<!-- ║  DEEP DIVE DIAGRAMS                                      ║ -->
+<!-- ╚══════════════════════════════════════════════════════════╝ -->
+
+<section class="section" id="dd-edge">
+  <div class="section-header">
+    <span class="section-tag dp">L3 — DEEP DIVE</span>
+    <h2>Edge Processing Stack — Per-Robot Architecture</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(0,232,143,0.2)">◆</span> JETSON ORIN AGX — FULL ON-ROBOT SOFTWARE STACK</div>
+<pre class="ascii-diagram">
+ ┌───────────────────────────────────────────────────────────────────────────────────────┐
+ │                          <span class="do">NVIDIA JETSON ORIN AGX (275 TOPS)</span>                          │
+ │                                                                                       │
+ │  ┌─── <span class="dc">PERCEPTION</span> ───────────────────────────────────────────────────────────────┐    │
+ │  │                                                                               │    │
+ │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │    │
+ │  │  │ Cam L    │  │ Cam R    │  │ Cam Wrist│  │ Cam Over │  │ LiDAR        │   │    │
+ │  │  │ 1080p/30 │  │ 1080p/30 │  │ 720p/60  │  │ 1080p/30 │  │ Ouster/Velod.│   │    │
+ │  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────┬───────┘   │    │
+ │  │       │              │             │             │               │           │    │
+ │  │       ▼              ▼             ▼             ▼               ▼           │    │
+ │  │  ┌────────────────────────────────────────────────────────────────────────┐   │    │
+ │  │  │ <span class="dc">NVENC H.264/H.265 Hardware Encoder</span>                  │ Draco Compress│   │    │
+ │  │  │ 10× reduction: 200KB/frame → 20KB/frame       │ 0.5MB → 50KB │   │    │
+ │  │  └────────────────────────────────────────────────────────────────────────┘   │    │
+ │  └───────────────────────────────────────────────────────────────────────────────┘    │
+ │                                                                                       │
+ │  ┌─── <span class="dg">POLICY EXECUTION</span> ────────────────────────────────────────────────────────┐    │
+ │  │                                                                               │    │
+ │  │  ┌──────────────────────────────────────────────────────────────────────┐     │    │
+ │  │  │ <span class="dg">VLA Policy Runtime (TensorRT optimized)</span>                                │     │    │
+ │  │  │                                                                      │     │    │
+ │  │  │  Model: π0-nimble-pick-v2.3.engine  (TensorRT FP16)                 │     │    │
+ │  │  │  Input: RGB×4 + joint_pos[14] + language_instruction                │     │    │
+ │  │  │  Output: action_chunk[k×14] @ 50Hz                                  │     │    │
+ │  │  │  Latency: <20ms inference                                           │     │    │
+ │  │  │                                                                      │     │    │
+ │  │  │  Fallback: ACT-nimble-v1.8.engine (lighter, 10ms)                   │     │    │
+ │  │  └──────────────────────────────────────────────────────────────────────┘     │    │
+ │  │                                                                               │    │
+ │  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────────┐    │    │
+ │  │  │ <span class="dg">Motion Planner</span>   │  │ <span class="dg">Safety Monitor</span>   │  │ <span class="dg">Grasp Controller</span>       │    │    │
+ │  │  │ MoveIt2 / cuMotion│  │ Joint/vel limits │  │ Force-feedback gripper  │    │    │
+ │  │  │ GPU-accelerated  │  │ Collision detect │  │ Adaptive compliance     │    │    │
+ │  │  └──────────────────┘  └──────────────────┘  └──────────────────────────┘    │    │
+ │  └───────────────────────────────────────────────────────────────────────────────┘    │
+ │                                                                                       │
+ │  ┌─── <span class="db">COMMUNICATION</span> ──────────────────────────────────────────────────────────┐    │
+ │  │                                                                               │    │
+ │  │  ┌──────────────────────────────────────────────────────────────────────┐     │    │
+ │  │  │ <span class="db">ROS 2 Jazzy (Zenoh RMW)</span>                                              │     │    │
+ │  │  │                                                                      │     │    │
+ │  │  │  Topics published:          Topics subscribed:                       │     │    │
+ │  │  │  /joint_states   (1KHz)    /fleet_cmd/task_dispatch                 │     │    │
+ │  │  │  /camera/*/comp  (30fps)   /ota/update_available                    │     │    │
+ │  │  │  /ft_sensor      (1KHz)    /fleet_cmd/emergency_stop               │     │    │
+ │  │  │  /diagnostics    (1Hz)     /policy/switch (blue/green)              │     │    │
+ │  │  └──────────────────────────────────────────────────────────────────────┘     │    │
+ │  │                                                                               │    │
+ │  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────────┐    │    │
+ │  │  │ <span class="do">Ring Buffer</span>      │  │ <span class="dy">Circuit Breaker</span>  │  │ <span class="dg">SROS 2 (DDS Security)</span>  │    │    │
+ │  │  │ SSD, 60 min     │  │ Cloud health mon │  │ mTLS + encryption       │    │    │
+ │  │  │ Replay on recon.│  │ Auto-fallback    │  │ Access control per topic│    │    │
+ │  │  └──────────────────┘  └──────────────────┘  └──────────────────────────┘    │    │
+ │  └───────────────────────────────────────────────────────────────────────────────┘    │
+ │                                                                                       │
+ │  <span class="dm">GRACEFUL DEGRADATION HIERARCHY:</span>                                                    │
+ │  Full connectivity → Local ops + buffer → Autonomous safety → Safe stop + alert      │
+ └───────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="dd-domrand">
+  <div class="section-header">
+    <span class="section-tag dp">L3 — DEEP DIVE</span>
+    <h2>Domain Randomization — Sim-to-Real Transfer</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(0,232,143,0.2)">◆</span> FIVE-AXIS DOMAIN RANDOMIZATION IN ISAAC LAB</div>
+<pre class="ascii-diagram">
+ ┌────────────────────────────────────────────────────────────────────────────────────────┐
+ │                   <span class="dg">ISAAC LAB — DOMAIN RANDOMIZATION PIPELINE</span>                         │
+ │                   <span class="dm">1000s of parallel environments per GPU</span>                            │
+ │                                                                                        │
+ │  ┌──── <span class="dc">VISUAL</span> ──────────┐  ┌──── <span class="db">PHYSICS</span> ───────────┐  ┌──── <span class="dg">GEOMETRY</span> ─────────┐  │
+ │  │                      │  │                       │  │                       │  │
+ │  │ • 8000+ textures    │  │ • Friction: 0.3–1.0  │  │ • Object dimensions  │  │
+ │  │ • Lighting: dir,    │  │ • Mass: ±30%          │  │   ±20% scale         │  │
+ │  │   intensity, color  │  │ • Damping: ±25%       │  │ • Shelf spacing      │  │
+ │  │ • Shadows on/off    │  │ • Restitution: 0–0.8 │  │ • Bin positions      │  │
+ │  │ • Background clutter│  │ • Gravity: ±5%        │  │ • Clutter: 0–40%    │  │
+ │  │   density: 0–40%    │  │ • Contact stiffness   │  │   occlusion          │  │
+ │  └──────────┬───────────┘  └──────────┬────────────┘  └──────────┬────────────┘  │
+ │             │                         │                          │               │
+ │  ┌──── <span class="dp">SENSOR</span> ─────────┐  ┌──── <span class="do">ACTUATOR</span> ──────────┐              │               │
+ │  │                      │  │                       │              │               │
+ │  │ • Camera FOV jitter │  │ • Controller gains    │              │               │
+ │  │ • Position offset   │  │   ±15%                │              │               │
+ │  │   ±2cm, ±2°         │  │ • Communication delay │              │               │
+ │  │ • Gaussian noise    │  │   0–20ms              │              │               │
+ │  │ • Dropout: 0–5%     │  │ • Actuator degradation│              │               │
+ │  │ • Exposure variation│  │   (worn motor sim)    │              │               │
+ │  └──────────┬───────────┘  └──────────┬────────────┘              │               │
+ │             │                         │                          │               │
+ │             └─────────────────────────┼──────────────────────────┘               │
+ │                                       │                                          │
+ │                                       ▼                                          │
+ │  ┌─────────────────────────────────────────────────────────────────────────────┐  │
+ │  │                    <span class="dg">PROGRESSIVE TRAINING PIPELINE</span>                          │  │
+ │  │                                                                             │  │
+ │  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────────┐  │  │
+ │  │  │ <span class="dc">Phase 1</span>          │  │ <span class="db">Phase 2</span>          │  │ <span class="dg">Phase 3</span>                │  │  │
+ │  │  │ Broad Random.    │  │ Narrow via SysID │  │ Zero-shot Deploy or    │  │  │
+ │  │  │ Max diversity    │──│ Match real sensor│──│ Brief fine-tune        │  │  │
+ │  │  │ for robustness   │→ │ data statistics  │→ │ (10-50 real demos)     │  │  │
+ │  │  └──────────────────┘  └──────────────────┘  └──────────────────────────┘  │  │
+ │  │                                                                             │  │
+ │  │  <span class="dc">Target metrics: <0.025 rad mean joint error, >90% task success</span>             │  │
+ │  └─────────────────────────────────────────────────────────────────────────────┘  │
+ └────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="dd-security">
+  <div class="section-header">
+    <span class="section-tag dp">L3 — DEEP DIVE</span>
+    <h2>Security Architecture & OTA Updates</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(255,87,87,0.2)">◆</span> ZERO-TRUST FLEET SECURITY + UPTANE OTA</div>
+<pre class="ascii-diagram">
+ ┌────────────────────────────────────────────────────────────────────────────────────┐
+ │                        <span class="dr">ZERO-TRUST SECURITY ARCHITECTURE</span>                          │
+ │                                                                                    │
+ │  ┌─── <span class="dp">IDENTITY</span> ─────────────────────────────────────────────────────────────┐    │
+ │  │                                                                           │    │
+ │  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐    │    │
+ │  │  │ <span class="dp">Hardware RoT</span>     │  │ <span class="dp">mTLS</span>             │  │ <span class="dp">SROS 2</span>              │    │    │
+ │  │  │ TPM 2.0 per robot│  │ Short-lived x.509│  │ DDS-Security plugin │    │    │
+ │  │  │ Secure boot chain│  │ Auto-rotate 24h  │  │ Per-topic ACLs      │    │    │
+ │  │  │ Measured launch  │  │ SPIFFE/SPIRE IDs │  │ Encrypt + sign      │    │    │
+ │  │  └──────────────────┘  └──────────────────┘  └──────────────────────┘    │    │
+ │  └───────────────────────────────────────────────────────────────────────────┘    │
+ │                                                                                    │
+ │  ┌─── <span class="dy">NETWORK</span> ─────────────────────────────────────────────────────────────┐    │
+ │  │                                                                           │    │
+ │  │  ┌──────────────────────────────────────────────────────────────────┐     │    │
+ │  │  │ <span class="dy">Network Segmentation</span>                                              │     │    │
+ │  │  │                                                                  │     │    │
+ │  │  │  VLAN 10: Robot Control Traffic (ROS 2 DDS)                     │     │    │
+ │  │  │  VLAN 20: Management / OTA / Monitoring                         │     │    │
+ │  │  │  VLAN 30: Camera / Sensor Bulk Data                             │     │    │
+ │  │  │  VLAN 40: Guest / Operator WiFi                                 │     │    │
+ │  │  │                                                                  │     │    │
+ │  │  │  ┌──────┐      ┌───────────────┐      ┌──────┐                 │     │    │
+ │  │  │  │  OT  │◄────►│ Industrial DMZ│◄────►│  IT  │                 │     │    │
+ │  │  │  │ Net  │      │ Firewall +    │      │ Net  │                 │     │    │
+ │  │  │  │      │      │ Protocol Break│      │      │                 │     │    │
+ │  │  │  └──────┘      └───────────────┘      └──────┘                 │     │    │
+ │  │  └──────────────────────────────────────────────────────────────────┘     │    │
+ │  └───────────────────────────────────────────────────────────────────────────┘    │
+ │                                                                                    │
+ │  ┌─── <span class="dg">OTA (Uptane Framework)</span> ───────────────────────────────────────────────┐    │
+ │  │                                                                           │    │
+ │  │  ┌──────────────┐    ┌──────────────┐    ┌────────────────────────┐      │    │
+ │  │  │ <span class="dg">Director</span>      │    │ <span class="dg">Image Repo</span>    │    │ <span class="dg">Robot (Primary ECU)</span>    │      │    │
+ │  │  │ Server       │    │ Server       │    │                        │      │    │
+ │  │  │ Decides what │───→│ Hosts signed │───→│ Verify signatures      │      │    │
+ │  │  │ each robot   │    │ update images│    │ Check version monoton. │      │    │
+ │  │  │ should run   │    │ Threshold    │    │ Apply to inactive slot │      │    │
+ │  │  │              │    │ signatures   │    │ Reboot + verify        │      │    │
+ │  │  └──────────────┘    └──────────────┘    │ Rollback if health ✗   │      │    │
+ │  │                                          └────────────────────────┘      │    │
+ │  └───────────────────────────────────────────────────────────────────────────┘    │
+ │                                                                                    │
+ │  ┌─── <span class="db">DATA GOVERNANCE</span> ──────────────────────────────────────────────────────┐    │
+ │  │                                                                           │    │
+ │  │  • PII: Edge-side face blur before cloud upload (DeepPrivacy2)           │    │
+ │  │  • GDPR: DPIA for camera data, right-to-erasure across distributed store │    │
+ │  │  • Lineage: Iceberg snapshot metadata + OpenTelemetry spans              │    │
+ │  │  • Retention: Automated lifecycle policies per data classification       │    │
+ │  └───────────────────────────────────────────────────────────────────────────┘    │
+ └────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+</section>
+
+
+<section class="section" id="dd-observability">
+  <div class="section-header">
+    <span class="section-tag dp">L3 — DEEP DIVE</span>
+    <h2>Three-Tier Observability Stack</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title"><span class="dt-icon" style="background:rgba(0,232,143,0.2)">◆</span> ROBOT → WAREHOUSE → FLEET OBSERVABILITY HIERARCHY</div>
+<pre class="ascii-diagram">
+ ┌────────────────────────────────────────────────────────────────────────────────────────┐
+ │                       <span class="dc">OPENTELEMETRY UNIFIED OBSERVABILITY</span>                           │
+ │                                                                                        │
+ │  <span class="do">TIER 1: ROBOT-LEVEL</span>           <span class="dy">TIER 2: WAREHOUSE</span>         <span class="db">TIER 3: FLEET-WIDE</span>          │
+ │                                                                                        │
+ │  ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────────┐   │
+ │  │ <span class="do">Per-Robot Metrics</span>     │   │ <span class="dy">Per-Warehouse Agg.</span>   │   │ <span class="db">Fleet Dashboard</span>         │   │
+ │  │                      │   │                      │   │                          │   │
+ │  │ • Battery SOC %      │   │ • Fleet utilization  │   │ • Overall availability   │   │
+ │  │ • Motor temps ×N     │──→│ • Picks per hour     │──→│ • MTTR across sites      │   │
+ │  │ • Joint positions    │   │ • Collision events    │   │ • OTA success rate       │   │
+ │  │ • CPU/GPU util.      │   │ • Network bandwidth  │   │ • Cross-warehouse perf.  │   │
+ │  │ • Localization conf. │   │ • Queue depths        │   │ • Model version dist.    │   │
+ │  │ • Policy inference ms│   │ • Error rate by type  │   │ • Cost per pick trend    │   │
+ │  └──────────┬───────────┘   └──────────┬───────────┘   └──────────┬───────────────┘   │
+ │             │                          │                          │                    │
+ │             ▼                          ▼                          ▼                    │
+ │  ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────────┐   │
+ │  │ <span class="do">ROS 2 Node Exporter</span>  │   │ <span class="dy">Prometheus (local)</span>  │   │ <span class="db">Thanos / Mimir</span>          │   │
+ │  │ /metrics endpoint    │   │ scrape 15s interval  │   │ (global aggregation)     │   │
+ │  │ per robot node       │   │ AlertManager local   │   │ Long-term storage        │   │
+ │  └──────────────────────┘   └──────────────────────┘   └──────────────────────────┘   │
+ │                                                                                        │
+ │  ┌─── <span class="dg">TRACING</span> ──────────────────────────────────────────────────────────────────┐    │
+ │  │                                                                               │    │
+ │  │  Trace: task_id=pick-20260323-042-000817                                     │    │
+ │  │  ┌────────────────────────────────────────────────────────────────────────┐   │    │
+ │  │  │ Fleet Mgr    │ Kafka      │ Robot Edge    │ Policy   │ Actuator │ Done │   │    │
+ │  │  │ dispatch     │ enqueue    │ receive       │ infer    │ execute  │      │   │    │
+ │  │  │ 2ms          │ 15ms       │ 5ms           │ 18ms     │ 3.2s     │ ✓    │   │    │
+ │  │  └────────────────────────────────────────────────────────────────────────┘   │    │
+ │  │                                                                               │    │
+ │  │  Correlation IDs link: structured logs ↔ traces ↔ metrics                    │    │
+ │  └───────────────────────────────────────────────────────────────────────────────┘    │
+ │                                                                                        │
+ │  ┌─── <span class="dr">ALERTING</span> ─────────────────────────────────────────────────────────────────┐    │
+ │  │                                                                               │    │
+ │  │  <span class="dr">P0 (page immediately)</span>: collision, e-stop, policy crash, OTA failure         │    │
+ │  │  <span class="do">P1 (page within 15m)</span>: success rate drop >5%, motor over-temp                │    │
+ │  │  <span class="dy">P2 (Slack alert)</span>: battery anomaly, network degradation, queue backlog       │    │
+ │  │  <span class="dm">P3 (daily digest)</span>: utilization trends, model staleness, storage growth      │    │
+ │  └───────────────────────────────────────────────────────────────────────────────┘    │
+ └────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+  </div>
+
+  <div class="callout success">
+    <div class="callout-title">Staff-Level Interview Tip</div>
+    <p style="margin:0">When presenting this design, anchor each diagram level to the interviewer's interests: start with the L0 flywheel (business value), zoom into whichever L1 subsystem they probe on, then drop to L2/L3 for technical depth. The ability to fluidly navigate zoom levels — and connect each component back to the data flywheel — is what distinguishes a staff-level answer.</p>
+  </div>
+</section>
+
+
+</main>
+
+<script>
+// Sidebar active state tracking
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('.nav-link');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(link => link.classList.remove('active'));
+      const activeLink = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+      if (activeLink) activeLink.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+sections.forEach(section => observer.observe(section));
+</script>
+</body>
+</html>

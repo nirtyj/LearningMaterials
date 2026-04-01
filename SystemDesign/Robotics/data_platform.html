@@ -1,0 +1,2851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robotics Data Platform - System Design Deep Dive</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --border-color: #30363d;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --accent-cyan: #39c5cf;
+            --code-bg: #0d1117;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            display: flex;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            padding: 20px 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-section {
+            margin-bottom: 10px;
+        }
+
+        .nav-section-title {
+            padding: 8px 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .nav-link {
+            display: block;
+            padding: 6px 20px 6px 30px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background-color: var(--bg-tertiary);
+        }
+
+        .nav-link.active {
+            color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.1);
+        }
+
+        .nav-link.depth-2 {
+            padding-left: 45px;
+            font-size: 0.8rem;
+        }
+
+        .nav-link.depth-3 {
+            padding-left: 60px;
+            font-size: 0.75rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px 60px;
+            max-width: 1200px;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 60px;
+            scroll-margin-top: 20px;
+        }
+
+        .section-header {
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            margin-top: 40px;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            margin-top: 30px;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            margin-top: 20px;
+        }
+
+        p {
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+
+        /* ASCII Diagrams */
+        .ascii-diagram {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            white-space: pre;
+            color: var(--text-primary);
+        }
+
+        .ascii-diagram.large {
+            font-size: 0.7rem;
+        }
+
+        /* Code Blocks */
+        .code-block {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .code-block .comment {
+            color: var(--text-muted);
+        }
+
+        .code-block .keyword {
+            color: var(--accent-purple);
+        }
+
+        .code-block .string {
+            color: var(--accent-green);
+        }
+
+        .code-block .function {
+            color: var(--accent-blue);
+        }
+
+        /* Info Boxes */
+        .info-box {
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+
+        .info-box.insight {
+            background-color: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-blue);
+        }
+
+        .info-box.warning {
+            background-color: rgba(210, 153, 34, 0.1);
+            border-color: var(--accent-orange);
+        }
+
+        .info-box.success {
+            background-color: rgba(63, 185, 80, 0.1);
+            border-color: var(--accent-green);
+        }
+
+        .info-box.critical {
+            background-color: rgba(248, 81, 73, 0.1);
+            border-color: var(--accent-red);
+        }
+
+        .info-box-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .info-box p {
+            margin-bottom: 0;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            background-color: var(--bg-secondary);
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 5px;
+        }
+
+        .tag.aws { background-color: rgba(255, 153, 0, 0.2); color: #ff9900; }
+        .tag.python { background-color: rgba(53, 114, 165, 0.2); color: #3572A5; }
+        .tag.component { background-color: rgba(163, 113, 247, 0.2); color: var(--accent-purple); }
+        .tag.data { background-color: rgba(63, 185, 80, 0.2); color: var(--accent-green); }
+        .tag.ml { background-color: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+
+        /* Collapsible Sections */
+        .collapsible {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .collapsible-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            background-color: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+
+        .collapsible-header h4 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .collapsible-arrow {
+            transition: transform 0.3s;
+            color: var(--text-muted);
+        }
+
+        .collapsible.open .collapsible-arrow {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            display: none;
+            padding: 0 20px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .collapsible.open .collapsible-content {
+            display: block;
+        }
+
+        /* Reference Links */
+        .reference-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .reference-link:hover {
+            text-decoration: underline;
+        }
+
+        .reference-box {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .reference-box h5 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .reference-box ul {
+            margin: 0;
+            list-style: none;
+            padding: 0;
+        }
+
+        .reference-box li {
+            margin-bottom: 5px;
+        }
+
+        /* Deep Dive Card */
+        .deep-dive-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .deep-dive-card h4 {
+            color: var(--accent-cyan);
+            margin-top: 0;
+        }
+
+        /* Flow diagrams */
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            margin: 15px 0;
+            padding: 15px;
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .flow-step-number {
+            background-color: var(--accent-blue);
+            color: var(--bg-primary);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .flow-step-content h5 {
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .flow-step-content p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Interview Q&A */
+        .qa-section {
+            margin: 20px 0;
+        }
+
+        .qa-item {
+            margin-bottom: 20px;
+        }
+
+        .qa-question {
+            background-color: var(--bg-tertiary);
+            padding: 12px 15px;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .qa-answer {
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 0 0 8px 8px;
+            color: var(--text-secondary);
+        }
+
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .ascii-diagram { font-size: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h1>🤖 Robotics Data Platform</h1>
+            <p>System Design Deep Dive</p>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Overview</div>
+            <a href="#intro" class="nav-link">Introduction</a>
+            <a href="#business-context" class="nav-link">Business Context</a>
+            <a href="#requirements" class="nav-link">Requirements</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Architecture</div>
+            <a href="#high-level" class="nav-link">High-Level Design</a>
+            <a href="#mid-level" class="nav-link">Mid-Level Design</a>
+            <a href="#low-level" class="nav-link">Low-Level Design</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Deep Dives</div>
+            <a href="#ingestion-layer" class="nav-link">Ingestion Layer</a>
+            <a href="#adapters" class="nav-link depth-2">Format Adapters</a>
+            <a href="#manifest" class="nav-link depth-2">Robot Manifest</a>
+            <a href="#processing-layer" class="nav-link">Processing Layer</a>
+            <a href="#sync" class="nav-link depth-2">Synchronization</a>
+            <a href="#normalization" class="nav-link depth-2">Normalization</a>
+            <a href="#segmentation" class="nav-link depth-2">Segmentation</a>
+            <a href="#enrichment" class="nav-link depth-2">Enrichment</a>
+            <a href="#catalog-layer" class="nav-link">Catalog Layer</a>
+            <a href="#selection-layer" class="nav-link">Selection Layer</a>
+            <a href="#experiment-layer" class="nav-link">Experiment Layer</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Flows</div>
+            <a href="#user-flows" class="nav-link">User Flows</a>
+            <a href="#data-flows" class="nav-link">Data Flows</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Implementation</div>
+            <a href="#aws-architecture" class="nav-link">AWS Architecture</a>
+            <a href="#database-design" class="nav-link">Database Design</a>
+            <a href="#api-design" class="nav-link">API Design</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Advanced Topics</div>
+            <a href="#data-formats" class="nav-link">Data Format Standards</a>
+            <a href="#edge-cloud" class="nav-link">Edge-Cloud Architecture</a>
+            <a href="#mlops" class="nav-link">MLOps Integration</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Interview Prep</div>
+            <a href="#interview-questions" class="nav-link">Common Questions</a>
+            <a href="#tradeoffs" class="nav-link">Key Tradeoffs</a>
+            <a href="#references" class="nav-link">References</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Introduction Section -->
+        <section id="intro" class="section">
+            <div class="section-header">
+                <h1>Robotics Data Platform - System Design</h1>
+                <p>A comprehensive system design for ingesting, processing, cataloging, and selecting robotics training data at scale. This document covers the full architecture from customer data upload to model training experiments.</p>
+            </div>
+
+            <div class="info-box insight">
+                <div class="info-box-title">💡 Key Insight</div>
+                <p>In robotics ML, <strong>data selection often matters more than model architecture</strong>. This platform treats data curation as a first-class, tunable hyperparameter rather than a fixed preprocessing step.</p>
+            </div>
+
+            <h3>What This System Does</h3>
+            <ul>
+                <li><strong>Ingest</strong> - Accept robot demonstration data from multiple customers in various formats (MCAP, ROS Bags, HDF5)</li>
+                <li><strong>Process</strong> - Synchronize multi-rate sensors, normalize actions to canonical space, segment into episodes</li>
+                <li><strong>Catalog</strong> - Store all episodes with rich metadata (labels, quality scores, embeddings) for queryable selection</li>
+                <li><strong>Select</strong> - Use declarative "recipes" to dynamically select training datasets based on quality, diversity, and task criteria</li>
+                <li><strong>Experiment</strong> - Integrate with MLflow/Optuna to optimize both model hyperparameters AND data selection jointly</li>
+            </ul>
+
+            <h3>Target Users</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Primary Interactions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Customer</td>
+                            <td>Robot operator providing training data</td>
+                            <td>Upload data, provide manifest, view processing status</td>
+                        </tr>
+                        <tr>
+                            <td>Data Engineer</td>
+                            <td>Platform maintainer</td>
+                            <td>Add new adapters, define manifests, monitor pipelines</td>
+                        </tr>
+                        <tr>
+                            <td>ML Engineer</td>
+                            <td>Model trainer</td>
+                            <td>Create recipes, run experiments, analyze results</td>
+                        </tr>
+                        <tr>
+                            <td>Research Scientist</td>
+                            <td>Algorithm developer</td>
+                            <td>Query catalog, explore data characteristics, prototype</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Business Context -->
+        <section id="business-context" class="section">
+            <h2>Business Context</h2>
+            
+            <h3>Why This Matters</h3>
+            <p>Foundation model companies for robotics (like TorqueAGI, Skild AI, Physical Intelligence) need to:</p>
+            <ol>
+                <li><strong>Onboard diverse customers</strong> - Each customer has different robots, formats, action spaces</li>
+                <li><strong>Pre-train on cross-embodiment data</strong> - Leverage Open X-Embodiment's 1M+ trajectories</li>
+                <li><strong>Fine-tune on customer-specific data</strong> - 100-500 demonstrations per task</li>
+                <li><strong>Iterate rapidly</strong> - Data strategy is a competitive advantage</li>
+            </ol>
+
+            <div class="info-box warning">
+                <div class="info-box-title">⚠️ Market Reality</div>
+                <p>Only ~5-10 companies globally need cross-robot ingestion at scale. This is <strong>internal infrastructure, not a product</strong>. The addressable market is too small for a standalone offering, but it's a critical operational moat for horizontal players.</p>
+            </div>
+
+            <h3>Competitive Landscape</h3>
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    WHO NEEDS CROSS-ROBOT INGESTION?                             │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  NEEDS IT (Horizontal Players)           DOESN'T NEED IT (Vertical Players)    │
+│  ─────────────────────────────           ──────────────────────────────────    │
+│                                                                                 │
+│  • TorqueAGI (foundation model)          • Tesla Optimus (own humanoid)        │
+│  • Skild AI ($1.4B, cross-robot)         • Figure (own humanoid)               │
+│  • Physical Intelligence (~$1B)          • 1X, Agility, Apptronik              │
+│  • Google DeepMind (research)            • Amazon Robotics (own warehouse)     │
+│  • Stanford/Berkeley (academic)          • FANUC, ABB, KUKA (OEMs)             │
+│                                                                                 │
+│  Business model: "We provide AI         Business model: "We build the          │
+│   brain, you provide robot body"         whole robot, own all data"            │
+│                                                                                 │
+│  Must ingest ANY customer robot         ONE robot, ONE format, ONE pipeline    │
+│  Speed of onboarding = advantage        Data is competitive moat               │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+        </section>
+
+        <!-- Requirements -->
+        <section id="requirements" class="section">
+            <h2>Requirements</h2>
+
+            <h3>Functional Requirements</h3>
+            <ul>
+                <li>Accept robot data in MCAP, ROS1 Bag, HDF5, and CSV+MP4 formats</li>
+                <li>Support arbitrary robot kinematics via URDF</li>
+                <li>Normalize actions to canonical 8-dimensional space</li>
+                <li>Segment continuous recordings into discrete episodes</li>
+                <li>Label episodes (success/failure) via heuristics and VLM</li>
+                <li>Score episode quality across multiple dimensions</li>
+                <li>Compute embeddings for diversity-based sampling</li>
+                <li>Support declarative recipe-based dataset selection</li>
+                <li>Track experiments with full lineage (recipe → dataset → model → metrics)</li>
+            </ul>
+
+            <h3>Non-Functional Requirements</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Requirement</th>
+                            <th>Target</th>
+                            <th>Rationale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Throughput</td>
+                            <td>1000 hours/day</td>
+                            <td>Support multiple customers uploading simultaneously</td>
+                        </tr>
+                        <tr>
+                            <td>Latency (ingestion)</td>
+                            <td>&lt;4 hours for 100 hours of data</td>
+                            <td>Customers expect next-day training readiness</td>
+                        </tr>
+                        <tr>
+                            <td>Recipe materialization</td>
+                            <td>&lt;10 minutes for 1000 episodes</td>
+                            <td>Enable rapid experimentation</td>
+                        </tr>
+                        <tr>
+                            <td>Storage efficiency</td>
+                            <td>10x compression vs raw</td>
+                            <td>Control S3 costs at scale</td>
+                        </tr>
+                        <tr>
+                            <td>Availability</td>
+                            <td>99.9%</td>
+                            <td>Training pipelines depend on this</td>
+                        </tr>
+                        <tr>
+                            <td>Data isolation</td>
+                            <td>Customer A cannot access B's data</td>
+                            <td>Multi-tenant security requirement</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Scale Estimates</h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">50K</div>
+                    <div class="metric-label">Hours of robot data/year</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">500K</div>
+                    <div class="metric-label">Episodes in catalog</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">50TB</div>
+                    <div class="metric-label">Raw storage</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">20</div>
+                    <div class="metric-label">Active customers</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- High-Level Design -->
+        <section id="high-level" class="section">
+            <h2>High-Level Architecture</h2>
+            
+            <p>The platform consists of five major layers, each with distinct responsibilities:</p>
+
+            <div class="ascii-diagram large">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    ROBOTICS DATA PLATFORM - HIGH LEVEL                          │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              CUSTOMERS                                          │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐     │
+│  │    CUSTOMER A       │  │    CUSTOMER B       │  │    CUSTOMER C       │     │
+│  │    (Franka)         │  │    (UR5)            │  │    (Custom Arm)     │     │
+│  │                     │  │                     │  │                     │     │
+│  │  ┌───────────────┐  │  │  ┌───────────────┐  │  │  ┌───────────────┐  │     │
+│  │  │   MANIFEST    │  │  │  │   MANIFEST    │  │  │  │   MANIFEST    │  │     │
+│  │  │   (YAML)      │  │  │  │   (YAML)      │  │  │  │   (YAML)      │  │     │
+│  │  └───────────────┘  │  │  └───────────────┘  │  │  └───────────────┘  │     │
+│  │                     │  │                     │  │                     │     │
+│  │  Data: MCAP         │  │  Data: ROS1 Bag     │  │  Data: HDF5         │     │
+│  └──────────┬──────────┘  └──────────┬──────────┘  └──────────┬──────────┘     │
+│             │                        │                        │                 │
+└─────────────┼────────────────────────┼────────────────────────┼─────────────────┘
+              │                        │                        │
+              ▼                        ▼                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              INGESTION LAYER                                    │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐                     │
+│  │    MCAP     │      │  ROS1 BAG   │      │    HDF5     │      ...            │
+│  │   ADAPTER   │      │   ADAPTER   │      │   ADAPTER   │                     │
+│  └──────┬──────┘      └──────┬──────┘      └──────┬──────┘                     │
+│         └────────────────────┼────────────────────┘                             │
+│                              ▼                                                  │
+│                    ┌───────────────────┐                                        │
+│                    │    RAW FRAMES     │                                        │
+│                    └─────────┬─────────┘                                        │
+│                              │                                                  │
+└──────────────────────────────┼──────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           PROCESSING LAYER                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐         │
+│  │    SYNC     │──▶│  NORMALIZE  │──▶│   SEGMENT   │──▶│    ENRICH   │         │
+│  └─────────────┘   └─────────────┘   └─────────────┘   └─────────────┘         │
+│                                                                                 │
+└──────────────────────────────┬──────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                            CATALOG LAYER                                        │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌───────────────────────┐          ┌───────────────────────┐                  │
+│  │     EPISODE STORE     │◀────────▶│    EPISODE CATALOG    │                  │
+│  │     (S3 / Robo-DM)    │          │    (PostgreSQL)       │                  │
+│  │                       │          │                       │                  │
+│  │  • All episodes       │          │  • Labels             │                  │
+│  │  • Normalized         │          │  • Quality scores     │                  │
+│  │  • LeRobot format     │          │  • Embeddings         │                  │
+│  └───────────────────────┘          └───────────┬───────────┘                  │
+│                                                  │                              │
+└──────────────────────────────────────────────────┼──────────────────────────────┘
+                                                   │
+                                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           SELECTION LAYER                                       │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐                     │
+│  │   RECIPE    │      │   RECIPE    │      │  TRAINING   │                     │
+│  │   STORE     │─────▶│   ENGINE    │─────▶│  DATASET    │                     │
+│  └─────────────┘      └─────────────┘      └──────┬──────┘                     │
+│                                                    │                            │
+└────────────────────────────────────────────────────┼────────────────────────────┘
+                                                     │
+                                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                          EXPERIMENT LAYER                                       │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────┐      ┌─────────────┐      ┌─────────────┐                     │
+│  │   OPTUNA    │─────▶│   TRAIN     │─────▶│   MLFLOW    │                     │
+│  │             │      │             │      │             │                     │
+│  └─────────────┘      └─────────────┘      └─────────────┘                     │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+
+            <h3>Layer Responsibilities</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Layer</th>
+                            <th>Responsibility</th>
+                            <th>Key Components</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tag component">Ingestion</span></td>
+                            <td>Parse diverse formats into unified raw frames</td>
+                            <td>Format adapters, manifest applier</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag component">Processing</span></td>
+                            <td>Transform raw data into training-ready episodes</td>
+                            <td>Sync, normalize, segment, enrich</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag component">Catalog</span></td>
+                            <td>Store all episodes with queryable metadata</td>
+                            <td>Episode store (S3), catalog DB (PostgreSQL)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag component">Selection</span></td>
+                            <td>Dynamically create training datasets from catalog</td>
+                            <td>Recipe engine, materializer</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag component">Experiment</span></td>
+                            <td>Optimize data selection alongside model params</td>
+                            <td>Optuna, MLflow integration</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Mid-Level Design -->
+        <section id="mid-level" class="section">
+            <h2>Mid-Level Architecture</h2>
+            
+            <p>Each layer is composed of multiple components with well-defined interfaces:</p>
+
+            <div class="ascii-diagram large">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    INGESTION LAYER - MID LEVEL                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  INPUT FILES                                                                    │
+│                                                                                 │
+│  ┌───────────┐    ┌───────────┐    ┌───────────┐    ┌───────────┐             │
+│  │   MCAP    │    │ ROS1 BAG  │    │   HDF5    │    │  CSV+MP4  │             │
+│  │   Files   │    │   Files   │    │   Files   │    │   Files   │             │
+│  └─────┬─────┘    └─────┬─────┘    └─────┬─────┘    └─────┬─────┘             │
+│        │                │                │                │                     │
+│        ▼                ▼                ▼                ▼                     │
+│  ┌───────────────────────────────────────────────────────────────────────────┐ │
+│  │                         FORMAT ADAPTERS                                    │ │
+│  ├───────────────────────────────────────────────────────────────────────────┤ │
+│  │                                                                            │ │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐            │ │
+│  │  │  MCAP ADAPTER   │  │ ROS1 BAG ADAPTER│  │  HDF5 ADAPTER   │   ...      │ │
+│  │  │                 │  │                 │  │                 │            │ │
+│  │  │ • mcap library  │  │ • rosbag lib    │  │ • h5py          │            │ │
+│  │  │ • Schema decode │  │ • Message decode│  │ • Array read    │            │ │
+│  │  │ • Channel iter  │  │ • Topic iter    │  │ • Group iter    │            │ │
+│  │  │                 │  │                 │  │                 │            │ │
+│  │  │ Output:         │  │ Output:         │  │ Output:         │            │ │
+│  │  │ Iterator[       │  │ Iterator[       │  │ Iterator[       │            │ │
+│  │  │   RawFrame      │  │   RawFrame      │  │   RawFrame      │            │ │
+│  │  │ ]               │  │ ]               │  │ ]               │            │ │
+│  │  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘            │ │
+│  │           │                    │                    │                      │ │
+│  └───────────┼────────────────────┼────────────────────┼──────────────────────┘ │
+│              │                    │                    │                        │
+│              └────────────────────┼────────────────────┘                        │
+│                                   ▼                                             │
+│  ┌───────────────────────────────────────────────────────────────────────────┐ │
+│  │                         MANIFEST APPLIER                                   │ │
+│  ├───────────────────────────────────────────────────────────────────────────┤ │
+│  │                                                                            │ │
+│  │  Input: RawFrame + Manifest                                               │ │
+│  │                                                                            │ │
+│  │  1. EXTRACT fields using manifest.schema                                  │ │
+│  │     topic="/franka/joint_states" → frame.joints                           │ │
+│  │                                                                            │ │
+│  │  2. VALIDATE expected topics present                                      │ │
+│  │                                                                            │ │
+│  │  3. DECODE images using manifest.cameras[].encoding                       │ │
+│  │                                                                            │ │
+│  │  4. ATTACH metadata (customer_id, robot_id, source_file)                  │ │
+│  │                                                                            │ │
+│  │  Output: Iterator[ParsedFrame]                                            │ │
+│  │                                                                            │ │
+│  └───────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+
+            <div class="ascii-diagram large">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    PROCESSING LAYER - MID LEVEL                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+Input: Iterator[ParsedFrame] (multi-rate, robot-specific)
+Output: List[Episode] (synchronized, normalized, segmented, enriched)
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  ┌────────────────────────────────────────────────────────────────────────────┐│
+│  │                           1. SYNCHRONIZE                                   ││
+│  ├────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                            ││
+│  │  Problem: joints @ 1000 Hz, camera @ 30 Hz, gripper @ 10 Hz               ││
+│  │                                                                            ││
+│  │  Solution: Align all streams to target Hz (e.g., 30 Hz)                   ││
+│  │                                                                            ││
+│  │  Strategies: nearest_neighbor, interpolate, camera_trigger                ││
+│  │                                                                            ││
+│  └────────────────────────────────────────────────────────────────────────────┘│
+│                              │                                                  │
+│                              ▼                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────┐│
+│  │                           2. NORMALIZE                                     ││
+│  ├────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                            ││
+│  │  2a. GRIPPER: Robot-specific range → [0, 1]                               ││
+│  │  2b. ACTION: Joint/EE/Velocity → Canonical 8-dim EE delta                 ││
+│  │  2c. IMAGE: Resize, color convert, normalize pixels                       ││
+│  │                                                                            ││
+│  │  Output: [Δx, Δy, Δz, Δroll, Δpitch, Δyaw, gripper, terminate]           ││
+│  │                                                                            ││
+│  └────────────────────────────────────────────────────────────────────────────┘│
+│                              │                                                  │
+│                              ▼                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────┐│
+│  │                           3. SEGMENT                                       ││
+│  ├────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                            ││
+│  │  Split continuous recording into discrete episodes                        ││
+│  │                                                                            ││
+│  │  Signals: gripper state change, velocity threshold, explicit markers      ││
+│  │                                                                            ││
+│  └────────────────────────────────────────────────────────────────────────────┘│
+│                              │                                                  │
+│                              ▼                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────┐│
+│  │                           4. ENRICH                                        ││
+│  ├────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                            ││
+│  │  4a. LABEL: Success/failure via heuristics + VLM                          ││
+│  │  4b. QUALITY: Completeness, smoothness, sync, efficiency scores           ││
+│  │  4c. EMBED: Initial state + trajectory embeddings for diversity           ││
+│  │                                                                            ││
+│  └────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+
+            <div class="ascii-diagram large">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    SELECTION LAYER - MID LEVEL                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│  ┌────────────────────────────────────────────────────────────────────────────┐│
+│  │                         RECIPE STORE                                       ││
+│  ├────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                            ││
+│  │  recipe_id: "high_quality_diverse_v3"                                     ││
+│  │                                                                            ││
+│  │  filters:                                                                 ││
+│  │    - field: "success", operator: "eq", value: true                        ││
+│  │    - field: "quality_overall", operator: "gte", value: 0.7                ││
+│  │                                                                            ││
+│  │  sampling:                                                                ││
+│  │    method: "diversity"                                                    ││
+│  │    embedding_field: "state_embedding"                                     ││
+│  │    target_count: 500                                                      ││
+│  │                                                                            ││
+│  │  balancing:                                                               ││
+│  │    - field: "task_type", min_per_class: 50                                ││
+│  │                                                                            ││
+│  └────────────────────────────────────────────────────────────────────────────┘│
+│                                          │                                      │
+│                                          ▼                                      │
+│  ┌────────────────────────────────────────────────────────────────────────────┐│
+│  │                         RECIPE ENGINE                                      ││
+│  ├────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                            ││
+│  │  Step 1: FILTER - SQL query against catalog                               ││
+│  │          5,000 episodes match (from 50,000 total)                         ││
+│  │                                                                            ││
+│  │  Step 2: SAMPLE - K-means on embeddings, pick best from each cluster      ││
+│  │          500 diverse episodes selected                                    ││
+│  │                                                                            ││
+│  │  Step 3: BALANCE - Ensure min representation per task type                ││
+│  │          500 balanced, diverse episodes                                   ││
+│  │                                                                            ││
+│  └────────────────────────────────────────────────────────────────────────────┘│
+│                                          │                                      │
+│                                          ▼                                      │
+│  ┌────────────────────────────────────────────────────────────────────────────┐│
+│  │                         MATERIALIZER                                       ││
+│  ├────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                            ││
+│  │  1. Fetch selected episodes from S3                                       ││
+│  │  2. Convert from Robo-DM to LeRobot format                                ││
+│  │  3. Write to training dataset location                                    ││
+│  │                                                                            ││
+│  │  Output: s3://datasets/training/recipe_v3/ (LeRobot format)               ││
+│  │                                                                            ││
+│  └────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+        </section>
+
+        <!-- Low-Level Design -->
+        <section id="low-level" class="section">
+            <h2>Low-Level Architecture</h2>
+            
+            <h3>Data Structures</h3>
+
+            <div class="code-block">
+<span class="keyword">@dataclass</span>
+<span class="keyword">class</span> <span class="function">RawFrame</span>:
+    <span class="string">"""Raw data from adapter, before any processing"""</span>
+    timestamp: float
+    channel: str           <span class="comment"># e.g., "/franka/joint_states"</span>
+    msg_type: str          <span class="comment"># e.g., "sensor_msgs/JointState"</span>
+    data: bytes | dict     <span class="comment"># Raw message data</span>
+
+
+<span class="keyword">@dataclass</span>
+<span class="keyword">class</span> <span class="function">ParsedFrame</span>:
+    <span class="string">"""After manifest applied, robot-specific values"""</span>
+    timestamp: float
+    joints: np.ndarray           <span class="comment"># Shape: (n_joints,)</span>
+    gripper_raw: float           <span class="comment"># Not yet normalized</span>
+    images: Dict[str, np.ndarray]  <span class="comment"># {"wrist": (H,W,3), ...}</span>
+    action_raw: np.ndarray       <span class="comment"># Robot-specific action</span>
+    metadata: Dict[str, Any]
+
+
+<span class="keyword">@dataclass</span>
+<span class="keyword">class</span> <span class="function">NormalizedFrame</span>:
+    <span class="string">"""After sync and normalization, canonical format"""</span>
+    timestamp: float
+    observation: Observation
+    action: np.ndarray  <span class="comment"># Shape: (8,) - canonical action space</span>
+
+
+<span class="keyword">@dataclass</span>
+<span class="keyword">class</span> <span class="function">Observation</span>:
+    images: Dict[str, np.ndarray]  <span class="comment"># Resized to standard (256, 256, 3)</span>
+    state: np.ndarray              <span class="comment"># Proprioception</span>
+
+
+<span class="keyword">@dataclass</span>
+<span class="keyword">class</span> <span class="function">Episode</span>:
+    <span class="string">"""Complete episode ready for catalog"""</span>
+    episode_id: str
+    frames: List[NormalizedFrame]
+    
+    <span class="comment"># Labels</span>
+    success: bool
+    task_type: str
+    language_instruction: str
+    
+    <span class="comment"># Quality scores</span>
+    quality_overall: float
+    quality_completeness: float
+    quality_smoothness: float
+    quality_sync: float
+    quality_efficiency: float
+    
+    <span class="comment"># Diversity features</span>
+    initial_state_embedding: np.ndarray  <span class="comment"># (256,)</span>
+    trajectory_embedding: np.ndarray     <span class="comment"># (256,)</span>
+    cluster_id: int
+    
+    <span class="comment"># Metadata</span>
+    customer_id: str
+    robot_id: str
+    duration_sec: float
+    num_frames: int
+    recorded_at: datetime
+            </div>
+
+            <h3>Adapter Interface</h3>
+
+            <div class="code-block">
+<span class="keyword">class</span> <span class="function">BaseAdapter</span>(ABC):
+    <span class="string">"""All format adapters implement this interface"""</span>
+    
+    <span class="keyword">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="function">read</span>(self, file_path: Path) -> Iterator[RawFrame]:
+        <span class="string">"""Yield raw frames from file"""</span>
+        <span class="keyword">pass</span>
+    
+    <span class="keyword">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="function">get_channels</span>(self, file_path: Path) -> List[ChannelInfo]:
+        <span class="string">"""List available channels/topics in file"""</span>
+        <span class="keyword">pass</span>
+    
+    <span class="keyword">@abstractmethod</span>
+    <span class="keyword">def</span> <span class="function">get_time_range</span>(self, file_path: Path) -> Tuple[float, float]:
+        <span class="string">"""Return (start_time, end_time) of recording"""</span>
+        <span class="keyword">pass</span>
+
+
+<span class="keyword">class</span> <span class="function">MCAPAdapter</span>(BaseAdapter):
+    <span class="string">"""MCAP format adapter using mcap library"""</span>
+    
+    <span class="keyword">def</span> <span class="function">read</span>(self, file_path: Path) -> Iterator[RawFrame]:
+        <span class="keyword">with</span> open(file_path, <span class="string">"rb"</span>) <span class="keyword">as</span> f:
+            reader = mcap.reader.make_reader(f)
+            <span class="keyword">for</span> schema, channel, message <span class="keyword">in</span> reader.iter_messages():
+                <span class="keyword">yield</span> RawFrame(
+                    timestamp=message.log_time / 1e9,
+                    channel=channel.topic,
+                    msg_type=schema.name,
+                    data=message.data
+                )
+            </div>
+
+            <h3>Manifest Schema</h3>
+
+            <div class="code-block">
+<span class="comment"># customer_a_franka.yaml</span>
+
+robot:
+  type: <span class="string">"franka_fr3"</span>
+  urdf: <span class="string">"franka_fr3.urdf"</span>
+  base_frame: <span class="string">"panda_link0"</span>
+  ee_frame: <span class="string">"panda_hand"</span>
+  n_joints: 7
+
+schema:
+  joint_states:
+    topic: <span class="string">"/franka/joint_states"</span>
+    msg_type: <span class="string">"sensor_msgs/JointState"</span>
+    fields:
+      position: <span class="string">"position[0:7]"</span>
+      velocity: <span class="string">"velocity[0:7]"</span>
+      effort: <span class="string">"effort[0:7]"</span>
+      
+  gripper:
+    topic: <span class="string">"/franka/gripper_state"</span>
+    field: <span class="string">"width"</span>
+    range: [0.0, 0.08]        <span class="comment"># Robot-specific range</span>
+    normalized: [0.0, 1.0]    <span class="comment"># Canonical range</span>
+    
+  cameras:
+    - name: <span class="string">"wrist"</span>
+      topic: <span class="string">"/camera/wrist/image_raw"</span>
+      encoding: <span class="string">"bgr8"</span>
+      fps: 30
+    - name: <span class="string">"overhead"</span>
+      topic: <span class="string">"/camera/overhead/image"</span>
+      encoding: <span class="string">"rgb8"</span>
+      fps: 30
+
+action_space:
+  mode: <span class="string">"ee_pose_delta"</span>       <span class="comment"># or "joint_position", "ee_velocity"</span>
+  topic: <span class="string">"/franka/ee_command"</span>
+  frame: <span class="string">"panda_link0"</span>
+
+rates:
+  joint_states: 1000  <span class="comment"># Hz</span>
+  gripper: 100
+  cameras: 30
+  actions: 100
+            </div>
+
+            <h3>Recipe Schema</h3>
+
+            <div class="code-block">
+<span class="comment"># recipe_high_quality_diverse_v3.yaml</span>
+
+recipe:
+  name: <span class="string">"high_quality_diverse_v3"</span>
+  version: <span class="string">"3.0"</span>
+  description: <span class="string">"High quality episodes with diversity sampling"</span>
+  
+  filters:
+    - field: <span class="string">"success"</span>
+      operator: <span class="string">"eq"</span>
+      value: true
+      
+    - field: <span class="string">"quality_overall"</span>
+      operator: <span class="string">"gte"</span>
+      value: 0.7
+      
+    - field: <span class="string">"customer_id"</span>
+      operator: <span class="string">"in"</span>
+      value: [<span class="string">"customer_a"</span>, <span class="string">"customer_b"</span>]
+      
+  sampling:
+    method: <span class="string">"diversity"</span>
+    target_count: 500
+    
+    diversity_config:
+      embedding_field: <span class="string">"initial_state_embedding"</span>
+      method: <span class="string">"kmeans"</span>
+      
+  balancing:
+    - field: <span class="string">"task_type"</span>
+      min_per_class: 50
+      
+    - field: <span class="string">"robot_id"</span>
+      strategy: <span class="string">"proportional"</span>
+            </div>
+        </section>
+
+        <!-- Deep Dive: Ingestion Layer -->
+        <section id="ingestion-layer" class="section">
+            <h2>Deep Dive: Ingestion Layer</h2>
+            
+            <p>The ingestion layer is responsible for accepting data in various formats and converting it to a unified internal representation.</p>
+
+            <div id="adapters">
+                <h3>Format Adapters</h3>
+                
+                <p>Each adapter handles a specific file format and implements the <code>BaseAdapter</code> interface:</p>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Adapter</th>
+                                <th>Format</th>
+                                <th>Library</th>
+                                <th>Use Case</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>MCAPAdapter</code></td>
+                                <td>.mcap</td>
+                                <td>mcap-python</td>
+                                <td>ROS2, Foxglove</td>
+                            </tr>
+                            <tr>
+                                <td><code>ROS1BagAdapter</code></td>
+                                <td>.bag</td>
+                                <td>rosbag</td>
+                                <td>Legacy ROS1 systems</td>
+                            </tr>
+                            <tr>
+                                <td><code>HDF5Adapter</code></td>
+                                <td>.hdf5, .h5</td>
+                                <td>h5py</td>
+                                <td>Research labs, DROID</td>
+                            </tr>
+                            <tr>
+                                <td><code>CSVVideoAdapter</code></td>
+                                <td>.csv + .mp4</td>
+                                <td>pandas, cv2</td>
+                                <td>Simple teleoperation setups</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="info-box insight">
+                    <div class="info-box-title">💡 Design Decision: MCAP as Container</div>
+                    <p>MCAP is a container format (like MP4 for video), not a data format. It provides O(1) seeking, per-channel compression, and schema preservation. It's ideal for the first layer of ingestion before converting to training formats.</p>
+                </div>
+            </div>
+
+            <div id="manifest">
+                <h3>Robot Manifest</h3>
+                
+                <p>The manifest is the key to handling diverse robots without code changes. It answers: <strong>"How do I READ this robot's data?"</strong></p>
+
+                <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    MANIFEST vs PIPELINE CONFIG                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  MANIFEST (per robot, static)              PIPELINE CONFIG (per run, tunable)  │
+│  ─────────────────────────────             ─────────────────────────────────   │
+│                                                                                 │
+│  • Schema mapping (topic names)            • Target Hz (output frequency)      │
+│  • Robot kinematics (URDF, joints)         • Sync strategy (interpolation)     │
+│  • Sensor config (rates, intrinsics)       • Segmentation method               │
+│  • Action space (control mode, dims)       • Quality thresholds                │
+│  • Gripper config (type, range)            • Output format (LeRobot, RLDS)     │
+│  • Coordinate frames                       • Compression settings              │
+│                                                                                 │
+│  Answers: "How do I READ?"                 Answers: "How do I PROCESS?"        │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                </div>
+
+                <h4>Manifest Components</h4>
+                <ul>
+                    <li><strong>Robot definition</strong> - URDF path, joint names, limits, base/EE frames</li>
+                    <li><strong>Schema mapping</strong> - Topic name → field extraction for each data type</li>
+                    <li><strong>Camera config</strong> - Intrinsics, extrinsics, encoding, expected FPS</li>
+                    <li><strong>Action space</strong> - Control mode (joint position, EE pose, velocity), dimensionality</li>
+                    <li><strong>Gripper config</strong> - Type, raw range, normalization target</li>
+                    <li><strong>Expected rates</strong> - For validation and sync strategy selection</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Deep Dive: Processing Layer -->
+        <section id="processing-layer" class="section">
+            <h2>Deep Dive: Processing Layer</h2>
+
+            <div id="sync">
+                <h3>Synchronization</h3>
+                
+                <p>The synchronization module aligns multi-rate sensor streams to a common timeline.</p>
+
+                <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    MULTI-RATE SYNCHRONIZATION                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  Input (raw rates):                    Output (synchronized @ 30 Hz):          │
+│                                                                                 │
+│  joints @ 1000 Hz                      ┌─────────────────────────┐             │
+│  ││││││││││││││││││││││││              │ All streams @ 30 Hz     │             │
+│                                        │                         │             │
+│  camera @ 30 Hz           ─────────▶   │  │   │   │   │   │     │             │
+│  │   │   │   │   │                     │                         │             │
+│                                        │  Aligned to camera      │             │
+│  gripper @ 10 Hz                       │  timestamps             │             │
+│  │     │     │                         └─────────────────────────┘             │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  SYNC STRATEGIES:                                                              │
+│                                                                                 │
+│  1. nearest_neighbor - Use closest reading within max_drift_ms                 │
+│     + Fast, simple                                                             │
+│     - Potential jitter                                                         │
+│                                                                                 │
+│  2. interpolate - Linear interpolation between readings                        │
+│     + Smooth values                                                            │
+│     - Can hallucinate values in gaps                                           │
+│                                                                                 │
+│  3. camera_trigger - Emit frame only when camera fires                         │
+│     + Perfect image alignment                                                  │
+│     - Depends on camera timing                                                 │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                </div>
+
+                <div class="collapsible">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <h4>Sync Algorithm Details</h4>
+                        <span class="collapsible-arrow">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="code-block">
+<span class="keyword">def</span> <span class="function">synchronize_streams</span>(
+    streams: Dict[str, Iterator[TimestampedData]],
+    target_hz: int = 30,
+    strategy: str = <span class="string">"nearest_neighbor"</span>,
+    max_drift_ms: float = 50
+) -> Iterator[SyncedFrame]:
+    <span class="string">"""
+    Synchronize multiple data streams to common timeline.
+    
+    Args:
+        streams: Dict mapping stream name to iterator of timestamped data
+        target_hz: Output frequency
+        strategy: One of "nearest_neighbor", "interpolate", "camera_trigger"
+        max_drift_ms: Maximum allowed timestamp drift
+        
+    Yields:
+        SyncedFrame with all streams aligned to same timestamp
+    """</span>
+    
+    target_dt = 1.0 / target_hz
+    buffers = {name: deque(maxlen=100) <span class="keyword">for</span> name <span class="keyword">in</span> streams}
+    
+    <span class="comment"># Fill initial buffers</span>
+    <span class="keyword">for</span> name, stream <span class="keyword">in</span> streams.items():
+        <span class="keyword">for</span> _ <span class="keyword">in</span> range(10):
+            buffers[name].append(next(stream))
+    
+    <span class="comment"># Find common start time</span>
+    start_time = max(buf[0].timestamp <span class="keyword">for</span> buf <span class="keyword">in</span> buffers.values())
+    
+    current_time = start_time
+    <span class="keyword">while</span> True:
+        synced_data = {}
+        
+        <span class="keyword">for</span> name, buf <span class="keyword">in</span> buffers.items():
+            <span class="keyword">if</span> strategy == <span class="string">"nearest_neighbor"</span>:
+                nearest = min(buf, key=<span class="keyword">lambda</span> x: abs(x.timestamp - current_time))
+                <span class="keyword">if</span> abs(nearest.timestamp - current_time) > max_drift_ms / 1000:
+                    <span class="keyword">raise</span> SyncError(f<span class="string">"Drift exceeded for {name}"</span>)
+                synced_data[name] = nearest.data
+                
+            <span class="keyword">elif</span> strategy == <span class="string">"interpolate"</span>:
+                <span class="comment"># Find bracketing samples</span>
+                before = max((x <span class="keyword">for</span> x <span class="keyword">in</span> buf <span class="keyword">if</span> x.timestamp <= current_time),
+                             key=<span class="keyword">lambda</span> x: x.timestamp)
+                after = min((x <span class="keyword">for</span> x <span class="keyword">in</span> buf <span class="keyword">if</span> x.timestamp >= current_time),
+                            key=<span class="keyword">lambda</span> x: x.timestamp)
+                alpha = (current_time - before.timestamp) / (after.timestamp - before.timestamp)
+                synced_data[name] = lerp(before.data, after.data, alpha)
+        
+        <span class="keyword">yield</span> SyncedFrame(timestamp=current_time, data=synced_data)
+        current_time += target_dt
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="normalization">
+                <h3>Action Normalization</h3>
+                
+                <p><strong>This is the hardest part of the pipeline.</strong> Different robots use different control modes, coordinate frames, and representations.</p>
+
+                <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    ACTION NORMALIZATION PIPELINE                                │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  HETEROGENEITY SOURCES:                                                        │
+│                                                                                 │
+│  Control modes      Coordinate frames      Rotation representations            │
+│  ─────────────      ─────────────────      ───────────────────────            │
+│  • Joint position   • Base frame           • Quaternion (wxyz or xyzw?)       │
+│  • Joint velocity   • World frame          • Euler (XYZ, ZYX, ZXZ?)           │
+│  • EE pose          • Tool frame           • Axis-angle                        │
+│  • EE velocity      • Camera frame         • 6D rotation                       │
+│  • Hybrid                                                                       │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  NORMALIZATION STEPS:                                                          │
+│                                                                                 │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐        │
+│  │    UNIT     │──▶│   SPACE     │──▶│   FRAME     │──▶│    REPR     │        │
+│  │  CONVERT    │   │  TRANSFORM  │   │  TRANSFORM  │   │  CONVERT    │        │
+│  └─────────────┘   └─────────────┘   └─────────────┘   └─────────────┘        │
+│                                                                                 │
+│  deg→rad           joint→EE (FK)     tool→base         quat→euler delta       │
+│  mm→meters         vel→pos (∫)       camera→base       axis-angle→euler       │
+│  0-255→0-1         abs→delta         world→base                               │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  CANONICAL OUTPUT (8-dim):                                                     │
+│                                                                                 │
+│  [Δx, Δy, Δz, Δroll, Δpitch, Δyaw, gripper, terminate]                        │
+│   ─────────────  ───────────────────  ────────  ─────────                      │
+│   EE position    EE orientation       0-1       0 or 1                         │
+│   delta (m)      delta (rad)          (open/    (end of                        │
+│                                        close)    episode)                      │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                </div>
+
+                <div class="info-box critical">
+                    <div class="info-box-title">🚨 Critical: Forward Kinematics</div>
+                    <p>When normalizing joint-space robots to EE delta space, you need accurate forward kinematics. This requires the URDF from the manifest. Any mismatch between the URDF and actual robot causes systematic errors in the training data.</p>
+                </div>
+
+                <h4>Example: Joint Position to EE Delta</h4>
+                <div class="code-block">
+<span class="keyword">def</span> <span class="function">normalize_joint_to_ee_delta</span>(
+    joint_positions: List[np.ndarray],  <span class="comment"># Sequence of (7,) joint configs</span>
+    urdf_path: str,
+    base_frame: str,
+    ee_frame: str
+) -> List[np.ndarray]:
+    <span class="string">"""Convert joint position sequence to EE delta sequence."""</span>
+    
+    <span class="comment"># Load robot kinematics</span>
+    robot = urdfpy.URDF.load(urdf_path)
+    
+    ee_poses = []
+    <span class="keyword">for</span> q <span class="keyword">in</span> joint_positions:
+        <span class="comment"># Forward kinematics</span>
+        fk = robot.link_fk(cfg={joint.name: q[i] <span class="keyword">for</span> i, joint <span class="keyword">in</span> enumerate(robot.joints)})
+        ee_pose = fk[ee_frame]  <span class="comment"># 4x4 homogeneous transform</span>
+        ee_poses.append(ee_pose)
+    
+    <span class="comment"># Compute deltas</span>
+    actions = []
+    <span class="keyword">for</span> i <span class="keyword">in</span> range(1, len(ee_poses)):
+        prev_pose = ee_poses[i-1]
+        curr_pose = ee_poses[i]
+        
+        <span class="comment"># Position delta</span>
+        delta_pos = curr_pose[:3, 3] - prev_pose[:3, 3]
+        
+        <span class="comment"># Rotation delta (as euler)</span>
+        prev_rot = Rotation.from_matrix(prev_pose[:3, :3])
+        curr_rot = Rotation.from_matrix(curr_pose[:3, :3])
+        delta_rot = (curr_rot * prev_rot.inv()).as_euler(<span class="string">'xyz'</span>)
+        
+        actions.append(np.concatenate([delta_pos, delta_rot]))
+    
+    <span class="keyword">return</span> actions
+                </div>
+            </div>
+
+            <div id="segmentation">
+                <h3>Episode Segmentation</h3>
+                
+                <p>Segmentation splits continuous recordings into discrete episodes suitable for training.</p>
+
+                <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    EPISODE SEGMENTATION                                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  Input: Continuous recording                                                   │
+│  ───────────────────────────────────────────────────────────────────────────   │
+│  │ pick │ idle │ place │ idle │ pick │ fail │ reset │ pick │ place │ idle │   │
+│  ───────────────────────────────────────────────────────────────────────────   │
+│                                                                                 │
+│  Output: Discrete episodes                                                     │
+│  ┌──────┐ ┌───────┐ ┌──────┐ ┌──────┐ ┌───────┐                               │
+│  │ ep_1 │ │ ep_2  │ │ ep_3 │ │ ep_4 │ │ ep_5  │                               │
+│  │ pick │ │ place │ │ pick │ │ pick │ │ place │                               │
+│  │  ✓   │ │   ✓   │ │  ✗   │ │  ✓   │ │   ✓   │                               │
+│  └──────┘ └───────┘ └──────┘ └──────┘ └───────┘                               │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  SEGMENTATION SIGNALS:                                                         │
+│                                                                                 │
+│  Signal                    How it works                       Pros/Cons        │
+│  ────────────────────────────────────────────────────────────────────────────  │
+│  gripper_state_change      Open→Close→Open = one episode     Natural bounds    │
+│                                                               But misses some  │
+│                                                                                 │
+│  velocity_threshold        Robot stationary > 2s = boundary  Works without     │
+│                                                               explicit markers │
+│                                                                                 │
+│  explicit_markers          /episode_start, /episode_end      Most reliable     │
+│                            topics in the recording           Requires setup    │
+│                                                                                 │
+│  fixed_duration            Every N seconds = one episode     Simple            │
+│                                                               Misses natural   │
+│                                                               boundaries       │
+│                                                                                 │
+│  language_change           New instruction = new episode     Good for VLA     │
+│                                                               training         │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                </div>
+            </div>
+
+            <div id="enrichment">
+                <h3>Enrichment</h3>
+                
+                <p>Enrichment adds labels, quality scores, and embeddings to each episode.</p>
+
+                <h4>Success Labeling</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>How It Works</th>
+                                <th>Accuracy</th>
+                                <th>Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Heuristic</td>
+                                <td>gripper_closed AND height_increased AND no_collision</td>
+                                <td>~80%</td>
+                                <td>Free</td>
+                            </tr>
+                            <tr>
+                                <td>VLM (Claude/GPT-4V)</td>
+                                <td>Judge first/last frame against task instruction</td>
+                                <td>~95%</td>
+                                <td>$0.02/episode</td>
+                            </tr>
+                            <tr>
+                                <td>Human review</td>
+                                <td>Manual labeling interface</td>
+                                <td>~99%</td>
+                                <td>$0.50/episode</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Quality Scoring</h4>
+                <div class="code-block">
+<span class="keyword">def</span> <span class="function">compute_quality_scores</span>(episode: Episode) -> QualityScores:
+    <span class="string">"""Compute multi-dimensional quality scores for an episode."""</span>
+    
+    <span class="comment"># Completeness: Are all expected sensors present?</span>
+    expected_streams = {<span class="string">"joints"</span>, <span class="string">"gripper"</span>, <span class="string">"wrist_cam"</span>, <span class="string">"overhead_cam"</span>}
+    present_streams = set(episode.available_streams)
+    completeness = len(present_streams & expected_streams) / len(expected_streams)
+    
+    <span class="comment"># Smoothness: Low jerk is better</span>
+    actions = np.array([f.action <span class="keyword">for</span> f <span class="keyword">in</span> episode.frames])
+    jerk = np.diff(actions, n=2, axis=0)
+    jerk_magnitude = np.linalg.norm(jerk, axis=1).mean()
+    smoothness = 1.0 - np.clip(jerk_magnitude / MAX_JERK, 0, 1)
+    
+    <span class="comment"># Sync quality: Low timestamp drift</span>
+    max_drift = max(f.sync_drift_ms <span class="keyword">for</span> f <span class="keyword">in</span> episode.frames)
+    sync_quality = 1.0 - np.clip(max_drift / 100, 0, 1)
+    
+    <span class="comment"># Efficiency: Short path to goal is better</span>
+    path_length = sum(np.linalg.norm(actions[i, :3]) <span class="keyword">for</span> i <span class="keyword">in</span> range(len(actions)))
+    optimal_length = np.linalg.norm(episode.goal_position - episode.start_position)
+    efficiency = optimal_length / max(path_length, optimal_length)
+    
+    <span class="comment"># Overall: Weighted combination</span>
+    overall = (
+        0.30 * completeness +
+        0.25 * smoothness +
+        0.25 * sync_quality +
+        0.20 * efficiency
+    )
+    
+    <span class="keyword">return</span> QualityScores(
+        overall=overall,
+        completeness=completeness,
+        smoothness=smoothness,
+        sync_quality=sync_quality,
+        efficiency=efficiency
+    )
+                </div>
+
+                <h4>Embedding for Diversity</h4>
+                <div class="code-block">
+<span class="keyword">def</span> <span class="function">compute_embeddings</span>(episode: Episode) -> EpisodeEmbeddings:
+    <span class="string">"""Compute embeddings for diversity-based sampling."""</span>
+    
+    <span class="comment"># Initial state embedding: What does the scene look like?</span>
+    first_frame_image = episode.frames[0].observation.images[<span class="string">"overhead"</span>]
+    initial_state_emb = clip_model.encode_image(first_frame_image)  <span class="comment"># (256,)</span>
+    
+    <span class="comment"># Trajectory embedding: What motion pattern is this?</span>
+    action_sequence = np.array([f.action[:6] <span class="keyword">for</span> f <span class="keyword">in</span> episode.frames])  <span class="comment"># Exclude gripper</span>
+    
+    <span class="comment"># Simple approach: PCA on action sequence statistics</span>
+    traj_features = np.concatenate([
+        action_sequence.mean(axis=0),
+        action_sequence.std(axis=0),
+        action_sequence.max(axis=0),
+        action_sequence.min(axis=0),
+    ])
+    trajectory_emb = trajectory_encoder(traj_features)  <span class="comment"># (256,)</span>
+    
+    <span class="comment"># Pre-compute cluster assignment for fast diversity sampling</span>
+    cluster_id = kmeans_model.predict(initial_state_emb.reshape(1, -1))[0]
+    
+    <span class="keyword">return</span> EpisodeEmbeddings(
+        initial_state=initial_state_emb,
+        trajectory=trajectory_emb,
+        cluster_id=cluster_id
+    )
+                </div>
+            </div>
+        </section>
+
+        <!-- Catalog Layer -->
+        <section id="catalog-layer" class="section">
+            <h2>Deep Dive: Catalog Layer</h2>
+            
+            <p>The catalog layer stores all processed episodes with rich metadata, enabling flexible querying and selection.</p>
+
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CATALOG LAYER ARCHITECTURE                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────────────────────────┐  ┌─────────────────────────────────────┐  │
+│  │        EPISODE STORE            │  │        EPISODE CATALOG              │  │
+│  │        (S3 / Robo-DM)           │  │        (PostgreSQL + pgvector)      │  │
+│  ├─────────────────────────────────┤  ├─────────────────────────────────────┤  │
+│  │                                 │  │                                     │  │
+│  │  s3://data-platform/episodes/  │  │  TABLE: episodes                    │  │
+│  │  │                              │  │                                     │  │
+│  │  ├── customer_a/               │  │  episode_id      VARCHAR PK         │  │
+│  │  │   ├── franka_001/           │  │  s3_path         VARCHAR            │  │
+│  │  │   │   ├── ep_00001.vla      │◀─┼─▶customer_id     VARCHAR            │  │
+│  │  │   │   ├── ep_00002.vla      │  │  robot_id        VARCHAR            │  │
+│  │  │   │   └── ...               │  │                                     │  │
+│  │  │   └── franka_002/           │  │  -- Labels                          │  │
+│  │  │       └── ...               │  │  success         BOOLEAN            │  │
+│  │  │                              │  │  task_type       VARCHAR            │  │
+│  │  ├── customer_b/               │  │  labeled_by      VARCHAR            │  │
+│  │  │   └── ur5_001/              │  │  vlm_confidence  FLOAT              │  │
+│  │  │       └── ...               │  │                                     │  │
+│  │  │                              │  │  -- Quality                         │  │
+│  │  └── customer_c/               │  │  quality_overall FLOAT              │  │
+│  │      └── ...                   │  │  quality_complete FLOAT             │  │
+│  │                                 │  │  quality_smooth  FLOAT              │  │
+│  │                                 │  │                                     │  │
+│  │  Format: Robo-DM (.vla)        │  │  -- Diversity (pgvector)            │  │
+│  │  • 70x compression             │  │  state_embedding VECTOR(256)        │  │
+│  │  • Self-contained episodes     │  │  traj_embedding  VECTOR(256)        │  │
+│  │  • Exportable to LeRobot       │  │  cluster_id      INTEGER            │  │
+│  │                                 │  │                                     │  │
+│  └─────────────────────────────────┘  └─────────────────────────────────────┘  │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+
+            <h3>Why Dual Storage?</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Episode Store (S3)</th>
+                            <th>Episode Catalog (PostgreSQL)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Purpose</td>
+                            <td>Store actual episode data (video, actions)</td>
+                            <td>Store queryable metadata</td>
+                        </tr>
+                        <tr>
+                            <td>Size</td>
+                            <td>~10MB per episode (with video)</td>
+                            <td>~2KB per episode (metadata only)</td>
+                        </tr>
+                        <tr>
+                            <td>Access pattern</td>
+                            <td>Bulk read for training</td>
+                            <td>Complex queries for selection</td>
+                        </tr>
+                        <tr>
+                            <td>Query</td>
+                            <td>By path only</td>
+                            <td>SQL + vector similarity</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="reference-box">
+                <h5>📚 References: Data Format Standards</h5>
+                <ul>
+                    <li><a href="https://github.com/huggingface/lerobot" class="reference-link" target="_blank">LeRobot v3.0 - HuggingFace</a></li>
+                    <li><a href="https://github.com/BerkeleyAutomation/robodm" class="reference-link" target="_blank">Robo-DM - Berkeley Automation Lab</a></li>
+                    <li><a href="https://github.com/google-research/rlds" class="reference-link" target="_blank">RLDS - Google Research</a></li>
+                    <li><a href="https://robotics-transformer-x.github.io/" class="reference-link" target="_blank">Open X-Embodiment Dataset</a></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Selection Layer -->
+        <section id="selection-layer" class="section">
+            <h2>Deep Dive: Selection Layer</h2>
+            
+            <p>The selection layer is the key innovation: <strong>treating data selection as a tunable parameter</strong> rather than a fixed preprocessing step.</p>
+
+            <h3>Recipe System</h3>
+            <p>A recipe is a declarative specification for dataset selection:</p>
+
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    RECIPE EXECUTION FLOW                                        │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  RECIPE DEFINITION                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  filters:                                                                │   │
+│  │    - success = true                                                      │   │
+│  │    - quality_overall >= 0.7                                              │   │
+│  │  sampling:                                                               │   │
+│  │    method: diversity, target: 500                                        │   │
+│  │  balancing:                                                              │   │
+│  │    - task_type: min 50 per class                                         │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                      │
+│                                          ▼                                      │
+│  STEP 1: FILTER                                                                │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  SELECT * FROM episodes                                                  │   │
+│  │  WHERE success = true AND quality_overall >= 0.7                        │   │
+│  │                                                                          │   │
+│  │  50,000 total → 5,000 match filters                                     │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                      │
+│                                          ▼                                      │
+│  STEP 2: SAMPLE (Diversity)                                                    │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  1. Load state_embedding for 5,000 episodes                             │   │
+│  │  2. K-means clustering (k=500)                                          │   │
+│  │  3. From each cluster, pick highest quality episode                     │   │
+│  │                                                                          │   │
+│  │  5,000 filtered → 500 diverse                                           │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                      │
+│                                          ▼                                      │
+│  STEP 3: BALANCE                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  Check: Each task_type has >= 50 episodes?                              │   │
+│  │                                                                          │   │
+│  │  If "pour" only has 30:                                                 │   │
+│  │    → Add 20 more "pour" from filtered set                               │   │
+│  │    → Remove 20 from over-represented task                               │   │
+│  │                                                                          │   │
+│  │  500 diverse → 500 balanced & diverse                                   │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                      │
+│                                          ▼                                      │
+│  OUTPUT: Training Dataset (LeRobot format)                                     │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+
+            <h3>Sampling Methods</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Algorithm</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>top_k</code></td>
+                            <td>Sort by quality, take top N</td>
+                            <td>When quality is paramount</td>
+                        </tr>
+                        <tr>
+                            <td><code>random</code></td>
+                            <td>Uniform random sampling</td>
+                            <td>Baseline, debugging</td>
+                        </tr>
+                        <tr>
+                            <td><code>stratified</code></td>
+                            <td>Maintain class proportions</td>
+                            <td>Balanced task coverage</td>
+                        </tr>
+                        <tr>
+                            <td><code>diversity</code></td>
+                            <td>K-means on embeddings</td>
+                            <td>Maximizing coverage</td>
+                        </tr>
+                        <tr>
+                            <td><code>hybrid</code></td>
+                            <td>Weighted quality + diversity</td>
+                            <td>General purpose</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Experiment Layer -->
+        <section id="experiment-layer" class="section">
+            <h2>Deep Dive: Experiment Layer</h2>
+            
+            <p>The experiment layer integrates with Optuna and MLflow to optimize both model and data parameters jointly.</p>
+
+            <div class="info-box success">
+                <div class="info-box-title">🎯 Key Innovation</div>
+                <p>Traditional ML tunes model hyperparameters with fixed data. This system tunes <strong>data selection parameters alongside model parameters</strong>, treating the recipe as part of the search space.</p>
+            </div>
+
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    OPTUNA + MLFLOW INTEGRATION                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  SEARCH SPACE                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  MODEL PARAMS (traditional)      │  DATA PARAMS (new!)                  │   │
+│  │  ───────────────────────         │  ─────────────────                   │   │
+│  │  lr: [1e-5, 1e-3]                │  quality_threshold: [0.5, 0.9]      │   │
+│  │  batch_size: [16, 32, 64]        │  diversity_weight: [0.0, 1.0]       │   │
+│  │  hidden_dim: [256, 1024]         │  episode_count: [200, 1000]         │   │
+│  │  num_layers: [2, 6]              │  include_failures: [True, False]    │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                      │
+│                                          ▼                                      │
+│  FOR EACH TRIAL                                                                │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐    │
+│  │ Sample   │──▶│ Generate │──▶│ Material-│──▶│  Train   │──▶│ Evaluate │    │
+│  │ Params   │   │ Recipe   │   │ ize Data │   │  Model   │   │          │    │
+│  └──────────┘   └──────────┘   └──────────┘   └──────────┘   └────┬─────┘    │
+│                                                                     │          │
+│                                                                     ▼          │
+│  MLFLOW TRACKING                                           success_rate       │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │  Run ID   │ Parameters                        │ Metrics    │ Artifacts │   │
+│  │───────────┼───────────────────────────────────┼────────────┼───────────│   │
+│  │  run_087  │ lr=3e-4, quality=0.65, div=0.72  │ 79.2%      │ model.pt  │   │
+│  │  run_064  │ lr=1e-4, quality=0.70, div=0.65  │ 77.8%      │ recipe    │   │
+│  │  run_023  │ lr=5e-4, quality=0.85, div=0.20  │ 72.1%      │ episodes  │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+
+            <h3>Sample Results</h3>
+            <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    PARAMETER IMPORTANCE (from Optuna)                           │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  Parameter              Importance                                             │
+│  ─────────────────────────────────────────────────────────────────────────────│
+│  diversity_weight       ████████████████████  0.28    ← DATA PARAM!            │
+│  learning_rate          ███████████████████   0.24                             │
+│  quality_threshold      ██████████████        0.18    ← DATA PARAM!            │
+│  episode_count          ████████████          0.14    ← DATA PARAM!            │
+│  hidden_dim             ████████              0.09                             │
+│  include_failures       ██████                0.07    ← DATA PARAM!            │
+│                                                                                 │
+│  INSIGHT: Data selection parameters explain ~67% of performance variance!      │
+│           Model architecture matters less than data curation.                  │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+        </section>
+
+        <!-- User Flows -->
+        <section id="user-flows" class="section">
+            <h2>User Flows</h2>
+
+            <h3>Flow 1: Customer Onboarding</h3>
+            <div class="flow-step">
+                <div class="flow-step-number">1</div>
+                <div class="flow-step-content">
+                    <h5>Customer provides robot information</h5>
+                    <p>Customer shares URDF, topic names, control mode, camera configuration. TorqueAGI creates a manifest YAML file.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-number">2</div>
+                <div class="flow-step-content">
+                    <h5>Customer uploads sample data</h5>
+                    <p>Customer uploads a small sample (10-20 episodes) via S3 presigned URL or SFTP.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-number">3</div>
+                <div class="flow-step-content">
+                    <h5>Validation pipeline runs</h5>
+                    <p>System validates manifest against data, checks topic presence, verifies URDF compatibility.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-number">4</div>
+                <div class="flow-step-content">
+                    <h5>Data engineer reviews results</h5>
+                    <p>Engineer inspects normalized episodes, verifies action normalization, approves manifest.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-number">5</div>
+                <div class="flow-step-content">
+                    <h5>Customer approved for bulk upload</h5>
+                    <p>Customer receives upload credentials and can begin sending production data.</p>
+                </div>
+            </div>
+
+            <h3>Flow 2: ML Engineer Experiment</h3>
+            <div class="flow-step">
+                <div class="flow-step-number">1</div>
+                <div class="flow-step-content">
+                    <h5>Explore catalog</h5>
+                    <p>Engineer queries catalog to understand available data: customers, tasks, quality distribution.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-number">2</div>
+                <div class="flow-step-content">
+                    <h5>Create recipe</h5>
+                    <p>Engineer defines filters, sampling strategy, and balancing rules in a recipe YAML.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-number">3</div>
+                <div class="flow-step-content">
+                    <h5>Preview recipe</h5>
+                    <p>System shows what would be selected: count, quality stats, task distribution, cluster coverage.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-number">4</div>
+                <div class="flow-step-content">
+                    <h5>Launch Optuna study</h5>
+                    <p>Engineer starts optimization with both model and recipe parameters in search space.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-number">5</div>
+                <div class="flow-step-content">
+                    <h5>Analyze results in MLflow</h5>
+                    <p>Engineer reviews parameter importance, compares trials, selects best configuration.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Flows -->
+        <section id="data-flows" class="section">
+            <h2>Data Flows</h2>
+
+            <h3>End-to-End Data Journey</h3>
+
+            <div class="ascii-diagram large">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    END-TO-END DATA FLOW                                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+CUSTOMER                    TORQUEAGI PLATFORM                        OUTPUT
+────────                    ──────────────────                        ──────
+
+┌─────────┐
+│Raw Data │ ─────┐
+│ (MCAP)  │      │
+└─────────┘      │
+                 │
+┌─────────┐      │      ┌────────────────────────────────────────────────┐
+│Manifest │ ─────┼─────▶│  INGESTION                                     │
+│ (YAML)  │      │      │  ┌────────┐ ┌────────┐ ┌────────┐             │
+└─────────┘      │      │  │Adapter │→│Manifest│→│ Parse  │             │
+                 │      │  └────────┘ └────────┘ └────────┘             │
+                 │      └───────────────────┬────────────────────────────┘
+                 │                          │
+                 │                          ▼ ParsedFrame
+                 │      ┌────────────────────────────────────────────────┐
+                 │      │  PROCESSING                                    │
+                 │      │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ │
+                 │      │  │ Sync   │→│Normalize│→│Segment │→│ Enrich │ │
+                 │      │  └────────┘ └────────┘ └────────┘ └────────┘ │
+                 │      └───────────────────┬────────────────────────────┘
+                 │                          │
+                 │                          ▼ Episode (enriched)
+                 │      ┌────────────────────────────────────────────────┐
+                 │      │  CATALOG                                       │
+                 │      │  ┌─────────────┐  ┌─────────────┐              │
+                 │      │  │Episode Store│◀▶│Episode      │              │
+                 │      │  │(S3)         │  │Catalog (DB) │              │
+                 │      │  └─────────────┘  └─────────────┘              │
+                 │      └───────────────────┬────────────────────────────┘
+                 │                          │
+                 │                          ▼ Recipe + Catalog query
+                 │      ┌────────────────────────────────────────────────┐
+                 │      │  SELECTION                                     │
+                 │      │  ┌────────┐ ┌────────┐ ┌────────┐             │
+                 │      │  │Recipe  │→│ Engine │→│Material│             │
+                 │      │  │Store   │ │        │ │  ize   │             │
+                 │      │  └────────┘ └────────┘ └────────┘             │
+                 │      └───────────────────┬────────────────────────────┘
+                 │                          │
+                 │                          ▼ Training Dataset (LeRobot)
+                 │      ┌────────────────────────────────────────────────┐
+                 │      │  EXPERIMENT                                    │    ┌────────┐
+                 │      │  ┌────────┐ ┌────────┐ ┌────────┐             │───▶│ Model  │
+                 │      │  │Optuna  │→│ Train  │→│ MLflow │             │    │ (.pt)  │
+                 │      │  └────────┘ └────────┘ └────────┘             │    └────────┘
+                 │      └────────────────────────────────────────────────┘
+                 │
+                 │      ┌────────────────────────────────────────────────┐
+                 │      │  DEPLOYMENT (Edge)                             │    ┌────────┐
+                 └─────▶│  Docker + TensorRT + Model                     │───▶│ Robot  │
+                        └────────────────────────────────────────────────┘    └────────┘
+            </div>
+
+            <h3>Data Format Journey</h3>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Stage</th>
+                            <th>Format</th>
+                            <th>Location</th>
+                            <th>Characteristics</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Customer Upload</td>
+                            <td>MCAP / ROS Bag / HDF5</td>
+                            <td>S3 raw/</td>
+                            <td>Robot-specific, multi-rate, continuous</td>
+                        </tr>
+                        <tr>
+                            <td>After Ingestion</td>
+                            <td>ParsedFrame (memory)</td>
+                            <td>ECS task memory</td>
+                            <td>Decoded, still robot-specific</td>
+                        </tr>
+                        <tr>
+                            <td>After Processing</td>
+                            <td>Robo-DM (.vla)</td>
+                            <td>S3 episodes/</td>
+                            <td>Normalized, episodic, 70x compressed</td>
+                        </tr>
+                        <tr>
+                            <td>After Selection</td>
+                            <td>LeRobot v3.0</td>
+                            <td>S3 training/</td>
+                            <td>Training-ready, PyTorch native</td>
+                        </tr>
+                        <tr>
+                            <td>Deployment</td>
+                            <td>TensorRT / ONNX</td>
+                            <td>Edge device</td>
+                            <td>Optimized for inference</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- AWS Architecture -->
+        <section id="aws-architecture" class="section">
+            <h2>AWS Architecture</h2>
+
+            <div class="ascii-diagram large">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    AWS ARCHITECTURE                                             │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              INGESTION                                          │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                      │
+│  │ S3 Transfer  │    │  S3 Event    │    │   Lambda     │                      │
+│  │   Family     │───▶│  Notification│───▶│  Validator   │                      │
+│  │   (SFTP)     │    │              │    │              │                      │
+│  └──────────────┘    └──────────────┘    └──────┬───────┘                      │
+│                                                  │                              │
+│                                                  ▼                              │
+│                                          ┌──────────────┐                      │
+│                                          │Step Functions│                      │
+│                                          │ Orchestrator │                      │
+│                                          └──────┬───────┘                      │
+│                                                  │                              │
+└──────────────────────────────────────────────────┼──────────────────────────────┘
+                                                   │
+                                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              PROCESSING                                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐ │
+│  │ ECS Fargate  │    │ ECS Fargate  │    │  AWS Batch   │    │ ECS Fargate  │ │
+│  │ MCAP Process │───▶│ Segmentation │───▶│ Quality Score│───▶│ VLM Label    │ │
+│  │ (4 vCPU 16GB)│    │              │    │ (Spot c6i)   │    │ (Bedrock)    │ │
+│  └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘ │
+│                                                                                 │
+└──────────────────────────────────────────────────┬──────────────────────────────┘
+                                                   │
+                                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              STORAGE                                            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌──────────────────────────────┐    ┌──────────────────────────────┐          │
+│  │            S3                │    │       RDS PostgreSQL         │          │
+│  │                              │    │         + pgvector           │          │
+│  │  raw/        → IA → Glacier │    │                              │          │
+│  │  episodes/   → IA           │    │  episodes (metadata)         │          │
+│  │  training/   → Standard     │    │  recipes                     │          │
+│  │  temp/       → 7-day delete │    │  experiments                 │          │
+│  │                              │    │                              │          │
+│  └──────────────────────────────┘    └──────────────────────────────┘          │
+│                                                                                 │
+└──────────────────────────────────────────────────┬──────────────────────────────┘
+                                                   │
+                                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              EXPERIMENT                                         │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐ │
+│  │   Optuna     │    │  SageMaker   │    │   MLflow     │    │   Grafana    │ │
+│  │   (RDS)      │───▶│  Training    │───▶│  (EC2+S3)    │───▶│  Dashboard   │ │
+│  │              │    │  (p4d/p5)    │    │              │    │              │ │
+│  └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘ │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+
+            <h3>Service Selection Rationale</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Service</th>
+                            <th>Why</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Validation</td>
+                            <td>Lambda</td>
+                            <td>Fast, stateless, &lt;15 min</td>
+                        </tr>
+                        <tr>
+                            <td>MCAP Processing</td>
+                            <td>ECS Fargate</td>
+                            <td>Long-running (hours), needs ROS2 libs, 16GB+ RAM</td>
+                        </tr>
+                        <tr>
+                            <td>Quality Scoring</td>
+                            <td>AWS Batch</td>
+                            <td>Embarrassingly parallel, Spot-optimized, 70% savings</td>
+                        </tr>
+                        <tr>
+                            <td>VLM Labeling</td>
+                            <td>ECS + Bedrock</td>
+                            <td>API calls to Claude, long-running</td>
+                        </tr>
+                        <tr>
+                            <td>Training</td>
+                            <td>SageMaker</td>
+                            <td>Managed GPU instances, distributed training</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="reference-box">
+                <h5>📚 References: AWS Services</h5>
+                <ul>
+                    <li><a href="https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html" class="reference-link" target="_blank">AWS Step Functions - Orchestration</a></li>
+                    <li><a href="https://docs.aws.amazon.com/batch/latest/userguide/what-is-batch.html" class="reference-link" target="_blank">AWS Batch - Parallel Processing</a></li>
+                    <li><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/whatis.html" class="reference-link" target="_blank">Amazon SageMaker - ML Training</a></li>
+                    <li><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html" class="reference-link" target="_blank">Amazon Bedrock - Foundation Models</a></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Database Design -->
+        <section id="database-design" class="section">
+            <h2>Database Design</h2>
+
+            <div class="code-block">
+<span class="comment">-- Episode Catalog Schema (PostgreSQL + pgvector)</span>
+
+<span class="keyword">CREATE EXTENSION</span> vector;
+
+<span class="keyword">CREATE TABLE</span> episodes (
+    episode_id          VARCHAR(64) <span class="keyword">PRIMARY KEY</span>,
+    s3_path             VARCHAR(512) <span class="keyword">NOT NULL</span>,
+    customer_id         VARCHAR(64) <span class="keyword">NOT NULL</span>,
+    robot_id            VARCHAR(64) <span class="keyword">NOT NULL</span>,
+    
+    <span class="comment">-- Labels</span>
+    success             BOOLEAN,
+    success_confidence  FLOAT,
+    labeled_by          VARCHAR(32),  <span class="comment">-- 'heuristic', 'vlm', 'human'</span>
+    task_type           VARCHAR(64),
+    language_instruction TEXT,
+    failure_reason      VARCHAR(256),
+    
+    <span class="comment">-- Quality Scores</span>
+    quality_overall     FLOAT <span class="keyword">NOT NULL</span>,
+    quality_completeness FLOAT,
+    quality_smoothness  FLOAT,
+    quality_sync        FLOAT,
+    quality_efficiency  FLOAT,
+    
+    <span class="comment">-- Diversity (pgvector)</span>
+    state_embedding     VECTOR(256),
+    traj_embedding      VECTOR(256),
+    cluster_id          INTEGER,
+    
+    <span class="comment">-- Metadata</span>
+    duration_sec        FLOAT,
+    num_frames          INTEGER,
+    recorded_at         TIMESTAMP,
+    ingested_at         TIMESTAMP <span class="keyword">DEFAULT</span> NOW(),
+    
+    <span class="comment">-- Usage tracking</span>
+    times_used_train    INTEGER <span class="keyword">DEFAULT</span> 0,
+    last_used_at        TIMESTAMP
+);
+
+<span class="comment">-- Indexes for common queries</span>
+<span class="keyword">CREATE INDEX</span> idx_episodes_customer_robot <span class="keyword">ON</span> episodes(customer_id, robot_id);
+<span class="keyword">CREATE INDEX</span> idx_episodes_success_quality <span class="keyword">ON</span> episodes(success, quality_overall <span class="keyword">DESC</span>);
+<span class="keyword">CREATE INDEX</span> idx_episodes_task_type <span class="keyword">ON</span> episodes(task_type, success);
+
+<span class="comment">-- Vector index for similarity search (pgvector)</span>
+<span class="keyword">CREATE INDEX</span> idx_episodes_state_emb <span class="keyword">ON</span> episodes 
+    <span class="keyword">USING</span> ivfflat (state_embedding vector_cosine_ops) <span class="keyword">WITH</span> (lists = 100);
+
+
+<span class="keyword">CREATE TABLE</span> recipes (
+    recipe_id           VARCHAR(64) <span class="keyword">PRIMARY KEY</span>,
+    name                VARCHAR(256) <span class="keyword">NOT NULL</span>,
+    version             VARCHAR(32),
+    description         TEXT,
+    spec                JSONB <span class="keyword">NOT NULL</span>,  <span class="comment">-- Full recipe YAML as JSON</span>
+    created_at          TIMESTAMP <span class="keyword">DEFAULT</span> NOW(),
+    created_by          VARCHAR(64),
+    episode_count       INTEGER,
+    checksum            VARCHAR(64)  <span class="comment">-- Hash of selected episode_ids</span>
+);
+
+
+<span class="keyword">CREATE TABLE</span> experiments (
+    experiment_id       VARCHAR(64) <span class="keyword">PRIMARY KEY</span>,
+    recipe_id           VARCHAR(64) <span class="keyword">REFERENCES</span> recipes(recipe_id),
+    model_type          VARCHAR(64),
+    model_config        JSONB,
+    training_config     JSONB,
+    started_at          TIMESTAMP,
+    completed_at        TIMESTAMP,
+    status              VARCHAR(32),  <span class="comment">-- 'running', 'completed', 'failed'</span>
+    
+    <span class="comment">-- Results</span>
+    train_loss          FLOAT,
+    val_loss            FLOAT,
+    eval_success_rate   FLOAT,
+    eval_metrics        JSONB,
+    model_artifact_path VARCHAR(512),
+    notes               TEXT
+);
+            </div>
+        </section>
+
+        <!-- API Design -->
+        <section id="api-design" class="section">
+            <h2>API Design</h2>
+
+            <h3>Recipe API</h3>
+            <div class="code-block">
+<span class="comment"># Create a recipe</span>
+POST /api/v1/recipes
+{
+    "name": "high_quality_diverse_v3",
+    "filters": [
+        {"field": "success", "operator": "eq", "value": true},
+        {"field": "quality_overall", "operator": "gte", "value": 0.7}
+    ],
+    "sampling": {
+        "method": "diversity",
+        "target_count": 500
+    }
+}
+
+<span class="comment"># Preview what recipe would select</span>
+POST /api/v1/recipes/{recipe_id}/preview
+→ {
+    "count": 500,
+    "quality_mean": 0.82,
+    "task_distribution": {"pick": 180, "place": 170, "pour": 150},
+    "cluster_coverage": 0.94
+}
+
+<span class="comment"># Materialize recipe to training dataset</span>
+POST /api/v1/recipes/{recipe_id}/materialize
+{
+    "output_format": "lerobot",
+    "output_path": "s3://datasets/experiment_v1/"
+}
+→ {
+    "job_id": "mat_12345",
+    "status": "running",
+    "estimated_time_sec": 300
+}
+            </div>
+
+            <h3>Catalog API</h3>
+            <div class="code-block">
+<span class="comment"># Query episodes</span>
+GET /api/v1/episodes?customer_id=customer_a&success=true&quality_overall_gte=0.7&limit=100
+
+<span class="comment"># Get episode details</span>
+GET /api/v1/episodes/{episode_id}
+
+<span class="comment"># Find similar episodes (vector search)</span>
+POST /api/v1/episodes/similar
+{
+    "episode_id": "ep_00042",
+    "embedding_type": "state",
+    "limit": 10
+}
+
+<span class="comment"># Aggregate statistics</span>
+GET /api/v1/episodes/stats?group_by=customer_id,task_type
+→ {
+    "groups": [
+        {"customer_id": "customer_a", "task_type": "pick", "count": 5000, "avg_quality": 0.78},
+        ...
+    ]
+}
+            </div>
+        </section>
+
+        <!-- Data Format Standards -->
+        <section id="data-formats" class="section">
+            <h2>Data Format Standards (2026)</h2>
+
+            <div class="info-box insight">
+                <div class="info-box-title">💡 2026 Update</div>
+                <p>RLDS is now legacy. The robotics community has largely moved to <strong>LeRobot v3.0</strong> for training and <strong>Robo-DM</strong> for efficient storage.</p>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Format</th>
+                            <th>Status</th>
+                            <th>Compression</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>RLDS (Google)</td>
+                            <td><span class="tag" style="background: rgba(248, 81, 73, 0.2); color: #f85149;">Legacy</span></td>
+                            <td>1x (baseline)</td>
+                            <td>Legacy projects only</td>
+                        </tr>
+                        <tr>
+                            <td>LeRobot v3.0 (HuggingFace)</td>
+                            <td><span class="tag" style="background: rgba(63, 185, 80, 0.2); color: #3fb950;">Active</span></td>
+                            <td>~4x</td>
+                            <td>Training (PyTorch ecosystem)</td>
+                        </tr>
+                        <tr>
+                            <td>Robo-DM (Berkeley)</td>
+                            <td><span class="tag" style="background: rgba(63, 185, 80, 0.2); color: #3fb950;">Active</span></td>
+                            <td>70x (lossy)</td>
+                            <td>Storage, transmission</td>
+                        </tr>
+                        <tr>
+                            <td>HDF5</td>
+                            <td><span class="tag" style="background: rgba(210, 153, 34, 0.2); color: #d29922;">Stable</span></td>
+                            <td>Variable</td>
+                            <td>Custom pipelines</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Recommended Strategy</h3>
+            <ol>
+                <li><strong>Store</strong> in Robo-DM (.vla) for 70x compression</li>
+                <li><strong>Export</strong> to LeRobot v3.0 when training</li>
+                <li><strong>Pre-train</strong> on Open X (already converted to LeRobot on HuggingFace Hub)</li>
+            </ol>
+
+            <div class="reference-box">
+                <h5>📚 References: Data Formats</h5>
+                <ul>
+                    <li><a href="https://huggingface.co/blog/lerobot-datasets-v3" class="reference-link" target="_blank">LeRobot v3.0 Announcement - HuggingFace</a></li>
+                    <li><a href="https://arxiv.org/abs/2505.15558" class="reference-link" target="_blank">Robo-DM Paper - ICRA 2025 Best Paper</a></li>
+                    <li><a href="https://huggingface.co/collections/IPEC-COMMUNITY/openx-lerobot" class="reference-link" target="_blank">Open X in LeRobot Format - HuggingFace Hub</a></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Edge-Cloud Architecture -->
+        <section id="edge-cloud" class="section">
+            <h2>Edge-Cloud Architecture</h2>
+
+            <p>For deployed robots, we need a clear separation between control plane and data plane:</p>
+
+            <div class="ascii-diagram large">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    CONTROL PLANE vs DATA PLANE                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  CONTROL PLANE                          DATA PLANE                             │
+│  ─────────────                          ──────────                             │
+│                                                                                 │
+│  WHAT IT DOES:                          WHAT IT DOES:                          │
+│  "How the system behaves"               "What the system processes"            │
+│                                                                                 │
+│  • Which model version to run           • Sensor data (images, joints)         │
+│  • When to start/stop                   • Actions (robot commands)             │
+│  • Configuration parameters             • Episodes (for training)              │
+│  • Health checks                        • Inference requests/responses         │
+│  • Alerts and monitoring                • Telemetry and metrics                │
+│                                                                                 │
+│  CHARACTERISTICS:                       CHARACTERISTICS:                        │
+│  • Small payloads (KB)                  • Large payloads (MB-GB)               │
+│  • Frequent (heartbeats)                • Bursty (episode uploads)             │
+│  • Low latency critical                 • Throughput critical                   │
+│  • Bidirectional                        • Mostly edge → cloud                  │
+│                                                                                 │
+│  PROTOCOL:                              PROTOCOL:                               │
+│  MQTT (AWS IoT Core)                    HTTPS/S3 (bulk transfer)               │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  EDGE SERVICES                          CLOUD SERVICES                         │
+│  ─────────────                          ──────────────                         │
+│                                                                                 │
+│  Control:                               Control:                               │
+│  • Agent Manager (commands)             • AWS IoT Core (MQTT)                  │
+│  • Config Store (local)                 • Device Shadow (twins)                │
+│  • Health Monitor                       • Fleet Manager                        │
+│                                                                                 │
+│  Data:                                  Data:                                  │
+│  • Inference Engine (VLA)               • S3 (episode storage)                 │
+│  • Episode Recorder                     • Ingestion Pipeline                   │
+│  • Data Uploader                        • Training Pipeline                    │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </div>
+        </section>
+
+        <!-- MLOps Integration -->
+        <section id="mlops" class="section">
+            <h2>MLOps Integration</h2>
+
+            <h3>Optuna + Recipe Integration</h3>
+            <div class="code-block">
+<span class="keyword">def</span> <span class="function">objective</span>(trial: optuna.Trial) -> float:
+    <span class="string">"""Optuna objective that treats data selection as hyperparameters."""</span>
+    
+    <span class="keyword">with</span> mlflow.start_run():
+        
+        <span class="comment"># Model hyperparameters (traditional)</span>
+        model_params = {
+            <span class="string">"learning_rate"</span>: trial.suggest_float(<span class="string">"lr"</span>, 1e-5, 1e-3, log=True),
+            <span class="string">"batch_size"</span>: trial.suggest_categorical(<span class="string">"batch_size"</span>, [16, 32, 64]),
+            <span class="string">"hidden_dim"</span>: trial.suggest_int(<span class="string">"hidden_dim"</span>, 256, 1024, step=128),
+        }
+        
+        <span class="comment"># DATA hyperparameters (NEW!)</span>
+        data_params = {
+            <span class="string">"quality_threshold"</span>: trial.suggest_float(<span class="string">"quality"</span>, 0.5, 0.9),
+            <span class="string">"diversity_weight"</span>: trial.suggest_float(<span class="string">"diversity"</span>, 0.0, 1.0),
+            <span class="string">"episode_count"</span>: trial.suggest_int(<span class="string">"episodes"</span>, 200, 1000, step=100),
+            <span class="string">"include_failures"</span>: trial.suggest_categorical(<span class="string">"failures"</span>, [True, False]),
+        }
+        
+        <span class="comment"># Generate recipe from params</span>
+        recipe = Recipe(
+            filters=[{<span class="string">"field"</span>: <span class="string">"quality_overall"</span>, <span class="string">"op"</span>: <span class="string">"gte"</span>, <span class="string">"value"</span>: data_params[<span class="string">"quality_threshold"</span>]}],
+            sampling={<span class="string">"method"</span>: <span class="string">"hybrid"</span>, <span class="string">"diversity_weight"</span>: data_params[<span class="string">"diversity_weight"</span>]}
+        )
+        
+        <span class="comment"># Materialize and train</span>
+        dataset = recipe_engine.materialize(recipe)
+        model, metrics = train_policy(dataset, **model_params)
+        
+        <span class="comment"># Log everything</span>
+        mlflow.log_params({**model_params, **data_params})
+        mlflow.log_dict(recipe.to_dict(), <span class="string">"recipe.json"</span>)
+        mlflow.log_metrics(metrics)
+        mlflow.pytorch.log_model(model, <span class="string">"model"</span>)
+        
+        <span class="keyword">return</span> metrics[<span class="string">"eval_success_rate"</span>]
+
+
+study = optuna.create_study(direction=<span class="string">"maximize"</span>)
+study.optimize(objective, n_trials=100)
+            </div>
+        </section>
+
+        <!-- Interview Questions -->
+        <section id="interview-questions" class="section">
+            <h2>Interview Questions</h2>
+
+            <div class="qa-section">
+                <div class="qa-item">
+                    <div class="qa-question">Q: Why normalize actions to a canonical 8-dim space instead of keeping robot-specific actions?</div>
+                    <div class="qa-answer">
+                        <p><strong>Cross-robot transfer learning.</strong> The foundation model pre-trains on Open X-Embodiment (22+ robot types). If each robot uses different action representations, the model can't transfer knowledge between them. The canonical 8-dim space (Δx, Δy, Δz, Δroll, Δpitch, Δyaw, gripper, terminate) provides a common language that enables:</p>
+                        <ul>
+                            <li>Pre-training on diverse robots with consistent action semantics</li>
+                            <li>Fine-tuning on customer data without architectural changes</li>
+                            <li>Potential zero-shot transfer to similar tasks</li>
+                        </ul>
+                        <p>The tradeoff is loss of robot-specific control nuances, but for manipulation tasks, EE pose delta is sufficiently expressive.</p>
+                    </div>
+                </div>
+
+                <div class="qa-item">
+                    <div class="qa-question">Q: Why separate Episode Store (S3) and Episode Catalog (PostgreSQL)?</div>
+                    <div class="qa-answer">
+                        <p><strong>Different access patterns require different storage solutions.</strong></p>
+                        <ul>
+                            <li><strong>Episode data</strong> (video, actions): Large (~10MB/episode), accessed sequentially during training, rarely queried by attributes → S3 is ideal</li>
+                            <li><strong>Episode metadata</strong> (labels, scores, embeddings): Small (~2KB/episode), frequently queried with complex filters, vector similarity search → PostgreSQL + pgvector is ideal</li>
+                        </ul>
+                        <p>Combining them would either make queries slow (scanning S3) or storage expensive (duplicating data in DB). The s3_path foreign key links them efficiently.</p>
+                    </div>
+                </div>
+
+                <div class="qa-item">
+                    <div class="qa-question">Q: Why use recipes instead of just querying the database directly?</div>
+                    <div class="qa-answer">
+                        <p><strong>Reproducibility and experimentation.</strong> A recipe is a versioned, declarative specification that captures exactly how a training dataset was selected. Benefits:</p>
+                        <ul>
+                            <li><strong>Reproducibility:</strong> Recipe + checksum guarantees identical dataset reconstruction</li>
+                            <li><strong>Experimentation:</strong> Recipes can be parameters in hyperparameter search (Optuna)</li>
+                            <li><strong>Audit trail:</strong> Every trained model links to a specific recipe version</li>
+                            <li><strong>Collaboration:</strong> ML engineers can share recipes, iterate on them like code</li>
+                        </ul>
+                        <p>Raw SQL queries provide no versioning, no structured sampling methods, and no integration with experiment tracking.</p>
+                    </div>
+                </div>
+
+                <div class="qa-item">
+                    <div class="qa-question">Q: How would you handle a robot that uses a completely different action space (e.g., a mobile manipulator with base movement)?</div>
+                    <div class="qa-answer">
+                        <p><strong>Extend the canonical space while maintaining backward compatibility.</strong></p>
+                        <ol>
+                            <li>Define a superset action space: [Δx, Δy, Δz, Δroll, Δpitch, Δyaw, gripper, terminate, <strong>base_vx, base_vy, base_ωz</strong>]</li>
+                            <li>For arm-only robots, pad with zeros for base actions</li>
+                            <li>For mobile manipulators, populate all fields</li>
+                            <li>Train with attention masking so model learns to ignore irrelevant action dims per robot</li>
+                        </ol>
+                        <p>This is exactly what Open X-Embodiment does. The key is consistent semantics per dimension, with zeros for unsupported DOFs.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Tradeoffs -->
+        <section id="tradeoffs" class="section">
+            <h2>Key Tradeoffs</h2>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Decision</th>
+                            <th>Option A</th>
+                            <th>Option B</th>
+                            <th>We Chose</th>
+                            <th>Rationale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Episode storage format</td>
+                            <td>LeRobot (training-ready)</td>
+                            <td>Robo-DM (compressed)</td>
+                            <td>Robo-DM + export</td>
+                            <td>70x compression saves S3 costs; export on-demand</td>
+                        </tr>
+                        <tr>
+                            <td>Action normalization</td>
+                            <td>Keep robot-specific</td>
+                            <td>Canonical 8-dim</td>
+                            <td>Canonical</td>
+                            <td>Required for cross-robot pre-training</td>
+                        </tr>
+                        <tr>
+                            <td>Success labeling</td>
+                            <td>Human only</td>
+                            <td>Heuristic + VLM</td>
+                            <td>Heuristic + VLM + human review</td>
+                            <td>Balance cost vs accuracy</td>
+                        </tr>
+                        <tr>
+                            <td>Catalog DB</td>
+                            <td>DynamoDB (serverless)</td>
+                            <td>PostgreSQL (relational)</td>
+                            <td>PostgreSQL + pgvector</td>
+                            <td>Complex queries + vector similarity</td>
+                        </tr>
+                        <tr>
+                            <td>Data selection</td>
+                            <td>Fixed preprocessing</td>
+                            <td>Recipe-based dynamic</td>
+                            <td>Recipe-based</td>
+                            <td>Enables data-as-hyperparameter</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- References -->
+        <section id="references" class="section">
+            <h2>References</h2>
+
+            <h3>Academic Papers</h3>
+            <div class="reference-box">
+                <ul>
+                    <li><a href="https://arxiv.org/abs/2310.08864" class="reference-link" target="_blank">Open X-Embodiment: Robotic Learning Datasets and RT-X Models (2023)</a></li>
+                    <li><a href="https://arxiv.org/abs/2505.15558" class="reference-link" target="_blank">Robo-DM: Data Management For Large Robot Datasets - ICRA 2025 Best Paper</a></li>
+                    <li><a href="https://arxiv.org/abs/2403.12945" class="reference-link" target="_blank">OpenVLA: An Open-Source Vision-Language-Action Model (2024)</a></li>
+                    <li><a href="https://arxiv.org/abs/2310.12823" class="reference-link" target="_blank">DROID: A Large-Scale In-The-Wild Robot Manipulation Dataset (2024)</a></li>
+                </ul>
+            </div>
+
+            <h3>Technical Documentation</h3>
+            <div class="reference-box">
+                <ul>
+                    <li><a href="https://github.com/huggingface/lerobot" class="reference-link" target="_blank">LeRobot GitHub - HuggingFace</a></li>
+                    <li><a href="https://github.com/BerkeleyAutomation/robodm" class="reference-link" target="_blank">Robo-DM GitHub - Berkeley Automation</a></li>
+                    <li><a href="https://mcap.dev/" class="reference-link" target="_blank">MCAP Container Format</a></li>
+                    <li><a href="https://docs.aws.amazon.com/step-functions/" class="reference-link" target="_blank">AWS Step Functions Documentation</a></li>
+                </ul>
+            </div>
+
+            <h3>Industry Context</h3>
+            <div class="reference-box">
+                <ul>
+                    <li><a href="https://torqueagi.com" class="reference-link" target="_blank">TorqueAGI - Foundation Models for Robotics</a></li>
+                    <li><a href="https://www.skild.ai/" class="reference-link" target="_blank">Skild AI - Cross-Embodiment Robot Learning</a></li>
+                    <li><a href="https://www.physicalintelligence.company/" class="reference-link" target="_blank">Physical Intelligence</a></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer style="margin-top: 60px; padding-top: 30px; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-muted);">
+            <p>Robotics Data Platform System Design Guide</p>
+            <p style="font-size: 0.85rem;">Last updated: January 2026</p>
+        </footer>
+    </main>
+
+    <script>
+        // Collapsible sections
+        function toggleCollapsible(header) {
+            const collapsible = header.parentElement;
+            collapsible.classList.toggle('open');
+        }
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // Update active state
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // Highlight active section on scroll
+        const sections = document.querySelectorAll('.section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Initialize all collapsibles as closed
+        document.querySelectorAll('.collapsible').forEach(c => {
+            c.classList.remove('open');
+        });
+    </script>
+</body>
+</html>

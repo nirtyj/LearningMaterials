@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supervised Autonomy — Architecture Diagrams & System Design</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg-deepest: #0a0c10;
+    --bg-deep: #0d1117;
+    --bg-surface: #131820;
+    --bg-raised: #1a2233;
+    --bg-hover: #1f2a3d;
+    --border: #252f42;
+    --border-bright: #334466;
+    --text-primary: #e2e8f0;
+    --text-secondary: #8b98b0;
+    --text-dim: #5a6680;
+    --accent-cyan: #22d3ee;
+    --accent-blue: #60a5fa;
+    --accent-purple: #a78bfa;
+    --accent-green: #34d399;
+    --accent-orange: #fb923c;
+    --accent-red: #f87171;
+    --accent-yellow: #fbbf24;
+    --accent-pink: #f472b6;
+    --sidebar-w: 280px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg-deepest);
+    color: var(--text-primary);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--bg-deep);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 20px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .sidebar-logo {
+    padding: 8px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .sidebar-logo h2 {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-logo p {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .nav-group {
+    margin-bottom: 4px;
+  }
+
+  .nav-group-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 12px 20px 6px;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 20px 7px 28px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+
+  .nav-link:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .nav-link.active {
+    color: var(--accent-cyan);
+    border-left-color: var(--accent-cyan);
+    background: rgba(34, 211, 238, 0.05);
+  }
+
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Main Content ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 40px 50px 100px;
+    max-width: 1200px;
+  }
+
+  .page-header {
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header h1 {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 8px;
+  }
+
+  .page-header .subtitle {
+    font-size: 15px;
+    color: var(--text-secondary);
+    max-width: 700px;
+  }
+
+  .section {
+    margin-bottom: 56px;
+    scroll-margin-top: 20px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .section-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .badge-high { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); border: 1px solid rgba(34, 211, 238, 0.3); }
+  .badge-mid { background: rgba(167, 139, 250, 0.15); color: var(--accent-purple); border: 1px solid rgba(167, 139, 250, 0.3); }
+  .badge-low { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.3); }
+  .badge-detail { background: rgba(251, 146, 60, 0.15); color: var(--accent-orange); border: 1px solid rgba(251, 146, 60, 0.3); }
+
+  .section h2 {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .section h3 {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    margin: 24px 0 10px;
+  }
+
+  .section p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    max-width: 820px;
+  }
+
+  /* ── Diagram Blocks ── */
+  .diagram-container {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 16px 0 24px;
+    overflow: hidden;
+  }
+
+  .diagram-title-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg-raised);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .diagram-title-bar .dots {
+    display: flex; gap: 6px;
+  }
+
+  .diagram-title-bar .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .diagram-title-bar .dot.r { background: var(--accent-red); opacity: 0.7; }
+  .diagram-title-bar .dot.y { background: var(--accent-yellow); opacity: 0.7; }
+  .diagram-title-bar .dot.g { background: var(--accent-green); opacity: 0.7; }
+
+  .diagram-body {
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  .diagram-body pre {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    white-space: pre;
+    min-width: max-content;
+  }
+
+  /* Color classes for ASCII art */
+  .c { color: var(--accent-cyan); }
+  .b { color: var(--accent-blue); }
+  .p { color: var(--accent-purple); }
+  .g { color: var(--accent-green); }
+  .o { color: var(--accent-orange); }
+  .r { color: var(--accent-red); }
+  .y { color: var(--accent-yellow); }
+  .k { color: var(--accent-pink); }
+  .d { color: var(--text-dim); }
+  .w { color: var(--text-primary); }
+  .s { color: var(--text-secondary); }
+
+  /* ── Collapsible ── */
+  .collapsible {
+    margin: 12px 0;
+  }
+
+  .collapsible-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+
+  .collapsible-toggle:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-bright);
+  }
+
+  .collapsible-toggle .arrow {
+    transition: transform 0.2s;
+    color: var(--accent-cyan);
+    font-size: 11px;
+  }
+
+  .collapsible.open .collapsible-toggle .arrow {
+    transform: rotate(90deg);
+  }
+
+  .collapsible-content {
+    display: none;
+    padding: 4px 0 0;
+  }
+
+  .collapsible.open .collapsible-content {
+    display: block;
+  }
+
+  /* ── Tables ── */
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+
+  .info-table th {
+    background: var(--bg-raised);
+    padding: 8px 12px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+  }
+
+  .info-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  .info-table tr:hover td {
+    background: rgba(34, 211, 238, 0.03);
+  }
+
+  /* ── Callout boxes ── */
+  .callout {
+    padding: 14px 16px;
+    border-radius: 6px;
+    margin: 16px 0;
+    font-size: 13px;
+    border-left: 3px solid;
+  }
+
+  .callout-staff {
+    background: rgba(34, 211, 238, 0.06);
+    border-color: var(--accent-cyan);
+    color: var(--text-secondary);
+  }
+
+  .callout-staff strong {
+    color: var(--accent-cyan);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .callout-warn {
+    background: rgba(251, 146, 60, 0.06);
+    border-color: var(--accent-orange);
+    color: var(--text-secondary);
+  }
+
+  .callout-warn strong {
+    color: var(--accent-orange);
+  }
+
+  /* ── Tags / chips ── */
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin: 2px;
+  }
+
+  .tag-cyan { background: rgba(34,211,238,0.12); color: var(--accent-cyan); }
+  .tag-blue { background: rgba(96,165,250,0.12); color: var(--accent-blue); }
+  .tag-purple { background: rgba(167,139,250,0.12); color: var(--accent-purple); }
+  .tag-green { background: rgba(52,211,153,0.12); color: var(--accent-green); }
+  .tag-orange { background: rgba(251,146,60,0.12); color: var(--accent-orange); }
+
+  /* Mobile */
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ SIDEBAR ════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h2>Nimble Robotics</h2>
+    <p>Supervised Autonomy System Design</p>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">High Level</div>
+    <a class="nav-link" href="#hl-e2e"><span class="nav-dot" style="background:var(--accent-cyan)"></span>End-to-End Architecture</a>
+    <a class="nav-link" href="#hl-dataflow"><span class="nav-dot" style="background:var(--accent-cyan)"></span>System Data Flow</a>
+    <a class="nav-link" href="#hl-autonomy"><span class="nav-dot" style="background:var(--accent-cyan)"></span>Autonomy Spectrum</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Mid Level</div>
+    <a class="nav-link" href="#ml-escalation"><span class="nav-dot" style="background:var(--accent-purple)"></span>Escalation Queue</a>
+    <a class="nav-link" href="#ml-video"><span class="nav-dot" style="background:var(--accent-purple)"></span>Video Streaming Pipeline</a>
+    <a class="nav-link" href="#ml-confidence"><span class="nav-dot" style="background:var(--accent-purple)"></span>Confidence & Escalation</a>
+    <a class="nav-link" href="#ml-flywheel"><span class="nav-dot" style="background:var(--accent-purple)"></span>Data Flywheel</a>
+    <a class="nav-link" href="#ml-operator"><span class="nav-dot" style="background:var(--accent-purple)"></span>Operator Dashboard</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Low Level</div>
+    <a class="nav-link" href="#ll-edge"><span class="nav-dot" style="background:var(--accent-green)"></span>Edge Compute Stack</a>
+    <a class="nav-link" href="#ll-batch"><span class="nav-dot" style="background:var(--accent-green)"></span>Batch Matching Algorithm</a>
+    <a class="nav-link" href="#ll-latency"><span class="nav-dot" style="background:var(--accent-green)"></span>Latency Budget</a>
+    <a class="nav-link" href="#ll-ood"><span class="nav-dot" style="background:var(--accent-green)"></span>OOD Detection Pipeline</a>
+    <a class="nav-link" href="#ll-retraining"><span class="nav-dot" style="background:var(--accent-green)"></span>Retraining & Deployment</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Reference</div>
+    <a class="nav-link" href="#ref-tech"><span class="nav-dot" style="background:var(--accent-orange)"></span>Technology Matrix</a>
+    <a class="nav-link" href="#ref-numbers"><span class="nav-dot" style="background:var(--accent-orange)"></span>Key Numbers</a>
+    <a class="nav-link" href="#ref-tradeoffs"><span class="nav-dot" style="background:var(--accent-orange)"></span>Staff-Level Tradeoffs</a>
+  </div>
+</nav>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<div class="main">
+
+<div class="page-header">
+  <h1>Supervised Autonomy System Design</h1>
+  <p class="subtitle">Complete architecture for human-in-the-loop robot fleet operations — escalation queues, real-time teleoperation, confidence thresholding, and continuous learning. Nimble Robotics interview prep.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HIGH LEVEL — END-TO-END ARCHITECTURE
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="section" id="hl-e2e">
+  <div class="section-header">
+    <span class="section-badge badge-high">High Level</span>
+    <h2>End-to-End System Architecture</h2>
+  </div>
+  <p>The complete supervised autonomy system spans four physical domains — robot edge, warehouse local, cloud platform, and operator endpoints — connected by three communication planes: real-time control, telemetry streaming, and batch data pipelines.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>supervised_autonomy_e2e.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="d">┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="d">│</span>  <span class="c">█▀▀ █ █ █▀█ █▀▀ █▀█ █ █ █ █▀▀ █▀▀ █▀▄   █▀█ █ █ ▀█▀ █▀█ █▄ █ █▀█ █▄▀▄█ █ █</span>                     <span class="d">│</span>
+<span class="d">│</span>  <span class="c">▄▄█ █▄█ █▀▀ ██▄ █▀▄ ▀▄▀ █ ▄▄█ ██▄ █▄▀   █▀█ █▄█  █  █▄█ █ ▀█ █▄█ █ ▀ █ ▀█▀</span>                     <span class="d">│</span>
+<span class="d">│</span>                                                                                                     <span class="d">│</span>
+<span class="d">│</span>  <span class="y">ROBOT EDGE (per robot)</span>           <span class="p">WAREHOUSE LOCAL</span>           <span class="b">CLOUD PLATFORM</span>          <span class="g">OPERATOR</span>           <span class="d">│</span>
+<span class="d">│</span>  <span class="y">Jetson Orin/Thor</span>                <span class="p">On-Prem Server Rack</span>       <span class="b">AWS / GCP</span>               <span class="g">Remote Stations</span>    <span class="d">│</span>
+<span class="d">│</span>                                                                                                     <span class="d">│</span>
+<span class="d">│</span>  <span class="y">┌──────────────────┐</span>          <span class="p">┌────────────────────┐</span>   <span class="b">┌────────────────────┐</span>  <span class="g">┌──────────────┐</span>  <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  PERCEPTION       │</span>          <span class="p">│  ESCALATION QUEUE  │</span>   <span class="b">│  DATA LAKE (S3)    │</span>  <span class="g">│  TELEOP UI    │</span>  <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ RGB Cameras    │</span>          <span class="p">│  ├─ Redis Streams  │</span>   <span class="b">│  ├─ Interventions  │</span>  <span class="g">│  ├─ WebRTC    │</span>  <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ Depth/LiDAR   │</span>          <span class="p">│  ├─ Priority Queue │</span>   <span class="b">│  ├─ Telemetry      │</span>  <span class="g">│  ├─ 3D Scene  │</span>  <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  └─ Force/Torque  │</span>          <span class="p">│  └─ Batch Matcher  │</span>   <span class="b">│  └─ Trigger Clips  │</span>  <span class="g">│  ├─ Controls  │</span>  <span class="d">│</span>
+<span class="d">│</span>  <span class="y">├──────────────────┤</span>          <span class="p">├────────────────────┤</span>   <span class="b">├────────────────────┤</span>  <span class="g">│  └─ Queue Mgr │</span>  <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  AI INFERENCE      │</span>          <span class="p">│  VIDEO RELAY       │</span>   <span class="b">│  ML TRAINING       │</span>  <span class="g">└───────┬──────┘</span>  <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ VLA Model     │</span>          <span class="p">│  ├─ WebRTC SFU    │</span>   <span class="b">│  ├─ Active Learn   │</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ Grasp Planner │</span>          <span class="p">│  ├─ TURN Relay    │</span>   <span class="b">│  ├─ Retrain Loop   │</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ OOD Detector  │</span>          <span class="p">│  └─ ABR + FEC     │</span>   <span class="b">│  └─ Eval Pipeline  │</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  └─ Nav Planner   │</span>          <span class="p">├────────────────────┤</span>   <span class="b">├────────────────────┤</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">├──────────────────┤</span>          <span class="p">│  FLEET COORDINATOR │</span>   <span class="b">│  MODEL REGISTRY    │</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  CONFIDENCE ENGINE │</span>          <span class="p">│  ├─ Task Sched    │</span>   <span class="b">│  ├─ Shadow Mode   │</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ Temp Scaling  │</span>          <span class="p">│  ├─ Robot State   │</span>   <span class="b">│  ├─ Canary Deploy │</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ MC Dropout    │</span>          <span class="p">│  └─ Heartbeat Mon │</span>   <span class="b">│  └─ OTA Push      │</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  └─ Multi-Signal  │</span>          <span class="p">└──────────┬─────────┘</span>   <span class="b">└──────────┬─────────┘</span>        <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">├──────────────────┤</span>                     <span class="p">│</span>                      <span class="b">│</span>               <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  CONTROL RUNTIME   │</span>                     <span class="p">│</span>                      <span class="b">│</span>               <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ ROS2 Jazzy   │</span>                     <span class="p">│</span>                      <span class="b">│</span>               <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  ├─ Safety Guard  │</span>                     <span class="p">│</span>                      <span class="b">│</span>               <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">│  └─ Actuators     │</span>                     <span class="p">│</span>                      <span class="b">│</span>               <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>  <span class="y">└────────┬─────────┘</span>                     <span class="p">│</span>                      <span class="b">│</span>               <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>           <span class="y">│</span>                                <span class="p">│</span>                      <span class="b">│</span>               <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>           <span class="y">│</span>    <span class="o">NATS JetStream</span>              <span class="p">│</span>      <span class="o">Apache Kafka</span>       <span class="b">│</span>   <span class="o">WebRTC</span>      <span class="g">│</span>          <span class="d">│</span>
+<span class="d">│</span>           <span class="y">├</span><span class="o">═══════════════════════════════</span><span class="p">┤</span><span class="o">═══════════════════════</span><span class="b">┤</span><span class="o">═══════════════</span><span class="g">┤</span>          <span class="d">│</span>
+<span class="d">│</span>           <span class="d">telemetry, escalation_req</span>      <span class="d">events, analytics</span>     <span class="d">data pipeline</span>  <span class="d">video+ctrl</span>         <span class="d">│</span>
+<span class="d">│</span>           <span class="d">model_updates, heartbeat</span>       <span class="d">task_assignment</span>        <span class="d">bulk storage</span>   <span class="d">gRPC cmds</span>          <span class="d">│</span>
+<span class="d">└─────────────────────────────────────────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+  </div>
+
+  <div class="callout callout-staff">
+    <strong>Staff-Level Insight</strong><br>
+    The four-domain split is deliberate: safety-critical control loops stay on-device (Jetson), queue routing stays warehouse-local (sub-10ms decisions), bulk ML training lives in cloud (GPU elastic scaling), and operator endpoints connect via WebRTC peer-to-peer with TURN relay fallback. This prevents any single domain failure from cascading.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     HIGH LEVEL — SYSTEM DATA FLOW
+     ═══════════════════════════════════════ -->
+<div class="section" id="hl-dataflow">
+  <div class="section-header">
+    <span class="section-badge badge-high">High Level</span>
+    <h2>System Data Flow — The Closed Loop</h2>
+  </div>
+  <p>The core insight is that this is a closed-loop system. Operator interventions become training data that improves models that reduce interventions. The loop velocity determines economic viability.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>closed_loop_dataflow.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">                         THE SUPERVISED AUTONOMY CLOSED LOOP</span>
+
+<span class="y">    ┌──────────────┐</span>     <span class="c">confidence</span>      <span class="p">┌──────────────┐</span>     <span class="g">assignment</span>     <span class="g">┌──────────────┐</span>
+<span class="y">    │              │</span>     <span class="c">&lt; threshold</span>     <span class="p">│              │</span>     <span class="g">via batch</span>      <span class="g">│              │</span>
+<span class="y">    │   ROBOT      │</span><span class="c">────────────────────▸</span><span class="p">│  ESCALATION  │</span><span class="g">────────────────────▸</span><span class="g">│   OPERATOR   │</span>
+<span class="y">    │   FLEET      │</span>     <span class="c">~5-10% of</span>      <span class="p">│  QUEUE       │</span>     <span class="g">matching</span>       <span class="g">│   POOL       │</span>
+<span class="y">    │              │</span>     <span class="c">all tasks</span>      <span class="p">│              │</span>                    <span class="g">│              │</span>
+<span class="y">    └──────┬───────┘</span>                      <span class="p">└──────────────┘</span>                    <span class="g">└──────┬───────┘</span>
+           <span class="y">│</span>                                                                      <span class="g">│</span>
+           <span class="y">│ 90-95%</span>                                                               <span class="g">│</span>
+           <span class="y">│ autonomous</span>                                                           <span class="g">│ operator</span>
+           <span class="y">│ execution</span>                                                            <span class="g">│ intervention</span>
+           <span class="y">│</span>                                                                      <span class="g">│ (label + demo)</span>
+           <span class="y">▼</span>                                                                      <span class="g">│</span>
+<span class="y">    ┌──────────────┐</span>                                                               <span class="g">│</span>
+<span class="y">    │  COMPLETED   │</span>                                                               <span class="g">│</span>
+<span class="y">    │  ORDERS      │</span>                                                               <span class="g">│</span>
+<span class="y">    └──────────────┘</span>                                                               <span class="g">│</span>
+                                                                                   <span class="g">│</span>
+           <span class="o">▲</span>                      <span class="b">┌──────────────┐</span>     <span class="o">┌──────────────┐</span>       <span class="g">│</span>
+           <span class="o">│</span>   <span class="o">OTA model</span>          <span class="b">│              │</span>     <span class="o">│              │</span>       <span class="g">│</span>
+           <span class="o">│</span>   <span class="o">update</span>             <span class="b">│  RETRAINING  │</span><span class="o">◂────│  DATA        │</span><span class="g">◂──────┘</span>
+           <span class="o">└───────────────────</span><span class="b">│  PIPELINE    │</span>     <span class="o">│  FLYWHEEL    │</span>
+                                <span class="b">│              │</span>     <span class="o">│              │</span>
+                <span class="b">shadow eval ─▸  │  H100 Cluster│</span>     <span class="o">│  Active Learn│</span>
+                <span class="b">canary 5-10% ─▸ │  Weekly cycle│</span>     <span class="o">│  Trigger Cls │</span>
+                                <span class="b">└──────────────┘</span>     <span class="o">└──────────────┘</span>
+
+<span class="d">    ─────────────────────────────────────────────────────────────────────────────────────</span>
+<span class="s">    KEY METRIC: Each full loop iteration reduces intervention rate</span>
+<span class="s">    Power law: 10× data ──▸ 20-30% fewer interventions ──▸ fewer operators needed</span>
+<span class="s">    Target: 1:25 ratio ──▸ 1:50 ──▸ 1:100+ over 12-24 months</span>
+</pre></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     HIGH LEVEL — AUTONOMY SPECTRUM
+     ═══════════════════════════════════════ -->
+<div class="section" id="hl-autonomy">
+  <div class="section-header">
+    <span class="section-badge badge-high">High Level</span>
+    <h2>Autonomy Spectrum — Five Operating Modes</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>autonomy_spectrum.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">SLIDING AUTONOMY: Robot dynamically shifts between modes based on confidence</span>
+
+<span class="g">FULL AUTO        SUPERVISED AUTO      SHARED CONTROL       DIRECT TELEOP      E-STOP</span>
+<span class="g">conf &gt; 95%</span>       <span class="b">conf 80-95%</span>          <span class="p">conf 50-80%</span>          <span class="o">conf 20-50%</span>        <span class="r">conf &lt; 20%</span>
+
+<span class="g">╔═══════════╗</span>    <span class="b">╔═══════════╗</span>        <span class="p">╔═══════════╗</span>        <span class="o">╔═══════════╗</span>    <span class="r">╔═══════════╗</span>
+<span class="g">║           ║</span>    <span class="b">║           ║</span>        <span class="p">║           ║</span>        <span class="o">║           ║</span>    <span class="r">║           ║</span>
+<span class="g">║  Robot    ║</span>    <span class="b">║  Robot    ║</span>        <span class="p">║  Robot    ║</span>        <span class="o">║  Human    ║</span>    <span class="r">║  STOPPED  ║</span>
+<span class="g">║  decides  ║</span>    <span class="b">║  decides  ║</span>        <span class="p">║  proposes ║</span>        <span class="o">║  commands ║</span>    <span class="r">║  human    ║</span>
+<span class="g">║  & acts   ║</span>    <span class="b">║  flags    ║</span>        <span class="p">║  human    ║</span>        <span class="o">║  robot    ║</span>    <span class="r">║  assesses ║</span>
+<span class="g">║           ║</span>    <span class="b">║  for P3   ║</span>        <span class="p">║  confirms ║</span>        <span class="o">║  executes ║</span>    <span class="r">║  safety   ║</span>
+<span class="g">║           ║</span>    <span class="b">║  review   ║</span>        <span class="p">║  or edits ║</span>        <span class="o">║           ║</span>    <span class="r">║           ║</span>
+<span class="g">╚═══════════╝</span>    <span class="b">╚═══════════╝</span>        <span class="p">╚═══════════╝</span>        <span class="o">╚═══════════╝</span>    <span class="r">╚═══════════╝</span>
+
+<span class="g">  ~90% of       </span><span class="b">  ~4% of          </span><span class="p">  ~3% of          </span><span class="o">  ~2.5% of     </span><span class="r">  ~0.5% of</span>
+<span class="g">  all tasks     </span><span class="b">  all tasks        </span><span class="p">  all tasks        </span><span class="o">  all tasks     </span><span class="r">  all tasks</span>
+
+<span class="d">  ◂━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━▸</span>
+<span class="g">  Robot Agency HIGH                                                  Robot Agency LOW</span>
+<span class="r">  Human Agency LOW                                                   Human Agency HIGH</span>
+<span class="s">  Latency tolerance HIGH                                             Latency critical</span>
+</pre></div>
+  </div>
+
+  <div class="callout callout-staff">
+    <strong>Staff-Level Insight</strong><br>
+    Shared Control (robot proposes, human confirms) is the highest-value mode for data collection — the robot's proposal becomes a training signal whether accepted or corrected. Queue-aware thresholds can nudge borderline cases toward this mode when operators are idle.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MID LEVEL — ESCALATION QUEUE
+     ═══════════════════════════════════════ -->
+<div class="section" id="ml-escalation">
+  <div class="section-header">
+    <span class="section-badge badge-mid">Mid Level</span>
+    <h2>Escalation Queue System</h2>
+  </div>
+  <p>Multi-level priority queue with skill-based routing, batch matching, and dynamic backpressure. Runs on warehouse-local infrastructure for sub-10ms routing decisions.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>escalation_queue_architecture.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">                        ESCALATION QUEUE — MID-LEVEL ARCHITECTURE</span>
+
+<span class="y">Robot Fleet (N robots)</span>
+<span class="y">┌────┐ ┌────┐ ┌────┐</span>
+<span class="y">│ R1 │ │ R2 │ │ Rn │</span>                   <span class="d">Each robot publishes escalation requests</span>
+<span class="y">└──┬─┘ └──┬─┘ └──┬─┘</span>                   <span class="d">to NATS JetStream with metadata:</span>
+<span class="y">   │      │      │</span>                      <span class="d">  {robot_id, priority, skill_needed,</span>
+<span class="y">   ▼      ▼      ▼</span>                      <span class="d">   confidence_scores, camera_ids,</span>
+<span class="o">══════════════════════</span>                   <span class="d">   task_context, sla_deadline}</span>
+<span class="o">  NATS JetStream</span>
+<span class="o">  topic: escalation.*</span>
+<span class="o">══════════╤═══════════</span>
+          <span class="o">│</span>
+          <span class="o">▼</span>
+<span class="p">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="p">│  QUEUE MANAGER (Rust service, per-warehouse)                        │</span>
+<span class="p">│                                                                     │</span>
+<span class="p">│  ┌──────────────────────────────────────────┐   ┌────────────────┐  │</span>
+<span class="p">│  │  PRIORITY LANES (Redis Sorted Sets)       │   │ DYNAMIC THRESH │  │</span>
+<span class="p">│  │                                           │   │                │  │</span>
+<span class="p">│  │  </span><span class="r">P0 ██████</span><span class="p"> SLA &lt;5s   │ safety/e-stop   │   │ queue_depth    │  │</span>
+<span class="p">│  │  </span><span class="o">P1 ████████████</span><span class="p"> &lt;30s │ blocking path   │   │ operator_avail │  │</span>
+<span class="p">│  │  </span><span class="b">P2 ██████████████████</span><span class="p"> &lt;3m  │ uncertain    │   │ time_of_day    │  │</span>
+<span class="p">│  │  </span><span class="g">P3 ████████████████████████</span><span class="p"> &lt;15m │ advisory  │   │   ──▸ adjust   │  │</span>
+<span class="p">│  │                                           │   │   thresholds   │  │</span>
+<span class="p">│  │  Score = base_priority + (wait × aging)   │   └────────────────┘  │</span>
+<span class="p">│  └──────────────────────┬────────────────────┘                       │</span>
+<span class="p">│                         │                                            │</span>
+<span class="p">│                         ▼ every 2-5 seconds                         │</span>
+<span class="p">│  ┌──────────────────────────────────────────────────────────────┐    │</span>
+<span class="p">│  │  BATCH MATCHER (Hungarian Algorithm)                         │    │</span>
+<span class="p">│  │                                                              │    │</span>
+<span class="p">│  │  Pending Requests ◂──┐      ┌──▸ Available Operators         │    │</span>
+<span class="p">│  │  [R3:P0:grasp]       │      │    [Op1: grasp=95, nav=60]     │    │</span>
+<span class="p">│  │  [R7:P1:classify]    ├──MIN─┤    [Op2: classify=90, QA=80]  │    │</span>
+<span class="p">│  │  [R12:P2:navigate]   │ COST │    [Op3: navigate=85, all=70]  │    │</span>
+<span class="p">│  │                      │MATCH │                               │    │</span>
+<span class="p">│  │  Cost = f(skill_gap, sla_urgency, operator_load, recency)   │    │</span>
+<span class="p">│  └──────────────────────────────────────────────────────────────┘    │</span>
+<span class="p">│                         │                                            │</span>
+<span class="p">│                         ▼ assignment                                 │</span>
+<span class="p">│  ┌──────────────────────────────────────────┐                        │</span>
+<span class="p">│  │  BACKPRESSURE CONTROLLER                  │                        │</span>
+<span class="p">│  │                                           │                        │</span>
+<span class="p">│  │  if queue_depth &gt; 3× avg:                 │                        │</span>
+<span class="p">│  │    ├─ raise autonomy threshold (+5%)      │                        │</span>
+<span class="p">│  │    ├─ LIFO for stale P3 requests          │                        │</span>
+<span class="p">│  │    └─ alert: request more operators       │                        │</span>
+<span class="p">│  │                                           │                        │</span>
+<span class="p">│  │  if operators_idle &gt; 30%:                 │                        │</span>
+<span class="p">│  │    └─ lower threshold (−3%) for more data │                        │</span>
+<span class="p">│  └──────────────────────────────────────────┘                        │</span>
+<span class="p">└─────────────────────────────────────────────────────────────────────┘</span>
+          <span class="g">│</span>
+          <span class="g">▼</span>
+<span class="g">┌────────────────────────────┐</span>
+<span class="g">│  OPERATOR WORKSTATION      │</span>      <span class="d">Operator receives:</span>
+<span class="g">│  ├─ Video streams (WebRTC) │</span>      <span class="d">  - Multi-camera feed</span>
+<span class="g">│  ├─ Task context overlay   │</span>      <span class="d">  - Robot state overlay</span>
+<span class="g">│  ├─ Suggested actions      │</span>      <span class="d">  - AI-suggested action</span>
+<span class="g">│  └─ Control interface      │</span>      <span class="d">  - One-click confirm or manual control</span>
+<span class="g">└────────────────────────────┘</span>
+</pre></div>
+  </div>
+
+  <table class="info-table">
+    <tr><th>Priority</th><th>SLA</th><th>Trigger</th><th>Robot Action</th><th>% of Tasks</th></tr>
+    <tr><td><span class="tag tag-orange">P0</span></td><td>&lt;5 sec</td><td>Confidence &lt;20%, collision risk</td><td>Emergency stop</td><td>~0.5%</td></tr>
+    <tr><td><span class="tag tag-orange">P1</span></td><td>&lt;30 sec</td><td>Confidence 20-50%, blocked</td><td>Safe hold</td><td>~2.5%</td></tr>
+    <tr><td><span class="tag tag-blue">P2</span></td><td>&lt;3 min</td><td>Confidence 50-80%, uncertain</td><td>Pause, work other items</td><td>~3%</td></tr>
+    <tr><td><span class="tag tag-green">P3</span></td><td>&lt;15 min</td><td>Confidence 80-95%, minor</td><td>Proceed cautiously, log</td><td>~4%</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MID LEVEL — VIDEO STREAMING PIPELINE
+     ═══════════════════════════════════════ -->
+<div class="section" id="ml-video">
+  <div class="section-header">
+    <span class="section-badge badge-mid">Mid Level</span>
+    <h2>Real-Time Video Streaming Pipeline</h2>
+  </div>
+  <p>Ultra-low-latency video from robot cameras to operator screens. WebRTC for media, gRPC for control commands, multi-network bonding for reliability.</p>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>video_streaming_pipeline.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">                      VIDEO STREAMING — GLASS-TO-GLASS PIPELINE</span>
+
+<span class="y">ROBOT EDGE</span>                           <span class="p">WAREHOUSE / CLOUD RELAY</span>                <span class="g">OPERATOR</span>
+
+<span class="y">┌──────────────┐</span>
+<span class="y">│  RGB CAMERAS │</span>  3-5 cameras
+<span class="y">│  ├─ Main     │</span>  per robot
+<span class="y">│  ├─ Wrist    │</span>
+<span class="y">│  ├─ Overhead │</span>  60fps, 1080p
+<span class="y">│  └─ Depth    │</span>  raw sensor
+<span class="y">└──────┬───────┘</span>
+       <span class="y">│</span> <span class="d">~17ms</span>
+       <span class="y">▼</span>
+<span class="y">┌──────────────┐</span>
+<span class="y">│  ISP + HDR   │</span>  on-chip image
+<span class="y">│  Processing  │</span>  processing
+<span class="y">└──────┬───────┘</span>
+       <span class="y">│</span> <span class="d">~3ms</span>
+       <span class="y">▼</span>
+<span class="y">┌──────────────┐</span>                      <span class="p">┌──────────────────────┐</span>
+<span class="y">│  HW ENCODER  │</span>                      <span class="p">│  WebRTC SFU          │</span>
+<span class="y">│  ├─ H.264 BP │</span>  Jetson NVENC       <span class="p">│  (Selective Forward  │</span>
+<span class="y">│  │  2-4 Mbps │</span>  hardware encode    <span class="p">│   Unit)              │</span>
+<span class="y">│  └─ H.265 opt│</span>  &lt;2ms latency       <span class="p">│                      │</span>
+<span class="y">└──────┬───────┘</span>                      <span class="p">│  ├─ Pion/mediasoup  │</span>
+       <span class="y">│</span> <span class="d">~2ms</span>                        <span class="p">│  ├─ No transcode    │</span>          <span class="g">┌──────────────┐</span>
+       <span class="y">▼</span>                               <span class="p">│  ├─ Simulcast       │</span>          <span class="g">│  HW DECODER  │</span>
+<span class="y">┌──────────────┐</span>                      <span class="p">│  │  (720p+1080p)    │</span>          <span class="g">│  NVDEC/VPU   │</span>
+<span class="y">│  PACKETIZER  │</span>  RTP/SRTP           <span class="p">│  └─ ABR switching   │</span>          <span class="g">└──────┬───────┘</span>
+<span class="y">│  + SRTP      │</span>  encrypted          <span class="p">└──────────┬───────────┘</span>                 <span class="g">│</span> <span class="d">~2ms</span>
+<span class="y">└──────┬───────┘</span>                                <span class="p">│</span>                            <span class="g">▼</span>
+       <span class="y">│</span> <span class="d">~1ms</span>                               <span class="p">│</span>                     <span class="g">┌──────────────┐</span>
+       <span class="y">▼</span>                                      <span class="p">│</span>                     <span class="g">│  JITTER BUF  │</span>
+<span class="y">┌──────────────┐</span>    <span class="o">WebRTC P2P or</span>        <span class="p">│</span>  <span class="o">WebRTC</span>          <span class="g">│  adaptive    │</span>
+<span class="y">│  NETWORK     │</span><span class="o">════════════════════════</span><span class="p">│</span><span class="o">══════════════</span><span class="g">│  10-20ms     │</span>
+<span class="y">│  BONDING     │</span>    <span class="o">TURN relay</span>           <span class="p">│</span>                     <span class="g">└──────┬───────┘</span>
+<span class="y">│  ├─ WiFi 6E  │</span>                         <span class="p">│</span>                            <span class="g">│</span> <span class="d">~8ms</span>
+<span class="y">│  ├─ 5G NR    │</span>    <span class="d">5-20ms LAN</span>           <span class="p">│</span>                            <span class="g">▼</span>
+<span class="y">│  └─ 4G LTE   │</span>    <span class="d">20-80ms WAN</span>          <span class="p">│</span>                     <span class="g">┌──────────────┐</span>
+<span class="y">└──────────────┘</span>                         <span class="p">│</span>                     <span class="g">│  DISPLAY     │</span>
+                                         <span class="p">│</span>                     <span class="g">│  120Hz       │</span>
+<span class="s">    CONTROL PATH (reverse direction)</span>     <span class="p">│</span>                     <span class="g">│  + 3D overlay│</span>
+                                         <span class="p">│</span>                     <span class="g">└──────┬───────┘</span>
+<span class="y">┌──────────────┐</span>    <span class="c">gRPC bidir</span>          <span class="p">│</span>                            <span class="g">│</span>
+<span class="y">│  SAFETY      │</span><span class="c">◂═══streaming══════════</span><span class="p">│</span><span class="c">══════════════</span><span class="g">│  OPERATOR    │</span>
+<span class="y">│  RUNTIME     │</span>    <span class="c">~5-15ms</span>              <span class="p">│</span>               <span class="g">│  CONTROLS   │</span>
+<span class="y">│              │</span>    <span class="c">protobuf</span>             <span class="p">│</span>               <span class="g">│  ├─ Click   │</span>
+<span class="y">│  if frame    │</span>                         <span class="p">│</span>               <span class="g">│  ├─ Gamepad │</span>
+<span class="y">│  age &gt; 500ms │</span>    <span class="r">BLOCK commands</span>       <span class="p">│</span>               <span class="g">│  └─ AR/VR   │</span>
+<span class="y">└──────────────┘</span>                                          <span class="g">└──────────────┘</span>
+
+<span class="d">────────────────────────────────────────────────────────────────────────────────</span>
+<span class="w">TOTAL GLASS-TO-GLASS:  50-130ms (warehouse LAN)  |  80-240ms (cellular WAN)</span>
+<span class="w">SAFETY INVARIANT:      Control blocked if video frames older than 500ms</span>
+</pre></div>
+  </div>
+
+  <div class="callout callout-warn">
+    <strong>Critical Design Decision:</strong> Safety limits are enforced at the robot edge runtime, never in cloud. If the video stream's most recent frame is older than 500ms, all operator control commands are rejected locally on the robot. This prevents "teleoperating blind" during network outages.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MID LEVEL — CONFIDENCE & ESCALATION
+     ═══════════════════════════════════════ -->
+<div class="section" id="ml-confidence">
+  <div class="section-header">
+    <span class="section-badge badge-mid">Mid Level</span>
+    <h2>Confidence Thresholding & Escalation Logic</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>confidence_escalation_pipeline.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">                  MULTI-SIGNAL CONFIDENCE FUSION PIPELINE</span>
+
+<span class="y">┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐</span>
+<span class="y">│  VISION  │   │  GRASP   │   │   OOD    │   │  TASK    │   │  ENV     │</span>
+<span class="y">│  MODEL   │   │  PREDICT │   │ DETECTOR │   │ PROGRESS │   │ CONTEXT  │</span>
+<span class="y">│          │   │          │   │          │   │          │   │          │</span>
+<span class="y">│ softmax  │   │ force/   │   │ energy   │   │ % steps  │   │ lighting │</span>
+<span class="y">│ + temp   │   │ torque   │   │ score or │   │ complete │   │ clutter  │</span>
+<span class="y">│ scaling  │   │ + tactile│   │ Mahal.   │   │ timeout  │   │ novelty  │</span>
+<span class="y">│  T=1.3   │   │ predict  │   │ distance │   │ risk     │   │ density  │</span>
+<span class="y">└────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘</span>
+     <span class="y">│ 0-1</span>           <span class="y">│ 0-1</span>          <span class="y">│ bool</span>         <span class="y">│ 0-1</span>          <span class="y">│ 0-1</span>
+     <span class="y">▼</span>               <span class="y">▼</span>              <span class="y">▼</span>              <span class="y">▼</span>              <span class="y">▼</span>
+<span class="p">┌──────────────────────────────────────────────────────────────────────────┐</span>
+<span class="p">│                    UNCERTAINTY DECOMPOSITION                             │</span>
+<span class="p">│                                                                          │</span>
+<span class="p">│  Total Uncertainty = Epistemic + Aleatoric                               │</span>
+<span class="p">│                                                                          │</span>
+<span class="p">│  ┌─────────────────────┐     ┌─────────────────────┐                     │</span>
+<span class="p">│  │ EPISTEMIC (model)   │     │ ALEATORIC (data)    │                     │</span>
+<span class="p">│  │                     │     │                     │                     │</span>
+<span class="p">│  │ MC Dropout variance │     │ Expected entropy    │                     │</span>
+<span class="p">│  │ across 10 passes    │     │ of single forward   │                     │</span>
+<span class="p">│  │                     │     │ pass                │                     │</span>
+<span class="p">│  │ </span><span class="o">▸ HIGH = novel input</span><span class="p"> │     │ </span><span class="b">▸ HIGH = noisy data</span><span class="p">  │                     │</span>
+<span class="p">│  │ </span><span class="o">▸ ESCALATE to human</span><span class="p"> │     │ </span><span class="b">▸ Human can't help!</span><span class="p">  │                     │</span>
+<span class="p">│  │ </span><span class="o">▸ Human CAN resolve</span><span class="p"> │     │ </span><span class="b">▸ Retry or fallback</span><span class="p">  │                     │</span>
+<span class="p">│  └─────────────────────┘     └─────────────────────┘                     │</span>
+<span class="p">│                                                                          │</span>
+<span class="p">│  Mutual Information = H[y|x] - E_θ[H[y|x,θ]]  ◂── epistemic only      │</span>
+<span class="p">└──────────────────────────────────┬───────────────────────────────────────┘</span>
+                                   <span class="p">│</span>
+                                   <span class="p">▼</span>
+<span class="c">┌──────────────────────────────────────────────────────────────────────────┐</span>
+<span class="c">│                      COMPOSITE CONFIDENCE SCORE                         │</span>
+<span class="c">│                                                                          │</span>
+<span class="c">│  composite = w₁·vision + w₂·grasp + w₃·(1-ood) + w₄·progress + w₅·env  │</span>
+<span class="c">│  (weights learned via logistic regression on intervention outcomes)       │</span>
+<span class="c">│                                                                          │</span>
+<span class="c">│  IF ood_detected AND high_epistemic:                                     │</span>
+<span class="c">│      composite = min(composite, 0.50)  ◂── FORCE escalation             │</span>
+<span class="c">│                                                                          │</span>
+<span class="c">│  ┌─────────┬─────────┬─────────┬─────────┬─────────┐                    │</span>
+<span class="c">│  │ </span><span class="g">&gt;0.95</span><span class="c">   │ </span><span class="b">0.80-95</span><span class="c"> │ </span><span class="p">0.50-80</span><span class="c"> │ </span><span class="o">0.20-50</span><span class="c"> │  </span><span class="r">&lt;0.20</span><span class="c">  │                    │</span>
+<span class="c">│  │ </span><span class="g">AUTO</span><span class="c">    │ </span><span class="b">P3 LOG</span><span class="c">  │ </span><span class="p">P2 PAUSE</span><span class="c">│ </span><span class="o">P1 HOLD</span><span class="c"> │ </span><span class="r">P0 STOP</span><span class="c"> │                    │</span>
+<span class="c">│  └─────────┴─────────┴─────────┴─────────┴─────────┘                    │</span>
+<span class="c">│                                                                          │</span>
+<span class="c">│  DYNAMIC ADJUSTMENT: thresholds shift ±3-5% based on queue depth        │</span>
+<span class="c">└──────────────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+  </div>
+
+  <div class="callout callout-staff">
+    <strong>Staff-Level Insight — Epistemic-Only Escalation</strong><br>
+    The key innovation: only escalate on high <em>epistemic</em> uncertainty (model hasn't seen this before — human can help). High aleatoric uncertainty (inherent sensor noise) means humans can't resolve it either. This preserves operator capacity for genuinely novel situations and avoids wasting human time on noisy-but-fundamentally-random outcomes.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MID LEVEL — DATA FLYWHEEL
+     ═══════════════════════════════════════ -->
+<div class="section" id="ml-flywheel">
+  <div class="section-header">
+    <span class="section-badge badge-mid">Mid Level</span>
+    <h2>Data Flywheel — Interventions → Training Signal</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>data_flywheel.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">                           DATA FLYWHEEL ARCHITECTURE</span>
+
+<span class="g">┌────────────────────┐</span>
+<span class="g">│  OPERATOR ACTION   │</span>      Every intervention auto-generates a training tuple:
+<span class="g">│  (intervention)    │</span>
+<span class="g">│  ├─ Reclassify obj │</span>      <span class="c">{ pre_state:  [images, pointcloud, joints, conf_scores],</span>
+<span class="g">│  ├─ Demo grasp     │</span>      <span class="c">  action:     [operator_commands, trajectory],</span>
+<span class="g">│  ├─ Nav waypoint   │</span>      <span class="c">  post_state: [result_images, success_bool, metrics],</span>
+<span class="g">│  └─ Confirm/reject │</span>      <span class="c">  metadata:   [operator_id, latency, task_type, sku] }</span>
+<span class="g">└─────────┬──────────┘</span>
+          <span class="g">│</span>
+          <span class="g">▼</span>
+<span class="o">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="o">│  DATA COLLECTION LAYER                                               │</span>
+<span class="o">│                                                                      │</span>
+<span class="o">│  ┌──────────────────┐    ┌──────────────────┐    ┌────────────────┐  │</span>
+<span class="o">│  │ INTERVENTION     │    │ TRIGGER           │    │ AUTONOMOUS     │  │</span>
+<span class="o">│  │ CAPTURE          │    │ CLASSIFIERS       │    │ SUCCESSES      │  │</span>
+<span class="o">│  │                  │    │                   │    │                │  │</span>
+<span class="o">│  │ 100% of human    │    │ Run on robot CNN  │    │ Random sample  │  │</span>
+<span class="o">│  │ interventions    │    │ feature backbone  │    │ of confident   │  │</span>
+<span class="o">│  │ (auto-labeled)   │    │                   │    │ autonomous ops │  │</span>
+<span class="o">│  │                  │    │ Hunt specific     │    │ (negatives)    │  │</span>
+<span class="o">│  │ ~5-10% of tasks  │    │ edge cases:       │    │                │  │</span>
+<span class="o">│  │                  │    │ ├─ Transparent    │    │ ~1% sampled    │  │</span>
+<span class="o">│  │                  │    │ ├─ Deformable     │    │                │  │</span>
+<span class="o">│  │                  │    │ ├─ Reflective     │    │                │  │</span>
+<span class="o">│  │                  │    │ └─ Novel shape    │    │                │  │</span>
+<span class="o">│  └────────┬─────────┘    └────────┬──────────┘    └───────┬────────┘  │</span>
+<span class="o">│           │                       │                       │           │</span>
+<span class="o">└───────────┼───────────────────────┼───────────────────────┼───────────┘</span>
+            <span class="o">│                       │                       │</span>
+            <span class="o">▼                       ▼                       ▼</span>
+<span class="b">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="b">│  ACTIVE LEARNING SELECTION (Cloud)                                   │</span>
+<span class="b">│                                                                      │</span>
+<span class="b">│  ┌────────────────────────────────────────────────────────────────┐  │</span>
+<span class="b">│  │                                                                │  │</span>
+<span class="b">│  │  1. Uncertainty Sampling: lowest-confidence predictions        │  │</span>
+<span class="b">│  │  2. Committee Disagreement: ensemble members disagree          │  │</span>
+<span class="b">│  │  3. Diversity Sampling: cover embedding space uniformly        │  │</span>
+<span class="b">│  │  4. CEAL: auto-pseudo-label high-conf, humans for low-conf    │  │</span>
+<span class="b">│  │                                                                │  │</span>
+<span class="b">│  │  Result: 50-80% reduction in labeling cost vs random sampling  │  │</span>
+<span class="b">│  │                                                                │  │</span>
+<span class="b">│  └────────────────────────────────────────────────────────────────┘  │</span>
+<span class="b">│           │                                                          │</span>
+<span class="b">└───────────┼──────────────────────────────────────────────────────────┘</span>
+            <span class="b">▼</span>
+<span class="p">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="p">│  RETRAINING & DEPLOYMENT PIPELINE                                    │</span>
+<span class="p">│                                                                      │</span>
+<span class="p">│  Nightly ──▸ Batch scoring & selection                               │</span>
+<span class="p">│  Weekly ──▸ Retrain on H100 cluster (500-2000 GPU-hrs)               │</span>
+<span class="p">│  Day 1-3 ──▸ Shadow mode: new model runs in parallel, no control     │</span>
+<span class="p">│  Day 3-5 ──▸ Canary: 5-10% of fleet gets new model                  │</span>
+<span class="p">│  Day 5-10 ──▸ Full rollout via OTA if metrics pass                   │</span>
+<span class="p">│                                                                      │</span>
+<span class="p">│  Safety gate: grasp_success ≥ baseline, collision_rate = 0           │</span>
+<span class="p">└──────────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MID LEVEL — OPERATOR DASHBOARD
+     ═══════════════════════════════════════ -->
+<div class="section" id="ml-operator">
+  <div class="section-header">
+    <span class="section-badge badge-mid">Mid Level</span>
+    <h2>Operator Dashboard — UI Architecture</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>operator_dashboard.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">     OPERATOR WORKSTATION LAYOUT</span>
+
+<span class="p">┌─────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="p">│                          OPERATOR DASHBOARD                                │</span>
+<span class="p">│                                                                             │</span>
+<span class="p">│  ┌─────────────────────────────────┐  ┌──────────────────────────────────┐  │</span>
+<span class="p">│  │                                 │  │                                  │  │</span>
+<span class="p">│  │     PRIMARY CAMERA FEED         │  │      3D SCENE RECONSTRUCTION     │  │</span>
+<span class="p">│  │     (WebRTC, 1080p, 60fps)      │  │      (Point cloud + mesh)        │  │</span>
+<span class="p">│  │                                 │  │                                  │  │</span>
+<span class="p">│  │  ┌───────────────────────────┐  │  │  ┌──────────────────────────┐   │  │</span>
+<span class="p">│  │  │  </span><span class="y">AI SUGGESTED ACTION</span><span class="p">       │  │  │  │  </span><span class="g">Gripper position</span><span class="p">          │   │  │</span>
+<span class="p">│  │  │  "Rotate gripper 15°      │  │  │  │  </span><span class="c">Target object highlight</span><span class="p">   │   │  │</span>
+<span class="p">│  │  │   then close on blue edge" │  │  │  │  </span><span class="o">Collision zones</span><span class="p">           │   │  │</span>
+<span class="p">│  │  │  </span><span class="g">[✓ Accept]</span><span class="p"> </span><span class="r">[✗ Reject]</span><span class="p">    │  │  │  │  </span><span class="p">Planned trajectory</span><span class="p">        │   │  │</span>
+<span class="p">│  │  └───────────────────────────┘  │  │  └──────────────────────────┘   │  │</span>
+<span class="p">│  │                                 │  │                                  │  │</span>
+<span class="p">│  └─────────────────────────────────┘  └──────────────────────────────────┘  │</span>
+<span class="p">│                                                                             │</span>
+<span class="p">│  ┌──────────┐ ┌──────────┐ ┌──────────┐  ┌─────────────────────────────┐   │</span>
+<span class="p">│  │  Cam 2   │ │  Cam 3   │ │  Depth   │  │ QUEUE STATUS                │   │</span>
+<span class="p">│  │  (wrist) │ │ (overhead)│ │  (false  │  │                             │   │</span>
+<span class="p">│  │          │ │          │ │  color)  │  │ </span><span class="r">P0: 0</span><span class="p">  </span><span class="o">P1: 2</span><span class="p">  </span><span class="b">P2: 5</span><span class="p">  </span><span class="g">P3: 12</span><span class="p"> │   │</span>
+<span class="p">│  └──────────┘ └──────────┘ └──────────┘  │ Your tasks: 3 (avg 22s/task)│   │</span>
+<span class="p">│                                           │ Fleet autonomy: 93.2%      │   │</span>
+<span class="p">│  ┌─────────────────────────────────────┐  └─────────────────────────────┘   │</span>
+<span class="p">│  │ ROBOT STATE PANEL                   │                                    │</span>
+<span class="p">│  │ ├─ Joint positions & torques        │  ┌─────────────────────────────┐   │</span>
+<span class="p">│  │ ├─ Current gripper: Suction Cup    │  │ CONTROL INPUT               │   │</span>
+<span class="p">│  │ ├─ Battery: 72%                    │  │ ├─ Click-to-point (nav)     │   │</span>
+<span class="p">│  │ ├─ Task: Pick SKU-29481            │  │ ├─ Drag-to-grasp            │   │</span>
+<span class="p">│  │ └─ Conf: 0.43 (epistemic: 0.61)    │  │ ├─ Gamepad (direct teleop)  │   │</span>
+<span class="p">│  └─────────────────────────────────────┘  │ └─ Classify dropdown        │   │</span>
+<span class="p">│                                           └─────────────────────────────┘   │</span>
+<span class="p">└─────────────────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     LOW LEVEL — EDGE COMPUTE STACK
+     ═══════════════════════════════════════ -->
+<div class="section" id="ll-edge">
+  <div class="section-header">
+    <span class="section-badge badge-low">Low Level</span>
+    <h2>Edge Compute Stack — Per-Robot Software Architecture</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>edge_compute_stack.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">        PER-ROBOT SOFTWARE STACK (Jetson Orin AGX / Thor)</span>
+
+<span class="y">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="y">│  APPLICATION LAYER (C++/Python, ROS2 Jazzy)                        │</span>
+<span class="y">│                                                                     │</span>
+<span class="y">│  ┌────────────┐ ┌──────────────┐ ┌────────────┐ ┌───────────────┐  │</span>
+<span class="y">│  │ Perception │ │ Manipulation │ │ Navigation │ │ Task Manager  │  │</span>
+<span class="y">│  │ Node       │ │ Node         │ │ Node       │ │ Node          │  │</span>
+<span class="y">│  │            │ │              │ │            │ │               │  │</span>
+<span class="y">│  │ Object Det │ │ Grasp Plan   │ │ SLAM       │ │ Order Queue   │  │</span>
+<span class="y">│  │ Segment    │ │ Motion Plan  │ │ Path Plan  │ │ State Machine │  │</span>
+<span class="y">│  │ Classify   │ │ Force Ctrl   │ │ Obstacle   │ │ Priority      │  │</span>
+<span class="y">│  └─────┬──────┘ └──────┬───────┘ └─────┬──────┘ └───────┬───────┘  │</span>
+<span class="y">│        │               │               │               │           │</span>
+<span class="y">│  ┌─────▼───────────────▼───────────────▼───────────────▼─────────┐  │</span>
+<span class="y">│  │              CONFIDENCE ENGINE (Rust/C++)                     │  │</span>
+<span class="y">│  │                                                               │  │</span>
+<span class="y">│  │  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌────────────────┐  │  │</span>
+<span class="y">│  │  │ Temp     │ │ MC Dropout│ │ OOD Det  │ │ Multi-Signal   │  │  │</span>
+<span class="y">│  │  │ Scaling  │ │ 10 passes │ │ Energy   │ │ Fusion         │  │  │</span>
+<span class="y">│  │  │ T=1.3    │ │ variance  │ │ score    │ │ weighted avg   │  │  │</span>
+<span class="y">│  │  └──────────┘ └───────────┘ └──────────┘ └────────┬───────┘  │  │</span>
+<span class="y">│  │                                                    │          │  │</span>
+<span class="y">│  │  composite_score ◂─────────────────────────────────┘          │  │</span>
+<span class="y">│  │  if score &lt; dynamic_threshold: publish(escalation_request)   │  │</span>
+<span class="y">│  └───────────────────────────────────────────────────────────────┘  │</span>
+<span class="y">│                                                                     │</span>
+<span class="y">│  ┌───────────────────────────────────────────────────────────────┐  │</span>
+<span class="y">│  │              SAFETY RUNTIME (real-time, Rust)                 │  │</span>
+<span class="y">│  │                                                               │  │</span>
+<span class="y">│  │  ├─ Watchdog timer (200Hz heartbeat)                          │  │</span>
+<span class="y">│  │  ├─ Joint limit enforcer (hard stops)                         │  │</span>
+<span class="y">│  │  ├─ Collision avoidance (proximity sensors)                   │  │</span>
+<span class="y">│  │  ├─ Teleop command validator (frame freshness &lt; 500ms)        │  │</span>
+<span class="y">│  │  └─ E-stop handler (hardware interrupt)                       │  │</span>
+<span class="y">│  └───────────────────────────────────────────────────────────────┘  │</span>
+<span class="y">├─────────────────────────────────────────────────────────────────────┤</span>
+<span class="y">│  INFERENCE LAYER                                                    │</span>
+<span class="y">│                                                                     │</span>
+<span class="y">│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────────────┐  │</span>
+<span class="y">│  │ TensorRT       │  │ ONNX Runtime │  │ VLA Model (future)      │  │</span>
+<span class="y">│  │ INT8 quantized │  │ FP16         │  │ GR00T N1 (2B params)    │  │</span>
+<span class="y">│  │ ~5ms/frame     │  │ ~10ms/frame  │  │ dual-system: think+act  │  │</span>
+<span class="y">│  └────────────────┘  └──────────────┘  └─────────────────────────┘  │</span>
+<span class="y">├─────────────────────────────────────────────────────────────────────┤</span>
+<span class="y">│  COMMUNICATION LAYER                                                │</span>
+<span class="y">│                                                                     │</span>
+<span class="y">│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────────────┐  │</span>
+<span class="y">│  │ NATS Client    │  │ WebRTC Agent │  │ gRPC Server             │  │</span>
+<span class="y">│  │ JetStream      │  │ Pion (Go)    │  │ Teleop command receiver │  │</span>
+<span class="y">│  │ telemetry pub  │  │ H.264 encode │  │ Protobuf + bidir stream │  │</span>
+<span class="y">│  └────────────────┘  └──────────────┘  └─────────────────────────┘  │</span>
+<span class="y">├─────────────────────────────────────────────────────────────────────┤</span>
+<span class="y">│  HARDWARE LAYER                                                     │</span>
+<span class="y">│                                                                     │</span>
+<span class="y">│  Jetson Orin AGX: 275 TOPS | 12-core ARM | 64GB | 15-60W          │</span>
+<span class="y">│  Jetson Thor:     2070 TFLOPS | Blackwell | 128GB | 75-130W        │</span>
+<span class="y">│  Sensors: 3-5 RGB + depth + LiDAR + force/torque + tactile         │</span>
+<span class="y">│  Network: WiFi 6E + dual 5G modems + Ethernet (bonded)             │</span>
+<span class="y">└─────────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     LOW LEVEL — BATCH MATCHING
+     ═══════════════════════════════════════ -->
+<div class="section" id="ll-batch">
+  <div class="section-header">
+    <span class="section-badge badge-low">Low Level</span>
+    <h2>Batch Matching Algorithm — Operator Assignment</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>batch_matching_algorithm.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">    BIPARTITE BATCH MATCHING — HUNGARIAN ALGORITHM (every 2-5 seconds)</span>
+
+<span class="s">    Step 1: Collect pending requests and available operators over window</span>
+
+    <span class="o">PENDING REQUESTS</span>                          <span class="g">AVAILABLE OPERATORS</span>
+
+    <span class="o">┌──────────────────────┐</span>                   <span class="g">┌──────────────────────┐</span>
+    <span class="o">│ R3:  P0, skill=grasp │</span>                   <span class="g">│ Op1: grasp=95,nav=60 │</span>
+    <span class="o">│      SLA: 3s remain  │</span>                   <span class="g">│      load: 1 active  │</span>
+    <span class="o">├──────────────────────┤</span>                   <span class="g">├──────────────────────┤</span>
+    <span class="o">│ R7:  P1, skill=class │</span>                   <span class="g">│ Op2: class=90, QA=80 │</span>
+    <span class="o">│      SLA: 22s remain │</span>                   <span class="g">│      load: 0 active  │</span>
+    <span class="o">├──────────────────────┤</span>                   <span class="g">├──────────────────────┤</span>
+    <span class="o">│ R12: P2, skill=nav   │</span>                   <span class="g">│ Op3: nav=85, all=70  │</span>
+    <span class="o">│      SLA: 2m remain  │</span>                   <span class="g">│      load: 2 active  │</span>
+    <span class="o">└──────────────────────┘</span>                   <span class="g">└──────────────────────┘</span>
+
+<span class="s">    Step 2: Compute cost matrix</span>
+
+    <span class="p">                   Op1          Op2          Op3</span>
+    <span class="p">             ┌────────────┬────────────┬────────────┐</span>
+    <span class="p">    R3:grasp │   </span><span class="g">0.08</span><span class="p">     │   0.82     │   0.55     │</span>   cost = f(skill_gap,
+    <span class="p">             ├────────────┼────────────┼────────────┤</span>       sla_urgency,
+    <span class="p">    R7:class │   0.71     │   </span><span class="g">0.12</span><span class="p">     │   0.48     │</span>       operator_load,
+    <span class="p">             ├────────────┼────────────┼────────────┤</span>       recency_bonus)
+    <span class="p">    R12:nav  │   0.65     │   0.73     │   </span><span class="g">0.22</span><span class="p">     │</span>
+    <span class="p">             └────────────┴────────────┴────────────┘</span>
+
+<span class="s">    Step 3: Solve minimum-cost bipartite matching (Hungarian, O(n³))</span>
+
+    <span class="c">    R3  ═══════▸ Op1   (cost 0.08, best grasp skill, SLA-critical)</span>
+    <span class="c">    R7  ═══════▸ Op2   (cost 0.12, best classify skill, idle)</span>
+    <span class="c">    R12 ═══════▸ Op3   (cost 0.22, best nav skill, despite load)</span>
+
+    <span class="s">Total cost: 0.42  (vs greedy: 0.42 same here, but 50% better at scale)</span>
+
+<span class="s">    Cost function breakdown:</span>
+
+    <span class="b">cost(request_i, operator_j) =</span>
+    <span class="b">    w₁ · (1 - skill_match(req.skill, op.skills))      </span><span class="d">// 0-1, skill gap</span>
+    <span class="b">  + w₂ · (1 - remaining_sla / max_sla)                </span><span class="d">// 0-1, urgency</span>
+    <span class="b">  + w₃ · (op.active_tasks / op.max_concurrent)        </span><span class="d">// 0-1, load</span>
+    <span class="b">  + w₄ · (1 - recency_bonus(op, req.robot_id))        </span><span class="d">// 0-1, familiarity</span>
+
+    <span class="d">Typical weights: w₁=0.35, w₂=0.30, w₃=0.20, w₄=0.15</span>
+</pre></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     LOW LEVEL — LATENCY BUDGET
+     ═══════════════════════════════════════ -->
+<div class="section" id="ll-latency">
+  <div class="section-header">
+    <span class="section-badge badge-low">Low Level</span>
+    <h2>Latency Budget — Glass-to-Glass Breakdown</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>latency_budget_breakdown.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">    END-TO-END LATENCY BUDGET: ROBOT CAMERA → OPERATOR DISPLAY → ROBOT ACTUATOR</span>
+
+<span class="y">    ═══ UPSTREAM (robot → operator) ═══</span>
+
+    <span class="y">Camera Exposure</span>      <span class="d">│</span><span class="y">██████████████████</span><span class="d">│</span>  17ms @60fps  (8ms @120fps)
+    <span class="y">ISP + HDR</span>            <span class="d">│</span><span class="y">██████</span><span class="d">│</span>              3-5ms
+    <span class="y">HW Encode (NVENC)</span>    <span class="d">│</span><span class="y">████</span><span class="d">│</span>                1-2ms  H.264 Baseline
+    <span class="y">Packetize + SRTP</span>     <span class="d">│</span><span class="y">██</span><span class="d">│</span>                  1ms
+    <span class="o">Network TX (LAN)</span>     <span class="d">│</span><span class="o">██████████</span><span class="d">│</span>          1-5ms   WiFi 6E
+    <span class="o">Network TX (WAN)</span>     <span class="d">│</span><span class="o">██████████████████████████████████████████</span><span class="d">│</span>  20-80ms  4G/5G
+    <span class="g">Jitter Buffer</span>        <span class="d">│</span><span class="g">████████████████████</span><span class="d">│</span>  10-20ms adaptive
+    <span class="g">HW Decode</span>            <span class="d">│</span><span class="g">████</span><span class="d">│</span>                1-2ms
+    <span class="g">Display Render</span>       <span class="d">│</span><span class="g">████████████████</span><span class="d">│</span>    8ms @120Hz
+
+    <span class="c">GLASS-TO-GLASS:  LAN ~42-54ms  |  WAN ~62-130ms  |  Best-in-class: 50ms</span>
+
+<span class="b">    ═══ HUMAN PROCESSING ═══</span>
+
+    <span class="b">Human Reaction</span>      <span class="d">│</span><span class="b">████████████████████████████████████████████████████████████████</span><span class="d">│</span>  150-300ms
+    <span class="b">Decision Complexity</span>  <span class="d">│</span><span class="b">████████████████████████████████████████</span><span class="d">│</span>  varies  (click=50ms, teleop=500ms+)
+
+<span class="p">    ═══ DOWNSTREAM (operator → robot) ═══</span>
+
+    <span class="p">gRPC Encode</span>          <span class="d">│</span><span class="p">██</span><span class="d">│</span>                  &lt;1ms  protobuf
+    <span class="p">Network TX</span>           <span class="d">│</span><span class="p">██████████</span><span class="d">│</span>          1-5ms (LAN) / 20-80ms (WAN)
+    <span class="p">Safety Validation</span>    <span class="d">│</span><span class="p">██</span><span class="d">│</span>                  &lt;1ms  frame freshness check
+    <span class="p">Motion Execution</span>    <span class="d">│</span><span class="p">████████████</span><span class="d">│</span>        5-10ms  joint command
+
+    <span class="c">FULL ROUND-TRIP (excl. human):  LAN ~50-75ms  |  WAN ~100-250ms</span>
+    <span class="r">SAFETY CUT-OFF:  If upstream latency exceeds 500ms → commands blocked</span>
+
+<span class="d">    ─────────────────────────────────────────────────────────────────────────</span>
+<span class="s">    KEY OPTIMIZATION LEVERS:</span>
+<span class="s">    1. 120fps cameras (8ms vs 17ms) — diminishing returns past 60fps</span>
+<span class="s">    2. FPGA encode (&lt;1ms vs 2ms) — only for highest-end deployments</span>
+<span class="s">    3. Zero-copy jitter buffer (kernel bypass) — saves 5-10ms</span>
+<span class="s">    4. WiFi 6E vs 5G: WiFi wins on latency (1-5ms vs 5-20ms)</span>
+<span class="s">    5. WebRTC P2P vs TURN relay: P2P saves 10-30ms when possible</span>
+</pre></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     LOW LEVEL — OOD DETECTION PIPELINE
+     ═══════════════════════════════════════ -->
+<div class="section" id="ll-ood">
+  <div class="section-header">
+    <span class="section-badge badge-low">Low Level</span>
+    <h2>OOD Detection Pipeline — Catching the Unknown</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>ood_detection_pipeline.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">     OUT-OF-DISTRIBUTION DETECTION — DUAL DETECTOR ARCHITECTURE</span>
+
+<span class="y">    Input Image</span>
+        <span class="y">│</span>
+        <span class="y">▼</span>
+<span class="y">┌──────────────┐</span>
+<span class="y">│  CNN Feature │</span>  Shared backbone (ResNet-50 / ViT)
+<span class="y">│  Backbone    │</span>  Produces feature vector z ∈ R^2048
+<span class="y">└──────┬───────┘</span>
+       <span class="y">│</span>
+       <span class="y">├──────────────────────────────────────────────┐</span>
+       <span class="y">│</span>                                              <span class="y">│</span>
+       <span class="y">▼</span>                                              <span class="y">▼</span>
+<span class="b">┌──────────────────────────┐</span>              <span class="p">┌──────────────────────────┐</span>
+<span class="b">│  ENERGY-BASED OOD        │</span>              <span class="p">│  MAHALANOBIS DISTANCE    │</span>
+<span class="b">│                          │</span>              <span class="p">│                          │</span>
+<span class="b">│  E(x) = −T·log(Σ eᶠⁱ/ᵀ) │</span>              <span class="p">│  D(x) = (z-μ_c)ᵀ Σ⁻¹    │</span>
+<span class="b">│                          │</span>              <span class="p">│         (z-μ_c)          │</span>
+<span class="b">│  Low energy = in-dist    │</span>              <span class="p">│                          │</span>
+<span class="b">│  High energy = OOD       │</span>              <span class="p">│  Close to class mean =   │</span>
+<span class="b">│                          │</span>              <span class="p">│    in-distribution       │</span>
+<span class="b">│  </span><span class="g">+18% FPR improvement</span><span class="b">    │</span>              <span class="p">│  Far from all means =    │</span>
+<span class="b">│  vs softmax baseline     │</span>              <span class="p">│    OOD                   │</span>
+<span class="b">│                          │</span>              <span class="p">│                          │</span>
+<span class="b">│  Pro: Fast (1 fwd pass)  │</span>              <span class="p">│  Pro: Best near-OOD      │</span>
+<span class="b">│  Con: Misses near-OOD    │</span>              <span class="p">│  Con: Needs class stats  │</span>
+<span class="b">└────────────┬─────────────┘</span>              <span class="p">└────────────┬─────────────┘</span>
+             <span class="b">│</span>                                          <span class="p">│</span>
+             <span class="b">│</span>  <span class="s">energy_score</span>                               <span class="p">│</span>  <span class="s">mahal_score</span>
+             <span class="b">▼</span>                                          <span class="p">▼</span>
+<span class="o">┌──────────────────────────────────────────────────────────────────┐</span>
+<span class="o">│  OOD FUSION                                                      │</span>
+<span class="o">│                                                                  │</span>
+<span class="o">│  ood_detected = (energy &gt; τ_energy) OR (mahal &gt; τ_mahal)        │</span>
+<span class="o">│                                                                  │</span>
+<span class="o">│  Warehouse-specific OOD examples:                                │</span>
+<span class="o">│  ├─ Novel product shape (never seen this SKU geometry)           │</span>
+<span class="o">│  ├─ Damaged packaging (crushed box, torn bag)                    │</span>
+<span class="o">│  ├─ Transparent / reflective objects (glass, foil)               │</span>
+<span class="o">│  ├─ Unexpected obstacles (fallen shelf, spilled product)         │</span>
+<span class="o">│  └─ Lighting failures (shadow, glare, darkness)                  │</span>
+<span class="o">│                                                                  │</span>
+<span class="o">│  IF ood_detected: composite_confidence = min(conf, 0.50)         │</span>
+<span class="o">│                   → forces P2 or higher escalation               │</span>
+<span class="o">└──────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     LOW LEVEL — RETRAINING & DEPLOYMENT
+     ═══════════════════════════════════════ -->
+<div class="section" id="ll-retraining">
+  <div class="section-header">
+    <span class="section-badge badge-low">Low Level</span>
+    <h2>Model Retraining & Safe Deployment Pipeline</h2>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title-bar">
+      <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+      <span>retraining_deployment_pipeline.arch</span>
+    </div>
+    <div class="diagram-body"><pre>
+<span class="w">    MODEL LIFECYCLE: COLLECT → SELECT → TRAIN → VALIDATE → DEPLOY</span>
+
+<span class="o">Day 0-7: DATA ACCUMULATION</span>
+<span class="o">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="o">│  Intervention tuples ──▸ S3 Data Lake                                │</span>
+<span class="o">│  Trigger classifier clips ──▸ S3 Data Lake                           │</span>
+<span class="o">│  Autonomous success samples ──▸ S3 Data Lake                         │</span>
+<span class="o">│                                                                      │</span>
+<span class="o">│  Volume: ~10K-50K new samples/week across fleet                      │</span>
+<span class="o">└──────────────────────────────────────────────────────────────────────┘</span>
+        <span class="o">│</span>
+        <span class="o">▼</span>
+<span class="b">Nightly: BATCH SCORING & SELECTION</span>
+<span class="b">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="b">│  Active Learning Selector (runs on GPU node)                         │</span>
+<span class="b">│                                                                      │</span>
+<span class="b">│  1. Score all new samples by current model uncertainty               │</span>
+<span class="b">│  2. Rank by committee disagreement (ensemble variance)               │</span>
+<span class="b">│  3. Apply diversity filter (k-DPP over embedding space)              │</span>
+<span class="b">│  4. Auto-pseudo-label high-confidence samples (CEAL, δ &gt; 0.98)      │</span>
+<span class="b">│  5. Flag low-confidence for human QA review                         │</span>
+<span class="b">│                                                                      │</span>
+<span class="b">│  Output: curated training batch (~2K-10K highest-value samples)      │</span>
+<span class="b">└──────────────────────────────────────────────────────────────────────┘</span>
+        <span class="b">│</span>
+        <span class="b">▼</span>
+<span class="p">Weekly: RETRAINING</span>
+<span class="p">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="p">│  H100 GPU Cluster (500-2000 GPU-hours per cycle)                     │</span>
+<span class="p">│                                                                      │</span>
+<span class="p">│  ├─ Fine-tune vision model on new data + replay buffer               │</span>
+<span class="p">│  ├─ Re-fit temperature scaling parameter (T)                         │</span>
+<span class="p">│  ├─ Update Mahalanobis class statistics (μ_c, Σ)                     │</span>
+<span class="p">│  ├─ Re-train energy OOD thresholds                                   │</span>
+<span class="p">│  └─ Update trigger classifiers for new edge cases                    │</span>
+<span class="p">│                                                                      │</span>
+<span class="p">│  Output: candidate model v(N+1)                                     │</span>
+<span class="p">└──────────────────────────────────────────────────────────────────────┘</span>
+        <span class="p">│</span>
+        <span class="p">▼</span>
+<span class="c">Day 1-3: SHADOW MODE EVALUATION</span>
+<span class="c">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="c">│  Deploy v(N+1) alongside v(N) on ALL robots                         │</span>
+<span class="c">│                                                                      │</span>
+<span class="c">│  ├─ v(N) controls the robot (production)                             │</span>
+<span class="c">│  ├─ v(N+1) receives same inputs, predictions logged only             │</span>
+<span class="c">│  ├─ Compare: accuracy, confidence calibration, OOD recall            │</span>
+<span class="c">│  └─ Safety metrics: would-have-collided rate must be 0               │</span>
+<span class="c">│                                                                      │</span>
+<span class="c">│  Gate: v(N+1) must match or beat v(N) on ALL safety metrics          │</span>
+<span class="c">└──────────────────────────────────────────────────────────────────────┘</span>
+        <span class="c">│</span> <span class="g">passes</span>
+        <span class="c">▼</span>
+<span class="g">Day 3-5: CANARY DEPLOYMENT</span>
+<span class="g">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="g">│  Roll v(N+1) to 5-10% of fleet                                      │</span>
+<span class="g">│                                                                      │</span>
+<span class="g">│  ├─ Monitor: intervention_rate, grasp_success, cycle_time            │</span>
+<span class="g">│  ├─ Statistical test: v(N+1) ≤ v(N) intervention rate (p &lt; 0.05)    │</span>
+<span class="g">│  ├─ Auto-rollback if collision_rate &gt; 0 or intervention_rate +10%    │</span>
+<span class="g">│  └─ Operator feedback collection (qualitative)                       │</span>
+<span class="g">│                                                                      │</span>
+<span class="g">│  Duration: 48-72 hours minimum                                      │</span>
+<span class="g">└──────────────────────────────────────────────────────────────────────┘</span>
+        <span class="g">│</span> <span class="g">passes</span>
+        <span class="g">▼</span>
+<span class="y">Day 5-10: FULL FLEET OTA ROLLOUT</span>
+<span class="y">┌──────────────────────────────────────────────────────────────────────┐</span>
+<span class="y">│  Gradual rollout: 10% → 25% → 50% → 100% over 5 days               │</span>
+<span class="y">│  Each step requires metric gates passing                             │</span>
+<span class="y">│  Rollback capability: instant revert to v(N) via model registry      │</span>
+<span class="y">└──────────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     REFERENCE — TECHNOLOGY MATRIX
+     ═══════════════════════════════════════ -->
+<div class="section" id="ref-tech">
+  <div class="section-header">
+    <span class="section-badge badge-detail">Reference</span>
+    <h2>Technology Stack Matrix</h2>
+  </div>
+
+  <table class="info-table">
+    <tr><th>Layer</th><th>Technology</th><th>Why This Choice</th><th>Alternative</th></tr>
+    <tr><td>Edge Compute</td><td><span class="tag tag-cyan">Jetson Orin AGX</span></td><td>275 TOPS, proven ROS2/TensorRT support</td><td>Jetson Thor (2025+, 7.5× perf)</td></tr>
+    <tr><td>Robot Middleware</td><td><span class="tag tag-cyan">ROS2 Jazzy</span></td><td>LTS through 2029, real-time control</td><td>Custom + gRPC (less ecosystem)</td></tr>
+    <tr><td>Inference</td><td><span class="tag tag-cyan">TensorRT INT8</span></td><td>~5ms/frame, Jetson-native</td><td>ONNX Runtime FP16 (~10ms)</td></tr>
+    <tr><td>Video Codec</td><td><span class="tag tag-blue">H.264 Baseline</span></td><td>Universal HW support, lowest latency</td><td>H.265 (50% less BW, patent cost)</td></tr>
+    <tr><td>Video Transport</td><td><span class="tag tag-blue">WebRTC (Pion)</span></td><td>P2P, 33ms LAN, industry standard</td><td>WebTransport (no iOS support)</td></tr>
+    <tr><td>Control Transport</td><td><span class="tag tag-blue">gRPC bidir stream</span></td><td>Typed protobuf, 10× smaller than JSON</td><td>WebSocket (untyped, less efficient)</td></tr>
+    <tr><td>Fleet Messaging</td><td><span class="tag tag-purple">NATS JetStream</span></td><td>Sub-ms latency, Leaf Node edge-cloud bridge</td><td>MQTT (no replay), Kafka (heavy)</td></tr>
+    <tr><td>Queue Store</td><td><span class="tag tag-purple">Redis Streams</span></td><td>Sub-1ms, sorted sets for priority lanes</td><td>PostgreSQL (too slow for P0)</td></tr>
+    <tr><td>Batch Analytics</td><td><span class="tag tag-purple">Apache Kafka</span></td><td>Durable log, exactly-once, ecosystem</td><td>NATS alone (less analytics tooling)</td></tr>
+    <tr><td>Data Lake</td><td><span class="tag tag-green">S3 + Parquet</span></td><td>Cost-effective bulk storage, Spark-ready</td><td>GCS, Azure Blob</td></tr>
+    <tr><td>Training Cluster</td><td><span class="tag tag-green">H100 SXM</span></td><td>500-2000 GPU-hrs/week cycle</td><td>H200 (cost), A100 (slower)</td></tr>
+    <tr><td>Model Registry</td><td><span class="tag tag-green">MLflow + S3</span></td><td>Version control, lineage, rollback</td><td>Weights & Biases, SageMaker</td></tr>
+    <tr><td>Simulation</td><td><span class="tag tag-orange">Isaac Sim 5.0</span></td><td>Synthetic data gen, digital twin</td><td>MuJoCo, PyBullet (less realistic)</td></tr>
+    <tr><td>Foundation Model</td><td><span class="tag tag-orange">GR00T N1 (future)</span></td><td>2B param VLA, dual-system arch</td><td>RT-2, π0 (less edge-optimized)</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════
+     REFERENCE — KEY NUMBERS
+     ═══════════════════════════════════════ -->
+<div class="section" id="ref-numbers">
+  <div class="section-header">
+    <span class="section-badge badge-detail">Reference</span>
+    <h2>Key Numbers for the Interview</h2>
+  </div>
+
+  <table class="info-table">
+    <tr><th>Metric</th><th>Value</th><th>Source / Basis</th></tr>
+    <tr><td>Autonomy rate</td><td>90-95%</td><td>Nimble CEO statement (2021)</td></tr>
+    <tr><td>Accuracy</td><td>99.9%</td><td>Nimble press releases</td></tr>
+    <tr><td>Glass-to-glass latency</td><td>50-130ms</td><td>Voysys 50ms best, Transitive 130ms typical</td></tr>
+    <tr><td>Safety cutoff</td><td>500ms frame age</td><td>Industry standard for teleoperation</td></tr>
+    <tr><td>Video bitrate (H.264)</td><td>2-4 Mbps @720p</td><td>Per camera; 8-40 Mbps total per robot</td></tr>
+    <tr><td>Operator-to-robot ratio</td><td>1:25 → 1:100+</td><td>Waymo 1:43 benchmark; warehouse easier</td></tr>
+    <tr><td>Batch match window</td><td>2-5 seconds</td><td>Lyft: 50% wait reduction vs greedy</td></tr>
+    <tr><td>Temp scaling parameter</td><td>T ≈ 1.3</td><td>Typical for ResNet on calibration set</td></tr>
+    <tr><td>MC Dropout passes</td><td>10 (edge), 50 (cloud)</td><td>Practical vs thorough uncertainty</td></tr>
+    <tr><td>Energy OOD improvement</td><td>+18% FPR reduction</td><td>Liu et al. (NeurIPS 2020)</td></tr>
+    <tr><td>Retraining cycle</td><td>Weekly, 500-2000 GPU-hrs</td><td>Estimated for Nimble fleet scale</td></tr>
+    <tr><td>Canary duration</td><td>48-72 hours minimum</td><td>Standard ML deployment practice</td></tr>
+    <tr><td>Data flywheel scaling law</td><td>10× data → 20-30% error reduction</td><td>Waymo scaling laws (2025)</td></tr>
+    <tr><td>Jetson Orin TOPS</td><td>275 TOPS</td><td>NVIDIA spec</td></tr>
+    <tr><td>Jetson Thor TFLOPS</td><td>2,070 FP4 TFLOPS</td><td>NVIDIA spec (Aug 2025)</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════
+     REFERENCE — STAFF-LEVEL TRADEOFFS
+     ═══════════════════════════════════════ -->
+<div class="section" id="ref-tradeoffs">
+  <div class="section-header">
+    <span class="section-badge badge-detail">Reference</span>
+    <h2>Staff-Level Design Tradeoffs</h2>
+  </div>
+
+  <div class="collapsible open">
+    <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+      <span class="arrow">▶</span> Batch Matching vs Greedy Assignment
+    </button>
+    <div class="collapsible-content">
+      <div class="diagram-container">
+        <div class="diagram-title-bar"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><span>tradeoff_matching.md</span></div>
+        <div class="diagram-body"><pre>
+<span class="g">BATCH (Hungarian)</span>                       <span class="o">GREEDY (First Available)</span>
+
+<span class="g">+ 50% lower wait times at scale</span>         <span class="o">+ Simpler implementation</span>
+<span class="g">+ Globally optimal assignment</span>           <span class="o">+ Zero batch delay</span>
+<span class="g">+ Fair workload distribution</span>            <span class="o">+ Works with 1 operator</span>
+
+<span class="g">- 2-5s batch window adds delay</span>          <span class="o">- Suboptimal skill matching</span>
+<span class="g">- O(n³) complexity per batch</span>            <span class="o">- Head-of-line blocking</span>
+<span class="g">- Need ≥3 operators to benefit</span>          <span class="o">- Operator fatigue imbalance</span>
+
+<span class="c">VERDICT: Use greedy for &lt;5 operators, batch for 5+.</span>
+<span class="c">Hybrid: greedy for P0 (bypass batch), batch for P1-P3.</span>
+</pre></div></div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+      <span class="arrow">▶</span> Epistemic-Only vs All-Uncertainty Escalation
+    </button>
+    <div class="collapsible-content">
+      <div class="diagram-container">
+        <div class="diagram-title-bar"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><span>tradeoff_uncertainty.md</span></div>
+        <div class="diagram-body"><pre>
+<span class="g">EPISTEMIC-ONLY ESCALATION</span>               <span class="o">ALL-UNCERTAINTY ESCALATION</span>
+
+<span class="g">+ Only escalates when humans</span>             <span class="o">+ Simpler to implement</span>
+<span class="g">  CAN actually help</span>                      <span class="o">+ Catches all low-conf cases</span>
+<span class="g">+ Preserves operator capacity</span>            <span class="o">+ No MC Dropout overhead</span>
+<span class="g">+ Better data quality (novel cases)</span>
+
+<span class="g">- Requires MC Dropout (10 passes)</span>        <span class="o">- Wastes operator time on noise</span>
+<span class="g">- ~10× more compute for uncertainty</span>      <span class="o">- Humans can't fix aleatoric</span>
+<span class="g">- Harder to explain to operators</span>         <span class="o">- Floods queue during bad lighting</span>
+
+<span class="c">VERDICT: Epistemic-only for mature systems. Start with all-uncertainty,</span>
+<span class="c">add decomposition when you have enough data to calibrate.</span>
+</pre></div></div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+      <span class="arrow">▶</span> Static vs Dynamic Confidence Thresholds
+    </button>
+    <div class="collapsible-content">
+      <div class="diagram-container">
+        <div class="diagram-title-bar"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><span>tradeoff_thresholds.md</span></div>
+        <div class="diagram-body"><pre>
+<span class="g">DYNAMIC (Queue-Aware)</span>                    <span class="o">STATIC THRESHOLDS</span>
+
+<span class="g">+ Adapts to operational load</span>             <span class="o">+ Predictable behavior</span>
+<span class="g">+ Maximizes data collection</span>              <span class="o">+ Easy to audit/explain</span>
+<span class="g">  when operators are idle</span>                <span class="o">+ Consistent error rate</span>
+<span class="g">+ Self-regulates throughput</span>
+<span class="g">+ Prevents queue overflow</span>               <span class="o">- Can't adapt to surges</span>
+                                          <span class="o">- Wastes idle operators</span>
+<span class="g">- Risk of oscillation</span>                    <span class="o">- Misses data collection</span>
+<span class="g">- Harder to guarantee SLAs</span>               <span class="o">  opportunities</span>
+<span class="g">- Need dampening / hysteresis</span>
+
+<span class="c">VERDICT: Dynamic with guardrails. Static P0 threshold (never adjustable),</span>
+<span class="c">dynamic P2-P3 thresholds with ±5% max swing and 60s cooldown.</span>
+</pre></div></div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+      <span class="arrow">▶</span> WebRTC vs WebTransport vs SRT
+    </button>
+    <div class="collapsible-content">
+      <div class="diagram-container">
+        <div class="diagram-title-bar"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><span>tradeoff_streaming.md</span></div>
+        <div class="diagram-body"><pre>
+<span class="g">WebRTC</span>                    <span class="b">WebTransport</span>              <span class="p">SRT</span>
+
+<span class="g">+ Universal browser</span>       <span class="b">+ Simpler server</span>          <span class="p">+ Lowest latency</span>
+<span class="g">+ P2P capable</span>             <span class="b">+ Unreliable datagrams</span>    <span class="p">+ FEC built-in</span>
+<span class="g">+ Mature ecosystem</span>       <span class="b">+ QUIC multiplexing</span>       <span class="p">+ Cellular-optimized</span>
+<span class="g">+ NAT traversal</span>           <span class="b">+ No STUN/TURN needed</span>
+
+<span class="g">- Complex (ICE/STUN)</span>      <span class="b">- No iOS/Safari</span>           <span class="p">- No browser support</span>
+<span class="g">- SFU costs at scale</span>     <span class="b">- Experimental</span>            <span class="p">- Custom client needed</span>
+                          <span class="b">- No media negotiation</span>    <span class="p">- No P2P</span>
+
+<span class="c">VERDICT: WebRTC today (proven, cross-platform). Plan WebTransport</span>
+<span class="c">migration for controlled operator workstations. SRT for dedicated</span>
+<span class="c">cellular links only.</span>
+</pre></div></div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+      <span class="arrow">▶</span> Edge Safety: Why Control Limits Must Be Local
+    </button>
+    <div class="collapsible-content">
+      <div class="diagram-container">
+        <div class="diagram-title-bar"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><span>tradeoff_safety_locality.md</span></div>
+        <div class="diagram-body"><pre>
+<span class="r">CRITICAL DESIGN PRINCIPLE: Safety enforcement NEVER leaves the robot.</span>
+
+<span class="s">Why not cloud-side safety?</span>
+
+<span class="o">Scenario: Network drops for 2 seconds during operator teleop.</span>
+
+<span class="r">Cloud-side safety:</span>
+  Cloud doesn't receive heartbeat → Cloud sends e-stop → <span class="r">NETWORK IS DOWN</span>
+  Robot continues executing last command → <span class="r">COLLISION</span>
+
+<span class="g">Edge-side safety:</span>
+  Robot checks: last_frame_age > 500ms → LOCAL e-stop → <span class="g">SAFE STOP</span>
+  No network dependency for safety-critical decisions.
+
+<span class="s">Implementation:</span>
+  ├─ 200Hz watchdog on Jetson (Rust, real-time thread)
+  ├─ Hardware e-stop interrupt (bypasses all software)
+  ├─ Joint limit enforcement (hard mechanical + soft)
+  ├─ Frame freshness validator (reject stale commands)
+  └─ Proximity sensor override (ultrasonic + depth)
+
+<span class="c">This is non-negotiable in the interview. Always mention that safety</span>
+<span class="c">runs at the edge with zero cloud dependency.</span>
+</pre></div></div>
+    </div>
+  </div>
+</div>
+
+</div> <!-- /main -->
+
+<script>
+  function toggleCollapsible(btn) {
+    const parent = btn.closest('.collapsible');
+    parent.classList.toggle('open');
+  }
+
+  // Active nav tracking
+  const sections = document.querySelectorAll('.section');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const id = entry.target.id;
+        const activeLink = document.querySelector(`.nav-link[href="#${id}"]`);
+        if (activeLink) activeLink.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Fleet Management System — Staff-Level System Design</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg-primary: #0a0e14;
+    --bg-secondary: #0f1219;
+    --bg-card: #141922;
+    --bg-diagram: #0c1018;
+    --border: #1e2736;
+    --border-accent: #2a3a52;
+    --text-primary: #e0e6f0;
+    --text-secondary: #8899b0;
+    --text-muted: #556677;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00e896;
+    --accent-orange: #ff9f43;
+    --accent-red: #ff5757;
+    --accent-purple: #b48eff;
+    --accent-yellow: #ffd93d;
+    --accent-pink: #ff6b9d;
+    --nav-width: 260px;
+    --diagram-font: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+  }
+
+  /* ─── NAVIGATION ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--nav-width);
+    height: 100vh;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 20px 0;
+  }
+
+  nav::-webkit-scrollbar { width: 4px; }
+  nav::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 2px; }
+
+  .nav-title {
+    padding: 8px 20px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent-cyan);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .nav-group { margin-bottom: 8px; }
+
+  .nav-group-label {
+    padding: 6px 20px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+  }
+
+  .nav-link {
+    display: block;
+    padding: 5px 20px 5px 28px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+
+  .nav-link:hover {
+    color: var(--accent-cyan);
+    background: rgba(0,212,255,0.04);
+    border-left-color: var(--accent-cyan);
+  }
+
+  /* ─── MAIN CONTENT ─── */
+  .main {
+    margin-left: var(--nav-width);
+    padding: 40px 60px 100px;
+    max-width: 1100px;
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    font-style: italic;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin: 50px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent-green);
+    margin: 30px 0 10px;
+  }
+
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent-orange);
+    margin: 20px 0 8px;
+  }
+
+  p { margin-bottom: 14px; font-size: 14.5px; color: var(--text-secondary); }
+
+  section { scroll-margin-top: 20px; }
+
+  /* ─── DIAGRAM CONTAINER ─── */
+  .diagram-box {
+    background: var(--bg-diagram);
+    border: 1px solid var(--border-accent);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0 24px;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .diagram-box pre {
+    font-family: var(--diagram-font);
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--text-primary);
+    white-space: pre;
+    margin: 0;
+  }
+
+  .diagram-label {
+    position: absolute;
+    top: 8px; right: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: var(--diagram-font);
+  }
+
+  .label-high { background: rgba(0,212,255,0.15); color: var(--accent-cyan); }
+  .label-mid { background: rgba(0,232,150,0.15); color: var(--accent-green); }
+  .label-low { background: rgba(255,159,67,0.15); color: var(--accent-orange); }
+  .label-flow { background: rgba(180,142,255,0.15); color: var(--accent-purple); }
+  .label-state { background: rgba(255,107,157,0.15); color: var(--accent-pink); }
+  .label-data { background: rgba(255,217,61,0.15); color: var(--accent-yellow); }
+
+  /* ─── INFO BOX ─── */
+  .info-box {
+    background: rgba(0,212,255,0.06);
+    border-left: 3px solid var(--accent-cyan);
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 13.5px;
+  }
+
+  .info-box strong { color: var(--accent-cyan); }
+
+  .warn-box {
+    background: rgba(255,159,67,0.06);
+    border-left: 3px solid var(--accent-orange);
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 13.5px;
+  }
+
+  .warn-box strong { color: var(--accent-orange); }
+
+  /* ─── COLLAPSIBLE ─── */
+  details {
+    margin: 12px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  summary {
+    padding: 10px 16px;
+    background: var(--bg-card);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--accent-green);
+    user-select: none;
+  }
+
+  summary:hover { background: rgba(0,232,150,0.06); }
+
+  details > div { padding: 16px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    nav { display: none; }
+    .main { margin-left: 0; padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ NAVIGATION ═══════════════════ -->
+<nav>
+  <div class="nav-title">Fleet Management<br>System Design</div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Architecture Overview</div>
+    <a class="nav-link" href="#high-level">High-Level Architecture</a>
+    <a class="nav-link" href="#layered-arch">Six-Layer Decomposition</a>
+    <a class="nav-link" href="#data-flow">End-to-End Data Flow</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Task Allocation</div>
+    <a class="nav-link" href="#task-alloc-arch">Allocation Architecture</a>
+    <a class="nav-link" href="#hungarian">Hungarian Algorithm</a>
+    <a class="nav-link" href="#rl-alloc">RL-Based Allocation</a>
+    <a class="nav-link" href="#hybrid-alloc">Hybrid Pipeline</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Path Planning (MAPF)</div>
+    <a class="nav-link" href="#mapf-arch">MAPF Architecture</a>
+    <a class="nav-link" href="#cbs-algo">CBS Algorithm Detail</a>
+    <a class="nav-link" href="#rhcr">RHCR Lifelong MAPF</a>
+    <a class="nav-link" href="#algo-selection">Algorithm Selection</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Traffic & Deadlock</div>
+    <a class="nav-link" href="#traffic-arch">Traffic Controller</a>
+    <a class="nav-link" href="#deadlock">Deadlock Detection</a>
+    <a class="nav-link" href="#zone-mgmt">Zone Management</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Robot State Machine</div>
+    <a class="nav-link" href="#fsm-flat">Flat State Machine</a>
+    <a class="nav-link" href="#hsm">Hierarchical HSM</a>
+    <a class="nav-link" href="#nav-substates">Navigation Substates</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Fault Tolerance</div>
+    <a class="nav-link" href="#fault-arch">Fault Tolerance Arch</a>
+    <a class="nav-link" href="#heartbeat">Heartbeat & Phi Accrual</a>
+    <a class="nav-link" href="#task-reassign">Task Reassignment</a>
+    <a class="nav-link" href="#raft">Raft Consensus</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Communication</div>
+    <a class="nav-link" href="#comm-arch">Communication Layers</a>
+    <a class="nav-link" href="#mqtt-design">MQTT Topic Design</a>
+    <a class="nav-link" href="#ros2-arch">ROS 2 On-Robot</a>
+    <a class="nav-link" href="#api-gateway">API & Gateway</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Data & Storage</div>
+    <a class="nav-link" href="#db-arch">Database Architecture</a>
+    <a class="nav-link" href="#event-bus">Event Bus (Kafka)</a>
+    <a class="nav-link" href="#map-repr">Map Representation</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Scaling & Deploy</div>
+    <a class="nav-link" href="#scale-arch">Scaling Architecture</a>
+    <a class="nav-link" href="#k8s">K8s Deployment</a>
+    <a class="nav-link" href="#latency">Latency Budgets</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+<div class="main">
+
+<h1>Robot Fleet Management System</h1>
+<p class="subtitle">Staff-level system design for Nimble Robotics — all architecture diagrams</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- HIGH-LEVEL ARCHITECTURE                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="high-level">
+<h2>High-Level System Architecture</h2>
+
+<p>The complete system spans from physical robots on the warehouse floor through edge compute, a messaging backbone, cloud microservices, and external integrations. This is the "whiteboard first" diagram in an interview.</p>
+
+<div class="diagram-box">
+  <span class="diagram-label label-high">High Level</span>
+<pre>
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │                         EXTERNAL SYSTEMS & CLIENTS                              │
+ │                                                                                 │
+ │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐  │
+ │  │  Monitoring  │  │   WMS / ERP  │  │   Customer   │  │  Digital Twin       │  │
+ │  │  Dashboard   │  │  Integration │  │   Portal     │  │  (NVIDIA Isaac)    │  │
+ │  │  (React+WS)  │  │  (REST API)  │  │  (REST)      │  │  Simulation        │  │
+ │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └────────┬───────────┘  │
+ └─────────┼──────────────────┼──────────────────┼─────────────────┼──────────────┘
+           │                  │                  │                 │
+           ▼                  ▼                  ▼                 ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │                          API GATEWAY (Envoy / Kong)                              │
+ │         Rate Limiting · JWT Auth · REST↔gRPC Bridge · Load Balancing            │
+ └────────────────────────────────┬────────────────────────────────────────────────┘
+                                  │
+           ┌──────────────────────┼───────────────────────────┐
+           ▼                      ▼                           ▼
+ ┌───────────────────────────────────────────────────────────────────────────────┐
+ │                      FLEET MANAGEMENT SERVICES (K8s)                          │
+ │                                                                               │
+ │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
+ │  │    Task      │ │    Path      │ │   Traffic    │ │   Fleet State        │ │
+ │  │  Allocator   │ │   Planner    │ │  Controller  │ │   Manager            │ │
+ │  │  (Hungarian  │ │  (CBS/RHCR   │ │  (Deadlock   │ │  (Raft Cluster)      │ │
+ │  │   + RL)      │ │   + A*)      │ │   + Zones)   │ │  3-node HA           │ │
+ │  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └──────────┬───────────┘ │
+ │         │                │                │                    │             │
+ │  ┌──────┴────────────────┴────────────────┴────────────────────┘             │
+ │  │                    gRPC Inter-Service Mesh                                │
+ │  └──────┬────────────────┬────────────────┬────────────────┬────────────────┘│
+ │         │                │                │                │                 │
+ │  ┌──────┴───────┐ ┌──────┴───────┐ ┌──────┴───────┐ ┌─────┴──────────────┐ │
+ │  │   Map &      │ │  Telemetry   │ │  Charging    │ │  Order             │ │
+ │  │  Navigation  │ │  Ingestion   │ │  Scheduler   │ │  Decomposer        │ │
+ │  │   Service    │ │   Service    │ │              │ │  (WMS Bridge)      │ │
+ │  └──────────────┘ └──────────────┘ └──────────────┘ └────────────────────┘ │
+ └──────────────────────────────┬────────────────────────────────────────────────┘
+                                │
+ ┌──────────────────────────────┼────────────────────────────────────────────────┐
+ │                      MESSAGING & DATA LAYER                                    │
+ │                                                                                │
+ │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+ │  │  MQTT Broker │  │    Kafka     │  │    Redis     │  │   PostgreSQL     │  │
+ │  │  (EMQX 5.x) │  │  Event Bus   │  │  Position    │  │  + TimescaleDB   │  │
+ │  │  Telemetry   │  │  Task Events │  │  Cache       │  │  Fleet State +   │  │
+ │  │  + Commands  │  │  + Audit Log │  │  Sub-ms      │  │  Telemetry TS    │  │
+ │  └──────┬───────┘  └──────────────┘  └──────────────┘  └──────────────────┘  │
+ └─────────┼──────────────────────────────────────────────────────────────────────┘
+           │ MQTT / Zenoh
+           ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │                         ROBOT FLEET (Warehouse Floor)                            │
+ │                                                                                 │
+ │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        ┌──────────────┐  │
+ │  │   Robot 1    │  │   Robot 2    │  │   Robot 3    │  ...   │   Robot N    │  │
+ │  │ ┌──────────┐ │  │ ┌──────────┐ │  │ ┌──────────┐ │        │ ┌──────────┐ │  │
+ │  │ │Jetson AGX│ │  │ │Jetson AGX│ │  │ │Jetson AGX│ │        │ │Jetson AGX│ │  │
+ │  │ │ ROS 2    │ │  │ │ ROS 2    │ │  │ │ ROS 2    │ │        │ │ ROS 2    │ │  │
+ │  │ │ Nav2     │ │  │ │ Nav2     │ │  │ │ Nav2     │ │        │ │ Nav2     │ │  │
+ │  │ │ Percep.  │ │  │ │ Percep.  │ │  │ │ Percep.  │ │        │ │ Percep.  │ │  │
+ │  │ └──────────┘ │  │ └──────────┘ │  │ └──────────┘ │        │ └──────────┘ │  │
+ │  └──────────────┘  └──────────────┘  └──────────────┘        └──────────────┘  │
+ └─────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SIX-LAYER DECOMPOSITION                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="layered-arch">
+<h2>Six-Layer Decomposition</h2>
+
+<p>Every component maps to one of six layers. This is the mental model that keeps your interview answer organized.</p>
+
+<div class="diagram-box">
+  <span class="diagram-label label-mid">Mid Level</span>
+<pre>
+ ┌─────────────────────────────────────────────────────────────────────────┐
+ │  LAYER 6: EXTERNAL INTEGRATION & MONITORING                            │
+ │  ┌─────────────┐ ┌────────────────┐ ┌────────────┐ ┌───────────────┐  │
+ │  │ React       │ │ WMS/OMS/TMS    │ │ REST API   │ │ Grafana/Prom  │  │
+ │  │ Dashboard   │ │ Integration    │ │ Gateway    │ │ Observability │  │
+ │  │ (WebSocket) │ │ (Webhooks)     │ │ (Envoy)    │ │ Stack         │  │
+ │  └─────────────┘ └────────────────┘ └────────────┘ └───────────────┘  │
+ ├─────────────────────────────────────────────────────────────────────────┤
+ │  LAYER 5: FLEET INTELLIGENCE (Microservices on K8s)                    │
+ │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌─────────┐ │
+ │  │ Task      │ │ Path      │ │ Traffic   │ │ Charging  │ │ Order   │ │
+ │  │ Allocator │ │ Planner   │ │ Control   │ │ Scheduler │ │ Decomp  │ │
+ │  │           │ │ (MAPF)    │ │ (Deadlock)│ │           │ │         │ │
+ │  └───────────┘ └───────────┘ └───────────┘ └───────────┘ └─────────┘ │
+ ├─────────────────────────────────────────────────────────────────────────┤
+ │  LAYER 4: FLEET STATE & COORDINATION                                   │
+ │  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────────┐   │
+ │  │ Fleet State Mgr  │ │ Map & Nav Svc    │ │ Telemetry Ingestion  │   │
+ │  │ (Raft 3-node)    │ │ (Graph + Grid)   │ │ (Stream Processing)  │   │
+ │  └──────────────────┘ └──────────────────┘ └──────────────────────┘   │
+ ├─────────────────────────────────────────────────────────────────────────┤
+ │  LAYER 3: MESSAGING & EVENT BUS                                        │
+ │  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  ┌────────────┐ │
+ │  │ MQTT Broker  │  │ Kafka        │  │ Redis       │  │ gRPC Mesh  │ │
+ │  │ (EMQX 5.x)  │  │ (Events +    │  │ (Pub/Sub +  │  │ (Service   │ │
+ │  │ QoS 0/1/2   │  │  Audit)      │  │  Cache)     │  │  ↔ Service)│ │
+ │  └──────────────┘  └──────────────┘  └─────────────┘  └────────────┘ │
+ ├─────────────────────────────────────────────────────────────────────────┤
+ │  LAYER 2: DATA PERSISTENCE                                             │
+ │  ┌───────────────────┐  ┌───────────────────┐  ┌────────────────────┐ │
+ │  │ PostgreSQL        │  │ TimescaleDB       │  │ Redis (Sorted Sets)│ │
+ │  │ Fleet state,      │  │ Telemetry time    │  │ Position cache,    │ │
+ │  │ tasks, audit log  │  │ series, 90%+      │  │ leaderboards,      │ │
+ │  │                   │  │ compression       │  │ rate limiting       │ │
+ │  └───────────────────┘  └───────────────────┘  └────────────────────┘ │
+ ├─────────────────────────────────────────────────────────────────────────┤
+ │  LAYER 1: ROBOT EDGE (Per-Robot)                                        │
+ │  ┌───────────────────────────────────────────────────────────────────┐  │
+ │  │  NVIDIA Jetson AGX Orin / Thor                                    │  │
+ │  │  ┌───────────┐ ┌──────────┐ ┌──────────┐ ┌──────┐ ┌───────────┐ │  │
+ │  │  │ ROS 2     │ │ Nav2     │ │ Percep-  │ │ HSM  │ │ MQTT      │ │  │
+ │  │  │ Jazzy/    │ │ (BT +   │ │ tion     │ │ State│ │ Client    │ │  │
+ │  │  │ Kilted    │ │  DWB +   │ │ (Depth + │ │ Mgr  │ │ + Zenoh   │ │  │
+ │  │  │ (Zenoh)   │ │  A*)     │ │  LiDAR)  │ │      │ │ Bridge    │ │  │
+ │  │  └───────────┘ └──────────┘ └──────────┘ └──────┘ └───────────┘ │  │
+ │  └───────────────────────────────────────────────────────────────────┘  │
+ └─────────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- END-TO-END DATA FLOW                                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="data-flow">
+<h2>End-to-End Data Flow: Order → Pick → Ship</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-flow">Data Flow</span>
+<pre>
+  Customer Order                                                        Shipped
+  ════════╗                                                          ╔════════
+          ▼                                                          ▲
+  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐   ┌────┴──────┐
+  │  1. ORDER     │───▶│ 2. ORDER      │───▶│ 3. TASK       │──▶│ 4. TASK   │
+  │  RECEIVED     │    │ DECOMPOSED    │    │ ALLOCATED     │   │ ASSIGNED  │
+  │               │    │               │    │               │   │           │
+  │ WMS webhook   │    │ SKU → bin     │    │ Hungarian:    │   │ Robot R7  │
+  │ OMS creates   │    │ locations     │    │ cost matrix   │   │ selected  │
+  │ fulfillment   │    │ Multi-item →  │    │ solve O(n³)   │   │ epoch=42  │
+  │ request       │    │ pick list     │    │               │   │ fencing   │
+  └───────────────┘    └───────────────┘    └───────────────┘   └─────┬─────┘
+                                                                      │
+  ┌───────────────────────────────────────────────────────────────────┘
+  ▼
+  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐   ┌───────────┐
+  │ 5. PATH       │───▶│ 6. NAVIGATE   │───▶│ 7. EXECUTE    │──▶│ 8. RETURN │
+  │ PLANNED       │    │               │    │ PICK          │   │ + PACK    │
+  │               │    │               │    │               │   │           │
+  │ CBS/RHCR      │    │ Nav2 executes │    │ Gripper AI    │   │ Navigate  │
+  │ conflict-free │    │ Traffic ctrl  │    │ selects tool  │   │ to pack   │
+  │ paths for     │    │ manages zones │    │ Pick item     │   │ station   │
+  │ fleet         │    │ Heartbeat 1Hz │    │ Verify grip   │   │ Drop item │
+  └───────────────┘    └───────────────┘    └───────────────┘   └─────┬─────┘
+                                                                      │
+          ┌───────────────────────────────────────────────────────────┘
+          ▼
+  ┌───────────────┐    ┌───────────────┐
+  │ 9. TASK       │───▶│ 10. ROBOT     │
+  │ COMPLETED     │    │ IDLE/CHARGE   │
+  │               │    │               │
+  │ Kafka event   │    │ Battery <30%  │
+  │ Update PG     │    │ → CHARGING    │
+  │ Notify WMS    │    │ Battery >90%  │
+  │ Release robot │    │ → IDLE        │
+  └───────────────┘    └───────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TASK ALLOCATION ARCHITECTURE                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="task-alloc-arch">
+<h2>Task Allocation Architecture</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-mid">Mid Level</span>
+<pre>
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                      TASK ALLOCATION SERVICE                            │
+  │                                                                         │
+  │  ┌──────────────────────────────────────────────────────────────────┐   │
+  │  │                    TASK QUEUE (Priority Heap)                     │   │
+  │  │   ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐                 │   │
+  │  │   │T:P=1 │ │T:P=2 │ │T:P=3 │ │T:P=4 │ │T:P=5 │  ...           │   │
+  │  │   │RUSH  │ │NORM  │ │NORM  │ │BATCH │ │LOW   │                 │   │
+  │  │   └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘                 │   │
+  │  └──────┼────────┼────────┼────────┼────────┼──────────────────────┘   │
+  │         └────────┴────────┴────────┴────────┘                          │
+  │                           │                                             │
+  │                           ▼                                             │
+  │         ┌─────────────────────────────────┐                            │
+  │         │      BATCH COLLECTOR            │                            │
+  │         │  Collect tasks every 5-30s      │                            │
+  │         │  or when queue > threshold      │                            │
+  │         └────────────┬────────────────────┘                            │
+  │                      │                                                  │
+  │         ┌────────────▼────────────────────┐                            │
+  │         │      COST MATRIX BUILDER        │                            │
+  │         │                                 │                            │
+  │         │  c_ij = w₁·A*(dist(Rᵢ,Tⱼ))    │                            │
+  │         │       + w₂·(1/battery_i)        │                            │
+  │         │       + w₃·capability(i,j)      │                            │
+  │         │       + w₄·congestion(i,j) ◄────┼── ML Congestion Predictor  │
+  │         │                                 │                            │
+  │         │  ∞ if battery insufficient      │                            │
+  │         │  ∞ if robot incapable           │                            │
+  │         └────────────┬────────────────────┘                            │
+  │                      │                                                  │
+  │        ┌─────────────▼──────────────┐                                  │
+  │        │   HUNGARIAN SOLVER (O(n³)) │                                  │
+  │        │   scipy.linear_sum_assign  │                                  │
+  │        │   100 robots: ~1ms         │                                  │
+  │        │   500 robots: ~50ms        │                                  │
+  │        └─────────────┬──────────────┘                                  │
+  │                      │                                                  │
+  │        ┌─────────────▼──────────────┐                                  │
+  │        │  ASSIGNMENT VALIDATOR      │                                  │
+  │        │  • Check robot availability│                                  │
+  │        │  • Verify battery feasible │                                  │
+  │        │  • Confirm no conflicts    │                                  │
+  │        └─────────────┬──────────────┘                                  │
+  │                      │                                                  │
+  │                      ▼                                                  │
+  │           Publish to Kafka:  fleet.task.assigned                        │
+  │           Send command via MQTT QoS 1 to robot                         │
+  └─────────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="hungarian">
+<h3>Hungarian Algorithm — Cost Matrix Detail</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+              Tasks
+              T₁(Bin-A3)   T₂(Bin-C7)   T₃(Bin-B1)   T₄(Pack-Stn)
+           ┌────────────┬────────────┬────────────┬────────────┐
+  R₁(85%)  │    12.4    │    28.1    │    15.7    │     8.3    │
+           ├────────────┼────────────┼────────────┼────────────┤
+  R₂(45%)  │    22.1    │     9.8    │     ∞      │    31.2    │  ← ∞: battery
+           ├────────────┼────────────┼────────────┼────────────┤     insufficient
+  R₃(72%)  │    18.6    │    14.3    │    11.2    │    20.5    │     for T₃
+           ├────────────┼────────────┼────────────┼────────────┤
+  R₄(91%)  │     7.1    │    19.4    │    22.8    │    13.6    │
+           └────────────┴────────────┴────────────┴────────────┘
+
+  Cost = w₁·A*_dist + w₂·(1/batt) + w₃·capability + w₄·congestion
+         ─────────    ───────────    ─────────────    ────────────
+          0.5           0.2             0.1              0.2
+
+  Hungarian steps:
+  1. Subtract row minimums        → all rows have ≥1 zero
+  2. Subtract column minimums     → all columns have ≥1 zero
+  3. Cover zeros with min lines   → if lines = n, done
+  4. Adjust uncovered elements    → repeat step 3
+  5. Read optimal assignment      → R₁→T₄, R₂→T₂, R₃→T₃, R₄→T₁
+</pre>
+</div>
+</section>
+
+<section id="rl-alloc">
+<h3>RL-Based Allocation (for Scale)</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  ┌─────────────────────────────────────────────────────────────────┐
+  │              CENTRALIZED TRAINING (Offline)                      │
+  │                                                                  │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │  MAPPO / QMIX Agent                                        │  │
+  │  │                                                             │  │
+  │  │  State sₜ:                                                  │  │
+  │  │  ┌──────────────────────────────────────────────────────┐   │  │
+  │  │  │ Robot positions (x,y,θ) × N                          │   │  │
+  │  │  │ Robot battery levels    × N                          │   │  │
+  │  │  │ Robot current task      × N                          │   │  │
+  │  │  │ Task queue features     × M                          │   │  │
+  │  │  │ Occupancy heatmap       (W×H grid)                   │   │  │
+  │  │  │ Zone congestion levels  × Z                          │   │  │
+  │  │  └──────────────────────────────────────────────────────┘   │  │
+  │  │                        │                                    │  │
+  │  │                        ▼                                    │  │
+  │  │  ┌──────────────────────────────┐                           │  │
+  │  │  │  Shared Critic (global view) │  ← CTDE: Centralized     │  │
+  │  │  │  V(s) = expected return      │     Training              │  │
+  │  │  └──────────────────────────────┘                           │  │
+  │  │                        │                                    │  │
+  │  │  ┌─────────┐ ┌─────────┐ ┌─────────┐                       │  │
+  │  │  │Actor π₁ │ │Actor π₂ │ │Actor πₙ │  ← Decentralized     │  │
+  │  │  │(local   │ │(local   │ │(local   │     Execution         │  │
+  │  │  │ obs)    │ │ obs)    │ │ obs)    │                        │  │
+  │  │  └─────────┘ └─────────┘ └─────────┘                       │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  │                                                                  │
+  │  Reward: r = R_complete − α·dist − β·idle − γ·congestion        │
+  │                                                                  │
+  │  Training env: Isaac Sim digital twin, 10K episodes/hour         │
+  └─────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="hybrid-alloc">
+<h3>Hybrid Pipeline (Production Recommended)</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-flow">Pipeline</span>
+<pre>
+  Tasks Arrive
+       │
+       ▼
+  ┌────────────┐     ┌─────────────────┐     ┌──────────────┐
+  │ ML Cost    │────▶│  Hungarian      │────▶│  RL Online   │
+  │ Predictor  │     │  Solver         │     │  Adjuster    │
+  │            │     │                 │     │              │
+  │ Predicts:  │     │ Optimal 1:1     │     │ Swaps if     │
+  │ • Travel   │     │ assignment      │     │ congestion   │
+  │   time     │     │ given costs     │     │ spikes or    │
+  │ • Congest  │     │                 │     │ robot fails  │
+  │ • Battery  │     │ Batch: 5-30s    │     │ Real-time    │
+  │   drain    │     │                 │     │              │
+  └────────────┘     └─────────────────┘     └──────────────┘
+       ▲                                           │
+       │                                           ▼
+       └───── Feedback: actual vs predicted ◄── Execution
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MAPF / CBS                                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="mapf-arch">
+<h2>Multi-Agent Path Finding Architecture</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-mid">Mid Level</span>
+<pre>
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                       PATH PLANNING SERVICE                             │
+  │                                                                         │
+  │  ┌─────────────────────────────────────────────────────────────────┐   │
+  │  │                    ALGORITHM SELECTOR                            │   │
+  │  │   agents ≤50  → CBS/ICBS (optimal)                              │   │
+  │  │   agents 50-200 → EECBS w=1.02 (bounded suboptimal)            │   │
+  │  │   agents 200-1K → PBS or RHCR + ECBS                           │   │
+  │  │   agents 1K+  → MAPF-LNS2, LaCAM, PIBT                        │   │
+  │  └─────────────────────────┬───────────────────────────────────────┘   │
+  │                            │                                            │
+  │  ┌─────────────────────────▼───────────────────────────────────────┐   │
+  │  │              RHCR (Rolling-Horizon Collision Resolution)         │   │
+  │  │                                                                  │   │
+  │  │  ┌──────────┐   ┌───────────────┐   ┌─────────────────────┐    │   │
+  │  │  │ Assign   │──▶│ Plan window W │──▶│ Execute first h     │    │   │
+  │  │  │ new goals│   │ timesteps     │   │ timesteps           │    │   │
+  │  │  │ to idle  │   │ using ECBS    │   │                     │    │   │
+  │  │  │ agents   │   │               │   │ Then re-plan        │──┐ │   │
+  │  │  └──────────┘   └───────────────┘   └─────────────────────┘  │ │   │
+  │  │       ▲                                                       │ │   │
+  │  │       └───────────────────────────────────────────────────────┘ │   │
+  │  │                     (every h timesteps)                         │   │
+  │  └─────────────────────────────────────────────────────────────────┘   │
+  │                                                                         │
+  │  Inputs:                         Outputs:                               │
+  │  • Topological graph             • Conflict-free paths per agent        │
+  │  • Agent start positions         • Timestamped waypoint sequences       │
+  │  • Goal positions                • Estimated completion times           │
+  │  • Current constraints           • Reservation table updates            │
+  └─────────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="cbs-algo">
+<h3>CBS Algorithm — Two-Level Search Detail</h3>
+
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║                    CBS: CONFLICT-BASED SEARCH                          ║
+  ╠══════════════════════════════════════════════════════════════════════════╣
+  ║                                                                        ║
+  ║  HIGH-LEVEL SEARCH (Best-First on Constraint Tree)                     ║
+  ║                                                                        ║
+  ║              Root Node                                                 ║
+  ║          constraints: {}                                               ║
+  ║          paths: {A: A*_opt, B: A*_opt, C: A*_opt}                      ║
+  ║          cost: sum of individual optimal costs                         ║
+  ║                    │                                                   ║
+  ║          ┌─────────┴──────────┐                                        ║
+  ║          │ VALIDATE: simulate │                                        ║
+  ║          │ all agents on grid │                                        ║
+  ║          └─────────┬──────────┘                                        ║
+  ║                    │                                                   ║
+  ║          Conflict found: ⟨A, B, cell(3,4), t=5⟩                       ║
+  ║          (agents A and B both at (3,4) at time 5)                      ║
+  ║                    │                                                   ║
+  ║         ┌──────────┴──────────────┐                                    ║
+  ║         ▼                         ▼                                    ║
+  ║  ┌─────────────────┐    ┌─────────────────┐                            ║
+  ║  │  Left Child     │    │  Right Child    │                            ║
+  ║  │  constraint:    │    │  constraint:    │                            ║
+  ║  │  ⟨A, (3,4), 5⟩ │    │  ⟨B, (3,4), 5⟩ │                            ║
+  ║  │                 │    │                 │                            ║
+  ║  │  Re-plan A      │    │  Re-plan B      │   ← LOW-LEVEL SEARCH      ║
+  ║  │  with A*        │    │  with A*        │     (Space-Time A*)        ║
+  ║  │  avoiding (3,4) │    │  avoiding (3,4) │                            ║
+  ║  │  at t=5         │    │  at t=5         │                            ║
+  ║  │                 │    │                 │                            ║
+  ║  │  New cost: 42   │    │  New cost: 41   │  ← pick lower cost first  ║
+  ║  └────────┬────────┘    └────────┬────────┘                            ║
+  ║           │                      │                                     ║
+  ║      validate...            validate...                                ║
+  ║      more conflicts?        no conflicts → SOLUTION FOUND              ║
+  ║           │                                                            ║
+  ║      split again...                                                    ║
+  ║                                                                        ║
+  ╠══════════════════════════════════════════════════════════════════════════╣
+  ║                                                                        ║
+  ║  LOW-LEVEL: Space-Time A*                                              ║
+  ║                                                                        ║
+  ║  Graph: G' = (V × T, E')  where                                       ║
+  ║    node = (x, y, t)                                                    ║
+  ║    edges = {move, wait} at each timestep                               ║
+  ║    constraints block specific (x,y,t) tuples                           ║
+  ║                                                                        ║
+  ║  Heuristic: h(n) = Manhattan distance (admissible)                     ║
+  ║  Conflict types: vertex (same cell), edge (swap), following            ║
+  ║                                                                        ║
+  ╠══════════════════════════════════════════════════════════════════════════╣
+  ║  Complexity:                                                           ║
+  ║    Best case:  O(k · V·log(V))    (k agents, few conflicts)           ║
+  ║    Worst case: O(2^c · V·log(V))  (c = conflicts resolved)            ║
+  ║    CBS excels when agents are loosely coupled (sparse map)             ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+</pre>
+</div>
+</section>
+
+<section id="rhcr">
+<h3>RHCR: Lifelong MAPF for Continuous Warehouse Ops</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-flow">Algorithm Flow</span>
+<pre>
+  Time ──────────────────────────────────────────────────────────▶
+
+  ├──── Window W=20 ────┤
+  ├─ h=5 ─┤
+
+  t=0                   t=20
+  │  Plan all agents    │
+  │  for 20 timesteps   │
+  │  using ECBS         │
+  │                     │
+  ├─────┤               │
+  │Exec │               │
+  │ 5   │               │
+  │steps│               │
+  │     │               │
+  │     t=5             t=25
+  │     │  Re-plan:     │
+  │     │  • Assign new │
+  │     │    goals to   │
+  │     │    idle agents│
+  │     │  • Plan 20    │
+  │     │    steps from │
+  │     │    current    │
+  │     │    positions  │
+  │     │               │
+  │     ├─────┤         │
+  │     │Exec │         │
+  │     │ 5   │         │
+  │     │steps│         │
+  │     │     │         │
+  │     │     t=10      t=30
+  │     │     │  Re-plan│
+  │     │     │  ...    │
+  │     │     │         │
+
+  Parameters:
+  ┌─────────────────────────────────────────────────┐
+  │ W (window)  = 20 timesteps   planning horizon   │
+  │ h (replan)  = 5  timesteps   execution window    │
+  │ Solver      = ECBS w=1.05   per window           │
+  │ Scale       = 1000 agents at 38.9% occupancy     │
+  └─────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="algo-selection">
+<h3>Algorithm Selection Decision Tree</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-flow">Decision</span>
+<pre>
+                      How many robots?
+                           │
+              ┌────────────┼────────────────┐
+              ▼            ▼                ▼
+           ≤50          50-200           200+
+              │            │                │
+              ▼            ▼                ▼
+         Need optimal?  Latency budget?   Zone decomp?
+           │    │        │     │           │     │
+           Y    N       <1s   <5s          Y     N
+           │    │        │     │           │     │
+           ▼    ▼        ▼     ▼           ▼     ▼
+         CBS  PBS     EECBS  ECBS       RHCR   MAPF-
+         ICBS         w=1.02 w=1.1      per    LNS2
+                                        zone   LaCAM
+
+  ┌────────────────────────────────────────────────────────────┐
+  │ Algorithm │ Optimal │ Max Agents │ Planning Time │ Memory │
+  ├───────────┼─────────┼────────────┼───────────────┼────────┤
+  │ CBS       │  Yes    │     ~50    │    seconds    │  High  │
+  │ ICBS      │  Yes    │     ~80    │    seconds    │  High  │
+  │ EECBS     │  w-opt  │    ~200    │    <1 sec     │  Med   │
+  │ PBS       │  No     │    ~500    │    <100ms     │  Low   │
+  │ RHCR+ECBS │  No     │   ~1000    │    <500ms     │  Med   │
+  │ LaCAM     │  No     │   ~3000    │    <200ms     │  Low   │
+  │ PIBT      │  No     │   ~5000+   │    <50ms      │  Low   │
+  └────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TRAFFIC & DEADLOCK                                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="traffic-arch">
+<h2>Traffic Controller Architecture</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-mid">Mid Level</span>
+<pre>
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                    TRAFFIC CONTROLLER SERVICE                       │
+  │                                                                     │
+  │  ┌────────────────────┐                                            │
+  │  │  ZONE MANAGER      │   Warehouse divided into zones:            │
+  │  │  ┌────┬────┬────┐  │     Zone capacity = max robots allowed     │
+  │  │  │ Z1 │ Z2 │ Z3 │  │     Zone lock = semaphore (count-based)    │
+  │  │  ├────┼────┼────┤  │     Global lock ordering prevents deadlock │
+  │  │  │ Z4 │ Z5 │ Z6 │  │                                            │
+  │  │  ├────┼────┼────┤  │   Zones contain:                           │
+  │  │  │ Z7 │ Z8 │ Z9 │  │     • Corridors (one-way / bidirectional)  │
+  │  │  └────┴────┴────┘  │     • Intersections (reservation-based)    │
+  │  └─────────┬──────────┘     • Staging areas (capacity-limited)     │
+  │            │                                                        │
+  │  ┌─────────▼──────────────────────────────────────────────────┐    │
+  │  │  INTERSECTION MANAGER                                       │    │
+  │  │                                                              │    │
+  │  │  ┌──────────────────────────────────────────────────────┐   │    │
+  │  │  │ Reservation Table (per intersection)                  │   │    │
+  │  │  │                                                       │   │    │
+  │  │  │ Intersection I₇:                                      │   │    │
+  │  │  │   t=100: Robot R3 (reserved, approved)                │   │    │
+  │  │  │   t=101: Robot R3 (reserved, approved)                │   │    │
+  │  │  │   t=102: Robot R8 (reserved, approved)                │   │    │
+  │  │  │   t=102: Robot R5 (DENIED → wait/reroute)             │   │    │
+  │  │  │   t=103: Robot R5 (reserved, approved after wait)     │   │    │
+  │  │  └──────────────────────────────────────────────────────┘   │    │
+  │  └─────────────────────────────────────────────────────────────┘    │
+  │            │                                                        │
+  │  ┌─────────▼──────────┐   ┌───────────────────────────────────┐    │
+  │  │ CONGESTION MONITOR │   │ ONE-WAY CORRIDOR ENFORCER         │    │
+  │  │                    │   │                                    │    │
+  │  │ Heatmap updated    │   │ Corridor C₁: ← (westbound only)  │    │
+  │  │ every 1 second     │   │ Corridor C₂: → (eastbound only)  │    │
+  │  │                    │   │ Corridor C₃: ↕ (bidirectional,    │    │
+  │  │ Feeds back to      │   │               token-based)        │    │
+  │  │ Task Allocator     │   │                                    │    │
+  │  │ cost matrix        │   │ Dynamic: flip direction based     │    │
+  │  └────────────────────┘   │ on traffic flow analysis          │    │
+  │                            └───────────────────────────────────┘    │
+  └─────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="deadlock">
+<h3>Deadlock Detection & Resolution</h3>
+
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  WAIT-FOR GRAPH (WFG) — Cycle = Deadlock
+  ════════════════════════════════════════
+
+  Normal state (no deadlock):        Deadlock detected:
+
+    R1 ──waits──▶ R3                   R1 ──waits──▶ R2
+    R2 ──waits──▶ R4                   │              │
+    R5 (free)                          │              ▼
+                                       R4 ◀──waits── R3
+    No cycles → OK                     │              ▲
+                                       └──waits──▶ R4─┘
+
+                                       Cycle: R1→R2→R3→R4→R1
+                                       DEADLOCK!
+
+  Detection Algorithm:
+  ┌──────────────────────────────────────────────────┐
+  │ 1. Build WFG from current robot wait states      │
+  │ 2. Run Tarjan's SCC (O(V+E)) every 5-10 sec     │
+  │ 3. OR trigger on wait_time > threshold (30 sec)  │
+  │ 4. Any SCC with >1 node = deadlock cycle         │
+  └──────────────────────────────────────────────────┘
+
+  Resolution:
+  ┌──────────────────────────────────────────────────┐
+  │ 1. Select victim (lowest priority / least work)  │
+  │ 2. Reverse victim to nearest safe-parking spot   │
+  │ 3. Re-plan victim's path avoiding blocked area   │
+  │ 4. If still stuck: widen victim set              │
+  │ 5. Increment deadlock counter for zone           │
+  │    (if frequent → redesign zone traffic rules)   │
+  └──────────────────────────────────────────────────┘
+
+  Prevention (Coffman conditions — break any one):
+  ┌──────────────────────────────────────────────────────────────┐
+  │ Condition         │ Prevention Strategy                      │
+  ├───────────────────┼──────────────────────────────────────────┤
+  │ Mutual Exclusion  │ Cannot eliminate (cells are exclusive)   │
+  │ Hold-and-Wait     │ Acquire ALL zone locks atomically        │
+  │ No Preemption     │ Higher-priority robot can preempt path   │
+  │ Circular Wait     │ Global zone ordering (always lock Z_i    │
+  │                   │ before Z_j if i < j)                     │
+  └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="zone-mgmt">
+<h3>Zone-Based Warehouse Layout</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-mid">Mid Level</span>
+<pre>
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    WAREHOUSE FLOOR PLAN                       │
+  │                                                               │
+  │  ┌──────────┐  ══→══  ┌──────────┐  ══→══  ┌──────────┐    │
+  │  │ ZONE A   │         │ ZONE B   │         │ ZONE C   │    │
+  │  │ Storage  │         │ Storage  │         │ Storage  │    │
+  │  │ Cap: 8   │  ◀════  │ Cap: 8   │  ◀════  │ Cap: 8   │    │
+  │  │ Robots:5 │         │ Robots:3 │         │ Robots:7 │    │
+  │  └────┬─────┘         └────┬─────┘         └────┬─────┘    │
+  │       │                    │                    │            │
+  │       ▼                    ▼                    ▼            │
+  │  ═══════════════  MAIN CORRIDOR (Bidirectional, Token) ═══  │
+  │       │                    │                    │            │
+  │       ▼                    ▼                    ▼            │
+  │  ┌──────────┐         ┌──────────┐         ┌──────────┐    │
+  │  │ ZONE D   │  ══→══  │ ZONE E   │         │ ZONE F   │    │
+  │  │ Pick     │         │ Pack     │  ══→══  │ Ship     │    │
+  │  │ Stations │  ◀════  │ Stations │         │ Dock     │    │
+  │  │ Cap: 4   │         │ Cap: 6   │  ◀════  │ Cap: 3   │    │
+  │  └──────────┘         └──────────┘         └──────────┘    │
+  │                                                               │
+  │  ┌──────────────────────────────────────┐                    │
+  │  │ ZONE G: CHARGING BAY                 │                    │
+  │  │ 12 charging stations                 │                    │
+  │  │ Queue: FIFO with priority override   │                    │
+  │  └──────────────────────────────────────┘                    │
+  │                                                               │
+  │  Legend:  ══→══  One-way corridor                             │
+  │           ═════  Bidirectional (token-based)                  │
+  │           Cap:N  Max robots allowed in zone simultaneously   │
+  └──────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ROBOT STATE MACHINE                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="fsm-flat">
+<h2>Robot State Machine — Flat View</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-state">State Machine</span>
+<pre>
+                              ┌──────────────────┐
+                    ┌────────▶│  EMERGENCY STOP  │◀───── ANY STATE
+                    │         │  Kill actuators  │       (E-Stop signal
+                    │         │  Brake motors    │        OR obstacle
+                    │         └────────┬─────────┘        <20cm)
+                    │                  │
+                    │           Manual reset
+                    │                  │
+                    │                  ▼
+  ┌────────┐   task_assigned   ┌──────────────┐   path_planned   ┌──────────┐
+  │  IDLE  │──────────────────▶│   ASSIGNED   │─────────────────▶│NAVIGATING│
+  │        │                   │              │                  │          │
+  │Battery │   Guards:         │Plan path     │   Guards:        │Execute   │
+  │>90%    │   • battery>30%   │Build plan    │   • path valid   │waypoints │
+  │No fault│   • no faults     │Reserve zones │   • zones locked │Avoid obs │
+  │        │   • task valid    │              │                  │Send telem│
+  └───┬────┘                   └──────────────┘                  └────┬─────┘
+      ▲                                                               │
+      │ battery>90%                                           at_target│
+      │ + diagnostics_pass                                   (pos<5cm) │
+      │                                                               ▼
+  ┌───┴──────┐   task_complete   ┌──────────────┐  pick/place  ┌──────────┐
+  │ CHARGING │◀──────────────────│  RETURNING   │◀─────────────│EXECUTING │
+  │          │                   │              │   done       │          │
+  │ Dock     │   Guards:         │Navigate to   │              │Gripper   │
+  │ Connect  │   • battery<30%   │staging area  │   Guards:    │select    │
+  │ Monitor  │   • or scheduled  │Release zones │   • grip OK  │Pick/Place│
+  │ charge   │                   │              │   • item ID  │Verify    │
+  └──────────┘                   └──────────────┘   verified   └──────────┘
+      ▲                               ▲
+      │                               │
+      │                          ┌────┴─────┐
+      │    resolved              │ WAITING  │  ← Blocked by traffic,
+      └──────────────────────────│          │     resource contention,
+                                 │ Timer:30s│     or zone at capacity
+                                 │ → retry  │
+                                 └──────────┘
+
+  Additional transitions (not shown for clarity):
+    ANY → ERROR (recoverable fault detected)
+    ERROR → IDLE (auto-recovery successful)
+    ERROR → MANUAL_OVERRIDE (requires human)
+    MANUAL_OVERRIDE → IDLE (operator releases)
+</pre>
+</div>
+</section>
+
+<section id="hsm">
+<h3>Hierarchical State Machine (HSM)</h3>
+
+<div class="diagram-box">
+  <span class="diagram-label label-state">HSM</span>
+<pre>
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  ROOT                                                               ║
+  ║  ┌────────────────────────────────────────────────────────────────┐ ║
+  ║  │ E-Stop transition: ANY substate → EMERGENCY_STOP              │ ║
+  ║  │ (defined ONCE at root, inherited by ALL substates)            │ ║
+  ║  └────────────────────────────────────────────────────────────────┘ ║
+  ║                                                                     ║
+  ║  ┌──────────────────────────────────────────────────────────┐      ║
+  ║  │ OPERATIONAL (superstate)                                  │      ║
+  ║  │  ┌──────────────────────────────────────────────────┐    │      ║
+  ║  │  │ Heartbeat publisher: 1Hz (always active in this  │    │      ║
+  ║  │  │ superstate — entry action, not per-substate)     │    │      ║
+  ║  │  └──────────────────────────────────────────────────┘    │      ║
+  ║  │                                                          │      ║
+  ║  │  ┌────────┐  ┌──────────────────────────────┐  ┌──────┐│      ║
+  ║  │  │  IDLE  │  │  MISSION_ACTIVE (superstate) │  │CHARGE││      ║
+  ║  │  │        │  │                              │  │      ││      ║
+  ║  │  │        │  │  ┌────────┐  ┌────────────┐  │  │      ││      ║
+  ║  │  │        │──▶  │ASSIGNED│─▶│ NAVIGATING │  │  │      ││      ║
+  ║  │  │        │  │  └────────┘  │ (super)    │  │  │      ││      ║
+  ║  │  │        │  │              │            │  │  │      ││      ║
+  ║  │  │        │  │              │ ┌────────┐ │  │  │      ││      ║
+  ║  │  │        │  │              │ │PLANNING│ │  │  │      ││      ║
+  ║  │  │        │  │              │ ├────────┤ │  │  │      ││      ║
+  ║  │  │        │  │              │ │TRAVERS │ │  │  │      ││      ║
+  ║  │  │        │  │              │ ├────────┤ │  │  │      ││      ║
+  ║  │  │        │  │              │ │OBSTACLE│ │  │  │      ││      ║
+  ║  │  │        │  │              │ │AVOID   │ │  │  │      ││      ║
+  ║  │  │        │  │              │ ├────────┤ │  │  │      ││      ║
+  ║  │  │        │  │              │ │WAIT FOR│ │  │  │      ││      ║
+  ║  │  │        │  │              │ │TRAFFIC │ │  │  │      ││      ║
+  ║  │  │        │  │              │ └────────┘ │  │  │      ││      ║
+  ║  │  │        │  │              └─────┬──────┘  │  │      ││      ║
+  ║  │  │        │  │                    ▼         │  │      ││      ║
+  ║  │  │        │  │  ┌──────────────────────┐    │  │      ││      ║
+  ║  │  │        │  │  │ EXECUTING (super)    │    │  │      ││      ║
+  ║  │  │        │  │  │ ┌──────┐ ┌────────┐  │    │  │      ││      ║
+  ║  │  │        │  │  │ │PICK/ │ │VERIFY  │  │    │  │      ││      ║
+  ║  │  │        │  │  │ │PLACE │→│COMPLETE│  │    │  │      ││      ║
+  ║  │  │        │  │  │ └──────┘ └────────┘  │    │  │      ││      ║
+  ║  │  │        │  │  └──────────┬───────────┘    │  │      ││      ║
+  ║  │  │        │  │             ▼                │  │      ││      ║
+  ║  │  │        │  │  ┌──────────────┐            │  │      ││      ║
+  ║  │  │        │◀─│──│  RETURNING   │            │  │◀─────┘│      ║
+  ║  │  │        │  │  └──────────────┘            │  │ bat<30│      ║
+  ║  │  └────────┘  └──────────────────────────────┘  └──────┘│      ║
+  ║  └──────────────────────────────────────────────────────────┘      ║
+  ║                                                                     ║
+  ║  ┌────────────┐  ┌──────────────────┐  ┌──────────────────────┐    ║
+  ║  │ EMERGENCY  │  │ ERROR            │  │ MANUAL_OVERRIDE      │    ║
+  ║  │ STOP       │  │ ┌──────────────┐ │  │                      │    ║
+  ║  │            │  │ │ DIAGNOSING   │ │  │ Human tele-operation │    ║
+  ║  │ All motion │  │ ├──────────────┤ │  │ Full control via     │    ║
+  ║  │ halted     │  │ │ AWAITING     │ │  │ joystick/UI          │    ║
+  ║  │ Brakes on  │  │ │ INTERVENTION │ │  │                      │    ║
+  ║  │            │  │ ├──────────────┤ │  │                      │    ║
+  ║  │            │  │ │ RECOVERING   │ │  │                      │    ║
+  ║  │            │  │ └──────────────┘ │  │                      │    ║
+  ║  └────────────┘  └──────────────────┘  └──────────────────────┘    ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+</pre>
+</div>
+
+<div class="info-box">
+  <strong>HSM Key Benefit:</strong> The E-Stop transition and heartbeat publisher are defined ONCE at the superstate level, not repeated in every substate. Events unhandled by a child state bubble up to the parent — like exception propagation.
+</div>
+</section>
+
+<section id="nav-substates">
+<h3>Navigation Substates with Behavior Tree Integration</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  NAVIGATING superstate internals (Nav2 Behavior Tree):
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Behavior Tree: NavigateWithRecovery                        │
+  │                                                             │
+  │  [Fallback]                                                 │
+  │  ├── [Sequence] ◄── Primary navigation                     │
+  │  │   ├── ComputePathThroughPoses  ◄── Global planner (A*)  │
+  │  │   ├── FollowPath               ◄── Local controller     │
+  │  │   │   └── DWB (Dynamic Window) ◄── Obstacle avoidance   │
+  │  │   └── GoalReached              ◄── Within 5cm tolerance │
+  │  │                                                          │
+  │  └── [Sequence] ◄── Recovery behaviors                     │
+  │      ├── Wait(5s)                  ◄── Brief pause          │
+  │      ├── Spin(90°)                 ◄── Look for clearance   │
+  │      ├── BackUp(0.5m)             ◄── Create space          │
+  │      └── RequestReplan             ◄── Ask Traffic Ctrl     │
+  │                                                             │
+  │  State transitions within NAVIGATING:                       │
+  │                                                             │
+  │  PATH_PLANNING ──path_ready──▶ TRAVERSING                  │
+  │  TRAVERSING ──obstacle──▶ OBSTACLE_AVOIDANCE               │
+  │  TRAVERSING ──zone_full──▶ WAITING_FOR_TRAFFIC             │
+  │  OBSTACLE_AVOIDANCE ──cleared──▶ TRAVERSING                │
+  │  WAITING_FOR_TRAFFIC ──zone_clear──▶ TRAVERSING            │
+  │  TRAVERSING ──at_goal──▶ (exit to EXECUTING)               │
+  └─────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FAULT TOLERANCE                                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="fault-arch">
+<h2>Fault Tolerance Architecture</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-mid">Mid Level</span>
+<pre>
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                    FAULT TOLERANCE LAYERS                           │
+  │                                                                     │
+  │  Layer 1: ROBOT SELF-MONITORING                                    │
+  │  ┌───────────────────────────────────────────────────────────────┐ │
+  │  │  On-board watchdog timer (hardware)                           │ │
+  │  │  ROS 2 lifecycle node health checks                           │ │
+  │  │  Motor/sensor diagnostic publishers                           │ │
+  │  │  Battery monitoring (voltage + current + temp)                │ │
+  │  │  WiFi RSSI monitoring + local decision cache                  │ │
+  │  └───────────────────────────────────────────────────────────────┘ │
+  │       │ heartbeat (1Hz, MQTT QoS 1)                                │
+  │       ▼                                                            │
+  │  Layer 2: PHI ACCRUAL FAILURE DETECTOR                             │
+  │  ┌───────────────────────────────────────────────────────────────┐ │
+  │  │  φ = −log₁₀(1 − F(t_now − t_last))                          │ │
+  │  │  F = CDF of normal distribution of heartbeat intervals       │ │
+  │  │  Sample window: 200 heartbeats                                │ │
+  │  │                                                               │ │
+  │  │  φ < 3  → HEALTHY                                            │ │
+  │  │  φ 3-5  → WARNING (log, alert)                               │ │
+  │  │  φ 5-8  → SUSPECTED (begin task migration plan)              │ │
+  │  │  φ > 8  → FAILED (trigger reassignment)                     │ │
+  │  │  φ > 12 → REMOVED (drop from fleet roster)                  │ │
+  │  └───────────────────────────────────────────────────────────────┘ │
+  │       │ failure event                                              │
+  │       ▼                                                            │
+  │  Layer 3: TASK REASSIGNMENT ENGINE                                 │
+  │  ┌───────────────────────────────────────────────────────────────┐ │
+  │  │  1. Read last task checkpoint from Redis/PG                   │ │
+  │  │  2. Classify: reassignable? (transport=yes, mid-pick=maybe)  │ │
+  │  │  3. Score candidates: proximity, battery, workload            │ │
+  │  │  4. Assign with new epoch (fencing token)                     │ │
+  │  │  5. Invalidate old robot's epoch                              │ │
+  │  └───────────────────────────────────────────────────────────────┘ │
+  │       │                                                            │
+  │       ▼                                                            │
+  │  Layer 4: FLEET COORDINATOR HA (Raft)                              │
+  │  ┌───────────────────────────────────────────────────────────────┐ │
+  │  │  3-node Raft cluster (tolerates 1 failure)                    │ │
+  │  │  Leader handles all writes (task assignments, state changes)  │ │
+  │  │  Followers serve reads (dashboard queries, status checks)     │ │
+  │  │  Leader heartbeat: 50-150ms                                   │ │
+  │  │  Election timeout: 150-300ms (randomized)                     │ │
+  │  │  Recovery time: 500ms - 2s                                    │ │
+  │  └───────────────────────────────────────────────────────────────┘ │
+  │       │                                                            │
+  │       ▼                                                            │
+  │  Layer 5: GRACEFUL DEGRADATION                                     │
+  │  ┌───────────────────────────────────────────────────────────────┐ │
+  │  │  Level 0: Normal (all systems operational)                    │ │
+  │  │  Level 1: <10% fleet down → redistribute tasks               │ │
+  │  │  Level 2: 10-25% down → prioritize critical orders only      │ │
+  │  │  Level 3: 25-50% down → reduce zones, batch operations       │ │
+  │  │  Level 4: >50% down → revert to manual fulfillment           │ │
+  │  └───────────────────────────────────────────────────────────────┘ │
+  └─────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="heartbeat">
+<h3>Heartbeat Message & Phi Accrual Detail</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  Heartbeat Protobuf Message (published every 1s, MQTT QoS 1):
+
+  message RobotHeartbeat {
+    string   robot_id    = 1;   // "nimble-r007"
+    uint64   epoch       = 2;   // fencing token (monotonic)
+    uint64   timestamp   = 3;   // Unix millis
+    Position position    = 4;   // {x, y, theta}
+    float    battery_pct = 5;   // 0.0 - 100.0
+    float    battery_v   = 6;   // voltage
+    State    state       = 7;   // enum: IDLE, NAVIGATING, ...
+    string   task_id     = 8;   // current task or ""
+    float    wifi_rssi   = 9;   // dBm (-30 to -90)
+    float    cpu_load    = 10;  // 0.0 - 1.0
+    repeated SensorHealth sensors = 11;
+    repeated MotorTemp    motors  = 12;
+  }
+
+  Size: ~120 bytes (Protobuf) vs ~450 bytes (JSON)
+
+
+  Phi Accrual Computation:
+
+  heartbeat_intervals = [1.01, 0.98, 1.03, 1.02, 0.99, ...]  (last 200)
+
+  μ = mean(intervals)     ≈ 1.006s
+  σ = stddev(intervals)   ≈ 0.018s
+
+  t_since_last = now - last_heartbeat_time
+
+  φ(t) = −log₁₀(1 − CDF_normal(t, μ, σ))
+
+  Example:
+    t = 1.05s  → φ = 0.8   (HEALTHY, normal jitter)
+    t = 2.0s   → φ = 4.2   (WARNING)
+    t = 5.0s   → φ = 9.1   (FAILED → reassign)
+    t = 15.0s  → φ = 14.3  (REMOVED from roster)
+</pre>
+</div>
+</section>
+
+<section id="task-reassign">
+<h3>Task Reassignment Flow</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-flow">Flow</span>
+<pre>
+  Robot R7 fails (φ > 8)
+       │
+       ▼
+  ┌────────────────┐     ┌──────────────────┐     ┌────────────────────┐
+  │ 1. READ LAST   │────▶│ 2. CLASSIFY TASK │────▶│ 3. SCORE CANDIDATES│
+  │ CHECKPOINT     │     │                  │     │                    │
+  │                │     │ Transport task:  │     │ For each idle/low- │
+  │ Redis key:     │     │  → reassignable  │     │ workload robot:    │
+  │ task:T42:ckpt  │     │                  │     │                    │
+  │                │     │ Mid-pick:        │     │ score = 0.4·dist   │
+  │ Steps done: 3  │     │  → check if item │     │       + 0.3·batt   │
+  │ Steps left: 2  │     │    gripped       │     │       + 0.2·load   │
+  │ Position: (x,y)│     │  → if yes: abort │     │       + 0.1·cap    │
+  │ Items: [SKU-A] │     │    pick first    │     │                    │
+  │                │     │                  │     │ R3: 0.82 ◄─ best  │
+  └────────────────┘     └──────────────────┘     │ R9: 0.65           │
+                                                   │ R1: 0.43           │
+                                                   └────────┬───────────┘
+                                                            │
+       ┌────────────────────────────────────────────────────┘
+       ▼
+  ┌────────────────┐     ┌──────────────────┐     ┌────────────────────┐
+  │ 4. ASSIGN TO   │────▶│ 5. FENCE OLD     │────▶│ 6. MONITOR NEW    │
+  │ R3             │     │ ROBOT            │     │ EXECUTION          │
+  │                │     │                  │     │                    │
+  │ New epoch: 43  │     │ R7's epoch 42    │     │ R3 resumes from   │
+  │ Start: step 4  │     │ now invalid      │     │ step 4 checkpoint │
+  │ (skip done     │     │                  │     │                    │
+  │  steps 1-3)    │     │ If R7 recovers:  │     │ Verify: items     │
+  │                │     │ must re-register │     │ match checkpoint  │
+  │ Kafka event:   │     │ with new epoch   │     │                    │
+  │ task.reassigned│     │ before any action│     │ Complete step 5   │
+  └────────────────┘     └──────────────────┘     └────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="raft">
+<h3>Raft Consensus for Fleet Coordinator HA</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                  FLEET COORDINATOR RAFT CLUSTER                    │
+  │                                                                    │
+  │  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐          │
+  │  │  Node 1      │   │  Node 2      │   │  Node 3      │          │
+  │  │  ★ LEADER    │   │  FOLLOWER    │   │  FOLLOWER    │          │
+  │  │              │   │              │   │              │          │
+  │  │ Handles:     │   │ Replicates   │   │ Replicates   │          │
+  │  │ • Task       │──▶│ Raft log     │   │ Raft log     │          │
+  │  │   assignment │   │              │   │              │          │
+  │  │ • State      │──▶│ Serves read  │   │ Serves read  │          │
+  │  │   changes    │   │ queries      │   │ queries      │          │
+  │  │ • Zone       │   │              │   │              │          │
+  │  │   config     │   │ Votes in     │   │ Votes in     │          │
+  │  │              │   │ elections    │   │ elections    │          │
+  │  └──────┬───────┘   └──────────────┘   └──────────────┘          │
+  │         │                                                         │
+  │         │ heartbeat every 50-150ms                                │
+  │         │                                                         │
+  │  Leader fails:                                                    │
+  │  ┌────────────────────────────────────────────────────────┐      │
+  │  │ 1. Followers detect missing heartbeat (150-300ms)      │      │
+  │  │ 2. Random election timeout triggers                    │      │
+  │  │ 3. Candidate requests votes from peers                 │      │
+  │  │ 4. Majority vote → new leader elected                  │      │
+  │  │ 5. Total failover: 500ms - 2 seconds                   │      │
+  │  │                                                         │      │
+  │  │ During election:                                        │      │
+  │  │ • Robots continue current tasks (cached instructions)  │      │
+  │  │ • New assignments queue in Kafka                        │      │
+  │  │ • No safety impact (robots are independently safe)     │      │
+  │  └────────────────────────────────────────────────────────┘      │
+  │                                                                    │
+  │  Raft Log entries:                                                 │
+  │  ┌─────┬────────────────────────────────┬──────────────────┐      │
+  │  │ Idx │ Command                        │ Term             │      │
+  │  ├─────┼────────────────────────────────┼──────────────────┤      │
+  │  │ 101 │ AssignTask(R7, T42)            │ 5                │      │
+  │  │ 102 │ UpdateState(R3, NAVIGATING)    │ 5                │      │
+  │  │ 103 │ MarkFailed(R7, epoch=42)       │ 5                │      │
+  │  │ 104 │ ReassignTask(T42, R3, epoch=43)│ 5                │      │
+  │  └─────┴────────────────────────────────┴──────────────────┘      │
+  └────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- COMMUNICATION ARCHITECTURE                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="comm-arch">
+<h2>Communication Architecture — Full Stack</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-high">High Level</span>
+<pre>
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                    COMMUNICATION LAYER MAP                               │
+  │                                                                          │
+  │  ┌─────────┐   WebSocket (wss://)    ┌────────────────────────────────┐ │
+  │  │Dashboard│◀════════════════════════▶│ WebSocket Gateway (Envoy)     │ │
+  │  │ React   │   Real-time updates     │ Subscribes to Redis Pub/Sub   │ │
+  │  │ SPA     │   ~100ms latency        │ Fans out to N dashboard conns │ │
+  │  └─────────┘                          └────────────────────────────────┘ │
+  │                                                                          │
+  │  ┌─────────┐   REST (HTTPS)          ┌────────────────────────────────┐ │
+  │  │WMS/ERP  │◀════════════════════════▶│ REST API Gateway (Envoy)      │ │
+  │  │External │   CRUD, task submit     │ Rate limit, JWT auth          │ │
+  │  │Systems  │   JSON payloads         │ REST→gRPC transcoding         │ │
+  │  └─────────┘                          └────────────────────────────────┘ │
+  │                                                                          │
+  │  ┌─────────────────────────────────────────────────────────────────────┐│
+  │  │ INTERNAL SERVICE MESH (gRPC + Protobuf)                             ││
+  │  │                                                                      ││
+  │  │  Task ◀──gRPC──▶ Path ◀──gRPC──▶ Traffic ◀──gRPC──▶ Fleet State   ││
+  │  │  Alloc           Planner          Control            Manager        ││
+  │  │                                                                      ││
+  │  │  Benefits: 7-10x faster than REST, streaming, strict contracts      ││
+  │  └─────────────────────────────────────────────────────────────────────┘│
+  │                                                                          │
+  │  ┌─────────────────────────────────────────────────────────────────────┐│
+  │  │ EVENT BUS (Apache Kafka)                                            ││
+  │  │                                                                      ││
+  │  │  Topics: fleet.task.{created,assigned,completed,failed}             ││
+  │  │          fleet.robot.{state_changed,health_alert}                   ││
+  │  │          fleet.telemetry.{position,battery,sensor}                  ││
+  │  │                                                                      ││
+  │  │  Partition by: robot_id (ordered per-robot events)                  ││
+  │  │  Retention: 7 days hot, 90 days cold (S3)                           ││
+  │  └─────────────────────────────────────────────────────────────────────┘│
+  │                                                                          │
+  │  ┌─────────────────────────────────────────────────────────────────────┐│
+  │  │ ROBOT TELEMETRY (MQTT — EMQX 5.x Cluster)                          ││
+  │  │                                                                      ││
+  │  │  ┌──────────┐   MQTT/Zenoh    ┌──────────────────────────────────┐ ││
+  │  │  │ Robot    │◀═══════════════▶│ EMQX Broker Cluster (3+ nodes) │ ││
+  │  │  │ MQTT     │   QoS 0: pos   │                                  │ ││
+  │  │  │ Client   │   QoS 1: state │ Core nodes: routing + ACID      │ ││
+  │  │  │          │   QoS 1: cmds  │ Replicant nodes: connections    │ ││
+  │  │  └──────────┘                  └──────────────────────────────────┘ ││
+  │  └─────────────────────────────────────────────────────────────────────┘│
+  │                                                                          │
+  │  ┌─────────────────────────────────────────────────────────────────────┐│
+  │  │ ON-ROBOT (ROS 2 Jazzy/Kilted + DDS/Zenoh)                          ││
+  │  │                                                                      ││
+  │  │  Topics: /cmd_vel, /odom, /scan, /camera/image, /battery_state     ││
+  │  │  Services: /get_state, /lifecycle/transition                        ││
+  │  │  Actions: /navigate_to_pose, /pick_object, /dock                   ││
+  │  │                                                                      ││
+  │  │  Discovery: Fast DDS Discovery Server (linear scaling)             ││
+  │  │  Middleware: Zenoh (Tier 1 in Kilted Kaiju, better WAN perf)       ││
+  │  └─────────────────────────────────────────────────────────────────────┘│
+  └──────────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="mqtt-design">
+<h3>MQTT Topic Hierarchy Design</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  fleet/
+  ├── {fleet_id}/
+  │   ├── robot/
+  │   │   ├── {robot_id}/
+  │   │   │   ├── telemetry/          QoS 0, 10-50Hz
+  │   │   │   │   ├── position        {x, y, θ, v, ω}
+  │   │   │   │   ├── battery         {pct, voltage, current, temp}
+  │   │   │   │   └── sensors         {lidar_ok, cam_ok, imu_ok}
+  │   │   │   │
+  │   │   │   ├── status              QoS 1, RETAINED, on-change
+  │   │   │   │                       {state, task_id, epoch}
+  │   │   │   │                       New subscribers get last state
+  │   │   │   │
+  │   │   │   ├── heartbeat           QoS 1, 1Hz
+  │   │   │   │                       Full health payload (Protobuf)
+  │   │   │   │
+  │   │   │   ├── command/            QoS 1, fleet→robot
+  │   │   │   │   ├── navigate        {waypoints: [...]}
+  │   │   │   │   ├── execute         {task_type, params}
+  │   │   │   │   └── stop            {reason}  ← QoS 2 for e-stop
+  │   │   │   │
+  │   │   │   └── alert/              QoS 1, robot→fleet
+  │   │   │       ├── error           {code, severity, message}
+  │   │   │       └── obstacle        {type, distance, position}
+  │   │   │
+  │   │   └── $all/                   Wildcard subscriptions
+  │   │       ├── status              fleet/{id}/robot/+/status
+  │   │       └── heartbeat           fleet/{id}/robot/+/heartbeat
+  │   │
+  │   ├── zone/
+  │   │   └── {zone_id}/
+  │   │       ├── congestion          {level: 0.0-1.0, robot_count}
+  │   │       ├── capacity            {current, max}
+  │   │       └── direction           {corridors: [{id, dir}]}
+  │   │
+  │   └── system/
+  │       ├── alert                   Fleet-wide alerts
+  │       └── config                  Dynamic configuration updates
+
+  QoS Selection:
+  ┌─────────────────────────────────────────────────────────┐
+  │ QoS 0 │ Position (10-50Hz) — loss tolerable            │
+  │ QoS 1 │ Status, heartbeat, commands — at-least-once    │
+  │ QoS 2 │ Emergency stop ONLY — exactly-once             │
+  │        │ (Note: AWS IoT Core doesn't support QoS 2)    │
+  └─────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="ros2-arch">
+<h3>ROS 2 On-Robot Architecture</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-mid">Mid Level</span>
+<pre>
+  ┌──────────────────────────────────────────────────────────────────┐
+  │              PER-ROBOT ROS 2 NODE GRAPH                          │
+  │              (NVIDIA Jetson AGX Orin/Thor)                       │
+  │                                                                  │
+  │  ┌───────────────────────────────────────────────────────────┐  │
+  │  │  PERCEPTION PIPELINE                                      │  │
+  │  │                                                           │  │
+  │  │  /camera/image ──▶ ┌──────────┐ ──▶ /detections          │  │
+  │  │  /camera/depth ──▶ │ Object   │                           │  │
+  │  │                     │ Detector │ ──▶ /obstacles            │  │
+  │  │  /scan (LiDAR) ──▶ │ (VLA/RT2)│                           │  │
+  │  │                     └──────────┘                           │  │
+  │  └───────────────────────────┬───────────────────────────────┘  │
+  │                              │                                   │
+  │  ┌───────────────────────────▼───────────────────────────────┐  │
+  │  │  NAVIGATION STACK (Nav2)                                   │  │
+  │  │                                                            │  │
+  │  │  ┌────────────┐  ┌──────────────┐  ┌──────────────────┐   │  │
+  │  │  │ Costmap    │  │ Planner Svr  │  │ Controller Svr   │   │  │
+  │  │  │ (2D/Voxel) │  │ (NavFn/A*)   │  │ (DWB/MPPI)      │   │  │
+  │  │  │            │  │              │  │                  │   │  │
+  │  │  │ /global_   │  │ /plan        │  │ /cmd_vel         │   │  │
+  │  │  │  costmap   │  │              │  │  ↓               │   │  │
+  │  │  └────────────┘  └──────────────┘  │ Motor drivers    │   │  │
+  │  │                                     └──────────────────┘   │  │
+  │  │  ┌──────────────────────────────────────────────────────┐  │  │
+  │  │  │ BT Navigator (Behavior Tree executor)                │  │  │
+  │  │  │ Manages: navigate, spin, backup, wait, dock          │  │  │
+  │  │  └──────────────────────────────────────────────────────┘  │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  │                                                                  │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │  FLEET BRIDGE (MQTT ↔ ROS 2)                               │  │
+  │  │                                                             │  │
+  │  │  ┌──────────┐  subscribe    ┌─────────────┐                │  │
+  │  │  │ MQTT     │◀────────────▶│ ROS 2 Node  │                │  │
+  │  │  │ Client   │  publish      │ fleet_bridge│                │  │
+  │  │  │ (Paho)   │              │             │                │  │
+  │  │  └──────────┘              │ Translates: │                │  │
+  │  │       │                     │ MQTT cmd →  │                │  │
+  │  │       │                     │ Nav2 action │                │  │
+  │  │       │                     │             │                │  │
+  │  │       │                     │ ROS state → │                │  │
+  │  │       │                     │ MQTT status │                │  │
+  │  │       ▼                     └─────────────┘                │  │
+  │  │  EMQX Broker                                                │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  │                                                                  │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │  SAFETY LAYER (Highest Priority)                            │  │
+  │  │                                                              │  │
+  │  │  /emergency_stop (latched topic, QoS: reliable+transient)   │  │
+  │  │  Hardware watchdog: 200ms timeout                            │  │
+  │  │  Collision monitor: 50ms cycle, <20cm → e-stop              │  │
+  │  │  Bumper + cliff sensors → immediate stop                    │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  └──────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="api-gateway">
+<h3>API Gateway & Service Mesh</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                    ENVOY API GATEWAY                              │
+  │                                                                  │
+  │  External REST endpoints:                                        │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │ POST   /api/v1/tasks              → Create task            │  │
+  │  │ GET    /api/v1/tasks/{id}         → Get task status        │  │
+  │  │ GET    /api/v1/robots             → List all robots        │  │
+  │  │ GET    /api/v1/robots/{id}        → Robot detail           │  │
+  │  │ POST   /api/v1/robots/{id}/cmd    → Send command           │  │
+  │  │ GET    /api/v1/zones              → Zone status            │  │
+  │  │ GET    /api/v1/fleet/health       → Fleet health summary   │  │
+  │  │ WS     /ws/v1/dashboard           → WebSocket stream       │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  │                              │                                   │
+  │         Envoy transcodes REST → gRPC                             │
+  │                              │                                   │
+  │  Internal gRPC services:                                         │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │ TaskAllocatorService.AssignTask(TaskRequest) → Assignment  │  │
+  │  │ PathPlannerService.PlanPaths(PlanRequest) → PathSet        │  │
+  │  │ TrafficControlService.ReserveZone(ZoneReq) → Approval     │  │
+  │  │ FleetStateService.GetRobotState(RobotId) → RobotState     │  │
+  │  │ FleetStateService.StreamUpdates(Filter) → stream(Update)  │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  │                                                                  │
+  │  Serialization comparison:                                       │
+  │  ┌──────────┬──────────┬────────────┬─────────────────────────┐ │
+  │  │ Format   │ Size     │ Deser time │ Use case                │ │
+  │  ├──────────┼──────────┼────────────┼─────────────────────────┤ │
+  │  │ JSON     │ 450 B    │ ~15 µs     │ REST responses, config  │ │
+  │  │ Protobuf │ 120 B    │ ~69 µs     │ gRPC, MQTT payloads     │ │
+  │  │ FlatBuf  │ 135 B    │ ~0.09 µs   │ On-robot hot path       │ │
+  │  └──────────┴──────────┴────────────┴─────────────────────────┘ │
+  └──────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DATA & STORAGE                                             -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="db-arch">
+<h2>Database Architecture</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-data">Data Layer</span>
+<pre>
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │                      DATA PERSISTENCE LAYER                          │
+  │                                                                      │
+  │  ┌──────────────────────────────────────────────────────────────┐   │
+  │  │  PostgreSQL 16 (Primary — ACID, relational)                  │   │
+  │  │                                                               │   │
+  │  │  Tables:                                                      │   │
+  │  │  ┌─────────────┐ ┌─────────────┐ ┌──────────────────────┐   │   │
+  │  │  │ robots      │ │ tasks       │ │ task_assignments     │   │   │
+  │  │  │ id (PK)     │ │ id (PK)     │ │ task_id (FK)         │   │   │
+  │  │  │ name        │ │ type        │ │ robot_id (FK)        │   │   │
+  │  │  │ model       │ │ priority    │ │ epoch                │   │   │
+  │  │  │ status      │ │ status      │ │ assigned_at          │   │   │
+  │  │  │ zone_id     │ │ created_at  │ │ completed_at         │   │   │
+  │  │  │ capabilities│ │ deadline    │ │ steps_completed      │   │   │
+  │  │  └─────────────┘ │ items[]     │ │ checkpoint_data      │   │   │
+  │  │                   └─────────────┘ └──────────────────────┘   │   │
+  │  │                                                               │   │
+  │  │  ┌──────────────────┐  ┌────────────────────┐                │   │
+  │  │  │ zones            │  │ audit_log          │                │   │
+  │  │  │ id, name, cap    │  │ id, entity_type    │                │   │
+  │  │  │ current_count    │  │ entity_id, action  │                │   │
+  │  │  │ direction_rules  │  │ payload, timestamp │                │   │
+  │  │  └──────────────────┘  └────────────────────┘                │   │
+  │  └──────────────────────────────────────────────────────────────┘   │
+  │                                                                      │
+  │  ┌──────────────────────────────────────────────────────────────┐   │
+  │  │  TimescaleDB (Extension on PG — time-series)                 │   │
+  │  │                                                               │   │
+  │  │  Hypertable: robot_telemetry                                  │   │
+  │  │  ┌──────────────────────────────────────────────────────┐    │   │
+  │  │  │ time (TIMESTAMPTZ)  │ Partitioned by time (1 hour)   │    │   │
+  │  │  │ robot_id            │ Compressed after 24 hours       │    │   │
+  │  │  │ position_x, y, θ   │ 90%+ compression ratio          │    │   │
+  │  │  │ battery_pct         │                                 │    │   │
+  │  │  │ velocity            │ Continuous aggregates:          │    │   │
+  │  │  │ wifi_rssi           │ • 1-min avg position            │    │   │
+  │  │  │ cpu_load            │ • 5-min avg battery drain        │    │   │
+  │  │  │ sensor_health       │ • 1-hour zone throughput         │    │   │
+  │  │  └──────────────────────────────────────────────────────┘    │   │
+  │  │                                                               │   │
+  │  │  Capacity: 100K+ inserts/sec, 6 months online, S3 archive   │   │
+  │  └──────────────────────────────────────────────────────────────┘   │
+  │                                                                      │
+  │  ┌──────────────────────────────────────────────────────────────┐   │
+  │  │  Redis 7 (In-memory cache + pub/sub)                         │   │
+  │  │                                                               │   │
+  │  │  Keys:                                                        │   │
+  │  │  robot:{id}:position     → HASH {x, y, θ, v, ts}  TTL: 5s  │   │
+  │  │  robot:{id}:state        → STRING "NAVIGATING"     TTL: 30s │   │
+  │  │  task:{id}:checkpoint    → HASH {step, items, pos} TTL: 1h  │   │
+  │  │  zone:{id}:count         → INT  (atomic INCR/DECR)          │   │
+  │  │  zone:{id}:congestion    → FLOAT (0.0-1.0)                  │   │
+  │  │                                                               │   │
+  │  │  Pub/Sub channels:                                            │   │
+  │  │  fleet:position_updates  → Dashboard WebSocket gateway       │   │
+  │  │  fleet:state_changes     → Dashboard + alerting              │   │
+  │  │                                                               │   │
+  │  │  Performance: <1ms reads, 50K ops/sec per node               │   │
+  │  └──────────────────────────────────────────────────────────────┘   │
+  └──────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="event-bus">
+<h3>Event Bus (Kafka) Design</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-data">Data Flow</span>
+<pre>
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                     KAFKA EVENT BUS                                  │
+  │                                                                     │
+  │  Producers                    Topics                    Consumers   │
+  │  ──────────                   ──────                    ─────────   │
+  │                                                                     │
+  │  Task         ──▶  fleet.task.created        ──▶  Task Allocator   │
+  │  Allocator    ──▶  fleet.task.assigned       ──▶  Analytics Svc    │
+  │  Mgmt API     ──▶  fleet.task.completed      ──▶  Billing Svc     │
+  │                 ──▶  fleet.task.failed         ──▶  Audit Logger    │
+  │                                                                     │
+  │  Fleet State  ──▶  fleet.robot.state_changed ──▶  Dashboard        │
+  │  Manager       ──▶  fleet.robot.health_alert  ──▶  Alerting (PD)   │
+  │                                                                     │
+  │  Telemetry    ──▶  fleet.telemetry.position  ──▶  TimescaleDB      │
+  │  Ingestion     ──▶  fleet.telemetry.battery   ──▶  ML Training     │
+  │                                                                     │
+  │  Partitioning: by robot_id (ensures per-robot ordering)             │
+  │  Replication: factor=3, min.insync.replicas=2                       │
+  │  Retention: 7 days hot, 90 days S3 (Kafka Connect S3 sink)         │
+  │                                                                     │
+  │  Consumer Groups:                                                   │
+  │  • cg-task-processor   (exactly-once for task state machines)       │
+  │  • cg-telemetry-writer (at-least-once + idempotent inserts)        │
+  │  • cg-dashboard        (at-most-once, loss OK for live display)    │
+  │  • cg-audit            (exactly-once for compliance)               │
+  └─────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="map-repr">
+<h3>Map Representation — Three Layers</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-low">Low Level</span>
+<pre>
+  Layer 1: OCCUPANCY GRID (Local obstacle avoidance, SLAM)
+  ┌──────────────────────────────────────────┐
+  │ Resolution: 5-10cm per cell              │
+  │ Values: 0.0 (free) to 1.0 (occupied)    │
+  │ Updated: real-time from LiDAR/depth cam  │
+  │                                           │
+  │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░       │
+  │  ░░░░░░░████████░░░░░░░░░░░░░░░░░       │   █ = shelf/obstacle
+  │  ░░░░░░░████████░░░░░░░░░░░░░░░░░       │   ░ = free space
+  │  ░░░░░░░░░░░░░░░░░░░░████████░░░░       │   ◉ = robot
+  │  ░░░░◉░░░░░░░░░░░░░░░████████░░░░       │   · = unknown
+  │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░       │
+  │  ░░░████████░░░░░░░░░░░░░░░░░░░░░       │
+  │  ░░░████████░░░░░░░░░░████████░░░░       │
+  │  ░░░░░░░░░░░░░░░░░░░░████████░░░░       │
+  └──────────────────────────────────────────┘
+
+  Layer 2: TOPOLOGICAL GRAPH (Global path planning, A*)
+  ┌──────────────────────────────────────────┐
+  │  Nodes = waypoints, intersections        │
+  │  Edges = traversable paths with costs    │
+  │  Used by: CBS, A*, Dijkstra              │
+  │                                           │
+  │     W1 ────── W2 ────── W3               │
+  │     │         │  \       │               │
+  │     │   5.2m  │   3.1m   │ 4.7m          │
+  │     │         │    \     │               │
+  │     W4 ────── I1 ────── W5   I = intersection
+  │     │         │         │    W = waypoint │
+  │     │         │         │    C = charger  │
+  │     W6 ────── W7 ────── C1               │
+  │                                           │
+  │  Edge weights: distance + congestion est  │
+  └──────────────────────────────────────────┘
+
+  Layer 3: ZONE OVERLAY (Traffic management, capacity)
+  ┌──────────────────────────────────────────┐
+  │  Logical grouping of graph regions       │
+  │  Each zone: name, capacity, direction    │
+  │  Used by: Traffic Controller, Deadlock   │
+  │                                           │
+  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ │
+  │  │ ZONE-A   │ │ ZONE-B   │ │ ZONE-C   │ │
+  │  │ Storage  │ │ Storage  │ │ Pick Stn │ │
+  │  │ cap=8    │ │ cap=8    │ │ cap=4    │ │
+  │  │ {W1..W4} │ │ {W2..W5} │ │ {W5..C1} │ │
+  │  └──────────┘ └──────────┘ └──────────┘ │
+  │                                           │
+  │  Zone transitions tracked in Redis:       │
+  │  INCR zone:{id}:count on enter            │
+  │  DECR zone:{id}:count on exit             │
+  └──────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCALING                                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="scale-arch">
+<h2>Scaling Architecture — Hierarchical Fleet Management</h2>
+
+<div class="diagram-box">
+  <span class="diagram-label label-high">High Level</span>
+<pre>
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │              HIERARCHICAL FLEET MANAGEMENT (200+ robots)                  │
+  │                                                                          │
+  │  ┌────────────────────────────────────────────────────────────────────┐  │
+  │  │                   GLOBAL FLEET MANAGER                             │  │
+  │  │                   (Raft 3-node cluster)                            │  │
+  │  │                                                                    │  │
+  │  │  Responsibilities:                                                 │  │
+  │  │  • Inter-zone task allocation (Hungarian on zone-level costs)      │  │
+  │  │  • Cross-zone path planning (zone-to-zone routing only)           │  │
+  │  │  • Charging station assignment (global optimization)              │  │
+  │  │  • Fleet-wide health monitoring and degradation levels            │  │
+  │  │  • WMS/OMS integration                                            │  │
+  │  └──────────┬────────────────────┬───────────────────┬───────────────┘  │
+  │             │                    │                   │                   │
+  │       gRPC  │              gRPC  │             gRPC  │                   │
+  │             ▼                    ▼                   ▼                   │
+  │  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐        │
+  │  │ ZONE CONTROLLER  │ │ ZONE CONTROLLER  │ │ ZONE CONTROLLER  │        │
+  │  │ Zone A (20 bots) │ │ Zone B (20 bots) │ │ Zone C (15 bots) │        │
+  │  │                  │ │                  │ │                  │        │
+  │  │ • Intra-zone     │ │ • Intra-zone     │ │ • Intra-zone     │        │
+  │  │   path planning  │ │   path planning  │ │   path planning  │        │
+  │  │   (ECBS w=1.05)  │ │   (ECBS w=1.05)  │ │   (PBS)          │        │
+  │  │                  │ │                  │ │                  │        │
+  │  │ • Local traffic  │ │ • Local traffic  │ │ • Local traffic  │        │
+  │  │   management     │ │   management     │ │   management     │        │
+  │  │                  │ │                  │ │                  │        │
+  │  │ • Deadlock       │ │ • Deadlock       │ │ • Deadlock       │        │
+  │  │   detection      │ │   detection      │ │   detection      │        │
+  │  │   (local WFG)    │ │   (local WFG)    │ │   (local WFG)    │        │
+  │  └────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘        │
+  │           │                    │                    │                   │
+  │     MQTT  │              MQTT  │              MQTT  │                   │
+  │           ▼                    ▼                    ▼                   │
+  │  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐              │
+  │  │ R1 R2 ... R20  │ │ R21 R22...R40  │ │ R41 R42...R55  │              │
+  │  │ (Zone A bots)  │ │ (Zone B bots)  │ │ (Zone C bots)  │              │
+  │  └────────────────┘ └────────────────┘ └────────────────┘              │
+  │                                                                          │
+  │  Benefits of hierarchy:                                                  │
+  │  • Path planning: O(20³) per zone vs O(55³) centralized → 20× faster   │
+  │  • Deadlock: isolated per zone, simpler WFG                             │
+  │  • Failure: zone controller crash affects only 20 robots                │
+  │  • Results: 45% less travel distance, 24% faster fulfillment            │
+  └──────────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="k8s">
+<h3>Kubernetes Deployment</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-mid">Mid Level</span>
+<pre>
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                 KUBERNETES CLUSTER                                │
+  │                                                                  │
+  │  Namespace: fleet-management                                     │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │  StatefulSets:                                              │  │
+  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │  │
+  │  │  │ EMQX (3)     │  │ Kafka (3)    │  │ PostgreSQL (3)   │  │  │
+  │  │  │ EMQX Operator│  │ Strimzi Op   │  │ CloudNativePG    │  │  │
+  │  │  │ PVC: 50Gi    │  │ PVC: 500Gi   │  │ PVC: 200Gi       │  │  │
+  │  │  └──────────────┘  └──────────────┘  └──────────────────┘  │  │
+  │  │                                                              │  │
+  │  │  Deployments (HPA-enabled):                                  │  │
+  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │  │
+  │  │  │ Task Alloc   │  │ Path Planner │  │ Traffic Ctrl     │  │  │
+  │  │  │ replicas: 2  │  │ replicas: 3  │  │ replicas: 2      │  │  │
+  │  │  │ CPU: 2 cores │  │ CPU: 4 cores │  │ CPU: 2 cores     │  │  │
+  │  │  │ Mem: 4Gi     │  │ Mem: 8Gi     │  │ Mem: 4Gi         │  │  │
+  │  │  └──────────────┘  └──────────────┘  └──────────────────┘  │  │
+  │  │                                                              │  │
+  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │  │
+  │  │  │ Telemetry    │  │ Envoy GW     │  │ Fleet State Mgr  │  │  │
+  │  │  │ Ingestion    │  │ replicas: 2  │  │ replicas: 3      │  │  │
+  │  │  │ replicas: 3  │  │              │  │ (Raft, anti-     │  │  │
+  │  │  │              │  │              │  │  affinity rules) │  │  │
+  │  │  └──────────────┘  └──────────────┘  └──────────────────┘  │  │
+  │  │                                                              │  │
+  │  │  DaemonSets:                                                 │  │
+  │  │  ┌──────────────┐  ┌──────────────┐                         │  │
+  │  │  │ Prometheus   │  │ Fluent Bit   │                         │  │
+  │  │  │ Node Export  │  │ Log Shipper  │                         │  │
+  │  │  └──────────────┘  └──────────────┘                         │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  │                                                                  │
+  │  Namespace: monitoring                                           │
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │ Prometheus + Grafana + AlertManager + Loki                  │  │
+  │  └────────────────────────────────────────────────────────────┘  │
+  └──────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+<section id="latency">
+<h3>Latency Budget & Scale Thresholds</h3>
+<div class="diagram-box">
+  <span class="diagram-label label-data">Requirements</span>
+<pre>
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                    LATENCY BUDGET TABLE                             │
+  ├────────────────────────────┬───────────┬───────────────────────────┤
+  │ Operation                  │ Budget    │ Notes                     │
+  ├────────────────────────────┼───────────┼───────────────────────────┤
+  │ Emergency stop (E2E)       │ < 200ms   │ ISO 3691-4 compliant     │
+  │ Collision avoidance        │ < 50ms    │ On-robot, no network     │
+  │ Position update cycle      │ 50-100ms  │ 10-20Hz telemetry        │
+  │ Heartbeat                  │ 1000ms    │ 1Hz, QoS 1              │
+  │ Task assignment            │ < 1s      │ Hungarian + validation   │
+  │ Path replanning            │ 200-500ms │ After obstacle detected  │
+  │ Dashboard refresh          │ < 200ms   │ WebSocket push           │
+  │ Full fleet re-plan         │ < 5s      │ RHCR window recompute   │
+  │ Deadlock detection         │ < 10s     │ WFG cycle check          │
+  ├────────────────────────────┴───────────┴───────────────────────────┤
+  │                                                                    │
+  │                    SCALE THRESHOLDS                                 │
+  ├────────────────────┬───────────────────────────────────────────────┤
+  │ Fleet Size         │ Architecture Change Required                  │
+  ├────────────────────┼───────────────────────────────────────────────┤
+  │ 1-50 robots        │ Single fleet mgr, Mosquitto MQTT, monolith   │
+  │ 50-200 robots      │ Microservices, EMQX cluster (3), zones      │
+  │ 200-500 robots     │ Zone controllers, hierarchical planning      │
+  │ 500-1000 robots    │ Multi-cluster EMQX, Kafka partitioning       │
+  │ 1000+ robots       │ Full hierarchical, PIBT/LaCAM, edge compute │
+  │ 10K+ robots        │ Multi-site, federated fleet management       │
+  └────────────────────┴───────────────────────────────────────────────┘
+
+  Network Requirements:
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ WiFi 6E (802.11ax):  Required for >200 robot density              │
+  │ Packet loss:         < 0.1% for safe operations                   │
+  │ Bandwidth per robot: ~50 Kbps telemetry + ~200 Kbps camera        │
+  │ Total (500 robots):  ~125 Mbps sustained                          │
+  │ AP density:          1 per 2500 sq ft (warehouse standard)        │
+  └────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</section>
+
+</div><!-- /main -->
+</body>
+</html>
