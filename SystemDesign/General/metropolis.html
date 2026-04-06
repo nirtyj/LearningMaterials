@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NVIDIA Metropolis Vision AI — Technical Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0a0c10;
+  --bg-secondary: #11141a;
+  --bg-tertiary: #181c24;
+  --bg-card: #1a1e28;
+  --bg-code: #0d1017;
+  --border: #2a3040;
+  --border-accent: #76b900;
+  --text-primary: #e8eaf0;
+  --text-secondary: #8b92a8;
+  --text-muted: #5a6178;
+  --nvidia-green: #76b900;
+  --nvidia-green-dim: #4a7500;
+  --nvidia-green-glow: rgba(118,185,0,0.15);
+  --accent-blue: #4da6ff;
+  --accent-purple: #a78bfa;
+  --accent-orange: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-cyan: #22d3ee;
+  --accent-pink: #ec4899;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ═══════════════════ HERO HEADER ═══════════════════ */
+.hero {
+  position: relative;
+  padding: 60px 40px 40px;
+  background: linear-gradient(135deg, #0a0c10 0%, #111820 50%, #0a1210 100%);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(118,185,0,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--nvidia-green), transparent);
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--nvidia-green-glow);
+  border: 1px solid var(--nvidia-green-dim);
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--nvidia-green);
+  margin-bottom: 20px;
+}
+
+.hero-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--nvidia-green);
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fff 0%, #c8d8c0 50%, var(--nvidia-green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: 800px;
+  line-height: 1.8;
+}
+
+.hero-meta {
+  display: flex;
+  gap: 24px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.hero-meta-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.hero-meta-item span {
+  color: var(--nvidia-green);
+}
+
+/* ═══════════════════ PRIMARY TABS ═══════════════════ */
+.tab-nav-container {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+
+.tab-nav {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  position: relative;
+  padding: 16px 28px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.3s;
+}
+
+.tab-btn:hover { color: var(--text-secondary); }
+
+.tab-btn.active {
+  color: var(--nvidia-green);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 28px;
+  right: 28px;
+  height: 2px;
+  background: var(--nvidia-green);
+  box-shadow: 0 0 12px var(--nvidia-green-glow);
+}
+
+/* ═══════════════════ CONTENT AREA ═══════════════════ */
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px 80px;
+}
+
+.tab-panel {
+  display: none;
+  animation: fadeIn 0.4s ease;
+}
+
+.tab-panel.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════ SECTION STYLES ═══════════════════ */
+.section {
+  margin-top: 48px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--nvidia-green);
+  background: var(--nvidia-green-glow);
+  border: 1px solid var(--nvidia-green-dim);
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+
+.section h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 32px 0 16px;
+  padding-left: 16px;
+  border-left: 3px solid var(--nvidia-green);
+}
+
+.section h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin: 24px 0 12px;
+}
+
+.section p {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+.section p strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ═══════════════════ DIAGRAM BLOCKS ═══════════════════ */
+.diagram-container {
+  margin: 28px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.diagram-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.diagram-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nvidia-green);
+  letter-spacing: 0.5px;
+}
+
+.diagram-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.diagram-body {
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.diagram-body pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre;
+  margin: 0;
+}
+
+.diagram-footer {
+  padding: 12px 20px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Color-coded lines inside diagrams */
+.dg { color: var(--nvidia-green); }
+.db { color: var(--accent-blue); }
+.dp { color: var(--accent-purple); }
+.do { color: var(--accent-orange); }
+.dr { color: var(--accent-red); }
+.dc { color: var(--accent-cyan); }
+.dk { color: var(--accent-pink); }
+.dd { color: var(--text-muted); }
+
+/* ═══════════════════ INFO CARDS ═══════════════════ */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin: 24px 0;
+}
+
+.info-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  transition: border-color 0.3s, transform 0.2s;
+}
+
+.info-card:hover {
+  border-color: var(--nvidia-green-dim);
+  transform: translateY(-2px);
+}
+
+.info-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.info-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.info-card-icon.green { background: rgba(118,185,0,0.15); color: var(--nvidia-green); }
+.info-card-icon.blue { background: rgba(77,166,255,0.15); color: var(--accent-blue); }
+.info-card-icon.purple { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
+.info-card-icon.orange { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+.info-card-icon.cyan { background: rgba(34,211,238,0.15); color: var(--accent-cyan); }
+.info-card-icon.pink { background: rgba(236,72,153,0.15); color: var(--accent-pink); }
+
+.info-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.info-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.7;
+}
+
+.info-card code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--bg-code);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--accent-cyan);
+  border: 1px solid var(--border);
+}
+
+/* ═══════════════════ CODE BLOCKS ═══════════════════ */
+.code-block {
+  margin: 20px 0;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.code-block-header {
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.code-block-header .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.code-block-header .dot.r { background: #ef4444; }
+.code-block-header .dot.y { background: #f59e0b; }
+.code-block-header .dot.g { background: #22c55e; }
+
+.code-block pre {
+  padding: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  overflow-x: auto;
+  margin: 0;
+}
+
+/* ═══════════════════ TABLES ═══════════════════ */
+.table-wrapper {
+  margin: 20px 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead {
+  background: var(--bg-tertiary);
+}
+
+th {
+  padding: 12px 16px;
+  text-align: left;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--nvidia-green);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+td {
+  padding: 12px 16px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(42,48,64,0.5);
+  vertical-align: top;
+}
+
+tr:last-child td { border-bottom: none; }
+
+td code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--bg-code);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--accent-cyan);
+  border: 1px solid var(--border);
+}
+
+/* ═══════════════════ CALLOUT BOXES ═══════════════════ */
+.callout {
+  margin: 24px 0;
+  padding: 20px 24px;
+  border-radius: 10px;
+  border-left: 4px solid;
+}
+
+.callout.green {
+  background: rgba(118,185,0,0.06);
+  border-color: var(--nvidia-green);
+}
+
+.callout.blue {
+  background: rgba(77,166,255,0.06);
+  border-color: var(--accent-blue);
+}
+
+.callout.orange {
+  background: rgba(245,158,11,0.06);
+  border-color: var(--accent-orange);
+}
+
+.callout.red {
+  background: rgba(239,68,68,0.06);
+  border-color: var(--accent-red);
+}
+
+.callout-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.callout.green .callout-title { color: var(--nvidia-green); }
+.callout.blue .callout-title { color: var(--accent-blue); }
+.callout.orange .callout-title { color: var(--accent-orange); }
+.callout.red .callout-title { color: var(--accent-red); }
+
+.callout p {
+  font-size: 13px;
+  margin: 0;
+}
+
+/* ═══════════════════ INLINE CODE ═══════════════════ */
+p code, li code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--bg-code);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--accent-cyan);
+  border: 1px solid var(--border);
+}
+
+/* ═══════════════════ LISTS ═══════════════════ */
+ul, ol {
+  margin: 12px 0 16px 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+li {
+  margin-bottom: 8px;
+  line-height: 1.7;
+}
+
+li strong {
+  color: var(--text-primary);
+}
+
+/* ═══════════════════ SUB TABS ═══════════════════ */
+.sub-tab-nav {
+  display: flex;
+  gap: 4px;
+  margin: 28px 0 20px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  flex-wrap: wrap;
+}
+
+.sub-tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.sub-tab-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.sub-tab-btn.active {
+  color: var(--nvidia-green);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+.sub-panel {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.sub-panel.active { display: block; }
+
+/* ═══════════════════ RESPONSIVE ═══════════════════ */
+@media (max-width: 768px) {
+  .hero { padding: 40px 20px 30px; }
+  .content-wrapper { padding: 0 20px 60px; }
+  .tab-btn { padding: 14px 18px; font-size: 11px; }
+  .diagram-body { padding: 16px; }
+  .diagram-body pre { font-size: 10px; }
+  .card-grid { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 28px; }
+}
+
+/* ═══════════════════ SCROLLBAR ═══════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ═══════════════════ FLOW STEP ═══════════════════ */
+.flow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 24px 0;
+}
+
+.flow-step {
+  display: flex;
+  gap: 20px;
+  padding: 20px 0;
+  position: relative;
+}
+
+.flow-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 56px;
+  bottom: -1px;
+  width: 1px;
+  background: var(--border);
+}
+
+.flow-step-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--nvidia-green-glow);
+  border: 1px solid var(--nvidia-green-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nvidia-green);
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.flow-step-content h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.flow-step-content p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<header class="hero">
+  <div class="hero-badge">Technical Reference</div>
+  <h1>NVIDIA Metropolis<br>Vision AI Architecture</h1>
+  <p class="hero-subtitle">
+    Complete technical deep dive — from GPU memory management and DeepStream pipeline internals to TensorRT optimization, Triton serving, and VLM-powered agentic workflows. Built for system design interviews and architecture reviews.
+  </p>
+  <div class="hero-meta">
+    <span class="hero-meta-item"><span>▸</span> DeepStream 9.0</span>
+    <span class="hero-meta-item"><span>▸</span> TensorRT 10.16</span>
+    <span class="hero-meta-item"><span>▸</span> Triton + NIM</span>
+    <span class="hero-meta-item"><span>▸</span> Cosmos Reason</span>
+    <span class="hero-meta-item"><span>▸</span> 2025–2026</span>
+  </div>
+</header>
+
+<!-- ═══════════════════ PRIMARY TABS ═══════════════════ -->
+<nav class="tab-nav-container">
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="high">High-Level Design</button>
+    <button class="tab-btn" data-tab="mid">Mid-Level Design</button>
+    <button class="tab-btn" data-tab="low">Low-Level Internals</button>
+    <button class="tab-btn" data-tab="deepstream">DeepStream Deep Dive</button>
+    <button class="tab-btn" data-tab="tensorrt">TensorRT & TAO</button>
+    <button class="tab-btn" data-tab="triton">Triton & Serving</button>
+    <button class="tab-btn" data-tab="vlm">VLM & Agentic AI</button>
+  </div>
+</nav>
+
+<div class="content-wrapper">
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+<!-- ║                    HIGH-LEVEL DESIGN                         ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+<div id="tab-high" class="tab-panel active">
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>Platform Ecosystem Map</h2>
+    </div>
+
+    <p>Metropolis is a <strong>platform</strong>, not a single product. It provides software building blocks deployable consistently across NVIDIA's entire compute spectrum — Jetson edge devices, dGPU servers, and cloud — integrating DeepStream, TAO, TensorRT, Triton, and NIM into a unified architecture.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">NVIDIA Metropolis — Full Architecture Stack</span>
+        <span class="diagram-badge">System Overview</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dd">┌─────────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="dd">│</span>                        <span class="dg">▓▓ APPLICATION LAYER ▓▓</span>                                     <span class="dd">│</span>
+<span class="dd">│</span>                                                                                     <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dp">┌──────────────┐</span> <span class="dp">┌──────────────┐</span> <span class="dp">┌──────────────┐</span> <span class="dp">┌──────────────────────┐</span>  <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dp">│  VSS Blueprint│</span> <span class="dp">│  AI-NVR Ref  │</span> <span class="dp">│  MTMC Track  │</span> <span class="dp">│  Retail / Traffic /  │</span>  <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dp">│  (Video Search│</span> <span class="dp">│  Application │</span> <span class="dp">│  (Multi-Cam) │</span> <span class="dp">│  Industrial Custom   │</span>  <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dp">│   & Summary) │</span> <span class="dp">│              │</span> <span class="dp">│              │</span> <span class="dp">│  Applications        │</span>  <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dp">└──────┬───────┘</span> <span class="dp">└──────┬───────┘</span> <span class="dp">└──────┬───────┘</span> <span class="dp">└──────────┬───────────┘</span>  <span class="dd">│</span>
+<span class="dd">│</span>         <span class="dp">│                 │                 │                    │</span>            <span class="dd">│</span>
+<span class="dd">├─────────┼─────────────────┼─────────────────┼────────────────────┼────────────┤</span>
+<span class="dd">│</span>         <span class="dp">▼                 ▼                 ▼                    ▼</span>            <span class="dd">│</span>
+<span class="dd">│</span>                     <span class="db">▓▓ MICROSERVICES LAYER ▓▓</span>                                    <span class="dd">│</span>
+<span class="dd">│</span>                                                                                     <span class="dd">│</span>
+<span class="dd">│</span>  <span class="db">┌──────────────────────┐</span> <span class="db">┌────────────────────┐</span> <span class="db">┌────────────────────┐</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="db">│ Metropolis μServices │</span> <span class="db">│ Jetson Platform    │</span> <span class="db">│ NIM Microservices  │</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="db">│ v2 (dGPU / K8s)      │</span> <span class="db">│ Services (Edge)    │</span> <span class="db">│ (Foundation Models)│</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="db">│ ┌────┐┌────┐┌─────┐ │</span> <span class="db">│ ┌────┐┌────┐┌───┐│</span> <span class="db">│ ┌──────┐┌──────┐│</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="db">│ │VST ││Perc││Analy│ │</span> <span class="db">│ │VST ││DS  ││IoT││</span> <span class="db">│ │VILA  ││Cosmos││</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="db">│ └────┘└────┘└─────┘ │</span> <span class="db">│ └────┘└────┘└───┘│</span> <span class="db">│ └──────┘└──────┘│</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="db">└──────────┬───────────┘</span> <span class="db">└────────┬───────────┘</span> <span class="db">└────────┬───────────┘</span>    <span class="dd">│</span>
+<span class="dd">│</span>             <span class="db">│                       │                       │</span>               <span class="dd">│</span>
+<span class="dd">├─────────────┼───────────────────────┼───────────────────────┼───────────────┤</span>
+<span class="dd">│</span>             <span class="db">▼                       ▼                       ▼</span>               <span class="dd">│</span>
+<span class="dd">│</span>                        <span class="dg">▓▓ CORE SDK LAYER ▓▓</span>                                       <span class="dd">│</span>
+<span class="dd">│</span>                                                                                     <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dg">┌──────────────┐</span> <span class="dg">┌──────────────┐</span> <span class="dg">┌──────────────┐</span> <span class="dg">┌──────────────────┐</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dg">│  DeepStream  │</span> <span class="dg">│  TensorRT    │</span> <span class="dg">│   Triton     │</span> <span class="dg">│   TAO Toolkit    │</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dg">│  SDK 9.0     │</span> <span class="dg">│  10.16       │</span> <span class="dg">│   Inference  │</span> <span class="dg">│   6.x            │</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dg">│  (Streaming  │</span> <span class="dg">│  (Inference  │</span> <span class="dg">│   Server     │</span> <span class="dg">│   (Train/Finetune│</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dg">│   Analytics) │</span> <span class="dg">│   Optimizer) │</span> <span class="dg">│   (Serving)  │</span> <span class="dg">│    /Prune)       │</span>    <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dg">└──────────────┘</span> <span class="dg">└──────────────┘</span> <span class="dg">└──────────────┘</span> <span class="dg">└──────────────────┘</span>    <span class="dd">│</span>
+<span class="dd">│</span>                                                                                     <span class="dd">│</span>
+<span class="dd">├─────────────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="dd">│</span>                     <span class="do">▓▓ SOFTWARE FOUNDATION ▓▓</span>                                       <span class="dd">│</span>
+<span class="dd">│</span>                                                                                     <span class="dd">│</span>
+<span class="dd">│</span>  <span class="do">┌────────┐</span> <span class="do">┌────────┐</span> <span class="do">┌──────────────┐</span> <span class="do">┌────────────────┐</span> <span class="do">┌──────────────┐</span>  <span class="dd">│</span>
+<span class="dd">│</span>  <span class="do">│  CUDA  │</span> <span class="do">│ cuDNN  │</span> <span class="do">│ NVIDIA Cont. │</span> <span class="do">│ JetPack 6.x   │</span> <span class="do">│ AI Enterprise│</span>  <span class="dd">│</span>
+<span class="dd">│</span>  <span class="do">│ 12.x   │</span> <span class="do">│ 9.x   │</span> <span class="do">│ Runtime      │</span> <span class="do">│ (Edge)        │</span> <span class="do">│ (DC / Cloud) │</span>  <span class="dd">│</span>
+<span class="dd">│</span>  <span class="do">└────────┘</span> <span class="do">└────────┘</span> <span class="do">└──────────────┘</span> <span class="do">└────────────────┘</span> <span class="do">└──────────────┘</span>  <span class="dd">│</span>
+<span class="dd">│</span>                                                                                     <span class="dd">│</span>
+<span class="dd">├─────────────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="dd">│</span>                       <span class="dr">▓▓ HARDWARE LAYER ▓▓</span>                                         <span class="dd">│</span>
+<span class="dd">│</span>                                                                                     <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dr">┌──────────────────┐</span>  <span class="dr">┌───────────────────┐</span>  <span class="dr">┌──────────────────────────┐</span> <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dr">│  EDGE            │</span>  <span class="dr">│  INDUSTRIAL       │</span>  <span class="dr">│  DATA CENTER / CLOUD     │</span> <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dr">│  Jetson Orin/Thor│</span>  <span class="dr">│  IGX Thor         │</span>  <span class="dr">│  A100/H100/L40/RTX PRO  │</span> <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dr">│  (8–275 TOPS)    │</span>  <span class="dr">│  (380 TOPS)       │</span>  <span class="dr">│  DGX Cloud               │</span> <span class="dd">│</span>
+<span class="dd">│</span>  <span class="dr">└──────────────────┘</span>  <span class="dr">└───────────────────┘</span>  <span class="dr">└──────────────────────────┘</span> <span class="dd">│</span>
+<span class="dd">└─────────────────────────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+      <div class="diagram-footer">Five-layer architecture: Hardware → Software Foundation → Core SDKs → Microservices → Applications</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>End-to-End Pipeline Flow</h2>
+    </div>
+
+    <p>A canonical Metropolis deployment flows through seven stages, from camera ingestion to actionable analytics. Each stage maps to specific SDK components and microservices.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">Camera-to-Analytics Pipeline</span>
+        <span class="diagram-badge">Data Flow</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">IP Cameras</span>          <span class="db">DeepStream Pipeline</span>                             <span class="dp">Output Sinks</span>
+<span class="dg">RTSP/ONVIF</span>          <span class="db">━━━━━━━━━━━━━━━━━━━</span>                             <span class="dp">━━━━━━━━━━━</span>
+
+<span class="dg">┌────────┐</span>    <span class="db">┌─────────┐   ┌───────────┐   ┌──────────┐</span>    <span class="dp">┌──────────────┐</span>
+<span class="dg">│ Cam 1  │</span>───▶<span class="db">│         │   │           │   │          │</span>───▶<span class="dp">│ Redis / Kafka│</span>
+<span class="dg">└────────┘</span>    <span class="db">│         │   │           │   │          │</span>    <span class="dp">└──────┬───────┘</span>
+<span class="dg">┌────────┐</span>    <span class="db">│  VST    │   │ nvstream  │   │  nvinfer │</span>           <span class="dp">│</span>
+<span class="dg">│ Cam 2  │</span>───▶<span class="db">│ (Video  │──▶│   mux     │──▶│ (Primary │</span>    <span class="dp">┌──────▼───────┐</span>
+<span class="dg">└────────┘</span>    <span class="db">│ Storage │   │ (Batch N  │   │  Detect) │</span>    <span class="dp">│ Kibana /     │</span>
+<span class="dg">┌────────┐</span>    <span class="db">│ Toolkit │   │  frames)  │   │ TensorRT │</span>    <span class="dp">│ Dashboard    │</span>
+<span class="dg">│ Cam N  │</span>───▶<span class="db">│    )    │   │           │   │          │</span>    <span class="dp">└──────────────┘</span>
+<span class="dg">└────────┘</span>    <span class="db">└─────────┘   └───────────┘   └────┬─────┘</span>
+                                                     <span class="db">│</span>
+              <span class="db">┌─────────────────────────────────────┘</span>
+              <span class="db">▼</span>
+         <span class="db">┌──────────┐   ┌──────────────┐   ┌────────────┐</span>   <span class="dp">┌──────────────┐</span>
+         <span class="db">│nvtracker │   │   nvinfer     │   │nvdsanalyti │</span>──▶<span class="dp">│  RTSP Out /  │</span>
+         <span class="db">│(Tracking │──▶│  (Secondary   │──▶│   cs       │</span>   <span class="dp">│  nvdsosd     │</span>
+         <span class="db">│ IDs)     │   │  Classify)    │   │(Line/ROI)  │</span>   <span class="dp">│  (Overlay)   │</span>
+         <span class="db">└──────────┘   └──────────────┘   └────────────┘</span>   <span class="dp">└──────────────┘</span>
+
+              <span class="dc">┌─────────────────────────────────────────┐</span>
+              <span class="dc">│  OPTIONAL: VLM Reasoning Branch         │</span>
+              <span class="dc">│  Cosmos Reason / VILA via NIM API       │</span>
+              <span class="dc">│  Zero-shot event detection & summary    │</span>
+              <span class="dc">└─────────────────────────────────────────┘</span>
+</pre></div>
+    </div>
+
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-step-num">1</div>
+        <div class="flow-step-content">
+          <h4>Video Ingestion</h4>
+          <p>IP cameras deliver RTSP/ONVIF streams to <strong>Video Storage Toolkit (VST)</strong> — handles discovery, reconnection, persistent storage, and provides proxy RTSP links for downstream consumers.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">2</div>
+        <div class="flow-step-content">
+          <h4>Stream Processing</h4>
+          <p>DeepStream receives streams via <code>nvurisrcbin</code>, hardware-decodes via <strong>NVDEC</strong> (H.264/H.265/AV1), and batches multiple streams through <code>nvstreammux</code> into GPU-resident batches.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">3</div>
+        <div class="flow-step-content">
+          <h4>AI Inference</h4>
+          <p><code>nvinfer</code> runs TensorRT-optimized detection models (PeopleNet, YOLO, etc.) or <code>nvinferserver</code> delegates to Triton for multi-framework support (TF, PyTorch, ONNX).</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">4</div>
+        <div class="flow-step-content">
+          <h4>Object Tracking</h4>
+          <p><code>nvtracker</code> assigns persistent IDs using NvDCF, NvDeepSORT, NvSORT, or IOU algorithms. Each algorithm trades off between accuracy and compute cost.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">5</div>
+        <div class="flow-step-content">
+          <h4>Analytics</h4>
+          <p><code>nvdsanalytics</code> computes line-crossing counts, ROI occupancy, direction detection, and single-view 3D tracking based on metadata from prior stages.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">6</div>
+        <div class="flow-step-content">
+          <h4>Messaging & Output</h4>
+          <p>Metadata flows to <strong>Redis</strong> (intra-cluster) or <strong>Kafka</strong> (inter-service) via <code>nvmsgbroker</code>, then to Kibana dashboards. Visual overlay via <code>nvdsosd</code> and RTSP re-streaming.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">7</div>
+        <div class="flow-step-content">
+          <h4>VLM Reasoning (Optional)</h4>
+          <p>Cosmos Reason or VILA processes key frames with natural language prompts for zero-shot event detection and summarization via NIM APIs — no model training required.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>Cloud-Edge-Device Topology</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">Three-Tier Deployment Architecture</span>
+        <span class="diagram-badge">Deployment</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">┌──────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="dg">│                          ☁  CLOUD TIER                                      │</span>
+<span class="dg">│                                                                              │</span>
+<span class="dg">│   ┌─────────────────┐   ┌───────────────────┐   ┌───────────────────────┐  │</span>
+<span class="dg">│   │ NIM APIs         │   │ DGX Cloud         │   │ IoT Cloud Modules     │  │</span>
+<span class="dg">│   │ build.nvidia.com │   │ (Training)        │   │ SASL + 2-Way TLS      │  │</span>
+<span class="dg">│   │ VILA, Cosmos     │   │ A100/H100 Cluster │   │ Device Management     │  │</span>
+<span class="dg">│   └────────┬────────┘   └─────────┬─────────┘   └───────────┬───────────┘  │</span>
+<span class="dg">└────────────┼───────────────────────┼───────────────────────────┼─────────────┘</span>
+             <span class="dd">│   REST/gRPC           │   Model Sync              │  TCP + TLS</span>
+             <span class="dd">│                       │                           │</span>
+<span class="db">┌────────────┼───────────────────────┼───────────────────────────┼─────────────┐</span>
+<span class="db">│            ▼                       ▼                           ▼             │</span>
+<span class="db">│                      🏢  ON-PREMISES TIER                                   │</span>
+<span class="db">│                                                                              │</span>
+<span class="db">│   ┌──────────────────────────────────────────────────────────────────────┐  │</span>
+<span class="db">│   │  Metropolis Microservices v2  (Kubernetes + Helm)                    │  │</span>
+<span class="db">│   │  ┌──────┐ ┌───────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────┐ │  │</span>
+<span class="db">│   │  │ VST  │ │ Perception│ │ Analytics│ │ MTMC     │ │ Transformer │ │  │</span>
+<span class="db">│   │  │      │ │ (DS 9.0)  │ │ (Heatmap)│ │ Tracking │ │ ReID        │ │  │</span>
+<span class="db">│   │  └──────┘ └───────────┘ └──────────┘ └──────────┘ └─────────────┘ │  │</span>
+<span class="db">│   └──────────────────────────────────────────────────────────────────────┘  │</span>
+<span class="db">│   Hardware: dGPU servers — A100, H100, L40, RTX PRO 6000                    │</span>
+<span class="db">└──────────────────────────────────┬───────────────────────────────────────────┘</span>
+                                   <span class="dd">│  WebRTC / OpenVPN / API GW</span>
+                                   <span class="dd">│</span>
+<span class="do">┌──────────────────────────────────┼───────────────────────────────────────────┐</span>
+<span class="do">│                                  ▼                                           │</span>
+<span class="do">│                      📡  EDGE TIER                                           │</span>
+<span class="do">│                                                                              │</span>
+<span class="do">│   ┌──────────────────────────────────────────────────────────────────────┐  │</span>
+<span class="do">│   │  Jetson Platform Services  (Docker Compose — 15+ μServices)         │  │</span>
+<span class="do">│   │  ┌──────┐ ┌────┐ ┌────────┐ ┌───────┐ ┌─────┐ ┌────┐ ┌─────────┐ │  │</span>
+<span class="do">│   │  │ VST  │ │ DS │ │NanoOWL │ │ Redis │ │ API │ │ IoT│ │Firewall │ │  │</span>
+<span class="do">│   │  │      │ │    │ │(0-Shot)│ │       │ │ GW  │ │ GW │ │         │ │  │</span>
+<span class="do">│   │  └──────┘ └────┘ └────────┘ └───────┘ └─────┘ └────┘ └─────────┘ │  │</span>
+<span class="do">│   └──────────────────────────────────────────────────────────────────────┘  │</span>
+<span class="do">│   Hardware: Jetson Orin NX/AGX (8–275 TOPS) / Jetson Thor (future)          │</span>
+<span class="do">└──────────────────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+      <div class="diagram-footer">Edge-to-cloud communication: always-on TCP from IoT Gateway, WebRTC for video streaming, OpenVPN for tunneling</div>
+    </div>
+
+    <div class="card-grid">
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon orange">⚡</div>
+          <h4>Edge Tier</h4>
+        </div>
+        <p>Jetson Platform Services runs 15+ Docker Compose microservices including VST, DeepStream perception, NanoOWL zero-shot detection, Redis, API gateway, monitoring, IoT gateway, and firewall. Designed for autonomous operation with intermittent cloud connectivity.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon blue">🏢</div>
+          <h4>On-Premises Tier</h4>
+        </div>
+        <p>Metropolis Microservices v2 on Kubernetes + Helm. Supports multi-camera tracking (MTMC), occupancy heatmaps, transformer-based ReID. Runs on dGPU servers — A100, H100, L40, RTX PRO 6000.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon green">☁️</div>
+          <h4>Cloud Tier</h4>
+        </div>
+        <p>NIM APIs at build.nvidia.com for foundation models, DGX Cloud for training, IoT Cloud modules for secure device management with SASL/Plain auth and 2-way TLS encryption.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+<!-- ║                     MID-LEVEL DESIGN                         ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+<div id="tab-mid" class="tab-panel">
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>DeepStream Pipeline Architecture</h2>
+    </div>
+
+    <p>DeepStream extends GStreamer with <strong>40+ GPU-accelerated plugins</strong> that encapsulate NVIDIA libraries (CUDA, TensorRT, NVDEC, NVENC, VPI). The critical design decision is <strong>zero-memory-copy between plugins</strong> via NVMM — buffers remain in GPU memory throughout the pipeline.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">DeepStream GStreamer Pipeline — Canonical Data Flow</span>
+        <span class="diagram-badge">Pipeline</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">RTSP Sources</span>                     <span class="db">GPU-Accelerated Pipeline (NVMM zero-copy)</span>
+<span class="dg">━━━━━━━━━━━━</span>                     <span class="db">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+<span class="dg">┌──────────────┐</span>
+<span class="dg">│nvurisrcbin[0]│</span>──┐
+<span class="dg">│ (RTSP Src)   │</span>  │      <span class="do">┌──────────────────┐</span>
+<span class="dg">└──────────────┘</span>  │      <span class="do">│  nvv4l2decoder   │</span>     <span class="db">┌──────────────────────┐</span>
+                  ├─────▶<span class="do">│  (NVDEC HW       │</span>────▶<span class="db">│                      │</span>
+<span class="dg">┌──────────────┐</span>  │      <span class="do">│   H264/5 → NV12) │</span>     <span class="db">│   nvstreammux        │</span>
+<span class="dg">│nvurisrcbin[1]│</span>──┤      <span class="do">└──────────────────┘</span>     <span class="db">│   ┌────────────────┐ │</span>
+<span class="dg">│ (RTSP Src)   │</span>  │                             <span class="db">│   │ Batches N frms  │ │</span>
+<span class="dg">└──────────────┘</span>  │      <span class="do">┌──────────────────┐</span>     <span class="db">│   │ Attaches        │ │</span>
+                  ├─────▶<span class="do">│  nvv4l2decoder   │</span>────▶<span class="db">│   │ NvDsBatchMeta   │ │</span>
+<span class="dg">┌──────────────┐</span>  │      <span class="do">└──────────────────┘</span>     <span class="db">│   │ Resize/CSC      │ │</span>
+<span class="dg">│nvurisrcbin[N]│</span>──┘                             <span class="db">│   └────────────────┘ │</span>
+<span class="dg">└──────────────┘</span>                                  <span class="db">└──────────┬───────────┘</span>
+                                                              <span class="db">│</span>
+                                     <span class="db">NvBufSurface (GPU NVMM)  │</span>
+                                                              <span class="db">▼</span>
+<span class="dp">┌──────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="dp">│                         PRIMARY INFERENCE (nvinfer)                          │</span>
+<span class="dp">│                                                                              │</span>
+<span class="dp">│  Input:  Batched NV12/RGBA frames (NvBufSurface)                             │</span>
+<span class="dp">│  Steps:  1. Crop ROI  2. Scale to net dims  3. CSC  4. Normalize             │</span>
+<span class="dp">│          5. TensorRT engine execution  6. Parse outputs → NvDsObjectMeta     │</span>
+<span class="dp">│  Output: Bboxes + class_id + confidence attached to NvDsFrameMeta            │</span>
+<span class="dp">│                                                                              │</span>
+<span class="dp">│  Config: model-engine-file, net-scale-factor, offsets, num-detected-classes   │</span>
+<span class="dp">│  Modes:  Detection │ Classification │ Segmentation │ Instance-Seg            │</span>
+<span class="dp">└──────────────────────────────────────┬───────────────────────────────────────┘</span>
+                                       <span class="dp">│</span>
+                                       <span class="dp">▼</span>
+<span class="dc">┌──────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="dc">│                         TRACKER (nvtracker)                                  │</span>
+<span class="dc">│                                                                              │</span>
+<span class="dc">│  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌────────┐  ┌─────────────┐  │</span>
+<span class="dc">│  │   IOU    │  │  NvSORT  │  │NvDeepSORT  │  │ NvDCF  │  │ MaskTracker │  │</span>
+<span class="dc">│  │ (CPU,    │  │ (Kalman  │  │(ReID CNN + │  │(DCF +  │  │ (SAM2 +     │  │</span>
+<span class="dc">│  │  fast,   │  │  filter, │  │ cosine     │  │ visual │  │  TensorRT   │  │</span>
+<span class="dc">│  │  basic)  │  │  no vis) │  │ distance)  │  │ track) │  │  seg masks) │  │</span>
+<span class="dc">│  └──────────┘  └──────────┘  └────────────┘  └────────┘  └─────────────┘  │</span>
+<span class="dc">│                                                                              │</span>
+<span class="dc">│  Updates: NvDsObjectMeta.object_id, tracker_bbox_info, tracker_confidence    │</span>
+<span class="dc">└──────────────────────────────────────┬───────────────────────────────────────┘</span>
+                                       <span class="dc">│</span>
+                             <span class="dc">┌─────────┴─────────┐</span>
+                             <span class="dc">▼                   ▼</span>
+<span class="dk">┌───────────────────────┐</span>  <span class="do">┌────────────────────────────┐</span>
+<span class="dk">│  SECONDARY INFERENCE  │</span>  <span class="do">│     nvdsanalytics          │</span>
+<span class="dk">│  (nvinfer × N)        │</span>  <span class="do">│  ┌────────────────────┐    │</span>
+<span class="dk">│                       │</span>  <span class="do">│  │ Line Crossing      │    │</span>
+<span class="dk">│  Per-object crop →    │</span>  <span class="do">│  │ ROI Occupancy      │    │</span>
+<span class="dk">│  classify (color,     │</span>  <span class="do">│  │ Direction Detect    │    │</span>
+<span class="dk">│  type, attribute)     │</span>  <span class="do">│  │ 3D Tracking        │    │</span>
+<span class="dk">│  → NvDsClassifierMeta │</span>  <span class="do">│  └────────────────────┘    │</span>
+<span class="dk">└───────────┬───────────┘</span>  <span class="do">└─────────────┬──────────────┘</span>
+            <span class="dk">│</span>                            <span class="do">│</span>
+            <span class="dk">└────────────┬───────────────┘</span>
+                         <span class="dk">▼</span>
+         <span class="dp">┌──────────────────────────────────────────┐</span>
+         <span class="dp">│  OUTPUT BRANCHES                          │</span>
+         <span class="dp">│                                            │</span>
+         <span class="dp">│  ┌─────────┐  ┌─────────┐  ┌────────────┐│</span>
+         <span class="dp">│  │nvdsosd  │  │nvmsgconv│  │nvv4l2h264  ││</span>
+         <span class="dp">│  │(Overlay)│  │+broker  │  │enc (NVENC) ││</span>
+         <span class="dp">│  │→Display │  │→Kafka/  │  │→File/RTSP  ││</span>
+         <span class="dp">│  │ /RTSP   │  │ Redis   │  │ Out        ││</span>
+         <span class="dp">│  └─────────┘  └─────────┘  └────────────┘│</span>
+         <span class="dp">└──────────────────────────────────────────┘</span>
+</pre></div>
+    </div>
+
+    <h3>Plugin Catalog Summary</h3>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Plugin</th>
+            <th>Function</th>
+            <th>Accelerator</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Inference</strong></td><td><code>nvinfer</code></td><td>Native TensorRT inference — detection, classification, segmentation</td><td>GPU (TensorRT)</td></tr>
+          <tr><td></td><td><code>nvinferserver</code></td><td>Triton-based inference — TF, PyTorch, ONNX via gRPC</td><td>GPU (Triton)</td></tr>
+          <tr><td></td><td><code>nvdspreprocess</code></td><td>ROI-based preprocessing before primary inference</td><td>GPU</td></tr>
+          <tr><td><strong>Stream</strong></td><td><code>nvstreammux</code></td><td>Batches N sources, configurable batch-size/dims/timeout</td><td>GPU</td></tr>
+          <tr><td></td><td><code>nvstreamdemux</code></td><td>Splits batch back to individual streams</td><td>—</td></tr>
+          <tr><td></td><td><code>nvmultiurisrcbin</code></td><td>Dynamic sensor add/remove via REST API</td><td>—</td></tr>
+          <tr><td><strong>Tracking</strong></td><td><code>nvtracker</code></td><td>IOU / NvSORT / NvDeepSORT / NvDCF / MaskTracker</td><td>GPU (DCF, ReID)</td></tr>
+          <tr><td><strong>Video</strong></td><td><code>nvv4l2decoder</code></td><td>HW decode (NVDEC) — H.264, H.265, VP9, AV1</td><td>NVDEC ASIC</td></tr>
+          <tr><td></td><td><code>nvvideoconvert</code></td><td>GPU color space conversion + scaling</td><td>GPU/VIC</td></tr>
+          <tr><td></td><td><code>nvdewarper</code></td><td>Fisheye lens dewarping (360° → perspective)</td><td>GPU</td></tr>
+          <tr><td><strong>Analytics</strong></td><td><code>nvdsanalytics</code></td><td>Line crossing, ROI occupancy, direction detection</td><td>CPU</td></tr>
+          <tr><td><strong>Messaging</strong></td><td><code>nvmsgconv</code></td><td>Metadata → JSON payload conversion</td><td>CPU</td></tr>
+          <tr><td></td><td><code>nvmsgbroker</code></td><td>Send to Kafka, MQTT, AMQP, Redis, Azure IoT</td><td>CPU</td></tr>
+          <tr><td><strong>3D/Fusion</strong></td><td><code>nvds3dfilter</code></td><td>LiDAR and depth camera integration</td><td>GPU</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>TensorRT Optimization Pipeline</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">TensorRT Engine Build — 6-Step Compiler Pipeline</span>
+        <span class="diagram-badge">Optimization</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">┌─────────────┐</span>     <span class="db">┌──────────────────┐</span>     <span class="dp">┌──────────────────────────┐</span>
+<span class="dg">│ ONNX Model  │</span>────▶<span class="db">│  1. PARSE        │</span>────▶<span class="dp">│  2. GRAPH OPTIMIZATION   │</span>
+<span class="dg">│ (or Caffe/  │</span>     <span class="db">│                  │</span>     <span class="dp">│                          │</span>
+<span class="dg">│  UFF/TAO)   │</span>     <span class="db">│  Parse ONNX →    │</span>     <span class="dp">│  ┌─ Vertical Fusion ───┐ │</span>
+<span class="dg">└─────────────┘</span>     <span class="db">│  INetworkDefn    │</span>     <span class="dp">│  │ Conv+BN+ReLU → CBR  │ │</span>
+                     <span class="db">│  Plugin matching │</span>     <span class="dp">│  │ Conv+Add+ReLU → CRA │ │</span>
+                     <span class="db">│  for unsupported │</span>     <span class="dp">│  │ MatMul+Bias+Act → 1 │ │</span>
+                     <span class="db">│  ops             │</span>     <span class="dp">│  └──────────────────────┘ │</span>
+                     <span class="db">└──────────────────┘</span>     <span class="dp">│  ┌─ Horizontal Fusion ─┐ │</span>
+                                               <span class="dp">│  │ Parallel 1×1 CBRs   │ │</span>
+                                               <span class="dp">│  │ → single wide kernel │ │</span>
+                                               <span class="dp">│  └──────────────────────┘ │</span>
+                                               <span class="dp">│  ┌─ Elimination ────────┐ │</span>
+                                               <span class="dp">│  │ Dead layers, const   │ │</span>
+                                               <span class="dp">│  │ fold, transpose elim │ │</span>
+                                               <span class="dp">│  └──────────────────────┘ │</span>
+                                               <span class="dp">└────────────┬─────────────┘</span>
+                                                            <span class="dp">│</span>
+<span class="dc">┌────────────────────────────┐</span>    <span class="do">┌─────────────────────┐</span>   <span class="dp">│</span>
+<span class="dc">│  4. PRECISION CALIBRATION  │</span>◀───<span class="do">│  3. KERNEL AUTOTUNING│</span>◀──┘
+<span class="dc">│                            │</span>    <span class="do">│                     │</span>
+<span class="dc">│  ┌─ INT8 Calibrators ────┐ │</span>    <span class="do">│  Profile: GEMM,     │</span>
+<span class="dc">│  │ Entropy (KL div)      │ │</span>    <span class="do">│  Winograd, FFT,     │</span>
+<span class="dc">│  │ MinMax (abs max)      │ │</span>    <span class="do">│  Implicit GEMM      │</span>
+<span class="dc">│  │ Percentile (99.9%)    │ │</span>    <span class="do">│                     │</span>
+<span class="dc">│  │ MSE (exhaustive)      │ │</span>    <span class="do">│  Select fastest     │</span>
+<span class="dc">│  └────────────────────────┘ │</span>    <span class="do">│  per-layer on target│</span>
+<span class="dc">│  scale = 127.0 / threshold  │</span>    <span class="do">│  GPU architecture   │</span>
+<span class="dc">└────────────┬───────────────┘</span>    <span class="do">└─────────────────────┘</span>
+             <span class="dc">│</span>
+             <span class="dc">▼</span>
+<span class="dr">┌──────────────────────────────────────────────────────────┐</span>
+<span class="dr">│  5. SERIALIZE → .engine (GPU-architecture specific)       │</span>
+<span class="dr">│     NOT portable across GPU types. Timing cache optional. │</span>
+<span class="dr">│                                                           │</span>
+<span class="dr">│  6. DEPLOY → DeepStream nvinfer / Triton / Standalone     │</span>
+<span class="dr">└──────────────────────────────────────────────────────────┘</span>
+</pre></div>
+      <div class="diagram-footer">Engines are GPU-architecture specific — must rebuild for each target (Orin ≠ A100 ≠ H100)</div>
+    </div>
+
+    <div class="callout orange">
+      <div class="callout-title">⚠ Critical: Layer Fusion Impact</div>
+      <p>Vertical fusion (Conv+BN+ReLU → single kernel) reduces HBM accesses from 6 to 2 — the dominant bottleneck for memory-bound inference. This single optimization typically delivers 2-3× throughput improvement on bandwidth-limited operations.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>Triton Inference Server Architecture</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">Triton Inference Server — Core Architecture</span>
+        <span class="diagram-badge">Serving</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">Clients</span>                       <span class="db">Triton Inference Server</span>
+<span class="dg">━━━━━━━</span>                       <span class="db">━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+<span class="dg">┌──────────┐</span>
+<span class="dg">│ gRPC     │</span>──┐
+<span class="dg">│ Client   │</span>  │         <span class="db">┌───────────────────────────────────────────────┐</span>
+<span class="dg">└──────────┘</span>  │         <span class="db">│                 REQUEST HANDLER                │</span>
+              ├────────▶<span class="db">│  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │</span>
+<span class="dg">┌──────────┐</span>  │         <span class="db">│  │ gRPC     │  │ HTTP/REST│  │ C/Python API │ │</span>
+<span class="dg">│ HTTP/REST│</span>──┤         <span class="db">│  │ Endpoint │  │ Endpoint │  │ (in-process) │ │</span>
+<span class="dg">│ Client   │</span>  │         <span class="db">│  └─────┬────┘  └────┬─────┘  └──────┬───────┘ │</span>
+<span class="dg">└──────────┘</span>  │         <span class="db">└────────┼──────────────┼────────────────┼─────────┘</span>
+              │                  <span class="db">▼              ▼                ▼</span>
+<span class="dg">┌──────────┐</span>  │         <span class="dp">┌───────────────────────────────────────────────┐</span>
+<span class="dg">│DeepStream│</span>──┘         <span class="dp">│              SCHEDULER LAYER                    │</span>
+<span class="dg">│nvinfer-  │</span>            <span class="dp">│                                                │</span>
+<span class="dg">│ server   │</span>            <span class="dp">│  ┌────────────┐ ┌─────────────┐ ┌────────────┐│</span>
+<span class="dg">└──────────┘</span>            <span class="dp">│  │  Default   │ │  Dynamic    │ │  Sequence  ││</span>
+                        <span class="dp">│  │  Scheduler │ │  Batcher    │ │  Batcher   ││</span>
+                        <span class="dp">│  │            │ │             │ │ (Stateful) ││</span>
+                        <span class="dp">│  │ 1 request  │ │ Batch by    │ │ Maintain   ││</span>
+                        <span class="dp">│  │ at a time  │ │ time/size   │ │ session    ││</span>
+                        <span class="dp">│  └──────┬─────┘ └──────┬──────┘ └─────┬──────┘│</span>
+                        <span class="dp">└─────────┼──────────────┼───────────────┼───────┘</span>
+                                  <span class="dp">▼              ▼               ▼</span>
+                        <span class="dc">┌───────────────────────────────────────────────┐</span>
+                        <span class="dc">│             BACKEND FRAMEWORK                  │</span>
+                        <span class="dc">│                                                │</span>
+                        <span class="dc">│  ┌────────┐┌────────┐┌───────┐┌───────┐┌────┐ │</span>
+                        <span class="dc">│  │TensorRT││PyTorch ││TF     ││ONNXRT ││vLLM│ │</span>
+                        <span class="dc">│  │Backend ││Backend ││Backend││Backend││    │ │</span>
+                        <span class="dc">│  └────────┘└────────┘└───────┘└───────┘└────┘ │</span>
+                        <span class="dc">│  ┌────────┐┌────────────────┐┌───────────────┐ │</span>
+                        <span class="dc">│  │OpenVINO││Python Backend  ││BLS (Business  │ │</span>
+                        <span class="dc">│  │Backend ││(custom logic)  ││Logic Scripting│ │</span>
+                        <span class="dc">│  └────────┘└────────────────┘└───────────────┘ │</span>
+                        <span class="dc">└───────────────────────┬────────────────────────┘</span>
+                                                <span class="dc">│</span>
+                                                <span class="dc">▼</span>
+                        <span class="do">┌───────────────────────────────────────────────┐</span>
+                        <span class="do">│          MODEL REPOSITORY                      │</span>
+                        <span class="do">│                                                │</span>
+                        <span class="do">│  model_repo/                                   │</span>
+                        <span class="do">│  ├── peoplenet/                                │</span>
+                        <span class="do">│  │   ├── config.pbtxt                          │</span>
+                        <span class="do">│  │   └── 1/                                    │</span>
+                        <span class="do">│  │       └── model.plan   (TensorRT engine)    │</span>
+                        <span class="do">│  ├── yolov8/                                   │</span>
+                        <span class="do">│  │   ├── config.pbtxt                          │</span>
+                        <span class="do">│  │   └── 1/                                    │</span>
+                        <span class="do">│  │       └── model.onnx   (ONNX Runtime)       │</span>
+                        <span class="do">│  └── ensemble_pipeline/                        │</span>
+                        <span class="do">│      └── config.pbtxt    (chains models)       │</span>
+                        <span class="do">│                                                │</span>
+                        <span class="do">│  Sources: local FS, S3, GCS, Azure Blob        │</span>
+                        <span class="do">└────────────────────────────────────────────────┘</span>
+</pre></div>
+    </div>
+
+    <div class="card-grid">
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon blue">📦</div>
+          <h4>Dynamic Batching</h4>
+        </div>
+        <p>Accumulates requests in a queue, forms optimal batches by time window (<code>max_queue_delay_microseconds</code>) or size (<code>preferred_batch_size</code>). Critical for GPU utilization — a single image wastes 90%+ of GPU compute on large models.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon purple">🔗</div>
+          <h4>Ensemble Models</h4>
+        </div>
+        <p>Chain multiple models into a DAG pipeline within Triton — preprocess → detect → classify. Data flows directly via shared memory between stages. Defined entirely in <code>config.pbtxt</code> with no custom code.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon cyan">🧩</div>
+          <h4>Model Concurrency</h4>
+        </div>
+        <p><code>instance_group</code> in config controls parallel model instances. Multiple instances of the same model run simultaneously on one or more GPUs, overlapping compute with data transfer for higher throughput.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2>TAO Transfer Learning Workflow</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">TAO Toolkit — Model Lifecycle</span>
+        <span class="diagram-badge">Training</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">┌────────────────┐</span>     <span class="db">┌──────────────────┐</span>     <span class="dp">┌──────────────────┐</span>
+<span class="dg">│ NGC Pretrained │</span>────▶<span class="db">│   FINE-TUNE      │</span>────▶<span class="dp">│   PRUNE          │</span>
+<span class="dg">│ Model (100+)   │</span>     <span class="db">│                  │</span>     <span class="dp">│                  │</span>
+<span class="dg">│ ┌────────────┐ │</span>     <span class="db">│ Custom dataset   │</span>     <span class="dp">│ Magnitude-based  │</span>
+<span class="dg">│ │PeopleNet   │ │</span>     <span class="db">│ Domain adaptation │</span>     <span class="dp">│ Structured       │</span>
+<span class="dg">│ │DetectNetV2 │ │</span>     <span class="db">│ TAO Launcher CLI │</span>     <span class="dp">│ pruning_threshold│</span>
+<span class="dg">│ │YOLO/DINO   │ │</span>     <span class="db">│ DGX / Cloud GPU  │</span>     <span class="dp">│ Remove channels  │</span>
+<span class="dg">│ │SegFormer   │ │</span>     <span class="db">│                  │</span>     <span class="dp">│                  │</span>
+<span class="dg">│ └────────────┘ │</span>     <span class="db">└──────────────────┘</span>     <span class="dp">└────────┬─────────┘</span>
+<span class="dg">└────────────────┘</span>                                          <span class="dp">│</span>
+                                                             <span class="dp">▼</span>
+<span class="dr">┌────────────────┐</span>     <span class="dc">┌──────────────────┐</span>     <span class="do">┌──────────────────┐</span>
+<span class="dr">│ DEPLOY         │</span>◀───<span class="dc">│  EXPORT TO ONNX  │</span>◀───<span class="do">│  RETRAIN         │</span>
+<span class="dr">│                │</span>     <span class="dc">│                  │</span>     <span class="do">│                  │</span>
+<span class="dr">│ DeepStream     │</span>     <span class="dc">│ Open format      │</span>     <span class="do">│ Recover accuracy │</span>
+<span class="dr">│ Triton         │</span>     <span class="dc">│ (no more .etlt)  │</span>     <span class="do">│ load_graph=true  │</span>
+<span class="dr">│ TensorRT opt   │</span>     <span class="dc">│ + trtexec        │</span>     <span class="do">│ From pruned arch │</span>
+<span class="dr">│ Edge / Cloud   │</span>     <span class="dc">│ integration      │</span>     <span class="do">│ <span class="dr">⚠ No TL on pruned</span>│</span>
+<span class="dr">└────────────────┘</span>     <span class="dc">└──────────────────┘</span>     <span class="do">└──────────────────┘</span>
+</pre></div>
+      <div class="diagram-footer">Transfer learning is NOT supported on pruned models — must retrain from pruned graph with load_graph=true</div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+<!-- ║                    LOW-LEVEL INTERNALS                        ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+<div id="tab-low" class="tab-panel">
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>DeepStream Metadata Hierarchy</h2>
+    </div>
+
+    <p>DeepStream's metadata flows through a strict hierarchy attached to GstBuffers. Understanding this hierarchy is critical for writing probe functions and custom plugins.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">NvDs Metadata Object Model — Complete Hierarchy</span>
+        <span class="diagram-badge">Data Model</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">NvDsBatchMeta</span> <span class="dd">(created by nvstreammux, attached to GstBuffer)</span>
+<span class="dd">│</span>
+<span class="dd">│  Fields:</span>
+<span class="dd">│    max_frames_in_batch    ─ preallocated pool size</span>
+<span class="dd">│    num_frames_in_batch    ─ actual frame count this batch</span>
+<span class="dd">│    meta_mutex             ─ GRecMutex for thread-safe access</span>
+<span class="dd">│    frame_meta_pool        ─ preallocated NvDsFrameMeta pool</span>
+<span class="dd">│    obj_meta_pool          ─ preallocated NvDsObjectMeta pool</span>
+<span class="dd">│    classifier_meta_pool</span>
+<span class="dd">│    display_meta_pool</span>
+<span class="dd">│    user_meta_pool</span>
+<span class="dd">│</span>
+<span class="dd">├──</span> <span class="db">frame_meta_list</span> <span class="dd">→ [NvDsFrameMeta per source_id]</span>
+<span class="dd">│   │</span>
+<span class="dd">│   │  Fields:</span>
+<span class="dd">│   │    pad_index          ─ mux sink pad number</span>
+<span class="dd">│   │    batch_id           ─ index within this batch</span>
+<span class="dd">│   │    frame_num          ─ absolute frame counter</span>
+<span class="dd">│   │    buf_pts            ─ GStreamer PTS timestamp</span>
+<span class="dd">│   │    ntp_timestamp      ─ NTP time (camera sync)</span>
+<span class="dd">│   │    source_id          ─ identifies camera/stream</span>
+<span class="dd">│   │    source_frame_width, source_frame_height</span>
+<span class="dd">│   │    num_obj_meta       ─ detection count</span>
+<span class="dd">│   │</span>
+<span class="dd">│   ├──</span> <span class="dp">obj_meta_list</span> <span class="dd">→ [NvDsObjectMeta per detection]</span>
+<span class="dd">│   │   │</span>
+<span class="dd">│   │   │  Fields:</span>
+<span class="dd">│   │   │    class_id              ─ detector class index</span>
+<span class="dd">│   │   │    object_id             ─ tracker-assigned unique ID</span>
+<span class="dd">│   │   │    confidence             ─ detector score [0,1]</span>
+<span class="dd">│   │   │    tracker_confidence     ─ tracker score (NvDCF only)</span>
+<span class="dd">│   │   │    detector_bbox_info     ─ original detector bbox</span>
+<span class="dd">│   │   │    tracker_bbox_info      ─ smoothed tracker bbox</span>
+<span class="dd">│   │   │    mask_params            ─ segmentation mask data</span>
+<span class="dd">│   │   │    obj_label[128]         ─ string label</span>
+<span class="dd">│   │   │</span>
+<span class="dd">│   │   ├──</span> <span class="dc">classifier_meta_list</span> <span class="dd">→ [NvDsClassifierMeta]</span>
+<span class="dd">│   │   │   │</span>
+<span class="dd">│   │   │   │  Fields: unique_component_id, num_labels</span>
+<span class="dd">│   │   │   │</span>
+<span class="dd">│   │   │   └──</span> <span class="do">label_info_list</span> <span class="dd">→ [NvDsLabelInfo]</span>
+<span class="dd">│   │   │       │  Fields: result_label, result_class_id,</span>
+<span class="dd">│   │   │       │          result_prob</span>
+<span class="dd">│   │   │</span>
+<span class="dd">│   │   └──</span> <span class="dk">obj_user_meta_list</span> <span class="dd">→ [NvDsUserMeta]</span>
+<span class="dd">│   │       │  void* user_meta_data  ─ custom payload</span>
+<span class="dd">│   │       │  copy_func / release_func callbacks</span>
+<span class="dd">│   │       │  Special types:</span>
+<span class="dd">│   │       │    NvDsInferTensorMeta    ─ raw tensor output</span>
+<span class="dd">│   │       │    NvDsInferSegmentationMeta</span>
+<span class="dd">│   │</span>
+<span class="dd">│   ├──</span> <span class="dr">display_meta_list</span> <span class="dd">→ [NvDsDisplayMeta]</span>
+<span class="dd">│   │     text, lines, rects, circles, arrows for OSD</span>
+<span class="dd">│   │</span>
+<span class="dd">│   └──</span> <span class="dk">frame_user_meta_list</span> <span class="dd">→ [NvDsUserMeta]</span>
+<span class="dd">│         Custom frame-level data (analytics events, etc.)</span>
+<span class="dd">│</span>
+<span class="dd">└──</span> <span class="dk">batch_user_meta_list</span> <span class="dd">→ [NvDsUserMeta]</span>
+      <span class="dd">Custom batch-level data</span>
+</pre></div>
+    </div>
+
+    <h3>Metadata Additive Flow</h3>
+    <p>Metadata flows additively through the pipeline — each plugin reads existing metadata and appends its own:</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        metadata-flow-sequence
+      </div>
+      <pre>
+nvstreammux   →  Creates NvDsBatchMeta, attaches to GstBuffer
+nvinfer(P)    →  Adds NvDsObjectMeta per detection (bbox, class, conf)
+nvtracker     →  Updates NvDsObjectMeta.object_id + tracker_bbox_info
+nvinfer(S)    →  Adds NvDsClassifierMeta per object (color, type, etc.)
+nvdsanalytics →  Adds analytics events to frame_user_meta_list
+nvdsosd       →  Reads NvDsDisplayMeta to render overlays
+nvmsgconv     →  Reads everything → generates JSON payload
+nvmsgbroker   →  Sends JSON to Kafka / Redis / MQTT / AMQP</pre>
+    </div>
+
+    <h3>Probe Function Pattern</h3>
+    <p>Probes are the primary mechanism for custom metadata access. Attach to any element's pad to read, filter, or modify metadata at any pipeline point.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        probe-function.py (Python bindings)
+      </div>
+      <pre>
+def osd_sink_pad_buffer_probe(pad, info, u_data):
+    gst_buffer = info.get_buffer()
+    batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
+
+    l_frame = batch_meta.frame_meta_list
+    while l_frame is not None:
+        frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
+
+        l_obj = frame_meta.obj_meta_list
+        while l_obj is not None:
+            obj_meta = pyds.NvDsObjectMeta.cast(l_obj.data)
+
+            # Access tracking ID, bbox, class, confidence
+            track_id  = obj_meta.object_id
+            class_id  = obj_meta.class_id
+            conf      = obj_meta.confidence
+            bbox      = obj_meta.tracker_bbox_info.org_bbox_coords
+            # bbox.left, bbox.top, bbox.width, bbox.height
+
+            l_obj = l_obj.next
+        l_frame = l_frame.next
+
+    return Gst.PadProbeReturn.OK</pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>GPU Memory Management — NvBufSurface</h2>
+    </div>
+
+    <p>The unified buffer abstraction <code>NvBufSurface</code> wraps GPU/VIC memory across all plugins. GStreamer's caps negotiation uses <code>video/x-raw(memory:NVMM), format=RGBA</code> to signal NVIDIA-managed memory surfaces, ensuring zero-copy data flow.</p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Memory Type</th>
+            <th>Constant</th>
+            <th>Location</th>
+            <th>Default For</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>CUDA Device</strong></td>
+            <td><code>NVBUF_MEM_CUDA_DEVICE</code></td>
+            <td>GPU VRAM</td>
+            <td>dGPU</td>
+            <td>Fastest GPU access, no CPU visibility</td>
+          </tr>
+          <tr>
+            <td><strong>CUDA Pinned</strong></td>
+            <td><code>NVBUF_MEM_CUDA_PINNED</code></td>
+            <td>Page-locked CPU</td>
+            <td>—</td>
+            <td>Fast DMA transfers between CPU ↔ GPU</td>
+          </tr>
+          <tr>
+            <td><strong>CUDA Unified</strong></td>
+            <td><code>NVBUF_MEM_CUDA_UNIFIED</code></td>
+            <td>Managed memory</td>
+            <td>—</td>
+            <td>Automatic migration, debugging</td>
+          </tr>
+          <tr>
+            <td><strong>Surface Array</strong></td>
+            <td><code>NVBUF_MEM_SURFACE_ARRAY</code></td>
+            <td>Jetson VIC/NVDEC</td>
+            <td>Jetson</td>
+            <td>Hardware codec memory, zero-copy on Jetson</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>INT8 Calibration Algorithms</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">TensorRT INT8 Calibration — Algorithm Comparison</span>
+        <span class="diagram-badge">Quantization</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dd">FP32 Activation Distribution</span>              <span class="dd">→ Find threshold T →</span>     <span class="dd">INT8 Mapping</span>
+                                                                    <span class="dd">scale = 127 / T</span>
+
+<span class="dg">ENTROPY (IInt8EntropyCalibrator2)</span>          <span class="db">MINMAX</span>
+<span class="dd">─────────────────────────────────</span>          <span class="dd">──────</span>
+<span class="dd">  Collect activation histograms             T = max(|activations|)</span>
+<span class="dd">  across calibration dataset</span>
+<span class="dd">  T = argmin KL(P_fp32 || Q_int8)           Simple but outlier-</span>
+<span class="dd">                                            sensitive</span>
+<span class="dd">  ┌──────────────────────┐</span>
+<span class="dd">  │   ╱╲                 │</span>                  <span class="dp">PERCENTILE</span>
+<span class="dd">  │  ╱  ╲                │</span>                  <span class="dd">──────────</span>
+<span class="dd">  │ ╱    ╲    ┊← T       │</span>                  <span class="dd">T = CDF⁻¹(99.9%)</span>
+<span class="dd">  │╱      ╲___┊__        │</span>                  <span class="dd">Robust to outliers</span>
+<span class="dd">  └──────────────────────┘</span>
+
+<span class="do">MSE (Most Compute-Intensive)</span>
+<span class="dd">────────────────────────────</span>
+<span class="dd">  T = argmin Σ(x_fp32 − Q(x, T))²</span>
+<span class="dd">  Exhaustive search over threshold space</span>
+<span class="dd">  Directly minimizes quantization error</span>
+<span class="dd">  Best accuracy, slowest calibration</span>
+
+<span class="dr">NOTE: Calibration targets activations only.</span>
+<span class="dr">Weight ranges derived directly from parameters.</span>
+</pre></div>
+    </div>
+
+    <div class="card-grid">
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon green">🎯</div>
+          <h4>Entropy (Default for CNNs)</h4>
+        </div>
+        <p>Minimizes KL divergence between FP32 and INT8 distributions. Best general-purpose calibrator. <code>IInt8EntropyCalibrator2</code> is the recommended default.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon blue">📊</div>
+          <h4>MinMax (NLP recommended)</h4>
+        </div>
+        <p>Uses absolute max activation value. Simple and fast but sensitive to outliers. Recommended for transformer/NLP models where activation distributions are more uniform.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon purple">📈</div>
+          <h4>Percentile</h4>
+        </div>
+        <p>Uses CDF percentile (typically 99.9%) as threshold. Good middle ground — robust to outliers while preserving dynamic range for the majority of activations.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon orange">🔬</div>
+          <h4>MSE (Exhaustive)</h4>
+        </div>
+        <p>Searches entire threshold space minimizing mean squared error. Most compute-intensive but directly optimizes the quantization error metric. Use when accuracy is paramount.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2>Tracker Algorithm Internals</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">Unified Tracker Architecture — Composable Modules</span>
+        <span class="diagram-badge">Tracking</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">┌───────────────────────────────────────────────────────────────────────┐</span>
+<span class="dg">│          libnvds_nvmultiobjecttracker.so                             │</span>
+<span class="dg">│          (Unified Tracker Library — DeepStream 6.0+)                 │</span>
+<span class="dg">│                                                                       │</span>
+<span class="dg">│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐  │</span>
+<span class="dg">│  │ Data Association │  │ State Estimation│  │ Target Management   │  │</span>
+<span class="dg">│  │                 │  │                 │  │                     │  │</span>
+<span class="dg">│  │ Hungarian /     │  │ Kalman Filter   │  │ Birth / Death /     │  │</span>
+<span class="dg">│  │ Cascade Match   │  │ (motion pred)   │  │ Tentative → Active  │  │</span>
+<span class="dg">│  │ IOU + Appearance│  │                 │  │ Max age / min hits  │  │</span>
+<span class="dg">│  └─────────────────┘  └─────────────────┘  └─────────────────────┘  │</span>
+<span class="dg">│                                                                       │</span>
+<span class="dg">│  ┌─────────────────┐  ┌─────────────────────────────────────────┐    │</span>
+<span class="dg">│  │ Model Inference  │  │ Bbox Unclipping                         │    │</span>
+<span class="dg">│  │ (ReID via TRT)   │  │ (Restore to original frame coords)      │    │</span>
+<span class="dg">│  └─────────────────┘  └─────────────────────────────────────────┘    │</span>
+<span class="dg">└───────────────────────────────────────────────────────────────────────┘</span>
+
+<span class="dd">Algorithm Comparison:</span>
+
+<span class="dd">┌──────────────┬────────┬────────┬──────────┬─────────┬──────────────┐</span>
+<span class="dd">│              │  IOU   │ NvSORT │NvDeepSORT│  NvDCF  │ MaskTracker  │</span>
+<span class="dd">├──────────────┼────────┼────────┼──────────┼─────────┼──────────────┤</span>
+<span class="dd">│ Visual feat  │   ✗    │   ✗    │  ✓ ReID  │ ✓ DCF   │ ✓ SAM2       │</span>
+<span class="dd">│ Kalman       │   ✗    │   ✓    │    ✓     │   ✓     │   ✓          │</span>
+<span class="dd">│ GPU accel    │   ✗    │   ✗    │  ✓ TRT   │ ✓ CUDA  │ ✓ TRT        │</span>
+<span class="dd">│ Pixel data   │   ✗    │   ✗    │ Cropped  │  Full   │ Cropped+mask │</span>
+<span class="dd">│ trk_conf     │  1.0   │  1.0   │   1.0    │ actual  │  actual      │</span>
+<span class="dd">│ Cost         │  Low   │  Low   │  Medium  │  High   │  Highest     │</span>
+<span class="dd">│ Accuracy     │  Low   │ Medium │   High   │ Highest │ Highest+mask │</span>
+<span class="dd">│ Seg masks    │   ✗    │   ✗    │    ✗     │   ✗     │   ✓          │</span>
+<span class="dd">└──────────────┴────────┴────────┴──────────┴─────────┴──────────────┘</span>
+</pre></div>
+      <div class="diagram-footer">NvDCF is the only tracker generating actual tracker_confidence values; all others set it to 1.0</div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+<!-- ║                 DEEPSTREAM DEEP DIVE                         ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+<div id="tab-deepstream" class="tab-panel">
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>nvinfer — Inference Plugin Internals</h2>
+    </div>
+
+    <p>The <code>nvinfer</code> plugin is the workhorse of DeepStream inference. It accepts batched NV12/RGBA frames, performs preprocessing (format conversion, scaling, normalization), runs the TensorRT engine, and parses outputs into metadata.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">nvinfer Internal Processing Pipeline</span>
+        <span class="diagram-badge">Plugin Detail</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="db">NvBufSurface</span>
+<span class="db">(Batched GPU frames)</span>
+       <span class="db">│</span>
+       <span class="db">▼</span>
+<span class="dg">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="dg">│  1. ROI CROP                                                  │</span>
+<span class="dg">│     Primary: full frame                                       │</span>
+<span class="dg">│     Secondary: crop to parent object bbox                     │</span>
+<span class="dg">└──────────────────────────────────┬───────────────────────────┘</span>
+                                   <span class="dg">▼</span>
+<span class="db">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="db">│  2. SCALE to network input dimensions                         │</span>
+<span class="db">│     (network-input-width × network-input-height)              │</span>
+<span class="db">│     Bilinear interpolation on GPU                             │</span>
+<span class="db">└──────────────────────────────────┬───────────────────────────┘</span>
+                                   <span class="db">▼</span>
+<span class="dp">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="dp">│  3. COLOR SPACE CONVERSION                                    │</span>
+<span class="dp">│     NV12 → RGB/BGR/RGBA as required by model                 │</span>
+<span class="dp">│     GPU-accelerated via nvvideoconvert                        │</span>
+<span class="dp">└──────────────────────────────────┬───────────────────────────┘</span>
+                                   <span class="dp">▼</span>
+<span class="dc">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="dc">│  4. NORMALIZE                                                 │</span>
+<span class="dc">│     y = net-scale-factor × (x - mean_offsets)                 │</span>
+<span class="dc">│                                                               │</span>
+<span class="dc">│     Typical configs:                                          │</span>
+<span class="dc">│     ┌──────────────────┬────────────────┬──────────────────┐  │</span>
+<span class="dc">│     │ net-scale-factor │   offsets       │ Model            │  │</span>
+<span class="dc">│     ├──────────────────┼────────────────┼──────────────────┤  │</span>
+<span class="dc">│     │ 0.0039215686     │ 0;0;0          │ ImageNet [0,1]   │  │</span>
+<span class="dc">│     │ 0.00392156       │ 0;0;0          │ YOLO standard    │  │</span>
+<span class="dc">│     │ 0.017507         │ 123.675;116.28 │ ImageNet normed  │  │</span>
+<span class="dc">│     │                  │ ;103.53        │                  │  │</span>
+<span class="dc">│     └──────────────────┴────────────────┴──────────────────┘  │</span>
+<span class="dc">└──────────────────────────────────┬───────────────────────────┘</span>
+                                   <span class="dc">▼</span>
+<span class="do">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="do">│  5. TENSORRT ENGINE EXECUTION                                 │</span>
+<span class="do">│     Batched inference on preprocessed tensors                 │</span>
+<span class="do">│     Supports: FP32, FP16, INT8, FP8 (Hopper+)               │</span>
+<span class="do">│     Dynamic batch via TRT optimization profiles               │</span>
+<span class="do">└──────────────────────────────────┬───────────────────────────┘</span>
+                                   <span class="do">▼</span>
+<span class="dr">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="dr">│  6. OUTPUT PARSING                                            │</span>
+<span class="dr">│     Detection:   → NvDsObjectMeta (bbox, class, conf)        │</span>
+<span class="dr">│     Classify:    → NvDsClassifierMeta (label, prob)           │</span>
+<span class="dr">│     Segment:     → NvDsInferSegmentationMeta (mask)           │</span>
+<span class="dr">│     Instance:    → ObjectMeta + mask_params                   │</span>
+<span class="dr">│                                                               │</span>
+<span class="dr">│     Custom parse: register via NvDsInferParseCustomFunc       │</span>
+<span class="dr">└──────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+    </div>
+
+    <h3>Key Configuration Parameters</h3>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        nvinfer_config.txt
+      </div>
+      <pre>
+[property]
+gpu-id=0
+net-scale-factor=0.0039215686
+offsets=0;0;0
+model-engine-file=peoplenet_v2.6.engine
+labelfile-path=labels.txt
+batch-size=16
+network-mode=2                    # 0=FP32, 1=FP16, 2=INT8
+int8-calib-file=calibration.table
+num-detected-classes=3
+process-mode=1                    # 1=Primary, 2=Secondary
+network-type=0                    # 0=Detect, 1=Classify, 2=Segment, 3=InstanceSeg
+interval=0                        # 0=every frame, N=skip N frames
+maintain-aspect-ratio=1
+symmetric-padding=1
+network-input-width=960
+network-input-height=544
+
+[class-attrs-all]
+pre-cluster-threshold=0.4
+nms-iou-threshold=0.5
+topk=20</pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>nvstreammux — Batching Internals</h2>
+    </div>
+
+    <p><code>nvstreammux</code> is the critical multiplexing element that batches frames from multiple sources into a single NvBufSurface batch. The <strong>new nvstreammux</strong> (enabled via <code>USE_NEW_NVSTREAMMUX=yes</code>) supports adaptive and heterogeneous batching.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">nvstreammux Batching Behavior</span>
+        <span class="diagram-badge">Multiplexer</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dd">Source 0 ─── frame frame frame frame frame ──────────────────▶ time</span>
+<span class="dd">Source 1 ─── frame   frame   frame   frame   frame ──────────▶ time</span>
+<span class="dd">Source 2 ─── frame frame frame frame frame frame ────────────▶ time</span>
+<span class="dd">Source 3 ─── frame     frame     frame     frame ───────────▶ time</span>
+
+<span class="dd">                    │                    │</span>
+<span class="dd">                    │ batch-size=4       │ batched-push-timeout</span>
+<span class="dd">                    │ (collect 4 frames) │ (or timeout fires)</span>
+<span class="dd">                    ▼                    ▼</span>
+
+<span class="dg">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="dg">│  NvBufSurface (batch_size = 4)                                │</span>
+<span class="dg">│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │</span>
+<span class="dg">│  │ src0 frm │ │ src1 frm │ │ src2 frm │ │ src3 frm │        │</span>
+<span class="dg">│  │ (scaled  │ │ (scaled  │ │ (scaled  │ │ (scaled  │        │</span>
+<span class="dg">│  │  to mux  │ │  to mux  │ │  to mux  │ │  to mux  │        │</span>
+<span class="dg">│  │  W × H)  │ │  W × H)  │ │  W × H)  │ │  W × H)  │        │</span>
+<span class="dg">│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │</span>
+<span class="dg">│                                                               │</span>
+<span class="dg">│  + NvDsBatchMeta (frame_meta_list → 4 NvDsFrameMeta entries)  │</span>
+<span class="dg">└──────────────────────────────────────────────────────────────┘</span>
+
+<span class="dd">Properties:</span>
+<span class="dd">  batch-size          ─ max frames per batch</span>
+<span class="dd">  width / height      ─ output surface dimensions (all frames scaled)</span>
+<span class="dd">  batched-push-timeout─ microseconds to wait before pushing partial batch</span>
+<span class="dd">  live-source         ─ prioritize latest frame vs queued frame</span>
+<span class="dd">  num-surfaces-per-frame ─ for multi-surface formats</span>
+</pre></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>Pipeline Construction Methods</h2>
+    </div>
+
+    <div class="card-grid">
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon green">🔧</div>
+          <h4>gst-launch-1.0 CLI</h4>
+        </div>
+        <p>Quick prototyping and testing. String-based pipeline construction. No code compilation needed. Limited to static pipelines.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon blue">📝</div>
+          <h4>INI Config (deepstream-app)</h4>
+        </div>
+        <p>Declarative config files for standard pipelines. No programming required. Covers most common use cases — sources, inference, tracking, output sinks.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon purple">💻</div>
+          <h4>C/C++ or Python API</h4>
+        </div>
+        <p>Full programmatic control. GStreamer API with DeepStream extensions. Required for custom plugins, dynamic pipeline modification, and advanced metadata handling.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon cyan">🚀</div>
+          <h4>Service Maker (DS 8.0+ GA)</h4>
+        </div>
+        <p>New high-level framework that removes GStreamer programming. Declarative YAML-based pipeline construction. Simplifies microservice development for production deployments.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+<!-- ║                  TENSORRT & TAO                               ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+<div id="tab-tensorrt" class="tab-panel">
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>Layer Fusion — The Core Optimization</h2>
+    </div>
+
+    <p>Layer fusion is the single most impactful TensorRT optimization. It reduces HBM (High Bandwidth Memory) accesses — the dominant bottleneck for memory-bound inference workloads.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">TensorRT Layer Fusion Patterns</span>
+        <span class="diagram-badge">Optimization</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">VERTICAL FUSION</span> <span class="dd">— Merges sequential operations into single kernels</span>
+
+  <span class="dd">Before (6 HBM accesses):         After (2 HBM accesses):</span>
+
+  <span class="dr">┌──────┐</span> read                     <span class="dg">┌─────────────────┐</span> read
+  <span class="dr">│ Conv │</span>──▶ write                  <span class="dg">│  CBR Fused      │</span>──▶ write
+  <span class="dr">└──┬───┘</span>                            <span class="dg">│  Kernel         │</span>
+     <span class="dr">▼</span>                                <span class="dg">│                 │</span>
+  <span class="do">┌──────┐</span> read                     <span class="dg">│  Conv+BN+ReLU   │</span>
+  <span class="do">│  BN  │</span>──▶ write                  <span class="dg">│  in one pass    │</span>
+  <span class="do">└──┬───┘</span>                            <span class="dg">└─────────────────┘</span>
+     <span class="do">▼</span>
+  <span class="db">┌──────┐</span> read                     <span class="dd">~3× throughput improvement</span>
+  <span class="db">│ ReLU │</span>──▶ write                  <span class="dd">on memory-bound layers</span>
+  <span class="db">└──────┘</span>
+
+  <span class="dd">Other vertical patterns:</span>
+  <span class="dd">  Conv + Add (residual) + ReLU  →  CRA kernel</span>
+  <span class="dd">  MatMul + Bias + Activation    →  single GEMM kernel</span>
+  <span class="dd">  ElementWise + ReLU            →  fused EW kernel</span>
+
+
+<span class="dp">HORIZONTAL FUSION</span> <span class="dd">— Aggregates parallel ops with shared inputs</span>
+
+  <span class="dd">Before (Inception-style):        After:</span>
+
+  <span class="dd">        input</span>                     <span class="dd">        input</span>
+  <span class="dd">     ╱    │    ╲</span>                  <span class="dd">          │</span>
+  <span class="dr">┌────┐</span> <span class="do">┌────┐</span> <span class="db">┌────┐</span>            <span class="dg">┌──────────────┐</span>
+  <span class="dr">│1×1 │</span> <span class="do">│1×1 │</span> <span class="db">│1×1 │</span>            <span class="dg">│ Wide 1×1 CBR │</span>
+  <span class="dr">│CBR │</span> <span class="do">│CBR │</span> <span class="db">│CBR │</span>            <span class="dg">│ (concatenated│</span>
+  <span class="dr">└────┘</span> <span class="do">└────┘</span> <span class="db">└────┘</span>            <span class="dg">│  weights)    │</span>
+  <span class="dd">     ╲    │    ╱</span>                  <span class="dg">└──────────────┘</span>
+  <span class="dd">       concat</span>                      <span class="dd">     │</span>
+                                    <span class="dd">   output</span>
+
+
+<span class="dc">ELIMINATION</span> <span class="dd">— Remove redundant operations</span>
+
+  <span class="dd">  Consecutive transposes  →  eliminated</span>
+  <span class="dd">  Dead layers (no output) →  removed</span>
+  <span class="dd">  Constant expressions    →  folded at build time</span>
+
+<span class="dr">CANNOT AUTO-FUSE:</span>
+  <span class="dd">  BMM-Softmax-BMM (attention)  →  requires custom plugin</span>
+  <span class="dd">  Complex multi-head attention →  FlashAttention plugin</span>
+</pre></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>Quantization: QAT vs Post-Training</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">Quantization-Aware Training (QAT) vs Post-Training Quantization (PTQ)</span>
+        <span class="diagram-badge">Precision</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">QUANTIZATION-AWARE TRAINING (QAT)</span>
+<span class="dd">══════════════════════════════════</span>
+
+  <span class="dd">Training graph with fake quantization nodes:</span>
+
+  <span class="db">┌──────┐</span>    <span class="do">┌───────────┐</span>    <span class="db">┌──────┐</span>    <span class="do">┌───────────┐</span>    <span class="db">┌──────┐</span>
+  <span class="db">│ Conv │</span>───▶<span class="do">│ FakeQuant │</span>───▶<span class="db">│  BN  │</span>───▶<span class="do">│ FakeQuant │</span>───▶<span class="db">│ ReLU │</span>
+  <span class="db">│weight│</span>    <span class="do">│ (simulate │</span>    <span class="db">│      │</span>    <span class="do">│ (simulate │</span>    <span class="db">│      │</span>
+  <span class="db">└──────┘</span>    <span class="do">│  INT8)    │</span>    <span class="db">└──────┘</span>    <span class="do">│  INT8)    │</span>    <span class="db">└──────┘</span>
+              <span class="do">└───────────┘</span>                <span class="do">└───────────┘</span>
+
+  <span class="dd">Model learns to compensate for quantization error during training</span>
+  <span class="dd">→ Higher INT8 accuracy than PTQ alone</span>
+  <span class="dd">→ Requires retraining with quantization-aware optimizer</span>
+
+
+<span class="dp">POST-TRAINING QUANTIZATION (PTQ)</span>
+<span class="dd">═════════════════════════════════</span>
+
+  <span class="dd">                    Calibration Dataset</span>
+  <span class="dd">                    (100-1000 samples)</span>
+  <span class="dd">                           │</span>
+  <span class="dd">                           ▼</span>
+  <span class="dp">┌─────────────────────────────────────────────────┐</span>
+  <span class="dp">│  Run FP32 inference, collect activation stats    │</span>
+  <span class="dp">│  per layer (histograms / min-max / percentile)   │</span>
+  <span class="dp">└────────────────────────┬────────────────────────┘</span>
+  <span class="dp">                         │</span>
+  <span class="dp">                         ▼</span>
+  <span class="dp">┌─────────────────────────────────────────────────┐</span>
+  <span class="dp">│  Compute scale factors: scale = 127.0 / T        │</span>
+  <span class="dp">│  (T = threshold from calibration algorithm)       │</span>
+  <span class="dp">└────────────────────────┬────────────────────────┘</span>
+  <span class="dp">                         │</span>
+  <span class="dp">                         ▼</span>
+  <span class="dp">┌─────────────────────────────────────────────────┐</span>
+  <span class="dp">│  Write calibration table (per-tensor scales)     │</span>
+  <span class="dp">│  → Used by TensorRT engine builder                │</span>
+  <span class="dp">└─────────────────────────────────────────────────┘</span>
+
+  <span class="dd">No retraining needed — calibrate on small representative dataset</span>
+  <span class="dd">Faster pipeline but potentially lower accuracy vs QAT</span>
+
+  <span class="dd">Also available: TorchAO (weight-only PTQ, no calibration)</span>
+  <span class="dd">                NVIDIA ModelOpt (static PTQ, requires calibration)</span>
+</pre></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>TensorRT 10.x Feature Matrix</h2>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Version</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>IPluginV3</strong></td><td>10.0+</td><td>Replaces deprecated IPluginV2 variants. Cleaner lifecycle management.</td></tr>
+          <tr><td><strong>QDPs</strong></td><td>10.0+</td><td>Quickly Deployable Plugins — Python-based rapid prototyping for custom ops</td></tr>
+          <tr><td><strong>Weight Streaming</strong></td><td>10.0+</td><td>Run models larger than GPU memory — stream weights from host</td></tr>
+          <tr><td><strong>FP8 (E4M3)</strong></td><td>10.0+</td><td>Hopper/Ada architecture support for 8-bit floating point</td></tr>
+          <tr><td><strong>FP4 (E2M1)</strong></td><td>10.4+</td><td>Blackwell architecture support for 4-bit floating point</td></tr>
+          <tr><td><strong>MXFP8</strong></td><td>10.16</td><td>Microscaling FP8 quantization with block-level scaling</td></tr>
+          <tr><td><strong>IAttention API</strong></td><td>10.16</td><td>Native attention layer support for transformer optimization</td></tr>
+          <tr><td><strong>Multi-device</strong></td><td>10.16 preview</td><td>Split inference across multiple GPUs</td></tr>
+          <tr><td><strong>MoE layers</strong></td><td>10.16</td><td>Native Mixture-of-Experts support</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-title">⚠ Critical: Engine Portability</div>
+      <p>TensorRT engines are <strong>GPU-architecture specific</strong>. An engine built for A100 will NOT run on H100 or Jetson Orin. Engines must be rebuilt for each target GPU. Use timing caches to accelerate rebuilds on identical hardware.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2>TAO Model Zoo — Key Architectures</h2>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Type</th>
+            <th>Backbone</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>PeopleNet v2.6</strong></td><td>Detection</td><td>ResNet-34</td><td>Trained on 7.6M+ images. Person, face, bag detection.</td></tr>
+          <tr><td><strong>DetectNet_v2</strong></td><td>Detection</td><td>ResNet-18/34/50</td><td>General-purpose object detection framework</td></tr>
+          <tr><td><strong>DINO / RT-DETR</strong></td><td>Detection</td><td>Transformer</td><td>State-of-art transformer detectors</td></tr>
+          <tr><td><strong>Grounding DINO</strong></td><td>Open-vocab</td><td>Transformer</td><td>Text-prompted detection — zero-shot</td></tr>
+          <tr><td><strong>SegFormer</strong></td><td>Segmentation</td><td>MiT</td><td>Semantic segmentation</td></tr>
+          <tr><td><strong>NV-DINOv2</strong></td><td>Foundation</td><td>ViT</td><td>Self-supervised visual features</td></tr>
+          <tr><td><strong>C-RADIOv2</strong></td><td>Foundation</td><td>Multi-teacher</td><td>Distilled multi-task visual backbone</td></tr>
+          <tr><td><strong>LPRNet</strong></td><td>OCR</td><td>Custom</td><td>License plate recognition</td></tr>
+          <tr><td><strong>BodyPoseNet</strong></td><td>Pose</td><td>Custom</td><td>Human body keypoint estimation</td></tr>
+          <tr><td><strong>ActionRecognitionNet</strong></td><td>Action</td><td>3D ResNet</td><td>Temporal action classification</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+<!-- ║                   TRITON & SERVING                            ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+<div id="tab-triton" class="tab-panel">
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>Triton Model Configuration</h2>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        config.pbtxt — Example TensorRT Model
+      </div>
+      <pre>
+name: "peoplenet_v2"
+platform: "tensorrt_plan"
+max_batch_size: 16
+
+input [
+  {
+    name: "input_1"
+    data_type: TYPE_FP32
+    format: FORMAT_NCHW
+    dims: [ 3, 544, 960 ]
+  }
+]
+
+output [
+  {
+    name: "output_bbox/BiasAdd"
+    data_type: TYPE_FP32
+    dims: [ 12, 34, 60 ]
+  },
+  {
+    name: "output_cov/Sigmoid"
+    data_type: TYPE_FP32
+    dims: [ 3, 34, 60 ]
+  }
+]
+
+instance_group [
+  {
+    count: 2
+    kind: KIND_GPU
+    gpus: [ 0 ]
+  }
+]
+
+dynamic_batching {
+  preferred_batch_size: [ 4, 8, 16 ]
+  max_queue_delay_microseconds: 100
+}</pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>Scheduler Deep Dive</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">Triton Scheduling Strategies</span>
+        <span class="diagram-badge">Scheduling</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">DEFAULT SCHEDULER</span>                   <span class="db">DYNAMIC BATCHER</span>
+<span class="dd">═════════════════</span>                   <span class="dd">═══════════════</span>
+
+<span class="dd">Request → Execute → Response</span>        <span class="dd">                    time window</span>
+<span class="dd">                                                     ◀──────────▶</span>
+<span class="dd">One request at a time               Req 1  ─┐</span>
+<span class="dd">(no batching)                       Req 2  ─┤   batch  ┌──────────┐</span>
+<span class="dd">                                    Req 3  ─┤────────▶│  Execute │</span>
+<span class="dd">Simplest config.                    Req 4  ─┘  (4)    │  Batch=4 │</span>
+<span class="dd">Use when model                                        └──────────┘</span>
+<span class="dd">doesn't support batching.</span>
+                                    <span class="dd">preferred_batch_size: [4, 8, 16]</span>
+                                    <span class="dd">max_queue_delay_microseconds: 100</span>
+
+                                    <span class="dd">Fire when: batch full OR timeout</span>
+                                    <span class="dd">Critical for GPU utilization —</span>
+                                    <span class="dd">single image wastes 90%+ compute</span>
+
+
+<span class="dp">SEQUENCE BATCHER</span>                    <span class="dc">ENSEMBLE SCHEDULER</span>
+<span class="dd">════════════════</span>                    <span class="dd">══════════════════</span>
+
+<span class="dd">Session A: [req1]→[req2]→[req3]     Model A ──┐</span>
+<span class="dd">                 ↕ state              Model B ──┼──▶ Model D</span>
+<span class="dd">Session B: [req1]→[req2]             Model C ──┘</span>
+
+<span class="dd">Maintains per-session state          DAG of models chained</span>
+<span class="dd">across requests.                     in config.pbtxt.</span>
+<span class="dd">                                     Shared memory between stages.</span>
+<span class="dd">Use for: video streams,              No custom code needed.</span>
+<span class="dd">stateful LLMs, RNNs.</span>
+<span class="dd">                                     preprocess → detect → classify</span>
+<span class="dd">correlation_id tracks sessions.</span>
+</pre></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>Backend Framework</h2>
+    </div>
+
+    <div class="card-grid">
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon green">🔥</div>
+          <h4>TensorRT Backend</h4>
+        </div>
+        <p>Highest throughput for NVIDIA GPUs. Loads <code>.plan</code> engine files directly. Supports all TensorRT features including INT8, dynamic shapes, and multi-profile.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon orange">🔶</div>
+          <h4>PyTorch Backend</h4>
+        </div>
+        <p>Loads TorchScript or torch.compile models. Supports GPU execution. Useful for rapid prototyping without TensorRT conversion step.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon blue">🔷</div>
+          <h4>ONNX Runtime Backend</h4>
+        </div>
+        <p>Cross-framework support via ONNX. CUDA execution provider for GPU. Good for models from multiple training frameworks.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon purple">🐍</div>
+          <h4>Python Backend</h4>
+        </div>
+        <p>Run arbitrary Python code as a model. Custom pre/post-processing, data transformation, business logic. Highest flexibility, lowest raw performance.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon cyan">🔗</div>
+          <h4>BLS (Business Logic Scripting)</h4>
+        </div>
+        <p>Orchestrate multiple models programmatically from Python. More flexible than ensemble configs — supports conditional logic, loops, and dynamic routing.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon pink">⚡</div>
+          <h4>vLLM Backend</h4>
+        </div>
+        <p>Optimized large language model serving with PagedAttention. Continuous batching for maximum throughput on LLM inference workloads.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2>DeepStream ↔ Triton Integration</h2>
+    </div>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">nvinferserver — DeepStream's Triton Bridge</span>
+        <span class="diagram-badge">Integration</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="db">DeepStream Pipeline</span>                    <span class="dp">Triton Inference Server</span>
+
+<span class="db">┌──────────────────────┐</span>            <span class="dp">┌──────────────────────────┐</span>
+<span class="db">│  nvstreammux         │</span>            <span class="dp">│  Triton Server           │</span>
+<span class="db">│  (batched frames)    │</span>            <span class="dp">│                          │</span>
+<span class="db">└──────────┬───────────┘</span>            <span class="dp">│  ┌──────────────────┐   │</span>
+           <span class="db">│</span>                        <span class="dp">│  │ TensorRT Backend │   │</span>
+           <span class="db">▼</span>                        <span class="dp">│  ├──────────────────┤   │</span>
+<span class="db">┌──────────────────────┐</span>  <span class="dd">gRPC</span>    <span class="dp">│  │ PyTorch Backend  │   │</span>
+<span class="db">│  nvinferserver       │</span>────────▶<span class="dp">│  ├──────────────────┤   │</span>
+<span class="db">│  ┌────────────────┐  │</span>  <span class="dd">or</span>      <span class="dp">│  │ ONNX RT Backend  │   │</span>
+<span class="db">│  │IInferCustom    │  │</span>  <span class="dd">C API</span>   <span class="dp">│  ├──────────────────┤   │</span>
+<span class="db">│  │Processor       │  │</span>  <span class="dd">(in-</span>    <span class="dp">│  │ Python Backend   │   │</span>
+<span class="db">│  │(custom pre/    │  │</span>  <span class="dd">proc)</span>   <span class="dp">│  └──────────────────┘   │</span>
+<span class="db">│  │ post process)  │  │</span>            <span class="dp">│                          │</span>
+<span class="db">│  └────────────────┘  │</span>            <span class="dp">│  model_repo/             │</span>
+<span class="db">└──────────┬───────────┘</span>            <span class="dp">│  ├── model_a/ (v1,v2)   │</span>
+           <span class="db">│</span>                        <span class="dp">│  ├── model_b/            │</span>
+           <span class="db">▼</span>                        <span class="dp">│  └── ensemble/           │</span>
+<span class="db">┌──────────────────────┐</span>            <span class="dp">└──────────────────────────┘</span>
+<span class="db">│  nvtracker           │</span>
+<span class="db">│  (tracking continues)│</span>  <span class="dd">Advantage: hot-swap models,</span>
+<span class="db">└──────────────────────┘</span>  <span class="dd">A/B testing, multi-framework,</span>
+                          <span class="dd">ensemble pipelines, model versioning</span>
+</pre></div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+<!-- ║                  VLM & AGENTIC AI                             ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+<div id="tab-vlm" class="tab-panel">
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>The VLM Paradigm Shift (2025–2026)</h2>
+    </div>
+
+    <p>Metropolis has undergone a fundamental paradigm shift from <strong>pure CNN-based pipelines</strong> (train-per-task) to <strong>VLM-powered Visual AI Agents</strong> using Cosmos Reason, VILA, and the VSS Blueprint for zero-shot video understanding. This eliminates the model-per-task bottleneck — a single VLM can answer arbitrary natural-language queries about video content.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">VLM-Powered Visual AI Agent Architecture</span>
+        <span class="diagram-badge">Agentic AI</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="dg">┌─────────────────────────────────────────────────────────────────────────┐</span>
+<span class="dg">│                    VISUAL AI AGENT PIPELINE                             │</span>
+<span class="dg">│                                                                         │</span>
+<span class="dg">│   ┌──────────┐                                                         │</span>
+<span class="dg">│   │ IP Cams  │                                                         │</span>
+<span class="dg">│   │ RTSP     │                                                         │</span>
+<span class="dg">│   └────┬─────┘                                                         │</span>
+<span class="dg">│        │                                                                │</span>
+<span class="dg">│        ▼                                                                │</span>
+<span class="dg">│   ┌──────────────────┐     ┌────────────────────────────────────┐      │</span>
+<span class="dg">│   │  VST + DeepStream│     │  VLM INFERENCE (NIM)               │      │</span>
+<span class="dg">│   │  (Stream Process) │────▶│                                    │      │</span>
+<span class="dg">│   │  Keyframe Extract │     │  ┌────────────────────────────┐   │      │</span>
+<span class="dg">│   └──────────────────┘     │  │  <span class="dc">Cosmos Reason</span>              │   │      │</span>
+<span class="dg">│                             │  │  Physical world reasoning   │   │      │</span>
+<span class="dg">│                             │  │  Spatial + temporal + causal│   │      │</span>
+<span class="dg">│                             │  └────────────────────────────┘   │      │</span>
+<span class="dg">│                             │  ┌────────────────────────────┐   │      │</span>
+<span class="dg">│                             │  │  <span class="dp">VILA</span>                       │   │      │</span>
+<span class="dg">│                             │  │  Multi-frame video QA       │   │      │</span>
+<span class="dg">│                             │  │  Dense captioning           │   │      │</span>
+<span class="dg">│                             │  └────────────────────────────┘   │      │</span>
+<span class="dg">│                             └──────────────┬─────────────────────┘      │</span>
+<span class="dg">│                                            │                            │</span>
+<span class="dg">│                                            ▼                            │</span>
+<span class="dg">│   ┌─────────────────────────────────────────────────────────────┐      │</span>
+<span class="dg">│   │  <span class="do">AGENTIC ORCHESTRATION</span>                                       │      │</span>
+<span class="dg">│   │                                                               │      │</span>
+<span class="dg">│   │  Natural language prompts:                                    │      │</span>
+<span class="dg">│   │  "Alert if forklift enters Zone A without PPE"                │      │</span>
+<span class="dg">│   │  "Summarize all safety violations in past 4 hours"           │      │</span>
+<span class="dg">│   │  "Count vehicles by type at intersection during rush hour"    │      │</span>
+<span class="dg">│   │                                                               │      │</span>
+<span class="dg">│   │  ┌───────────┐  ┌────────────┐  ┌──────────────────────┐   │      │</span>
+<span class="dg">│   │  │ Alert     │  │ Summary    │  │ Structured Data      │   │      │</span>
+<span class="dg">│   │  │ Generation│  │ Generation │  │ Extraction           │   │      │</span>
+<span class="dg">│   │  └───────────┘  └────────────┘  └──────────────────────┘   │      │</span>
+<span class="dg">│   └─────────────────────────────────────────────────────────────┘      │</span>
+<span class="dg">│                                                                         │</span>
+<span class="dg">└─────────────────────────────────────────────────────────────────────────┘</span>
+
+<span class="dd">Key Shift:</span>
+<span class="dd">  OLD: Train PeopleNet → Deploy → Only detects people/face/bag</span>
+<span class="dd">       Train VehicleNet → Deploy → Only detects vehicles</span>
+<span class="dd">       Train custom model → Deploy → Only detects custom objects</span>
+
+<span class="dd">  NEW: Deploy Cosmos Reason once → Ask any question in natural language</span>
+<span class="dd">       No training, no labeling, no per-task models</span>
+<span class="dd">       "Zero-shot" video understanding</span>
+</pre></div>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">Key Insight: CNN vs VLM Trade-offs</div>
+      <p>CNNs still win on raw throughput (1000+ FPS on dense detection), latency (&lt;5ms), and edge deployment (Jetson Orin). VLMs win on flexibility (zero-shot), setup time (minutes vs weeks), and handling novel/unexpected events. Production Metropolis deployments increasingly use <strong>hybrid architectures</strong>: CNN pipelines for high-frequency detection with VLM reasoning for complex event understanding and summarization.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>VSS Blueprint — Video Search & Summarization</h2>
+    </div>
+
+    <p>The VSS Blueprint is NVIDIA's reference application for VLM-powered video analytics. It demonstrates the end-to-end architecture for deploying Cosmos Reason and VILA as video understanding agents.</p>
+
+    <div class="diagram-container">
+      <div class="diagram-header">
+        <span class="diagram-title">VSS Blueprint Architecture</span>
+        <span class="diagram-badge">Reference App</span>
+      </div>
+      <div class="diagram-body"><pre>
+<span class="db">┌───────────────────────────────────────────────────────────────────┐</span>
+<span class="db">│                     VSS Blueprint                                 │</span>
+<span class="db">│                                                                   │</span>
+<span class="db">│  ┌──────────┐    ┌──────────────┐    ┌──────────────────────┐   │</span>
+<span class="db">│  │ Camera   │───▶│ DeepStream   │───▶│ Keyframe Selection   │   │</span>
+<span class="db">│  │ Streams  │    │ Decode+Track │    │ (scene change det,   │   │</span>
+<span class="db">│  └──────────┘    └──────────────┘    │  temporal sampling)  │   │</span>
+<span class="db">│                                      └──────────┬───────────┘   │</span>
+<span class="db">│                                                 │                │</span>
+<span class="db">│                                      ┌──────────▼───────────┐   │</span>
+<span class="db">│                                      │ NIM API Call          │   │</span>
+<span class="db">│                                      │ (Cosmos Reason / VILA)│   │</span>
+<span class="db">│                                      │                       │   │</span>
+<span class="db">│                                      │ Prompt + Keyframes    │   │</span>
+<span class="db">│                                      │ → Structured Response │   │</span>
+<span class="db">│                                      └──────────┬───────────┘   │</span>
+<span class="db">│                                                 │                │</span>
+<span class="db">│                  ┌───────────────────────────────┤                │</span>
+<span class="db">│                  │                               │                │</span>
+<span class="db">│       ┌──────────▼──────────┐    ┌───────────────▼────────────┐  │</span>
+<span class="db">│       │ Vector DB           │    │ Natural Language Search    │  │</span>
+<span class="db">│       │ (Embedding Store)   │    │ "Show me all forklift     │  │</span>
+<span class="db">│       │ Scene descriptions  │    │  near-misses today"       │  │</span>
+<span class="db">│       └─────────────────────┘    └────────────────────────────┘  │</span>
+<span class="db">│                                                                   │</span>
+<span class="db">└───────────────────────────────────────────────────────────────────┘</span>
+</pre></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>Future: Cosmos Transfer & Jetson Thor</h2>
+    </div>
+
+    <div class="card-grid">
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon green">🌐</div>
+          <h4>Cosmos Transfer</h4>
+        </div>
+        <p>Bridges 3D simulation (Omniverse/Isaac Sim) to photorealistic video. Enables training on synthetic data that looks real — critical for rare event detection where real training data is scarce (safety violations, equipment failures).</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon cyan">🤖</div>
+          <h4>Jetson Thor</h4>
+        </div>
+        <p>Next-gen edge SoC with transformer engine and up to 800 TOPS. Enables running VLMs (Cosmos Reason, VILA) directly on edge hardware — no cloud dependency for agentic video understanding.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon purple">🧠</div>
+          <h4>Cosmos Reason</h4>
+        </div>
+        <p>Physical world reasoning model. Understands spatial relationships, temporal sequences, and causal chains in video. "The forklift turned left, blocking the pedestrian path, causing the worker to step into the vehicle lane."</p>
+      </div>
+      <div class="info-card">
+        <div class="info-card-header">
+          <div class="info-card-icon orange">📹</div>
+          <h4>VILA</h4>
+        </div>
+        <p>Multi-frame video language model. Dense captioning, video QA, temporal grounding. Processes multiple frames to understand actions and events across time — not just single-frame analysis.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div> <!-- content-wrapper -->
+
+<!-- ═══════════════════ JAVASCRIPT ═══════════════════ -->
+<script>
+// Primary tab navigation
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// Sub-tab navigation (generic)
+document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const container = btn.closest('.section');
+    container.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+    container.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    container.querySelector('#' + btn.dataset.subtab).classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>
