@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NVIDIA Metropolis — HM Interview Prep</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Libre+Franklin:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-2: #1c1c1c;
+  --surface-3: #242424;
+  --nvidia-green: #76b900;
+  --nvidia-green-dim: #4a7a00;
+  --nvidia-green-glow: rgba(118, 185, 0, 0.12);
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-blue: #3b82f6;
+  --accent-purple: #a855f7;
+  --text: #e8e8e8;
+  --text-dim: #888;
+  --text-muted: #555;
+  --border: #2a2a2a;
+  --radius: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Libre Franklin', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  padding: 48px 32px 32px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(118,185,0,0.06) 0%, transparent 100%);
+}
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.header .badge {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--nvidia-green);
+  background: var(--nvidia-green-glow);
+  border: 1px solid var(--nvidia-green-dim);
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+.header h1 {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+.header h1 span { color: var(--nvidia-green); }
+.header .subtitle {
+  color: var(--text-dim);
+  font-size: 15px;
+  font-weight: 300;
+}
+.header .meta-row {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.header .meta-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.header .meta-item strong {
+  color: var(--text-dim);
+}
+
+/* Tabs */
+.tab-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-bar-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  gap: 0;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  padding: 14px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: var(--text-dim); }
+.tab-btn.active {
+  color: var(--nvidia-green);
+  border-bottom-color: var(--nvidia-green);
+}
+
+/* Content */
+.content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Section headers */
+.section-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+.section-desc {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin-bottom: 28px;
+  font-weight: 300;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: #333; }
+.card-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.card-label.green { color: var(--nvidia-green); }
+.card-label.amber { color: var(--accent-amber); }
+.card-label.blue { color: var(--accent-blue); }
+.card-label.red { color: var(--accent-red); }
+.card-label.purple { color: var(--accent-purple); }
+
+.card h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* Story blocks */
+.story-block {
+  background: var(--surface-2);
+  border-left: 3px solid var(--nvidia-green-dim);
+  padding: 16px 20px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 12px 0;
+  font-size: 14px;
+  line-height: 1.75;
+}
+.story-block.amber-border { border-left-color: var(--accent-amber); }
+.story-block.blue-border { border-left-color: var(--accent-blue); }
+.story-block.purple-border { border-left-color: var(--accent-purple); }
+.story-block .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* Competency tags */
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+}
+.tag.green { background: var(--nvidia-green-glow); color: var(--nvidia-green); border: 1px solid var(--nvidia-green-dim); }
+.tag.amber { background: rgba(245,158,11,0.1); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.3); }
+.tag.blue { background: rgba(59,130,246,0.1); color: var(--accent-blue); border: 1px solid rgba(59,130,246,0.3); }
+.tag.purple { background: rgba(168,85,247,0.1); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); }
+.tag.red { background: rgba(239,68,68,0.1); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); }
+
+/* Collapsible */
+.collapsible {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.collapsible-header {
+  padding: 16px 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+  user-select: none;
+}
+.collapsible-header:hover { background: var(--surface-2); }
+.collapsible-header h4 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.collapsible-header .arrow {
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  font-size: 14px;
+}
+.collapsible.open .arrow { transform: rotate(90deg); }
+.collapsible-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+.collapsible.open .collapsible-body { max-height: 3000px; }
+.collapsible-inner { padding: 0 20px 20px; }
+
+/* Question routing table */
+.route-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}
+.route-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--surface-3);
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.route-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.route-table tr:last-child td { border-bottom: none; }
+.route-table .q-cell { font-weight: 600; color: var(--text); }
+.route-table .story-cell { color: var(--nvidia-green); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.route-table .opener-cell { color: var(--text-dim); font-style: italic; font-size: 12px; }
+
+/* Phrase chip */
+.phrase-row {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.phrase-row:last-child { border-bottom: none; }
+.phrase-category {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  min-width: 90px;
+  padding-top: 2px;
+}
+.phrase-text { font-size: 14px; flex: 1; }
+.phrase-text em { color: var(--nvidia-green); font-style: normal; font-weight: 600; }
+.phrase-signal { color: var(--text-muted); font-size: 12px; min-width: 200px; }
+
+/* Timer bar */
+.timer-bar {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 24px;
+}
+.timer-segment {
+  height: 6px;
+  border-radius: 3px;
+  position: relative;
+}
+.timer-segment .timer-label {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Quick ref */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.quick-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.quick-card .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--nvidia-green);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.quick-card .num-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Danger zone */
+.danger-item {
+  background: rgba(239,68,68,0.04);
+  border: 1px solid rgba(239,68,68,0.15);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.danger-icon { color: var(--accent-red); font-size: 16px; flex-shrink: 0; padding-top: 1px; }
+.danger-text { font-size: 14px; }
+.danger-text strong { color: var(--accent-red); }
+.danger-text .instead { color: var(--nvidia-green); }
+
+/* Ask section */
+.ask-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 10px;
+}
+.ask-card .ask-q {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.ask-card .ask-why {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.ask-card .ask-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* Print helpers */
+@media print {
+  .tab-bar { display: none; }
+  .tab-panel { display: block !important; page-break-inside: avoid; }
+  body { background: #fff; color: #111; }
+  .card, .collapsible, .story-block, .quick-card, .ask-card, .danger-item {
+    background: #f8f8f8; border-color: #ddd;
+  }
+}
+@media (max-width: 640px) {
+  .header { padding: 32px 20px 24px; }
+  .header h1 { font-size: 26px; }
+  .content { padding: 24px 20px; }
+  .phrase-row { flex-direction: column; gap: 4px; }
+  .phrase-signal { min-width: unset; }
+  .energy-grid { grid-template-columns: 1fr !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="badge">Behavioral Prep — First Round</div>
+    <h1>NVIDIA <span>Metropolis</span> HM Screen</h1>
+    <p class="subtitle">System Software Engineer, Vision AI — Hiring Manager behavioral interview preparation</p>
+    <div class="meta-row">
+      <div class="meta-item"><strong>Format:</strong> 30–45 min conversational</div>
+      <div class="meta-item"><strong>Split:</strong> ~60% behavioral / ~40% role sell + Q&A</div>
+      <div class="meta-item"><strong>Role:</strong> JR2011877 / JR2013445</div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab-bar-inner">
+    <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+    <button class="tab-btn" onclick="showTab('pitch')">Tell Me About Yourself</button>
+    <button class="tab-btn" onclick="showTab('stories')">Core Stories</button>
+    <button class="tab-btn" onclick="showTab('routing')">Question Router</button>
+    <button class="tab-btn" onclick="showTab('phrases')">Power Phrases</button>
+    <button class="tab-btn" onclick="showTab('delivery')">Delivery & Presence</button>
+    <button class="tab-btn" onclick="showTab('danger')">Danger Zones</button>
+    <button class="tab-btn" onclick="showTab('ask')">Questions to Ask</button>
+    <button class="tab-btn" onclick="showTab('quickref')">Quick Ref</button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ==================== OVERVIEW ==================== -->
+<div id="overview" class="tab-panel active">
+  <h2 class="section-title">What to Expect</h2>
+  <p class="section-desc">The NVIDIA HM screen is conversational — but don't mistake it for casual.</p>
+
+  <div class="timer-bar">
+    <div class="timer-segment" style="flex:5; background: var(--nvidia-green);">
+      <div class="timer-label">0–5 min — Warm-up / "Tell me about yourself"</div>
+    </div>
+    <div class="timer-segment" style="flex:15; background: var(--accent-amber);">
+      <div class="timer-label" style="left:0;">5–20 min — Project deep dive + behavioral</div>
+    </div>
+    <div class="timer-segment" style="flex:10; background: var(--accent-blue);">
+      <div class="timer-label" style="left:0;">20–30 min — Light technical probing</div>
+    </div>
+    <div class="timer-segment" style="flex:10; background: var(--accent-purple);">
+      <div class="timer-label" style="left:0;">30–40 min — HM sells team + your questions</div>
+    </div>
+  </div>
+
+  <div style="height:32px"></div>
+
+  <div class="card">
+    <div class="card-label green">Structure</div>
+    <h3>Two-Part Format</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:16px;"><strong style="color:var(--text)">Part 1 (~20–25 min):</strong> Deep dive into your background. The HM probes your resume, asks about your most relevant projects, and evaluates cultural alignment with NVIDIA's five core values. They are testing whether your experience is real and whether it maps to the team's actual work.</p>
+    <p style="font-size:14px; color:var(--text-dim);"><strong style="color:var(--text)">Part 2 (~10–15 min):</strong> The HM describes the team's mission, current projects, and the role — then opens the floor for your questions. Use this strategically: ask what to expect in remaining rounds (language, topics, format). They'll often tell you directly.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-label amber">Key Insight</div>
+    <h3>NVIDIA's Five Core Values — Know Them Cold</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:12px;">Your behavioral answers should naturally signal alignment with these. Don't name-drop them — weave them in.</p>
+    <div class="tag-row">
+      <span class="tag green">Innovation</span>
+      <span class="tag amber">Intellectual Honesty</span>
+      <span class="tag blue">Speed & Agility</span>
+      <span class="tag purple">One Team</span>
+      <span class="tag red">Impact to Customers</span>
+    </div>
+    <div style="margin-top:16px; font-size:13px; color:var(--text-dim);">
+      <p style="margin-bottom:6px;"><strong style="color:var(--nvidia-green)">Innovation:</strong> FactoryAI 0→1, LLM task planner, composable skills framework — you defined a new paradigm.</p>
+      <p style="margin-bottom:6px;"><strong style="color:var(--accent-amber)">Intellectual Honesty:</strong> Defect detection V1→V4 evolution — each version acknowledged prior gaps. Reorg survival — honest self-assessment.</p>
+      <p style="margin-bottom:6px;"><strong style="color:var(--accent-blue)">Speed & Agility:</strong> Shipped prototype in weeks, iterated through 4 versions of defect detection. Pivoted from CNN to anomaly detection when data showed it was needed.</p>
+      <p style="margin-bottom:6px;"><strong style="color:var(--accent-purple)">One Team:</strong> Cross-org alignment with AME, AWS, and NVIDIA — none of whom reported to you. Vendor coordination with SGBI/Sastra.</p>
+      <p><strong style="color:var(--accent-red)">Impact to Customers:</strong> 99% defect detection accuracy, 95% pick-place success, $720K savings, NVIDIA lighthouse feature.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label blue">What They're Evaluating</div>
+    <h3>HM Scorecard — What Actually Matters</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:14px;">Based on interview reports from Glassdoor, Blind, and interviewing.io (2023–2026):</p>
+    <div style="font-size:14px;">
+      <p style="margin-bottom:8px;"><strong>1. Is your experience real and relevant?</strong> — They will ask follow-up questions about your architecture choices. Be ready to explain <em>why</em>, not just <em>what</em>.</p>
+      <p style="margin-bottom:8px;"><strong>2. Can you operate at the right altitude?</strong> — Staff-level thinking: you should talk about trade-offs, multi-year leverage, and cross-team influence, not just implementation details.</p>
+      <p style="margin-bottom:8px;"><strong>3. Culture fit — more disqualifying than qualifying.</strong> — A poor culture fit kills an otherwise strong technical candidate. Signal humility, curiosity, and collaboration.</p>
+      <p><strong>4. Genuine interest in the Metropolis domain.</strong> — Know what Metropolis does, what DeepStream is, what the VLM-powered agentic shift means. You don't need to be an expert — but you need to show you've done your homework and you're excited.</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-left: 3px solid var(--nvidia-green); border-color: var(--nvidia-green-dim);">
+    <div class="card-label green">Secret Weapon — PhotoCrew.ai</div>
+    <h3>Your Side Project Is a Metropolis Proof of Concept</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:14px;">PhotoCrew.ai maps almost 1:1 to the Metropolis architecture. Use it to demonstrate you don't just <em>understand</em> the concepts — you've independently built the same patterns.</p>
+    <div style="font-size:13px; color:var(--text-dim);">
+      <p style="margin-bottom:6px;"><strong style="color:var(--nvidia-green)">Multi-stream ingestion:</strong> PhotoCrew processes 10K+ images from multiple cameras with clock drift and sync issues. Metropolis processes multi-camera video feeds. Same fundamental problem — different media.</p>
+      <p style="margin-bottom:6px;"><strong style="color:var(--nvidia-green)">Foundation model pipeline:</strong> You use DINOv2 embeddings + SigCLIP2 for visual similarity and semantic understanding. Metropolis uses the same class of models (VILA, Cosmos Reason) for visual AI agents.</p>
+      <p style="margin-bottom:6px;"><strong style="color:var(--nvidia-green)">Hierarchical metadata:</strong> PhotoCrew builds Events → Segments → Moments → Frames. DeepStream builds Stream → Batch → Object → Classifier metadata. Same hierarchical decomposition pattern.</p>
+      <p style="margin-bottom:6px;"><strong style="color:var(--nvidia-green)">VLM-powered agentic workflows:</strong> Your Gemini VLM agent orchestrates CV modules (face detection, clustering, IQA) based on natural language intent. This is exactly the paradigm shift Metropolis is making — from static CNN pipelines to VLM-powered visual agents.</p>
+      <p><strong style="color:var(--nvidia-green)">Edge-first deployment:</strong> You ship a Rust/Tauri desktop app that processes 500GB locally with privacy-first architecture. Metropolis deploys on Jetson edge devices. Same constraint: make inference fast on limited hardware.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TELL ME ABOUT YOURSELF ==================== -->
+<div id="pitch" class="tab-panel">
+  <h2 class="section-title">"Tell Me About Yourself"</h2>
+  <p class="section-desc">The universal opener. Keep it to 90–120 seconds. This is your thesis statement, not your autobiography.</p>
+
+  <div class="card">
+    <div class="card-label green">NVIDIA / Metropolis Tailored — 90 Seconds</div>
+    <h3>The Script</h3>
+    <div class="story-block">
+      <div class="label">Opening — Identity Statement</div>
+      "I'm a senior software engineer with about 14 years of experience, the last 8 at Amazon. My career arc has moved from large-scale search infrastructure — entity resolution, ranking, retrieval across millions of entities — into what I'm now deeply focused on: physical AI and manufacturing autonomy."
+    </div>
+    <div class="story-block amber-border">
+      <div class="label">Core Narrative — FactoryAI</div>
+      "At Amazon, I identified an opportunity to bring AI-driven robotics into manufacturing quality workflows. There was zero existing capability — I built FactoryAI from a blank page. I defined the architecture: an LLM-powered task planner, composable manipulation skills, sim-to-real transfer using Isaac Sim, and a multi-modal defect detection pipeline. I grew the team from 1 to 8 engineers, aligned stakeholders across AME, AWS, and NVIDIA, and delivered the first autonomy station to the factory floor — 95% pick-and-place success, 99% defect detection accuracy."
+    </div>
+    <div class="story-block blue-border">
+      <div class="label">External Validation + Bridge to NVIDIA</div>
+      "The work was featured by NVIDIA as a lighthouse case study and published on the AWS blog. That experience — building GPU-accelerated vision pipelines, optimizing inference for production, and shipping real-time perception systems in constrained environments — is exactly what drew me to the Metropolis team. The shift toward VLM-powered visual agents and the edge-to-cloud deployment model is where I see the highest-leverage intersection of my experience and what excites me technically."
+    </div>
+    <div class="story-block purple-border">
+      <div class="label">Close — Why NVIDIA, Why Now</div>
+      "I'm looking for a platform role where I can work at the intersection of vision AI infrastructure and real-world deployment at scale — and Metropolis is the obvious place to do that."
+    </div>
+  </div>
+
+  <div class="card" style="border-left: 3px solid var(--nvidia-green);">
+    <div class="card-label green">Optional Extension — Drop if HM Shows Interest (+15 sec)</div>
+    <h3>The PhotoCrew.ai Bridge</h3>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Use this when the HM asks a follow-up like "what else are you working on?" or "anything outside of Amazon?" — or weave it naturally into the close.</p>
+    <div class="story-block">
+      <div class="label">PhotoCrew Insert</div>
+      "On my own time, I've been building PhotoCrew.ai — a vision AI platform that curates thousands of images from multi-camera shoots using DINOv2 embeddings, VLM-based agentic workflows, face clustering, and hierarchical semantic reasoning. It's essentially the same architectural patterns as Metropolis — multi-stream ingestion, foundation model pipelines, VLM agents orchestrating traditional CV modules — applied to a different domain. Building it from scratch gave me a deep, hands-on understanding of exactly the problems Metropolis solves at platform scale."
+    </div>
+    <p style="font-size:13px; color:var(--nvidia-green); margin-top:10px;">⚡ This is powerful because it proves you're not just a FactoryAI one-trick — you independently arrived at the same architecture patterns Metropolis uses, in a completely different domain. It signals genuine passion and architectural intuition.</p>
+  </div>
+
+  <div class="card" style="border-color: var(--accent-amber); border-width: 1px;">
+    <div class="card-label amber">Delivery Notes</div>
+    <div style="font-size:14px; color:var(--text-dim);">
+      <p style="margin-bottom:8px;">→ Don't rush. Pauses between sections signal confidence.</p>
+      <p style="margin-bottom:8px;">→ The "NVIDIA lighthouse" mention is your strongest bridge — it shows you've already operated in their ecosystem.</p>
+      <p style="margin-bottom:8px;">→ Saying "Isaac Sim" and "sim-to-real" naturally positions you as someone who already speaks NVIDIA's language.</p>
+      <p style="margin-bottom:8px;">→ PhotoCrew is your "passion project" card. Don't lead with it — hold it as a follow-up. It signals you build vision AI systems for fun, not just for a paycheck.</p>
+      <p style="margin-bottom:8px;">→ Saying "DINOv2 embeddings" and "VLM agents orchestrating CV modules" in a side-project context instantly signals depth. The HM will hear "this person lives and breathes this stuff."</p>
+      <p>→ End on curiosity, not desperation. "The obvious place" = you chose them, not the other way around.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CORE STORIES ==================== -->
+<div id="stories" class="tab-panel">
+  <h2 class="section-title">Core Stories</h2>
+  <p class="section-desc">Five stories cover every question they'll ask. Each one pre-mapped to competencies and NVIDIA values.</p>
+
+  <div class="collapsible open">
+    <div class="collapsible-header" onclick="toggleCollapse(this)">
+      <h4>🟢 Story 1 — FactoryAI: Zero to One</h4>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="story-block">
+          <div class="label">Situation</div>
+          "Amazon's Advanced Manufacturing had no robotic autonomy capability for quality inspection or device handling. Manual processes dominated — expensive, error-prone, and unscalable."
+        </div>
+        <div class="story-block amber-border">
+          <div class="label">Task / Ambiguity</div>
+          "No playbook existed. I identified this as the highest-leverage opportunity — if we could automate cosmetic inspection and assembly, we'd remove manual labor bottlenecks across every device line. I had to define the architecture, roadmap, and hiring plan from a blank page."
+        </div>
+        <div class="story-block blue-border">
+          <div class="label">Action — Staff-Level Framing</div>
+          "I designed a composable architecture: an LLM-powered task planner that generates robot programs from product specs, skill primitives for manipulation, and a sim-to-real pipeline using NVIDIA Isaac Sim. I grew the team from 1 to 8 engineers. I aligned AME, AWS, and NVIDIA on a shared technical direction — none of whom reported to me."
+        </div>
+        <div class="story-block purple-border">
+          <div class="label">Result</div>
+          "First autonomy station deployed to the factory floor. 95% pick/place success, 99% defect detection accuracy, ~$720K in savings. Featured by NVIDIA, published as an AWS blog case study. It established the technical direction for manufacturing AI at Amazon and attracted VP-level investment."
+        </div>
+        <div class="tag-row">
+          <span class="tag green">Innovation</span>
+          <span class="tag amber">Intellectual Honesty</span>
+          <span class="tag purple">One Team</span>
+          <span class="tag red">Customer Impact</span>
+          <span class="tag blue">Proactiveness</span>
+        </div>
+        <p style="margin-top:14px; font-size:13px; color:var(--text-muted);">
+          <strong style="color:var(--text-dim)">Use for:</strong> "Most complex project," "Time you built something from scratch," "How do you handle ambiguity," "Biggest impact," "Cross-functional influence"
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <div class="collapsible-header" onclick="toggleCollapse(this)">
+      <h4>🟡 Story 2 — Defect Detection V1→V4: Iterative Technical Evolution</h4>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="story-block">
+          <div class="label">Situation</div>
+          "Initial defect detection used traditional CNNs trained on supervised data. It worked for known defect types but failed on novel defects and required massive labeled datasets for each new product line."
+        </div>
+        <div class="story-block amber-border">
+          <div class="label">Evolution — Intellectual Honesty</div>
+          "Each version acknowledged what wasn't working. V1 was supervised CNN — accurate but not scalable. V2 moved to few-shot learning to reduce labeling needs. V3 pivoted to anomaly detection (normal-only training) when I recognized the labeling bottleneck was fundamentally unsolvable with supervised approaches. V4 integrated VLM-based reasoning for zero-shot defect classification."
+        </div>
+        <div class="story-block blue-border">
+          <div class="label">Technical Depth (for follow-ups)</div>
+          "The anomaly detection architecture uses DINOv2 embeddings with a PatchCore-style memory bank for spatial anomaly scoring. Inference runs on TensorRT-optimized models on NVIDIA GPUs at the edge. For V4, we integrated Gemini VLM for contextual defect explanation — the model doesn't just flag an anomaly, it describes what's wrong and why it matters to the quality spec."
+        </div>
+        <div class="story-block purple-border">
+          <div class="label">Result</div>
+          "99% defect detection accuracy. Zero-shot capability across new product lines. Eliminated weeks of data collection per new product. 96% latency improvement from V1 to V4."
+        </div>
+        <div class="tag-row">
+          <span class="tag amber">Intellectual Honesty</span>
+          <span class="tag green">Innovation</span>
+          <span class="tag blue">Speed & Agility</span>
+          <span class="tag red">Customer Impact</span>
+        </div>
+        <p style="margin-top:14px; font-size:13px; color:var(--text-muted);">
+          <strong style="color:var(--text-dim)">Use for:</strong> "Tell me about a technical challenge," "How do you approach iteration," "Time you had to change approach," "Vision AI experience"
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <div class="collapsible-header" onclick="toggleCollapse(this)">
+      <h4>🔵 Story 3 — NVIDIA/AWS Partnerships: Cross-Org Influence</h4>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="story-block">
+          <div class="label">Situation</div>
+          "FactoryAI needed capabilities that didn't exist inside Amazon — NVIDIA's simulation and inference stack, AWS's ML infrastructure, and external robotics vendor integration (SGBI/Sastra Robotics). None of these organizations had any obligation to work with my team."
+        </div>
+        <div class="story-block amber-border">
+          <div class="label">Action — Influence Without Authority</div>
+          "I built the business case that made FactoryAI interesting to each partner on their own terms. For NVIDIA, it was a lighthouse deployment story. For AWS, it was a Bedrock/SageMaker real-world use case. For SGBI, it was volume potential. I defined shared success criteria, created joint architecture documents, and ran bi-weekly syncs across three organizations."
+        </div>
+        <div class="story-block purple-border">
+          <div class="label">Result</div>
+          "NVIDIA featured us in their manufacturing AI showcase. AWS published the case study. SGBI delivered a custom robot integration. The partnerships created external credibility that helped secure internal VP-level investment for the next phase."
+        </div>
+        <div class="tag-row">
+          <span class="tag purple">One Team</span>
+          <span class="tag red">Customer Impact</span>
+          <span class="tag green">Innovation</span>
+        </div>
+        <p style="margin-top:14px; font-size:13px; color:var(--text-muted);">
+          <strong style="color:var(--text-dim)">Use for:</strong> "How do you influence without authority," "Tell me about a partnership/collaboration," "Cross-functional work," "Stakeholder management"
+        </p>
+        <p style="margin-top:8px; font-size:13px; color:var(--nvidia-green);">
+          ⚡ <strong>This story is your secret weapon with NVIDIA.</strong> You are literally the person who built the thing NVIDIA featured. The HM will recognize this.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <div class="collapsible-header" onclick="toggleCollapse(this)">
+      <h4>🟣 Story 4 — Reorg Navigation: Resilience Under Ambiguity</h4>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="story-block">
+          <div class="label">Situation</div>
+          "Major org restructure: my previous manager and several team members were laid off. New skip-level director, new direct manager, new team structure. The project I'd built from scratch was now under new leadership with different priorities."
+        </div>
+        <div class="story-block amber-border">
+          <div class="label">Action — Adaptability</div>
+          "Rather than being defensive about the work I'd built, I focused on understanding what the new leadership valued. I proactively aligned my work to their quarterly ROI framework, delivered visible results in the first 60 days, and earned a top-tier performance rating in the post-reorg review cycle."
+        </div>
+        <div class="story-block purple-border">
+          <div class="label">Result</div>
+          "Top-tier performance rating. New skip-level made retention signals — promises of growth, new programs. Survived a layoff round that hit my previous manager. Demonstrated that I could thrive regardless of organizational context."
+        </div>
+        <div class="tag-row">
+          <span class="tag blue">Speed & Agility</span>
+          <span class="tag amber">Intellectual Honesty</span>
+          <span class="tag purple">One Team</span>
+        </div>
+        <p style="margin-top:14px; font-size:13px; color:var(--text-muted);">
+          <strong style="color:var(--text-dim)">Use for:</strong> "Time you dealt with change/uncertainty," "Conflict with leadership," "How do you handle adversity," "Time you adapted quickly"
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="collapsible">
+    <div class="collapsible-header" onclick="toggleCollapse(this)">
+      <h4>⚡ Story 5 — PhotoCrew.ai: Independent Vision AI Platform</h4>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-inner">
+        <div class="story-block">
+          <div class="label">Situation — The Problem</div>
+          "Wedding photographers shoot 10,000+ raw photos per event across multiple cameras — 500GB+ of data. The curation bottleneck is enormous: manually sorting, organizing, and selecting the best images takes days. No existing tool understood visual narrative or could handle multi-camera temporal synchronization."
+        </div>
+        <div class="story-block amber-border">
+          <div class="label">Architecture — Directly Parallel to Metropolis</div>
+          "I built a multi-stage vision AI pipeline that mirrors the same patterns you'd find in a video analytics platform. Multi-stream ingestion from multiple cameras with clock drift compensation. DINOv2 embeddings for visual similarity clustering and SigCLIP2 for semantic understanding. Temporal clustering to group photos into Moments, then hierarchical semantic segmentation into Events → Segments → Moments — essentially the same metadata hierarchy as DeepStream's batch-level metadata. On top of that, a VLM-powered agentic layer where Gemini interprets natural language requests like '100 reception photos, 20 Instagram highlights' and orchestrates traditional CV modules — face detection, face clustering, eye state analysis, person re-ID, Image Quality Assessment — to produce curated selections."
+        </div>
+        <div class="story-block blue-border">
+          <div class="label">Technical Depth (for follow-ups)</div>
+          "The face clustering pipeline uses InsightFace embeddings with HDBSCAN for variable-density identity clustering across thousands of faces. The agentic workflow is hierarchical — a top-level agent allocates budget weights across event segments, then segment-level allocators recursively distribute to moments, ensuring narrative coverage. Inference runs locally on a Rust/Tauri desktop app with privacy-first architecture — same edge deployment constraint as running on a Jetson. I evaluated and benchmarked multiple foundation model backends — DINOv2 vs DINOv3, AIMv2, different ViT scales — to find the optimal tradeoff between semantic granularity and visual structure for clustering."
+        </div>
+        <div class="story-block purple-border">
+          <div class="label">Result & Why It Matters</div>
+          "Shipped a working cross-platform desktop application. Processing thousands of images locally. But more importantly — I independently arrived at the same architectural patterns that Metropolis uses: multi-stream → foundation model embeddings → hierarchical metadata → VLM agents orchestrating CV modules. That wasn't deliberate — it's what the problem demands. Which tells me the Metropolis architecture is exactly what I'd design."
+        </div>
+        <div class="tag-row">
+          <span class="tag green">Innovation</span>
+          <span class="tag blue">Speed & Agility</span>
+          <span class="tag amber">Intellectual Honesty</span>
+          <span class="tag red">Customer Impact</span>
+        </div>
+        <p style="margin-top:14px; font-size:13px; color:var(--text-muted);">
+          <strong style="color:var(--text-dim)">Use for:</strong> "Side projects / passion," "Vision AI experience," "Foundation model experience," "Agentic AI / VLM," "Multi-stream processing," "What excites you technically," "Why Metropolis specifically"
+        </p>
+        <p style="margin-top:8px; font-size:13px; color:var(--nvidia-green);">
+          ⚡ <strong>Why this story is devastating for this interview:</strong> It proves you build vision AI systems <em>for fun</em>, not just for work. It shows you independently converged on Metropolis-like architecture, which signals deep intuition — not surface-level study. And it demonstrates hands-on experience with the exact model families (DINOv2, SigCLIP2, VLMs) that Metropolis is moving toward.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== QUESTION ROUTER ==================== -->
+<div id="routing" class="tab-panel">
+  <h2 class="section-title">Question → Story Router</h2>
+  <p class="section-desc">Instant routing for the most common NVIDIA HM behavioral questions. Don't think — just route.</p>
+
+  <div class="card" style="overflow-x: auto;">
+    <table class="route-table">
+      <thead>
+        <tr>
+          <th style="width:40%">Question</th>
+          <th style="width:18%">Story</th>
+          <th style="width:42%">Opening Line</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="q-cell">"Tell me about yourself"</td>
+          <td class="story-cell">Pitch Script</td>
+          <td class="opener-cell">"I'm a senior SDE with 14 years of experience…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Most technically complex project?"</td>
+          <td class="story-cell">Story 1 + 2 + 5</td>
+          <td class="opener-cell">"I'll talk about FactoryAI — then mention PhotoCrew to show the pattern repeats across domains…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Time you built something from scratch?"</td>
+          <td class="story-cell">Story 1 or 5</td>
+          <td class="opener-cell">"At Amazon — zero robotics capability. On my own — zero vision curation tooling. Both times I started from a blank page…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"How do you handle ambiguity?"</td>
+          <td class="story-cell">Story 1</td>
+          <td class="opener-cell">"No playbook existed. I had to define architecture, roadmap, and hiring from a blank page…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Time you had to change approach?"</td>
+          <td class="story-cell">Story 2</td>
+          <td class="opener-cell">"Our defect detection system went through four major revisions — each time acknowledging what didn't work…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Tell me about a technical challenge"</td>
+          <td class="story-cell">Story 2 or 5</td>
+          <td class="opener-cell">"Two examples: scaling defect detection across product lines, and multi-camera temporal sync in PhotoCrew…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Cross-functional collaboration?"</td>
+          <td class="story-cell">Story 3</td>
+          <td class="opener-cell">"FactoryAI required aligning three external organizations — NVIDIA, AWS, and our robotics vendor — none of whom had any obligation to work with us…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Influence without authority?"</td>
+          <td class="story-cell">Story 3</td>
+          <td class="opener-cell">"I built the business case that made our project interesting to each partner on their own terms…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"How do you deal with change?"</td>
+          <td class="story-cell">Story 4</td>
+          <td class="opener-cell">"My org went through a major restructure — my manager and half the team were laid off…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Time you disagreed with leadership?"</td>
+          <td class="story-cell">Story 4 + 2</td>
+          <td class="opener-cell">"After the reorg, new leadership had a different framework for measuring success. Rather than being defensive…"</td>
+        </tr>
+        <tr style="background: var(--nvidia-green-glow);">
+          <td class="q-cell">"Any side projects / passion projects?"</td>
+          <td class="story-cell">Story 5</td>
+          <td class="opener-cell">"I've been building PhotoCrew.ai — a vision AI platform that curates 10K+ photos using DINOv2, VLM agents, and face clustering…"</td>
+        </tr>
+        <tr style="background: var(--nvidia-green-glow);">
+          <td class="q-cell">"Experience with VLMs / foundation models?"</td>
+          <td class="story-cell">Story 5 + 2</td>
+          <td class="opener-cell">"Hands-on with DINOv2, SigCLIP2, Gemini VLM — both at work and in my side project. I benchmarked DINOv2 vs DINOv3 vs AIMv2 for clustering quality…"</td>
+        </tr>
+        <tr style="background: var(--nvidia-green-glow);">
+          <td class="q-cell">"What excites you technically?"</td>
+          <td class="story-cell">Story 5 + Bridge</td>
+          <td class="opener-cell">"The shift from static CV pipelines to VLM-powered agents. I'm building this pattern right now in PhotoCrew — and Metropolis is doing it at platform scale…"</td>
+        </tr>
+        <tr style="background: var(--nvidia-green-glow);">
+          <td class="q-cell">"Multi-stream / video pipeline experience?"</td>
+          <td class="story-cell">Story 5 + 1</td>
+          <td class="opener-cell">"FactoryAI had real-time camera feeds for defect detection. PhotoCrew ingests multi-camera photo streams with clock drift — same temporal sync problem, different media…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Why NVIDIA?"</td>
+          <td class="story-cell">Bridge + 5</td>
+          <td class="opener-cell">"I've already built on NVIDIA's stack at work and independently converged on the same patterns in my side project. Metropolis is the platform version of problems I've been solving in two different domains…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Why leave Amazon?"</td>
+          <td class="story-cell">Bridge</td>
+          <td class="opener-cell">"I've reached the ceiling of what I can build at the team level — I want to work at the platform layer, where the impact multiplies across an ecosystem…"</td>
+        </tr>
+        <tr>
+          <td class="q-cell">"Where do you see yourself in 3–5 years?"</td>
+          <td class="story-cell">Bridge</td>
+          <td class="opener-cell">"Leading a team that ships production vision AI infrastructure used by thousands of partners — which is exactly the Metropolis trajectory…"</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== POWER PHRASES ==================== -->
+<div id="phrases" class="tab-panel">
+  <h2 class="section-title">Staff-Level Power Phrases</h2>
+  <p class="section-desc">Exact phrases that signal staff-level thinking. Use naturally — don't force them.</p>
+
+  <div class="card">
+    <div class="card-label green">Ownership & Proactiveness</div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--nvidia-green)">Identity</div>
+      <div class="phrase-text">"I <em>identified the opportunity</em> and built conviction with leadership"</div>
+      <div class="phrase-signal">→ Self-directed problem finding, not task execution</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--nvidia-green)">Scope</div>
+      <div class="phrase-text">"I <em>defined the architecture, roadmap, and hiring plan</em> from a blank page"</div>
+      <div class="phrase-signal">→ Operates at system scope, not feature scope</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--nvidia-green)">Framing</div>
+      <div class="phrase-text">"There was <em>zero existing capability</em> — I built it"</div>
+      <div class="phrase-signal">→ 0→1 creation, not incremental improvement</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label amber">Architecture & Technical Vision</div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-amber)">Design</div>
+      <div class="phrase-text">"I designed <em>composable skill primitives</em> so LLM agents could generate programs for new products <em>without retraining</em>"</div>
+      <div class="phrase-signal">→ Architecture decisions with multi-year leverage</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-amber)">Tradeoff</div>
+      <div class="phrase-text">"The labeling bottleneck was <em>fundamentally unsolvable</em> with supervised approaches — so I pivoted the architecture"</div>
+      <div class="phrase-signal">→ Root cause reasoning, not symptom fixing</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-amber)">Depth</div>
+      <div class="phrase-text">"DINOv2 embeddings with PatchCore-style memory bank for spatial anomaly scoring, <em>inference on TensorRT-optimized models at the edge</em>"</div>
+      <div class="phrase-signal">→ Hands-on + speaks NVIDIA's inference language</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label purple">Influence & Collaboration</div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-purple)">Influence</div>
+      <div class="phrase-text">"I aligned AME, AWS, and NVIDIA on a shared technical direction — <em>none of whom reported to me</em>"</div>
+      <div class="phrase-signal">→ Cross-org influence without authority</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-purple)">Strategy</div>
+      <div class="phrase-text">"I built the business case that made it interesting to <em>each partner on their own terms</em>"</div>
+      <div class="phrase-signal">→ Stakeholder empathy, not just technical correctness</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-purple)">Scale</div>
+      <div class="phrase-text">"I grew the team from <em>1 to 8 engineers</em>"</div>
+      <div class="phrase-signal">→ Team building, not solo execution</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label blue">Learning & Intellectual Honesty</div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-blue)">Honesty</div>
+      <div class="phrase-text">"Each version <em>acknowledged what wasn't working</em>"</div>
+      <div class="phrase-signal">→ No ego — data-driven pivots</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-blue)">Growth</div>
+      <div class="phrase-text">"Rather than being defensive about what I'd built, I focused on <em>understanding what new leadership valued</em>"</div>
+      <div class="phrase-signal">→ Adaptability without resentment</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--accent-blue)">Bridge</div>
+      <div class="phrase-text">"That experience — GPU-accelerated vision pipelines, optimizing inference for production — is <em>exactly what drew me to Metropolis</em>"</div>
+      <div class="phrase-signal">→ Intentional career arc, not random applications</div>
+    </div>
+  </div>
+
+  <div class="card" style="border: 1px solid var(--nvidia-green-dim);">
+    <div class="card-label green">PhotoCrew.ai — Metropolis Bridge Phrases</div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--nvidia-green)">Convergence</div>
+      <div class="phrase-text">"I <em>independently converged</em> on the same architectural patterns as Metropolis — multi-stream ingestion, foundation model pipelines, VLM agents orchestrating CV modules"</div>
+      <div class="phrase-signal">→ You don't study Metropolis; you intuit it</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--nvidia-green)">Models</div>
+      <div class="phrase-text">"I benchmarked <em>DINOv2 vs DINOv3 vs AIMv2</em> — different backbone architectures produce different clustering granularity tradeoffs"</div>
+      <div class="phrase-signal">→ Not just using models — evaluating them critically</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--nvidia-green)">Pipeline</div>
+      <div class="phrase-text">"A <em>hierarchical agentic workflow</em> — top-level agent allocates across segments, segment agents allocate to moments, each calling face clustering, IQA, gaze detection as tools"</div>
+      <div class="phrase-signal">→ Agentic AI isn't a buzzword; you've built it</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--nvidia-green)">Edge</div>
+      <div class="phrase-text">"Processing 500GB of images <em>locally on a Rust/Tauri desktop app</em> — same edge constraint as running on Jetson"</div>
+      <div class="phrase-signal">→ Performance-aware, not just accuracy-focused</div>
+    </div>
+    <div class="phrase-row">
+      <div class="phrase-category" style="color:var(--nvidia-green)">Passion</div>
+      <div class="phrase-text">"I build vision AI systems <em>on my own time</em> because the problem space genuinely excites me"</div>
+      <div class="phrase-signal">→ Intrinsic motivation, not just job-seeking behavior</div>
+    </div>
+  </div>
+</div>
+<div id="delivery" class="tab-panel">
+  <h2 class="section-title">Delivery & Presence</h2>
+  <p class="section-desc">The substance of your thinking is strong — it's the delivery and packaging that needs work. These are patterns we've identified across your interview history.</p>
+
+  <!-- VOCAL AUTHORITY -->
+  <div class="card" style="border-left: 3px solid var(--nvidia-green);">
+    <div class="card-label green">Vocal Authority</div>
+    <h3>Staff Engineers Speak Differently</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:16px;">Interviewers write "didn't demonstrate Staff-level leadership" when what they actually <em>felt</em> was "this person didn't command the room." Vocal authority matters more than people admit.</p>
+
+    <div class="story-block">
+      <div class="label">Declarative, Not Tentative</div>
+      Staff engineers speak slower, with more pauses, and with declarative statements. <strong style="color:var(--accent-red)">"I think maybe we could use X?"</strong> → <strong style="color:var(--nvidia-green)">"We should use X because…"</strong> If you hedge, uptalk, or qualify too much — even out of intellectual honesty — it signals uncertainty. Interviewers unconsciously map that to "needs guidance."
+    </div>
+
+    <div class="story-block amber-border">
+      <div class="label">Declare Intent, Don't Ask Permission</div>
+      <strong style="color:var(--accent-red)">"Would it be okay if I start with the high-level architecture?"</strong> reads differently than <strong style="color:var(--nvidia-green)">"I'm going to start with the high-level architecture and then drill into the components that matter most."</strong> Same content. Completely different power dynamic. Staff engineers don't ask permission to structure a conversation — they structure it.
+    </div>
+
+    <div class="story-block blue-border">
+      <div class="label">Pause Instead of Filling</div>
+      When a question catches you off guard, take 3–4 seconds of silence before answering cleanly. That's better than a long answer that finds itself halfway through. Saying "let me think about that for a second" is fine — but then deliver a tight answer, not a wandering one.
+    </div>
+  </div>
+
+  <!-- FILLER WORDS & HEDGING -->
+  <div class="card" style="border-left: 3px solid var(--accent-amber);">
+    <div class="card-label amber">Your Identified Patterns — Fix These</div>
+    <h3>Hedging, Filler Words & False Starts</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:16px;">From your Nimble CEO round and other interviews — these are the specific delivery patterns to eliminate:</p>
+
+    <div style="display:grid; gap:12px;">
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:16px; display:flex; gap:16px; align-items:flex-start;">
+        <div style="min-width:24px; color:var(--accent-red); font-weight:800; font-size:18px;">1</div>
+        <div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Stop hedging with "I think" and "I feel like"</div>
+          <div style="font-size:13px; color:var(--text-dim);">
+            <span style="color:var(--accent-red)">✕</span> "I feel like the fit is there" → <span style="color:var(--nvidia-green)">✓</span> "The fit is there."<br>
+            <span style="color:var(--accent-red)">✕</span> "I feel like I've been given a superpower" → <span style="color:var(--nvidia-green)">✓</span> "It's a superpower."<br>
+            Small change, big difference in how confident you sound.
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:16px; display:flex; gap:16px; align-items:flex-start;">
+        <div style="min-width:24px; color:var(--accent-red); font-weight:800; font-size:18px;">2</div>
+        <div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Tighten false starts — lead with the answer</div>
+          <div style="font-size:13px; color:var(--text-dim);">
+            <span style="color:var(--accent-red)">✕</span> "I think, uh, um, so…" then the answer 30 seconds later.<br>
+            <span style="color:var(--nvidia-green)">✓</span> Lead with the answer, then explain. Not the other way around.<br>
+            The HM is evaluating how you communicate. Fast-moving leaders want signal, not preamble.
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:16px; display:flex; gap:16px; align-items:flex-start;">
+        <div style="min-width:24px; color:var(--accent-red); font-weight:800; font-size:18px;">3</div>
+        <div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Drop Amazon LP language entirely</div>
+          <div style="font-size:13px; color:var(--text-dim);">
+            Not just the names — the entire framework. When you say "customer obsession" or "learn and be curious," non-Amazon interviewers hear "this person thinks in Amazon templates."<br>
+            <span style="color:var(--accent-red)">✕</span> "Customer obsession is one we've naturally imbibed"<br>
+            <span style="color:var(--nvidia-green)">✓</span> "I'd go talk to customers" — just describe the behavior naturally.
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:16px; display:flex; gap:16px; align-items:flex-start;">
+        <div style="min-width:24px; color:var(--accent-red); font-weight:800; font-size:18px;">4</div>
+        <div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Don't self-deprecate when asked about gaps</div>
+          <div style="font-size:13px; color:var(--text-dim);">
+            <span style="color:var(--accent-red)">✕</span> "Maybe just time and being at the right place, right time"<br>
+            <span style="color:var(--nvidia-green)">✓</span> "I've been building toward that — FactoryAI was full ownership of a 0-to-1 system, and I want to keep compounding."<br>
+            You have 14 years and shipped a factory autonomy platform. Own it.
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:16px; display:flex; gap:16px; align-items:flex-start;">
+        <div style="min-width:24px; color:var(--accent-red); font-weight:800; font-size:18px;">5</div>
+        <div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Lead with action, not process</div>
+          <div style="font-size:13px; color:var(--text-dim);">
+            <span style="color:var(--accent-red)">✕</span> "I'd ask leadership what the priorities are"<br>
+            <span style="color:var(--nvidia-green)">✓</span> "I'd go look at the system" / "I'd go to the factory floor"<br>
+            NVIDIA wants self-starters who orient themselves, not people who wait for direction.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY LANGUAGE & PHYSICAL PRESENCE -->
+  <div class="card" style="border-left: 3px solid var(--accent-blue);">
+    <div class="card-label blue">Physical Presence</div>
+    <h3>Body Language Reads as Level</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:16px;">The difference between Senior energy and Staff energy is physical, not just verbal.</p>
+
+    <div class="energy-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+      <div style="background: rgba(239,68,68,0.04); border:1px solid rgba(239,68,68,0.15); border-radius:var(--radius); padding:16px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--accent-red); margin-bottom:8px;">SENIOR ENERGY</div>
+        <div style="font-size:13px; color:var(--text-dim);">
+          Leaning forward. Speaking fast. Eager to prove yourself. Rushing to fill silence. Nodding excessively. High-performer energy — impressive, but it reads as still trying to earn a seat at the table.
+        </div>
+      </div>
+      <div style="background: var(--nvidia-green-glow); border:1px solid var(--nvidia-green-dim); border-radius:var(--radius); padding:16px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--nvidia-green); margin-bottom:8px;">STAFF ENERGY</div>
+        <div style="font-size:13px; color:var(--text-dim);">
+          Leaning back slightly. Taking up space. Not rushing to fill silence. Comfortable pausing. Speaking at a measured pace. The energy of "I've seen enough that I'm not anxious about this." You already belong.
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px; font-size:14px; color:var(--text-dim);">
+      <p style="margin-bottom:10px;"><strong style="color:var(--text)">The BJJ parallel:</strong> You know the difference between someone who <em>technically</em> executes a sweep correctly and someone who hits it with timing and authority. Same move, completely different energy. Interviews work the same way.</p>
+    </div>
+  </div>
+
+  <!-- THE DEFERENCE TRAP -->
+  <div class="card" style="border-left: 3px solid var(--accent-purple);">
+    <div class="card-label purple">The Deference Trap</div>
+    <h3>Amazon Culture Creates a Specific Risk</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:16px;">This one is insidious for people from big-company cultures.</p>
+
+    <div class="story-block purple-border">
+      <div class="label">What It Looks Like</div>
+      Deferring to the interviewer's framing. Agreeing too quickly. Saying "great question." You're subtly positioning yourself below them. Staff candidates occasionally <em>push back</em> on the interviewer: <strong style="color:var(--nvidia-green)">"I'd actually reframe this problem because the real constraint isn't throughput, it's…"</strong>
+    </div>
+
+    <div class="story-block">
+      <div class="label">The 8-Year Tenure Read</div>
+      There's a bias. Someone who's been at one company for 8 years and is still L6 can get read as "comfortable" rather than "ambitious." Your story needs to make clear that you <em>chose</em> to stay because you were building something from zero — not because you were coasting. The FactoryAI narrative is your counter: you were a founding engineer creating a new capability, not maintaining someone else's system.
+    </div>
+
+    <div class="story-block amber-border">
+      <div class="label">The Pattern-Matching Bias</div>
+      South Asian engineers in the Bay Area sometimes get pattern-matched into "strong executor" regardless of actual scope. You can't fix the bias, but you can be aware that your delivery needs to over-index on command presence specifically because the baseline read may already be working against you. This makes every other item on this page more important, not less.
+    </div>
+  </div>
+
+  <!-- PRE-INTERVIEW MENTAL PREP -->
+  <div class="card" style="border-left: 3px solid var(--nvidia-green);">
+    <div class="card-label green">Pre-Interview Mental Prep</div>
+    <h3>The Inner Game — Managing Self 1 vs. Self 2</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:16px;">From Gallwey's <em>Inner Game of Tennis</em> — your most relevant performance framework. Self 1 is the conscious, judging mind. Self 2 is the unconscious doer that already knows how to perform. Your job is to get Self 1 out of the way.</p>
+
+    <div style="display:grid; gap:12px;">
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:16px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--nvidia-green); margin-bottom:8px;">30 MINUTES BEFORE</div>
+        <div style="font-size:14px;">
+          <p style="margin-bottom:8px;"><strong>Visualize the call going well.</strong> Not the content — the <em>energy</em>. Picture yourself leaning back, speaking slowly, smiling slightly. Mentally rehearse the first 60 seconds of your pitch — not word-for-word, but the <em>feel</em> of it. Calm. Authoritative. Unhurried.</p>
+          <p><strong>Occupy Self 1.</strong> Focus on something physical — your breathing, the weight of your hands on the desk. This shuts out the judging, commentary voice. Just like in BJJ: you don't think your way through a roll, you feel it.</p>
+        </div>
+      </div>
+
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:16px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--accent-amber); margin-bottom:8px;">DURING THE INTERVIEW</div>
+        <div style="font-size:14px;">
+          <p style="margin-bottom:8px;"><strong>Narrate your thinking out loud.</strong> "I'm going to walk through the architecture top-down…" Speaking converts internal noise into productive signal. It also makes you sound structured and confident.</p>
+          <p style="margin-bottom:8px;"><strong>If you freeze, name it and move.</strong> "Let me think about that for a moment" — then silence — then a clean answer. The pause is your friend. Filling it with "um, so, I think, well…" is worse than silence.</p>
+          <p><strong>Don't argue with your own brain.</strong> If a thought like "this is going badly" shows up, let it pass. Don't engage with it. Redirect attention to the problem. The performance doesn't define you — the work does.</p>
+        </div>
+      </div>
+
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:16px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--accent-blue); margin-bottom:8px;">IDENTITY ANCHOR</div>
+        <div style="font-size:14px;">
+          <p>Before the call, remind yourself of one fact: <strong style="color:var(--nvidia-green)">NVIDIA already featured your work.</strong> You're not an outsider trying to get in. You're someone who already built on their stack, already delivered results they showcased. This isn't an audition — it's a conversation between colleagues about working together.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELF-DIAGNOSTIC -->
+  <div class="card" style="border-left: 3px solid var(--accent-red);">
+    <div class="card-label red">Pre-Interview Self-Diagnostic</div>
+    <h3>Record Yourself — 5-Minute Check</h3>
+    <p style="font-size:14px; color:var(--text-dim); margin-bottom:16px;">Before the interview, record yourself delivering the "Tell Me About Yourself" pitch. Then run this diagnostic:</p>
+
+    <div style="display:grid; gap:8px;">
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:12px 16px; display:flex; align-items:center; gap:12px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); min-width:24px;">01</div>
+        <div style="font-size:14px;"><strong>Watch on mute first.</strong> Just body language. Are you leaning forward or back? Taking up space or shrinking? Fidgeting or still?</div>
+      </div>
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:12px 16px; display:flex; align-items:center; gap:12px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); min-width:24px;">02</div>
+        <div style="font-size:14px;"><strong>Listen audio-only.</strong> Count hedges: "I think," "I feel like," "maybe," "kind of," "um." Target: zero.</div>
+      </div>
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:12px 16px; display:flex; align-items:center; gap:12px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); min-width:24px;">03</div>
+        <div style="font-size:14px;"><strong>Check your pace.</strong> Are you rushing? Staff pace is slower than you think. Add deliberate pauses between sections.</div>
+      </div>
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:12px 16px; display:flex; align-items:center; gap:12px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); min-width:24px;">04</div>
+        <div style="font-size:14px;"><strong>Check your framing.</strong> Did every sentence start with "I identified / I proposed / I designed" — or did any start with "I was asked to" or "my manager wanted"?</div>
+      </div>
+      <div style="background:var(--surface-2); border-radius:var(--radius); padding:12px 16px; display:flex; align-items:center; gap:12px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); min-width:24px;">05</div>
+        <div style="font-size:14px;"><strong>Check for Amazon language.</strong> Any leadership principle names? Any corporate framework references? Strip them all.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DANGER ZONES ==================== -->
+<div id="danger" class="tab-panel">
+  <h2 class="section-title">Danger Zones</h2>
+  <p class="section-desc">Six things that instantly downlevel you or kill the interview. Avoid at all costs.</p>
+
+  <div class="danger-item">
+    <div class="danger-icon">✕</div>
+    <div class="danger-text">
+      <strong>"My manager asked me to…"</strong> — Starting any story with a task assignment signals L5 execution.
+      <br><span class="instead">✓ Instead: "I identified…" / "I proposed…" / "I saw the gap and…"</span>
+    </div>
+  </div>
+
+  <div class="danger-item">
+    <div class="danger-icon">✕</div>
+    <div class="danger-text">
+      <strong>Feature-level scope language</strong> — Talking about implementing features instead of designing systems.
+      <br><span class="instead">✓ Instead: Talk about architecture decisions, trade-offs, system-level impact.</span>
+    </div>
+  </div>
+
+  <div class="danger-item">
+    <div class="danger-icon">✕</div>
+    <div class="danger-text">
+      <strong>Badmouthing Amazon or current leadership</strong> — Even after a reorg and layoffs, negativity is a red flag.
+      <br><span class="instead">✓ Instead: "The reorganization was an opportunity to realign with new leadership priorities."</span>
+    </div>
+  </div>
+
+  <div class="danger-item">
+    <div class="danger-icon">✕</div>
+    <div class="danger-text">
+      <strong>"I don't know much about Metropolis, but…"</strong> — Shows you didn't prepare. This is disqualifying.
+      <br><span class="instead">✓ Instead: Reference DeepStream, the VLM shift, edge-to-cloud deployment. Show you've done homework.</span>
+    </div>
+  </div>
+
+  <div class="danger-item">
+    <div class="danger-icon">✕</div>
+    <div class="danger-text">
+      <strong>Rambling past 2 minutes per answer</strong> — NVIDIA HMs run tight 30–45 min screens. Respect the clock.
+      <br><span class="instead">✓ Instead: Lead with the punchline, then expand only if they ask follow-ups.</span>
+    </div>
+  </div>
+
+  <div class="danger-item">
+    <div class="danger-icon">✕</div>
+    <div class="danger-text">
+      <strong>Mentioning immigration/green card constraints</strong> — Never volunteer constraints in a first round. Focus entirely on excitement and fit.
+      <br><span class="instead">✓ Instead: If asked about timeline, say "I'm ready to move quickly once we align on the role."</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== QUESTIONS TO ASK ==================== -->
+<div id="ask" class="tab-panel">
+  <h2 class="section-title">Questions to Ask the HM</h2>
+  <p class="section-desc">These are strategic — each one either gathers intel for later rounds or signals your seniority. Pick 3–4.</p>
+
+  <div class="ask-card">
+    <div class="ask-tag" style="color:var(--nvidia-green)">Intel Gathering — High Priority</div>
+    <div class="ask-q">"What should I expect in the remaining rounds — programming language, topics, format?"</div>
+    <div class="ask-why">Interviewing.io data confirms NVIDIA HMs will often tell you exactly what's coming. This is your biggest prep advantage.</div>
+  </div>
+
+  <div class="ask-card">
+    <div class="ask-tag" style="color:var(--nvidia-green)">Intel Gathering</div>
+    <div class="ask-q">"What does the current Metropolis roadmap look like for the next 6–12 months?"</div>
+    <div class="ask-why">Signals long-term thinking. Also tells you whether the team is in build mode, scale mode, or maintenance — which changes how you should position yourself in later rounds.</div>
+  </div>
+
+  <div class="ask-card">
+    <div class="ask-tag" style="color:var(--accent-amber)">Domain Signal</div>
+    <div class="ask-q">"How is the team thinking about the shift from CNN-based pipelines to VLM-powered visual agents — is that changing how you architect DeepStream integrations?"</div>
+    <div class="ask-why">Shows you understand the Cosmos Reason / VILA paradigm shift. Signals that you're tracking the cutting edge, not just the documentation.</div>
+  </div>
+
+  <div class="ask-card">
+    <div class="ask-tag" style="color:var(--accent-amber)">Domain Signal</div>
+    <div class="ask-q">"What's the most challenging part of supporting the edge-to-cloud deployment spectrum — Jetson Orin to data center?"</div>
+    <div class="ask-why">Shows you understand the deployment complexity that makes Metropolis hard. Also surfaces what the team actually struggles with — useful for system design later.</div>
+  </div>
+
+  <div class="ask-card">
+    <div class="ask-tag" style="color:var(--accent-blue)">Team & Role</div>
+    <div class="ask-q">"What does success look like for this role in the first 6 months?"</div>
+    <div class="ask-why">Classic but effective — it shows you're already thinking about execution and impact, not just getting the offer.</div>
+  </div>
+
+  <div class="ask-card">
+    <div class="ask-tag" style="color:var(--accent-blue)">Team & Role</div>
+    <div class="ask-q">"How large is the team, and how is work typically divided between C++ systems work and Python-level ML integration?"</div>
+    <div class="ask-why">Practical — tells you what your day-to-day actually looks like. Also shows you understand the spectrum of work in a Vision AI platform team.</div>
+  </div>
+
+  <div class="ask-card">
+    <div class="ask-tag" style="color:var(--accent-purple)">Culture Signal</div>
+    <div class="ask-q">"How much autonomy do engineers on the team have in defining their technical approach versus following a prescribed architecture?"</div>
+    <div class="ask-why">Signals that you value ownership. Also reveals the team's management style — important for your fit assessment.</div>
+  </div>
+</div>
+
+<!-- ==================== QUICK REF ==================== -->
+<div id="quickref" class="tab-panel">
+  <h2 class="section-title">Quick Reference Card</h2>
+  <p class="section-desc">Print this page or keep it on a second screen. Everything at a glance.</p>
+
+  <div class="quick-grid">
+    <div class="quick-card">
+      <div class="num">14</div>
+      <div class="num-label">years total experience</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">~8</div>
+      <div class="num-label">years at Amazon</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">1→8</div>
+      <div class="num-label">team grown (FactoryAI)</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">99%</div>
+      <div class="num-label">defect detection accuracy</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">95%</div>
+      <div class="num-label">pick-and-place success</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">$720K</div>
+      <div class="num-label">cost savings</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">96%</div>
+      <div class="num-label">latency improvement (V1→V4)</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">V4</div>
+      <div class="num-label">iterations of defect detection</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">10K+</div>
+      <div class="num-label">photos processed (PhotoCrew)</div>
+    </div>
+    <div class="quick-card">
+      <div class="num">500GB</div>
+      <div class="num-label">local inference (Rust/Tauri)</div>
+    </div>
+  </div>
+
+  <div style="height:24px"></div>
+
+  <div class="card">
+    <div class="card-label green">Six Rules for This Interview</div>
+    <div style="font-size:14px;">
+      <p style="margin-bottom:10px;"><strong style="color:var(--nvidia-green)">1.</strong> Lead every story with "I identified / I proposed / I architected" — never "I was asked to."</p>
+      <p style="margin-bottom:10px;"><strong style="color:var(--nvidia-green)">2.</strong> Talk about systems and architectures, not features. Trade-offs, not implementations.</p>
+      <p style="margin-bottom:10px;"><strong style="color:var(--nvidia-green)">3.</strong> Name-drop NVIDIA naturally: Isaac Sim, TensorRT, GPU inference. You already speak their language.</p>
+      <p style="margin-bottom:10px;"><strong style="color:var(--nvidia-green)">4.</strong> Keep every answer under 2 minutes. Punchline first, depth on follow-up.</p>
+      <p style="margin-bottom:10px;"><strong style="color:var(--nvidia-green)">5.</strong> Hold PhotoCrew as a follow-up card — don't lead with it, but deploy it when they ask about passion, VLMs, or side projects.</p>
+      <p><strong style="color:var(--nvidia-green)">6.</strong> Ask what's in the next rounds — they'll tell you, and it's your biggest edge.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label amber">Your Four Differentiators</div>
+    <div style="font-size:14px;">
+      <p style="margin-bottom:10px;"><strong style="color:var(--accent-amber)">1. Already in the NVIDIA ecosystem.</strong> You built on Isaac Sim and TensorRT. They featured your work. You're not learning their stack — you've deployed it.</p>
+      <p style="margin-bottom:10px;"><strong style="color:var(--accent-amber)">2. Real production vision AI, not research.</strong> 99% defect detection in a factory, not on a benchmark. Edge deployment constraints, not lab conditions.</p>
+      <p style="margin-bottom:10px;"><strong style="color:var(--accent-amber)">3. 0→1 builder + cross-org influence.</strong> Founding engineer who also aligned three external orgs. Technical depth + organizational impact at scale.</p>
+      <p><strong style="color:var(--accent-amber)">4. Independently built Metropolis-pattern architecture.</strong> PhotoCrew.ai uses DINOv2 embeddings, VLM agentic workflows, multi-stream ingestion, hierarchical metadata — the same patterns as Metropolis, arrived at independently. You don't just understand their platform; you've built your own version of it.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label red">If You Blank on a Question</div>
+    <div style="font-size:14px; color:var(--text-dim);">
+      <p style="margin-bottom:10px;">Route to <strong style="color:var(--text)">Story 1 (FactoryAI 0→1)</strong> for behavioral questions — it covers ambiguity, complexity, impact, collaboration, and innovation. Almost any question can be answered from it.</p>
+      <p style="margin-bottom:10px;">Route to <strong style="color:var(--nvidia-green)">Story 5 (PhotoCrew.ai)</strong> for technical / domain questions — it covers foundation models, VLMs, multi-stream processing, agentic AI, and edge inference. It directly maps to Metropolis.</p>
+      <p>Fallback opener: <em>"Let me tell you about building FactoryAI — I think it's the best example of how I approach [whatever they asked]."</em><br>
+      Technical fallback: <em>"I actually built something very similar to this in my side project — a multi-stream vision AI pipeline using DINOv2 and VLM agents…"</em></p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // Find matching button
+  const btns = document.querySelectorAll('.tab-btn');
+  const map = { overview:0, pitch:1, stories:2, routing:3, phrases:4, delivery:5, danger:6, ask:7, quickref:8 };
+  if (map[id] !== undefined) btns[map[id]].classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleCollapse(header) {
+  header.parentElement.classList.toggle('open');
+}
+</script>
+
+</body>
+</html>
