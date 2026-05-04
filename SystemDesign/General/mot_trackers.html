@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Object Tracking: SORT → BoT-SORT — Interview Field Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0c0a;
+  --bg-raised: #15130f;
+  --bg-code: #1a1714;
+  --fg: #ddd5c5;
+  --fg-muted: #8a8475;
+  --fg-dim: #5a5447;
+  --accent: #d4a017;
+  --accent-soft: #b8860b;
+  --accent-bg: rgba(212, 160, 23, 0.08);
+  --rule: #2a2622;
+  --rule-strong: #3d372e;
+  --green: #7a9970;
+  --red: #b86a5c;
+  --blue: #6b8caf;
+  --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --display: 'Fraunces', 'Newsreader', Georgia, serif;
+  --mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.65;
+  font-feature-settings: 'liga', 'kern', 'onum';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle paper grain */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.78 0 0 0 0 0.55 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  z-index: 1000;
+  mix-blend-mode: overlay;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 60px;
+  padding: 0 40px;
+}
+
+/* ─── HEADER ─── */
+.masthead {
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--rule);
+  padding: 50px 0 36px;
+  margin-bottom: 50px;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.eyebrow::before, .eyebrow::after {
+  content: '';
+  height: 1px;
+  background: var(--accent-soft);
+  flex: 0 0 24px;
+  opacity: 0.5;
+}
+
+.eyebrow::after { flex: 1; }
+
+.masthead h1 {
+  font-family: var(--display);
+  font-size: clamp(40px, 6vw, 68px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+  margin-bottom: 24px;
+  max-width: 14ch;
+}
+
+.masthead h1 em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+.masthead .subtitle {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-style: italic;
+  color: var(--fg-muted);
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+.masthead .meta {
+  display: flex;
+  gap: 32px;
+  margin-top: 28px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.masthead .meta span strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+/* ─── TIMELINE STRIP ─── */
+.timeline {
+  grid-column: 1 / -1;
+  margin-bottom: 60px;
+  padding: 24px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.timeline-track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  position: relative;
+}
+
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--accent-soft) 10%, var(--accent-soft) 90%, transparent);
+}
+
+.tl-node {
+  text-align: center;
+  position: relative;
+}
+
+.tl-node::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  display: block;
+  margin: 8px auto;
+  position: relative;
+  z-index: 1;
+}
+
+.tl-node .year {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-bottom: 28px;
+}
+
+.tl-node .name {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 4px;
+}
+
+.tl-node .desc {
+  font-size: 12px;
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+/* ─── TOC SIDEBAR ─── */
+.toc {
+  position: sticky;
+  top: 30px;
+  align-self: start;
+  font-family: var(--mono);
+  font-size: 12px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.toc h4 {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--fg-dim);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.toc ol {
+  list-style: none;
+}
+
+.toc > ol > li {
+  margin-bottom: 10px;
+  counter-increment: section;
+}
+
+.toc > ol > li > a {
+  color: var(--fg);
+  text-decoration: none;
+  display: block;
+  padding: 4px 0;
+  border-left: 2px solid transparent;
+  padding-left: 12px;
+  transition: all 0.15s ease;
+}
+
+.toc > ol > li > a::before {
+  content: counter(section, decimal-leading-zero) ' · ';
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.toc > ol > li > a:hover {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+.toc ol { counter-reset: section; }
+
+.toc .sub {
+  list-style: none;
+  margin-top: 4px;
+  margin-left: 12px;
+  padding-left: 8px;
+  border-left: 1px dotted var(--rule);
+}
+
+.toc .sub li a {
+  color: var(--fg-muted);
+  text-decoration: none;
+  font-size: 11px;
+  display: block;
+  padding: 2px 0 2px 6px;
+}
+
+.toc .sub li a:hover { color: var(--accent); }
+
+/* ─── MAIN CONTENT ─── */
+.content { min-width: 0; padding-bottom: 120px; }
+
+section { margin-bottom: 90px; scroll-margin-top: 30px; }
+
+.section-marker {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-marker::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+h2 {
+  font-family: var(--display);
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  font-variation-settings: 'opsz' 100;
+  margin-bottom: 8px;
+  color: var(--fg);
+}
+
+h2 .meta-year {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  font-weight: 400;
+  margin-left: 12px;
+  vertical-align: middle;
+}
+
+.lede {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-style: italic;
+  color: var(--fg-muted);
+  line-height: 1.5;
+  max-width: 60ch;
+  margin: 14px 0 36px;
+  font-feature-settings: 'liga', 'onum';
+}
+
+h3 {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 600;
+  margin: 50px 0 14px;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  border-left: 3px solid var(--accent);
+  padding-left: 14px;
+}
+
+h4 {
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  margin: 32px 0 10px;
+  color: var(--fg);
+  font-style: italic;
+}
+
+p { margin-bottom: 16px; max-width: 72ch; }
+
+p strong { color: var(--accent); font-weight: 500; }
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent-soft);
+  transition: all 0.15s;
+}
+
+a:hover { color: var(--fg); border-bottom-style: solid; }
+
+ul, ol { margin: 0 0 16px 24px; max-width: 72ch; }
+
+li { margin-bottom: 6px; }
+
+li::marker { color: var(--accent); }
+
+/* ─── ASCII DIAGRAM ─── */
+.diagram {
+  background: var(--bg-code);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  margin: 24px 0;
+  padding: 0;
+  position: relative;
+  overflow-x: auto;
+}
+
+.diagram-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  padding: 10px 18px 4px;
+  border-bottom: 1px dotted var(--rule);
+  background: rgba(0,0,0,0.2);
+}
+
+.diagram-label .tag {
+  color: var(--accent);
+  margin-right: 10px;
+}
+
+.diagram pre {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--fg);
+  padding: 18px 22px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.diagram pre.tight { font-size: 11.5px; line-height: 1.3; }
+
+/* color hints in diagrams */
+.diagram pre .hl { color: var(--accent); }
+.diagram pre .gn { color: var(--green); }
+.diagram pre .rd { color: var(--red); }
+.diagram pre .bl { color: var(--blue); }
+.diagram pre .dm { color: var(--fg-dim); }
+
+/* ─── CODE BLOCK ─── */
+pre.code {
+  background: var(--bg-code);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--green);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--fg);
+  padding: 18px 22px;
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+pre.code .kw { color: var(--accent); font-weight: 500; }
+pre.code .cm { color: var(--fg-dim); font-style: italic; }
+pre.code .st { color: var(--green); }
+pre.code .fn { color: var(--blue); }
+
+code.inline {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--bg-code);
+  padding: 1px 6px;
+  border-radius: 2px;
+  color: var(--accent);
+  border: 1px solid var(--rule);
+}
+
+/* ─── CALLOUT ─── */
+.callout {
+  background: var(--accent-bg);
+  border-left: 3px solid var(--accent);
+  padding: 18px 22px;
+  margin: 24px 0;
+  font-style: italic;
+}
+
+.callout .label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-style: normal;
+  display: block;
+}
+
+.callout p { margin-bottom: 6px; max-width: 64ch; }
+.callout p:last-child { margin-bottom: 0; }
+
+.callout.gotcha { background: rgba(184, 106, 92, 0.08); border-left-color: var(--red); }
+.callout.gotcha .label { color: var(--red); }
+
+.callout.insight { background: rgba(122, 153, 112, 0.08); border-left-color: var(--green); }
+.callout.insight .label { color: var(--green); }
+
+/* ─── TABLE ─── */
+.tbl-wrap {
+  overflow-x: auto;
+  margin: 24px 0;
+  border: 1px solid var(--rule);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-family: var(--serif);
+  background: var(--bg-raised);
+}
+
+th {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-align: left;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--bg-code);
+  font-weight: 500;
+  vertical-align: bottom;
+}
+
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+td:first-child {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+tr:last-child td { border-bottom: none; }
+
+tr:hover td { background: rgba(212, 160, 23, 0.03); }
+
+/* ─── REFERENCES (superscript) ─── */
+sup.ref {
+  font-family: var(--mono);
+  font-size: 0.7em;
+  color: var(--accent);
+  font-weight: 500;
+  vertical-align: super;
+  cursor: pointer;
+  margin: 0 1px;
+}
+
+sup.ref a {
+  color: inherit;
+  border: none;
+  text-decoration: none;
+}
+
+sup.ref::before { content: '['; }
+sup.ref::after { content: ']'; }
+
+/* ─── INTERVIEW Q ─── */
+.qa {
+  border-top: 1px solid var(--rule);
+  padding: 22px 0;
+}
+
+.qa:last-child { border-bottom: 1px solid var(--rule); }
+
+.qa .q {
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--fg);
+  font-style: italic;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 14px;
+}
+
+.qa .q::before {
+  content: 'Q';
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  font-style: normal;
+  border: 1px solid var(--accent);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  margin-top: 4px;
+}
+
+.qa .a {
+  margin-left: 36px;
+  color: var(--fg);
+}
+
+.qa .a p:last-child { margin-bottom: 0; }
+
+/* ─── REFERENCES SECTION ─── */
+.refs {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.refs ol { list-style: none; margin-left: 0; }
+
+.refs li {
+  padding: 10px 0 10px 36px;
+  border-bottom: 1px dotted var(--rule);
+  position: relative;
+  counter-increment: ref;
+}
+
+.refs ol { counter-reset: ref; }
+
+.refs li::before {
+  content: '[' counter(ref) ']';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.refs li .title {
+  color: var(--fg);
+  font-family: var(--serif);
+  font-size: 14px;
+  font-style: italic;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.refs li .authors { color: var(--fg-muted); }
+
+.refs li .venue { color: var(--fg-dim); }
+
+/* ─── KEY-VALUE GRID for state vectors etc ─── */
+.kvgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.kvgrid .item {
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  padding: 14px 16px;
+}
+
+.kvgrid .item .k {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.kvgrid .item .v {
+  font-size: 14px;
+  color: var(--fg);
+  line-height: 1.45;
+}
+
+/* ─── DROP CAP for opening ─── */
+.dropcap::first-letter {
+  font-family: var(--display);
+  font-size: 5em;
+  float: left;
+  line-height: 0.85;
+  margin: 4px 8px 0 0;
+  font-weight: 600;
+  color: var(--accent);
+  font-variation-settings: 'opsz' 144;
+}
+
+/* ─── responsive ─── */
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr; gap: 20px; padding: 0 20px; }
+  .toc { position: static; max-height: none; margin-bottom: 40px; padding: 20px; background: var(--bg-raised); border: 1px solid var(--rule); }
+  .timeline-track { grid-template-columns: 1fr; gap: 16px; }
+  .timeline-track::before { display: none; }
+  .tl-node { text-align: left; padding-left: 20px; border-left: 2px solid var(--accent); }
+  .tl-node::before { display: none; }
+}
+
+::selection { background: var(--accent); color: var(--bg); }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-soft); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ════════════════ MASTHEAD ════════════════ -->
+  <header class="masthead">
+    <div class="eyebrow">Engineering Field Manual · Vol. I · Multi-Object Tracking</div>
+    <h1>From Kalman to <em>ByteTrack</em>: an interview-grade dissection of online MOT.</h1>
+    <p class="subtitle">A deep technical study of SORT, DeepSORT, ByteTrack, StrongSORT, and BoT-SORT — their architectures, the math underneath, the patterns that hold across them, and the questions you should expect at the whiteboard.</p>
+    <div class="meta">
+      <span><strong>Audience</strong> · Staff/Senior CV Eng</span>
+      <span><strong>Depth</strong> · HLD → MLD → LLD</span>
+      <span><strong>Format</strong> · Diagrams · Math · References</span>
+    </div>
+  </header>
+
+  <!-- ════════════════ TIMELINE STRIP ════════════════ -->
+  <div class="timeline">
+    <div class="timeline-track">
+      <div class="tl-node"><div class="year">2016</div><div class="name">SORT</div><div class="desc">Kalman + Hungarian + IoU</div></div>
+      <div class="tl-node"><div class="year">2017</div><div class="name">DeepSORT</div><div class="desc">+ Appearance Re-ID</div></div>
+      <div class="tl-node"><div class="year">2021</div><div class="name">ByteTrack</div><div class="desc">Use every detection</div></div>
+      <div class="tl-node"><div class="year">2022</div><div class="name">StrongSORT</div><div class="desc">DeepSORT, modernized</div></div>
+      <div class="tl-node"><div class="year">2022</div><div class="name">BoT-SORT</div><div class="desc">Camera-motion aware</div></div>
+    </div>
+  </div>
+
+  <!-- ════════════════ TOC ════════════════ -->
+  <aside class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#paradigm">The Tracking-by-Detection Paradigm</a></li>
+      <li><a href="#sort">SORT — the seed</a>
+        <ul class="sub">
+          <li><a href="#sort-hld">HLD</a></li>
+          <li><a href="#sort-mld">MLD</a></li>
+          <li><a href="#sort-lld">LLD: Kalman, Hungarian, IoU</a></li>
+          <li><a href="#sort-limits">Failure modes</a></li>
+        </ul>
+      </li>
+      <li><a href="#deepsort">DeepSORT — appearance enters</a>
+        <ul class="sub">
+          <li><a href="#ds-hld">HLD</a></li>
+          <li><a href="#ds-mld">MLD: Cascade matching</a></li>
+          <li><a href="#ds-lld">LLD: Mahalanobis + cosine</a></li>
+        </ul>
+      </li>
+      <li><a href="#bytetrack">ByteTrack — every detection counts</a>
+        <ul class="sub">
+          <li><a href="#bt-hld">HLD</a></li>
+          <li><a href="#bt-mld">MLD: BYTE algorithm</a></li>
+          <li><a href="#bt-lld">LLD: pseudocode</a></li>
+        </ul>
+      </li>
+      <li><a href="#strongsort">StrongSORT — the bag of tricks</a>
+        <ul class="sub">
+          <li><a href="#ss-tricks">NSA Kalman, EMA, ECC</a></li>
+          <li><a href="#ss-offline">AFLink, GSI</a></li>
+        </ul>
+      </li>
+      <li><a href="#botsort">BoT-SORT — camera-motion aware</a>
+        <ul class="sub">
+          <li><a href="#bot-cmc">CMC pipeline</a></li>
+          <li><a href="#bot-fusion">IoU+ReID fusion</a></li>
+        </ul>
+      </li>
+      <li><a href="#patterns">Patterns Emerging</a></li>
+      <li><a href="#comparison">Comparison Matrix</a></li>
+      <li><a href="#interview">Interview Questions</a></li>
+      <li><a href="#production">Production Considerations</a></li>
+      <li><a href="#references">References</a></li>
+    </ol>
+  </aside>
+
+  <!-- ════════════════ MAIN CONTENT ════════════════ -->
+  <main class="content">
+
+  <!-- ─────────── 1. PARADIGM ─────────── -->
+  <section id="paradigm">
+    <div class="section-marker">§ 01 · Foundations</div>
+    <h2>The Tracking-by-Detection paradigm</h2>
+    <p class="lede">Every system in this manual shares one architectural premise: detection is somebody else's problem. The tracker's job is to stitch frame-by-frame detections into temporally consistent identities.</p>
+
+    <p class="dropcap">Multi-object tracking (MOT) decomposes into two questions. <em>What objects are in this frame?</em> — solved by an upstream detector (Faster R-CNN, YOLO, DETR, etc.). <em>Are these the same objects as last frame?</em> — solved by the tracker. The five systems we dissect here all answer the second question; they differ only in <strong>how they predict where things should be</strong> and <strong>how they decide which new box belongs to which old track</strong>.<sup class="ref"><a href="#r-mot-survey">10</a></sup></p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 1.1</span>Tracking-by-Detection — universal pipeline</div>
+      <pre>
+                  ┌──────────────────────────────────────────────────────┐
+                  │                  ONLINE MOT SYSTEM                   │
+                  └──────────────────────────────────────────────────────┘
+
+   ┌──────────┐      ┌──────────┐      ┌─────────────┐      ┌──────────┐
+   │  video   │ ───► │ DETECTOR │ ───► │   TRACKER   │ ───► │  tracks  │
+   │  stream  │      │  (YOLO,  │      │  (SORT,     │      │  with    │
+   │          │      │   DETR,  │      │  DeepSort,  │      │  stable  │
+   │          │      │  Faster- │      │  ByteTrack, │      │  IDs     │
+   │          │      │   RCNN)  │      │  StrongSort,│      │          │
+   │          │      │          │      │  BoT-SORT)  │      │          │
+   └──────────┘      └──────────┘      └─────────────┘      └──────────┘
+                          │                    │
+                          ▼                    ▼
+                  bboxes + scores      identity assignment
+                  (per frame)          across frames
+</pre>
+    </div>
+
+    <p>Three primitives recur in every tracker:</p>
+    <ol>
+      <li><strong>State estimation</strong> — given a track's history, where is the object likely to be <em>now</em>? Universally answered with a Kalman filter under linear Gaussian assumptions.<sup class="ref"><a href="#r-kalman">7</a></sup></li>
+      <li><strong>Cost computation</strong> — how dissimilar is detection <code class="inline">d_i</code> from track <code class="inline">t_j</code>? Answered with IoU, Mahalanobis distance, cosine distance over learned embeddings, or weighted combinations.</li>
+      <li><strong>Assignment</strong> — given the cost matrix, which detections go with which tracks? Answered with the Hungarian (Kuhn-Munkres) algorithm, optimal in <code class="inline">O(n³)</code>.<sup class="ref"><a href="#r-hungarian">8</a></sup></li>
+    </ol>
+
+    <div class="callout">
+      <span class="label">Mental Model</span>
+      <p>Think of the tracker as a <em>predict-correct</em> loop with a discrete combinatorial step in the middle. Kalman predicts where each track <em>should</em> be; Hungarian decides which detection <em>actually</em> matches; Kalman corrects given that observation. The differences between SORT and BoT-SORT are entirely in the cost function, the gating, and the lifecycle policy — not in this skeleton.</p>
+    </div>
+  </section>
+
+  <!-- ─────────── 2. SORT ─────────── -->
+  <section id="sort">
+    <div class="section-marker">§ 02 · The Seed</div>
+    <h2>SORT <span class="meta-year">Bewley et al., ICIP 2016</span></h2>
+    <p class="lede">A 250-line Python tracker that, in 2016, ran at 260 Hz and beat most published systems on MOT15. The thesis: if your detector is good, you don't need a learned association model.</p>
+
+    <p>SORT — <em>Simple Online and Realtime Tracking</em><sup class="ref"><a href="#r-sort">1</a></sup> — established the canonical pipeline. It uses a constant-velocity Kalman filter to propagate each track's bounding box to the current frame, computes IoU between every predicted track and every detection, and runs Hungarian assignment over the cost matrix. That's the entire algorithm. Re-identification is <em>not</em> attempted; an occluded object that misses a few frames will be deleted and resurrected with a new ID when it reappears. This is by design — SORT optimizes for throughput, not for ID persistence.</p>
+
+    <h3 id="sort-hld">High-Level Architecture</h3>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 2.1</span>SORT — block-level view</div>
+      <pre>
+   frame_t                                                 tracks_t
+   ─────────►  ┌──────────┐  ┌──────────┐  ┌──────────┐  ─────────►
+               │ DETECTOR │─►│  KALMAN  │─►│ HUNGARIAN│
+               │  (FR-CNN)│  │ PREDICT  │  │  + IoU   │
+               └──────────┘  └──────────┘  └─────┬────┘
+                                                 │
+                                          ┌──────┴──────┐
+                                          ▼             ▼
+                                   ┌──────────┐   ┌──────────┐
+                                   │  KALMAN  │   │  TRACK   │
+                                   │  UPDATE  │   │ LIFECYCLE│
+                                   └──────────┘   └──────────┘
+                                                  (birth/death)
+</pre>
+    </div>
+
+    <h3 id="sort-mld">Mid-Level Architecture — the per-frame loop</h3>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 2.2</span>SORT — single-frame data flow</div>
+      <pre>
+                       ┌─────────────────────────────┐
+                       │  ACTIVE TRACK SET  T_{t-1}  │
+                       │  each track has (x, P)      │
+                       └──────────────┬──────────────┘
+                                      │
+                                      ▼
+                       ┌─────────────────────────────┐
+                       │   KALMAN PREDICT (∀ track)  │
+                       │   x'_t = F · x_{t-1}        │
+                       │   P'_t = F·P·Fᵀ + Q         │
+                       └──────────────┬──────────────┘
+                                      │
+       Detections D_t                 ▼
+       ──────────────►   ┌──────────────────────────┐
+                         │   COST MATRIX  C[i,j]    │
+                         │     = 1 - IoU(d_i, t'_j) │
+                         │   gate: IoU < 0.3 → ∞    │
+                         └──────────────┬───────────┘
+                                        │
+                                        ▼
+                         ┌──────────────────────────┐
+                         │   HUNGARIAN ASSIGNMENT   │
+                         │   minimize Σ C[i,σ(i)]   │
+                         └──────────────┬───────────┘
+                                        │
+                ┌───────────────────────┼───────────────────────┐
+                ▼                       ▼                       ▼
+         ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+         │   MATCHED   │         │  UNMATCHED  │         │  UNMATCHED  │
+         │ (det,track) │         │   TRACKS    │         │ DETECTIONS  │
+         └──────┬──────┘         └──────┬──────┘         └──────┬──────┘
+                ▼                       ▼                       ▼
+         ┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+         │KALMAN UPDATE│         │ time_lost++ │         │ NEW TRACK   │
+         │ x = x' +    │         │ if > T_max  │         │ (tentative) │
+         │   K(z - Hx')│         │ → DELETE    │         │ age = 0     │
+         └─────────────┘         └─────────────┘         └─────────────┘
+</pre>
+    </div>
+
+    <h3 id="sort-lld">Low-Level: the math</h3>
+
+    <h4>State vector</h4>
+    <p>Each track's state is a <strong>7-dimensional vector</strong>:</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 2.3</span>SORT — state vector layout</div>
+      <pre class="tight">
+     x = [ u,  v,  s,  r,  u̇,  v̇,  ṡ ]ᵀ
+          │   │   │   │   │   │   │
+          │   │   │   │   │   │   └── scale velocity (ds/dt)
+          │   │   │   │   │   └────── y-velocity     (dv/dt)
+          │   │   │   │   └────────── x-velocity     (du/dt)
+          │   │   │   └────────────── aspect ratio   (w/h)  ← assumed CONSTANT
+          │   │   └────────────────── scale (area)   (w·h)
+          │   └────────────────────── bbox center y
+          └────────────────────────── bbox center x
+</pre>
+    </div>
+
+    <p>Note: aspect ratio <code class="inline">r</code> has <em>no velocity term</em>. SORT assumes objects don't change shape — a clean simplification that breaks for articulated objects (people walking, packages tumbling on a conveyor).</p>
+
+    <h4>Transition model — constant velocity</h4>
+    <p>The state transition matrix <code class="inline">F</code> is a 7×7 block:</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 2.4</span>State transition F (constant-velocity)</div>
+      <pre class="tight">
+                     [1 0 0 0  Δt 0  0 ]    u_{t+1} = u_t + Δt·u̇_t
+                     [0 1 0 0  0  Δt 0 ]    v_{t+1} = v_t + Δt·v̇_t
+                     [0 0 1 0  0  0  Δt]    s_{t+1} = s_t + Δt·ṡ_t
+                F =  [0 0 0 1  0  0  0 ]    r_{t+1} = r_t   (frozen)
+                     [0 0 0 0  1  0  0 ]    velocities propagate
+                     [0 0 0 0  0  1  0 ]
+                     [0 0 0 0  0  0  1 ]
+</pre>
+    </div>
+
+    <h4>Cost &amp; assignment</h4>
+    <p>The cost matrix uses <strong>1 − IoU</strong> between predicted track boxes and detections. Pairs with <code class="inline">IoU &lt; 0.3</code> are gated out (cost = ∞), preventing implausible matches. Hungarian then finds the global minimum-cost assignment.</p>
+
+    <h4>Track lifecycle</h4>
+    <div class="kvgrid">
+      <div class="item"><div class="k">Tentative → Confirmed</div><div class="v">A new track must hit on <code class="inline">T_min = 3</code> consecutive frames before being emitted as a confirmed ID. Filters out detector flicker.</div></div>
+      <div class="item"><div class="k">Confirmed → Deleted</div><div class="v">Track survives <code class="inline">T_max = 1</code> frame of misses (in the original paper). Anything more requires Re-ID.</div></div>
+      <div class="item"><div class="k">Birth</div><div class="v">Any unmatched detection seeds a new tentative track with velocity initialized to zero.</div></div>
+    </div>
+
+    <h3 id="sort-limits">Where SORT breaks</h3>
+
+    <div class="callout gotcha">
+      <span class="label">Failure Modes</span>
+      <p><strong>Occlusion.</strong> When two pedestrians cross, one is occluded for ~10 frames. SORT deletes the track. When the person re-emerges, they get a new ID. <code class="inline">IDSW</code> (ID switches) and fragmentations dominate the error budget.</p>
+      <p><strong>Detector misses.</strong> A single missed detection in the chain can kill a track if <code class="inline">T_max = 1</code>. Raising <code class="inline">T_max</code> trades misses for false-positive coasting.</p>
+      <p><strong>Crowds.</strong> When IoU between candidates is similar (overlapping pedestrians), Hungarian's choice is essentially arbitrary. SORT has no way to disambiguate.</p>
+    </div>
+
+    <p>These three failures are the entire research agenda of the next decade. DeepSORT addresses occlusion via appearance. ByteTrack addresses detector misses via low-confidence associations. BoT-SORT addresses crowds via better motion + appearance fusion.</p>
+  </section>
+
+  <!-- ─────────── 3. DEEPSORT ─────────── -->
+  <section id="deepsort">
+    <div class="section-marker">§ 03 · Appearance Enters</div>
+    <h2>DeepSORT <span class="meta-year">Wojke et al., ICIP 2017</span></h2>
+    <p class="lede">A learned appearance descriptor and a clever cascade matching strategy reduce identity switches on MOT16 by 45% versus SORT — and the architecture template still ships in production today.</p>
+
+    <p>DeepSORT<sup class="ref"><a href="#r-deepsort">2</a></sup> keeps SORT's Kalman filter and Hungarian backbone, but augments the cost function with two crucial additions: a <strong>learned 128-dim appearance descriptor</strong> (a small CNN trained on person re-identification datasets) and a <strong>matching cascade</strong> that prioritizes tracks recently seen over long-lost ones. The result is a tracker that remembers objects through occlusions of 30+ frames.</p>
+
+    <h3 id="ds-hld">High-Level Architecture</h3>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 3.1</span>DeepSORT — block-level</div>
+      <pre>
+   frame_t
+   ─────►  ┌──────────┐    ┌──────────┐    ┌──────────────────────┐
+           │ DETECTOR │───►│  KALMAN  │───►│   ASSOCIATION        │
+           └────┬─────┘    │ PREDICT  │    │                      │
+                │          └──────────┘    │  ┌────────────────┐  │
+                │                          │  │ MATCHING       │  │
+                ▼                          │  │ CASCADE        │  │
+           ┌──────────┐                    │  │ (by age)       │  │
+           │ Re-ID    │ ── 128-d ──────────┼──┘                │  │
+           │ CNN      │   features         │  ┌────────────────┐  │
+           │ (Wojke   │                    │  │ IoU FALLBACK   │  │
+           │  net)    │                    │  └────────────────┘  │
+           └──────────┘                    └──────────┬───────────┘
+                                                      │
+                                          ┌───────────┴────────────┐
+                                          ▼                        ▼
+                                   ┌────────────┐           ┌────────────┐
+                                   │  KALMAN    │           │ LIFECYCLE  │
+                                   │  UPDATE    │           │ (T_max=30) │
+                                   └────────────┘           └────────────┘
+</pre>
+    </div>
+
+    <h3 id="ds-mld">Mid-Level: the matching cascade</h3>
+    <p>This is the architectural insight that distinguishes DeepSORT from SORT. Instead of solving one global Hungarian problem, DeepSORT runs <em>multiple</em> Hungarian rounds, one per "age" bucket — where age is the number of frames since a track was last updated. Tracks last seen one frame ago get first dibs on detections; tracks last seen 30 frames ago compete only for whatever remains.</p>
+
+    <div class="callout insight">
+      <span class="label">Why the cascade works</span>
+      <p>When a track has been lost for many frames, its Kalman prediction's uncertainty grows quadratically. A long-lost track will have a large covariance ellipse and may "swallow" a detection that actually belongs to a fresh, more confident track. The cascade prevents this by giving recent tracks priority — formalizing the intuition that <em>young memories are more reliable</em>.</p>
+    </div>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 3.2</span>DeepSORT — matching cascade</div>
+      <pre>
+   ALL CONFIRMED TRACKS  +  ALL DETECTIONS                     UNMATCHED
+        │                                                      DETECTIONS
+        ▼                                                          │
+   ┌──────────────────────────────────────────────────────────┐    │
+   │    for n = 1 ... A_max:                                  │    │
+   │      T_n = { tracks with age == n }                      │    │
+   │                                                          │    │
+   │      ┌──────────────────────────────────────┐            │    │
+   │      │  cost(t,d) = λ·d_motion + (1-λ)·     │            │    │
+   │      │              d_appearance            │            │    │
+   │      │                                      │            │    │
+   │      │  d_motion     = Mahalanobis(t, d)    │            │    │
+   │      │  d_appearance = min_k cos(f_d, f_t,k)│            │    │
+   │      │  gate: both must pass thresholds     │            │    │
+   │      └──────────────────────────────────────┘            │    │
+   │                                                          │    │
+   │      Hungarian over T_n  vs  unmatched detections        │    │
+   │      → matched, unmatched_t, unmatched_d                 │    │
+   │                                                          │    │
+   │      detections ← unmatched_d   (carry forward)          │    │
+   │      tracks_remaining ← tracks_remaining - matched       │    │
+   └──────────────────────────────────────────────────────────┘
+        │                                                          
+        ▼                                                          
+   ┌──────────────────────────────────────────────────────────┐    
+   │  IoU FALLBACK (for tentative tracks + age==1 confirmed)  │    
+   │  Hungarian on 1 - IoU                                    │◄───┘
+   └──────────────────────────────────────────────────────────┘
+</pre>
+    </div>
+
+    <h3 id="ds-lld">Low-Level: distances, gating, the gallery</h3>
+
+    <h4>Motion distance — squared Mahalanobis</h4>
+    <p>Instead of IoU, DeepSORT uses <strong>squared Mahalanobis distance</strong> in the bbox parameter space. Given a track's predicted mean <code class="inline">y_j</code> and covariance <code class="inline">S_j</code> (both projected through the measurement matrix <code class="inline">H</code>):</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">EQ. 3.1</span>Mahalanobis gating</div>
+      <pre class="tight">
+     d_motion(d_i, t_j)² = (d_i - y_j)ᵀ · S_j⁻¹ · (d_i - y_j)
+
+     gate: d_motion² ≤ χ²₍₀.₉₅, 4₎ = 9.4877       (4 dof: bbox params)
+</pre>
+    </div>
+
+    <p>This is the chi-squared inverse CDF at 0.95 with 4 degrees of freedom. A detection passes the gate if it falls inside the 95% confidence ellipse of the predicted bbox distribution.</p>
+
+    <h4>Appearance distance — cosine over a feature gallery</h4>
+    <p>Each track maintains a <strong>gallery</strong> of the last <code class="inline">L_k = 100</code> appearance features it has been associated with. The appearance distance from a detection to a track is the <em>minimum</em> cosine distance over the gallery:</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">EQ. 3.2</span>Appearance distance</div>
+      <pre class="tight">
+     d_appearance(d_i, t_j) = min { 1 - cos(f_i, f_k) | f_k ∈ R_j }
+                               k
+
+       where R_j = { f_{j,1}, ..., f_{j,100} } is track j's gallery
+       and f_i is the L2-normalized 128-dim feature for detection i.
+</pre>
+    </div>
+
+    <h4>Combined cost</h4>
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">EQ. 3.3</span>Weighted cost &amp; gating</div>
+      <pre class="tight">
+     c(d_i, t_j) = λ · d_motion² + (1 - λ) · d_appearance
+
+     b(d_i, t_j) = 1  iff  both gates pass
+                   0  otherwise
+
+     Hungarian operates on c with b as a hard mask.
+     Authors use λ = 0 in MOT16 (appearance only) — motion is just a gate.
+</pre>
+    </div>
+
+    <h4>The Re-ID network</h4>
+    <p>The appearance descriptor is produced by a small CNN: 2 conv layers + 6 residual blocks + dense layer → 128-dim L2-normalized feature, ~2.8M params, trained on the MARS dataset (~1M images of pedestrians).<sup class="ref"><a href="#r-mars">11</a></sup> The network is <em>independent of the detector</em> — you crop each detection's bbox, resize to 128×64, and run inference.</p>
+
+    <div class="callout gotcha">
+      <span class="label">Production gotcha</span>
+      <p>The Wojke Re-ID network is trained on pedestrians. Drop it into a tracking system for vehicles, parcels, or factory parts and the embedding space is meaningless — you'll get worse results than SORT. <strong>The Re-ID model is class-conditional.</strong> StrongSORT, BoT-SORT-ReID, and most production trackers swap the Re-ID backbone for a domain-specific one (BoT, OSNet, fastreid).<sup class="ref"><a href="#r-fastreid">12</a></sup></p>
+    </div>
+
+    <h4>Lifecycle changes vs SORT</h4>
+    <ul>
+      <li><strong><code class="inline">T_max = 30</code></strong> instead of 1 — tracks survive 30 frames of misses (~1 sec at 30 fps), which is the entire reason occlusion handling improves.</li>
+      <li>Tentative tracks still need 3 confirmations before promotion.</li>
+      <li>Tentative tracks that miss <em>any</em> frame are deleted — keeps false starts from polluting the active set.</li>
+    </ul>
+  </section>
+
+  <!-- ─────────── 4. BYTETRACK ─────────── -->
+  <section id="bytetrack">
+    <div class="section-marker">§ 04 · The Counterintuitive Win</div>
+    <h2>ByteTrack <span class="meta-year">Zhang et al., ECCV 2022</span></h2>
+    <p class="lede">No appearance model. No Re-ID network. Just a clever observation: low-confidence detections are not noise — they are mostly occluded objects. Use them.</p>
+
+    <p>The conventional pre-2021 wisdom: filter detections by score (typically >0.5), throw away the rest. ByteTrack<sup class="ref"><a href="#r-bytetrack">3</a></sup> argued this discards exactly the detections you need most — the partially occluded ones, whose scores drop precisely <em>because</em> they are occluded. The trick: associate <strong>every</strong> detection box, but in two stages, and only let high-score detections create new tracks.</p>
+
+    <p>The algorithm has no learned components beyond the detector. It topped MOT17 and MOT20 leaderboards in 2021, ran at 30 FPS, and has aged well — most modern multi-class trackers in the wild ship some variant of BYTE.</p>
+
+    <h3 id="bt-hld">High-Level Architecture</h3>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 4.1</span>ByteTrack — block view</div>
+      <pre>
+                ┌──────────┐
+                │ DETECTOR │  (gives ALL boxes with scores, not just s>0.5)
+                └─────┬────┘
+                      │
+              ┌───────┴───────┐
+              ▼               ▼
+        D_high (s>τ_high)   D_low (τ_low<s<τ_high)
+              │                       │
+              ▼                       │
+        ┌─────────────┐                │
+        │ FIRST PASS  │                │
+        │  Hungarian  │                │
+        │   on IoU    │                │
+        │  D_high vs  │                │
+        │  ALL tracks │                │
+        └──────┬──────┘                │
+               │                       │
+        unmatched tracks ──────────────┤
+                                       ▼
+                                ┌─────────────┐
+                                │ SECOND PASS │
+                                │  Hungarian  │
+                                │   on IoU    │
+                                │ unmatched_t │
+                                │   vs D_low  │
+                                └──────┬──────┘
+                                       │
+                                       ▼
+                              new tracks ← unmatched D_high only
+                              delete tracks lost > T_max
+</pre>
+    </div>
+
+    <h3 id="bt-mld">Mid-Level: the BYTE association algorithm</h3>
+
+    <p>The pseudocode is short enough to memorize. You should know it cold for interviews:</p>
+
+    <pre class="code">
+<span class="cm"># BYTE (Algorithm 1, Zhang et al. 2021)</span>
+<span class="cm"># Inputs: V_t — current frame; T_{t-1} — track set; θ_high, θ_low — thresholds</span>
+<span class="cm"># Output: updated track set T_t</span>
+
+<span class="kw">def</span> <span class="fn">byte_associate</span>(V_t, T):
+    <span class="cm"># 1. Detect &amp; split by confidence</span>
+    D = detector(V_t)
+    D_high = [d <span class="kw">for</span> d <span class="kw">in</span> D <span class="kw">if</span> d.score &gt;= θ_high]
+    D_low  = [d <span class="kw">for</span> d <span class="kw">in</span> D <span class="kw">if</span> θ_low &lt;= d.score &lt; θ_high]
+
+    <span class="cm"># 2. Kalman predict every track</span>
+    <span class="kw">for</span> t <span class="kw">in</span> T:
+        t.predict()
+
+    <span class="cm"># 3. FIRST ASSOCIATION — high-conf detections vs ALL tracks</span>
+    matches_1, unmatched_t, unmatched_d_high = hungarian(
+        cost = 1 - IoU(D_high, T),
+        threshold = 0.8        <span class="cm"># tighter; high-conf must match well</span>
+    )
+
+    <span class="cm"># 4. SECOND ASSOCIATION — low-conf detections vs UNMATCHED tracks only</span>
+    matches_2, unmatched_t_2, _ = hungarian(
+        cost = 1 - IoU(D_low, unmatched_t),
+        threshold = 0.5        <span class="cm"># looser; low-conf may be occluded</span>
+    )
+
+    <span class="cm"># 5. Update matched tracks</span>
+    <span class="kw">for</span> (t, d) <span class="kw">in</span> matches_1 + matches_2:
+        t.update(d)
+
+    <span class="cm"># 6. Tracks unmatched in BOTH passes are "lost" — keep for T_max frames</span>
+    <span class="kw">for</span> t <span class="kw">in</span> unmatched_t_2:
+        t.mark_lost()
+        <span class="kw">if</span> t.frames_since_update &gt; T_max:
+            T.remove(t)
+
+    <span class="cm"># 7. CRITICAL: only HIGH-conf unmatched detections seed new tracks</span>
+    <span class="kw">for</span> d <span class="kw">in</span> unmatched_d_high:
+        <span class="kw">if</span> d.score &gt;= θ_new:
+            T.add(new_track(d))
+
+    <span class="cm"># Low-conf unmatched detections are dropped — they were either</span>
+    <span class="cm"># background or unrecoverable occluded objects.</span>
+    <span class="kw">return</span> T
+</pre>
+
+    <h3 id="bt-lld">Low-Level: thresholds &amp; design choices</h3>
+
+    <div class="kvgrid">
+      <div class="item"><div class="k">θ_high</div><div class="v">0.6 typically. Detections above this seed new tracks and contend in the first association pass.</div></div>
+      <div class="item"><div class="k">θ_low</div><div class="v">0.1 typically. Detections in [0.1, 0.6) only contend in the second pass against tracks that survived the first.</div></div>
+      <div class="item"><div class="k">IoU thresholds</div><div class="v">First pass uses 0.8 (strict), second uses 0.5 (lenient). The intuition: a high-conf detection should match its track tightly; a low-conf detection has more positional noise and we tolerate looser geometry.</div></div>
+      <div class="item"><div class="k">T_max</div><div class="v">30 frames, same as DeepSORT. Lost tracks coast on Kalman prediction.</div></div>
+      <div class="item"><div class="k">Kalman state</div><div class="v">Same 7-dim as SORT. No appearance.</div></div>
+      <div class="item"><div class="k">Cost</div><div class="v">1 − IoU only. Some forks (ByteTrack-ReID) add appearance for tracking through full occlusion.</div></div>
+    </div>
+
+    <div class="callout insight">
+      <span class="label">Why this is brilliant</span>
+      <p>ByteTrack reframes the problem: the issue isn't that tracking is hard, it's that the standard pipeline <em>discards information</em> at the detection-filter step. By running two association passes — strict for confident detections, lenient for the rest — you recover the occluded objects without polluting the track set with noise (because only confident unmatched detections create new IDs). It is a cost matrix change and a control-flow change. Nothing more.</p>
+    </div>
+
+    <p>The genius is in the asymmetry of the two passes. <strong>Track creation</strong> uses high-confidence detections only — this protects against background false-positive tracks. <strong>Track continuation</strong> uses any detection — this protects against losing temporarily occluded objects. The two functions get different evidence bars, which they should.</p>
+  </section>
+
+  <!-- ─────────── 5. STRONGSORT ─────────── -->
+  <section id="strongsort">
+    <div class="section-marker">§ 05 · The Bag of Tricks</div>
+    <h2>StrongSORT <span class="meta-year">Du et al., IEEE TMM 2023</span></h2>
+    <p class="lede">"Make DeepSORT Great Again." A systematic study showing that, with five years of orthogonal improvements bolted onto its skeleton, the 2017 architecture beats the 2021 state of the art.</p>
+
+    <p>StrongSORT<sup class="ref"><a href="#r-strongsort">4</a></sup> is less a new tracker than a forensic ablation of every weak link in DeepSORT. The authors keep the cascade structure and the appearance + motion fusion, but replace each component with its modern best-in-class equivalent. The result: a tracker that, on MOT17/20, surpasses ByteTrack on HOTA and IDF1 (the metrics that reward identity preservation).</p>
+
+    <h3 id="ss-tricks">Online improvements</h3>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 5.1</span>StrongSORT — DeepSORT diff (replaced components in <span class="hl">amber</span>)</div>
+      <pre>
+   DeepSORT (2017)                     StrongSORT (2022)
+   ──────────────────────────────────────────────────────────────
+   detector: Faster R-CNN       ──►    YOLOX-X  (better recall)
+   Re-ID:    Wojke 128-d CNN    ──►    BoT (ResNeSt50, 2048-d) ★
+   Kalman:   constant-noise     ──►    NSA Kalman (noise-adaptive) ★
+   Feature:  gallery of L=100   ──►    EMA running mean (α=0.9) ★
+   Camera:   ignored            ──►    ECC compensation ★
+   Matching: cascade by age     ──►    "vanilla" global Hungarian
+   Cost:     λ-weighted         ──►    confidence-aware fusion
+                                ──►    + offline: AFLink, GSI
+</pre>
+    </div>
+
+    <h4>NSA Kalman — noise scale adaptive</h4>
+    <p>Standard Kalman uses a fixed measurement noise covariance <code class="inline">R</code>. NSA Kalman<sup class="ref"><a href="#r-nsa">13</a></sup> scales <code class="inline">R</code> by the inverse of the detection's confidence:</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">EQ. 5.1</span>NSA scaling</div>
+      <pre class="tight">
+     R_t = (1 - c_t) · R₀
+
+     where c_t ∈ [0, 1] is the detection confidence at time t.
+
+     • High-confidence detection (c=0.95) → R is tiny → Kalman trusts measurement
+     • Low-confidence  detection (c=0.30) → R is large → Kalman trusts prediction
+</pre>
+    </div>
+
+    <p>This is more principled than ByteTrack's hard threshold split. Every detection participates with a weight proportional to its confidence.</p>
+
+    <h4>EMA feature update</h4>
+    <p>DeepSORT keeps the last 100 features per track in a gallery. StrongSORT keeps a single exponentially-averaged feature:</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">EQ. 5.2</span>EMA feature</div>
+      <pre class="tight">
+     f_t = α · f_{t-1}  +  (1 - α) · f_t^new           (α = 0.9)
+
+     Pros: O(1) memory per track, smooths out single-frame noise.
+     Cons: harder to recover when feature distribution shifts (lighting, pose).
+</pre>
+    </div>
+
+    <h4>ECC — Enhanced Correlation Coefficient camera-motion compensation</h4>
+    <p>ECC<sup class="ref"><a href="#r-ecc">14</a></sup> registers consecutive frames by estimating a parametric warp (typically affine: 6 parameters) that maximizes the normalized correlation between them. The estimated warp is applied to every track's predicted state <em>before</em> matching — so when the camera pans, predictions move with it.</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 5.2</span>ECC integration in the per-frame loop</div>
+      <pre>
+                   frame t-1                  frame t
+                       │                          │
+                       └──────────┬───────────────┘
+                                  ▼
+                       ┌──────────────────────┐
+                       │  ECC: estimate warp  │
+                       │  W (e.g. 2x3 affine) │
+                       └──────────┬───────────┘
+                                  │
+                                  ▼
+   tracks_{t-1} ──► Kalman ──► predicted ──► W·predicted ──► matching
+                    predict
+</pre>
+    </div>
+
+    <h3 id="ss-offline">Offline post-processing</h3>
+
+    <p>If your application can buffer the entire video (forensic review, analytics on recorded footage, lighthouse demos), StrongSORT adds two offline stages:</p>
+
+    <h4>AFLink — Appearance-Free Linker</h4>
+    <p>A small MLP that takes two tracklets' (sub-)trajectories and predicts whether they belong to the same object. No appearance features — purely temporal/spatial. It links tracklets separated by occlusions longer than <code class="inline">T_max</code>, which the online stage couldn't bridge.</p>
+
+    <h4>GSI — Gaussian-Smoothed Interpolation</h4>
+    <p>Linearly interpolating positions across an occlusion gap is wrong: it implies the object moved in a straight line at constant velocity. GSI fits a Gaussian process to the observed track and produces a smoother, more physically plausible interpolation through the gap.</p>
+
+    <div class="callout">
+      <span class="label">Architectural takeaway</span>
+      <p>StrongSORT's lesson is structural: <em>every component of DeepSORT is independently replaceable</em>. The pipeline is loosely coupled by design — detector, Re-ID, Kalman noise model, feature aggregation, motion compensation, matching strategy, and post-processing are all swappable. When you build production tracking, treat each of these as a separate concern with its own metric.</p>
+    </div>
+  </section>
+
+  <!-- ─────────── 6. BOT-SORT ─────────── -->
+  <section id="botsort">
+    <div class="section-marker">§ 06 · Camera-Motion Aware</div>
+    <h2>BoT-SORT <span class="meta-year">Aharon et al., 2022</span></h2>
+    <p class="lede">A different bag of tricks, optimized for moving cameras and dense scenes — and the cleanest way to fuse motion and appearance into a single cost.</p>
+
+    <p>BoT-SORT<sup class="ref"><a href="#r-botsort">5</a></sup> shares a lot of DNA with StrongSORT (CMC, better Kalman, ReID fusion), but commits to three specific design choices that distinguish it: (1) an 8-dimensional Kalman state with independent <code class="inline">w</code> and <code class="inline">h</code>, (2) a lighter sparse-flow CMC instead of ECC, and (3) a non-linear fusion of IoU and ReID that avoids the weighted-sum tuning headache.</p>
+
+    <h3 id="bot-cmc">High &amp; Mid-Level Architecture</h3>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 6.1</span>BoT-SORT — full pipeline</div>
+      <pre>
+   frame_t-1 ──┐
+              │  ┌────────────────────┐
+              ├─►│  CMC (sparse flow) │── warp matrix W ─┐
+   frame_t ──┘  │  ORB + RANSAC +     │                  │
+                │  rigid affine       │                  │
+                └────────────────────┘                  │
+                                                         │
+   frame_t ──► detector ──► D_high, D_low                │
+                                  │                      │
+                                  │                      ▼
+                          ┌───────┴─────────────────────────────┐
+                          │  predicted_t = W · Kalman.predict() │
+                          └───────┬─────────────────────────────┘
+                                  │
+              ┌───────────────────┴──────────────────┐
+              ▼                                       ▼
+       ┌─────────────────┐                    ┌─────────────────┐
+       │  PASS 1:        │                    │  PASS 2:        │
+       │  D_high vs all  │                    │  D_low vs       │
+       │                 │                    │  unmatched_t    │
+       │  cost = fuse(   │                    │  cost = 1-IoU   │
+       │     IoU,        │                    │  (no ReID —     │
+       │     ReID dist)  │                    │   low-conf      │
+       │                 │                    │   features      │
+       │                 │                    │   are noisy)    │
+       └────────┬────────┘                    └────────┬────────┘
+                │                                       │
+                └────────────┬──────────────────────────┘
+                             ▼
+                       ┌───────────┐
+                       │  Update,  │
+                       │  Lifecycle│
+                       └───────────┘
+</pre>
+    </div>
+
+    <p>The structure is "ByteTrack with CMC and ReID fusion in pass 1." This is the single best mental shortcut for the 2022 generation of trackers.</p>
+
+    <h3>Camera-motion compensation — why &amp; how</h3>
+
+    <p>On a static camera, a track's Kalman prediction is correct. On a moving camera (handheld phone, drone, vehicle), every object on the static background appears to move; pedestrians' true motion is mixed with camera motion. Without compensation, the Kalman filter accumulates error.</p>
+
+    <p>BoT-SORT's CMC: detect ORB keypoints in both frames, match them, run RANSAC to estimate a 2-DOF or 4-DOF rigid transform <code class="inline">W</code>, apply <code class="inline">W</code> to every track's predicted state. Cheaper than ECC and works on textured scenes. StrongSORT's ECC is more accurate but heavier (~10× slower).</p>
+
+    <h4>State vector — the 8-dim variant</h4>
+    <p>BoT-SORT abandons SORT's "scale + aspect ratio" parameterization for an explicit width-and-height representation:</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">DIAGRAM 6.2</span>BoT-SORT state vector</div>
+      <pre class="tight">
+     x = [ x_c,  y_c,  w,  h,  ẋ_c,  ẏ_c,  ẇ,  ḣ ]ᵀ
+
+     vs SORT:    [ u, v, s, r, u̇, v̇, ṡ ]
+                                  └─ no r-dot;
+                                     w/h coupled via single 's'
+
+     Improvement: BoT-SORT can model objects whose aspect ratio
+     changes over time (pedestrian arms swinging, vehicle yaw, etc.)
+</pre>
+    </div>
+
+    <h3 id="bot-fusion">IoU + ReID fusion — the elegant trick</h3>
+
+    <p>The hard problem in motion+appearance trackers: how do you combine the two costs? DeepSORT's λ-weighted sum requires per-dataset tuning (and is brittle when one signal is uninformative — e.g. when two pedestrians have identical clothes, ReID is noise). StrongSORT confidence-weights them. BoT-SORT does something cleaner:</p>
+
+    <div class="diagram">
+      <div class="diagram-label"><span class="tag">EQ. 6.1</span>BoT-SORT cost fusion</div>
+      <pre class="tight">
+     d_iou(d, t)   = 1 - IoU(d, t)
+     d_reid(d, t)  = 1 - cos(f_d, f_t)
+
+     d_reid'(d, t) = d_reid  if  d_reid &lt; θ_emb  AND  d_iou &lt; θ_iou
+                     1        otherwise        ← reject this pair via ReID
+
+     C(d, t) = min( d_iou,  d_reid'(d, t) )
+</pre>
+    </div>
+
+    <p>The fusion is <strong>min, not weighted sum</strong>. A pair is matchable if <em>either</em> the geometry agrees or the appearance agrees, but only if both are within their gates. The dual-gate check (lines 4–5) means ReID can only override IoU, never invent associations from nothing. This sidesteps the dominant failure mode of weighted-sum fusion: a confident-but-wrong appearance match overruling correct geometry.</p>
+  </section>
+
+  <!-- ─────────── 7. PATTERNS ─────────── -->
+  <section id="patterns">
+    <div class="section-marker">§ 07 · Cross-Cutting Analysis</div>
+    <h2>Patterns Emerging</h2>
+    <p class="lede">Across six years and five trackers, six structural patterns harden into convention. Recognize these and you can predict where the field goes next.</p>
+
+    <h3>Pattern 1 — Decoupling detection from tracking</h3>
+    <p>Every system here treats detection as a black box. This is more than a research convention; it's an architectural decision that pays off in production. You can swap detectors freely (Faster R-CNN → YOLOX → DETR → RT-DETR) without touching the tracker. The MOTChallenge "private detector" track exists precisely because the field acknowledges that tracker quality is best evaluated independently of detector quality.<sup class="ref"><a href="#r-motchallenge">9</a></sup></p>
+
+    <h3>Pattern 2 — Predict with motion, correct with appearance</h3>
+    <p>SORT predicts with motion. DeepSORT corrects with appearance. ByteTrack predicts with motion (only). StrongSORT and BoT-SORT predict with motion-compensated motion, correct with appearance. <em>Motion is the prior; appearance is the disambiguator.</em> Appearance is too expensive and too unreliable to use as the primary signal — it works best as a tiebreaker when geometry is ambiguous (crowded scenes, occlusions).</p>
+
+    <h3>Pattern 3 — Two-stage association by evidence quality</h3>
+    <p>DeepSORT's cascade-by-age and ByteTrack's split-by-confidence are the same idea: <strong>not all evidence is equal, so don't run one big Hungarian</strong>. The first pass uses your best evidence; subsequent passes use weaker evidence with looser thresholds. Modern trackers all do some variant of this.</p>
+
+    <h3>Pattern 4 — Asymmetric birth and continuation policies</h3>
+    <p>Tracks are <strong>created</strong> from high-evidence detections only; they are <strong>continued</strong> from any plausible evidence. This asymmetry is structural — birth polluting the track set is far worse than continuation occasionally riding on a noisy detection, because birth errors compound (a false ID lives for <code class="inline">T_max</code> frames before death) while continuation errors are self-correcting (a single bad update gets overwritten next frame).</p>
+
+    <h3>Pattern 5 — Camera motion is everyone's problem</h3>
+    <p>StrongSORT (ECC) and BoT-SORT (sparse flow) both add CMC; OC-SORT<sup class="ref"><a href="#r-ocsort">6</a></sup> uses observation-centric updates that are partially CMC-equivalent. Static-camera assumptions are vestigial — every modern system either compensates for camera motion or runs only on fixed installations. <em>If you're tracking from a phone, drone, vehicle, or anything mobile, CMC is non-optional.</em></p>
+
+    <h3>Pattern 6 — Online vs offline as a deployment choice, not an algorithmic one</h3>
+    <p>StrongSORT's online stage produces tracklets; AFLink and GSI link/smooth them offline. The same pattern shows up in multi-camera tracking, sports analytics, and forensic review. The online algorithm produces the best <em>causal</em> answer; offline post-processing produces the best <em>final</em> answer. Recognize that you may need both.</p>
+
+    <div class="callout insight">
+      <span class="label">Architectural Synthesis</span>
+      <p>If you were to design a tracker today, the template is: (1) detector, frozen interface; (2) per-track Kalman with adaptive noise; (3) per-frame CMC applied to predictions; (4) two-stage association — high-conf with motion+appearance fusion, low-conf with motion only; (5) asymmetric lifecycle — strict birth, lenient continuation; (6) optional offline tracklet linking. Every "novel" tracker since 2021 instantiates this template. The differentiator is execution quality on individual components.</p>
+    </div>
+  </section>
+
+  <!-- ─────────── 8. COMPARISON ─────────── -->
+  <section id="comparison">
+    <div class="section-marker">§ 08 · Reference Card</div>
+    <h2>Comparison Matrix</h2>
+    <p class="lede">A condensed reference for the whiteboard. Numbers are MOT17 test set, private detection track, where reported by authors.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>SORT</th>
+            <th>DeepSORT</th>
+            <th>ByteTrack</th>
+            <th>StrongSORT</th>
+            <th>BoT-SORT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Year</td>
+            <td>2016</td>
+            <td>2017</td>
+            <td>2021</td>
+            <td>2022</td>
+            <td>2022</td>
+          </tr>
+          <tr>
+            <td>Kalman state</td>
+            <td>7-d (s, r)</td>
+            <td>7-d (s, r)</td>
+            <td>7-d (s, r)</td>
+            <td>7-d, NSA noise</td>
+            <td>8-d (w, h)</td>
+          </tr>
+          <tr>
+            <td>Appearance</td>
+            <td>—</td>
+            <td>Wojke 128-d</td>
+            <td>—</td>
+            <td>BoT 2048-d, EMA</td>
+            <td>fastreid, optional</td>
+          </tr>
+          <tr>
+            <td>Association</td>
+            <td>1× Hungarian on IoU</td>
+            <td>cascade by age + IoU fallback</td>
+            <td>2× Hungarian by score</td>
+            <td>vanilla Hungarian, fused</td>
+            <td>2× Hungarian, ReID gate</td>
+          </tr>
+          <tr>
+            <td>Cost fusion</td>
+            <td>IoU only</td>
+            <td>λ·motion + (1-λ)·appearance</td>
+            <td>IoU only</td>
+            <td>conf-weighted</td>
+            <td>min(IoU, gated ReID)</td>
+          </tr>
+          <tr>
+            <td>Camera motion</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>ECC</td>
+            <td>sparse flow / RANSAC</td>
+          </tr>
+          <tr>
+            <td>Postproc</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+            <td>AFLink + GSI</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>MOTA</td>
+            <td>33.4</td>
+            <td>61.4</td>
+            <td>80.3</td>
+            <td>79.6</td>
+            <td>80.5</td>
+          </tr>
+          <tr>
+            <td>IDF1</td>
+            <td>39.4</td>
+            <td>62.2</td>
+            <td>77.3</td>
+            <td>79.5</td>
+            <td>80.2</td>
+          </tr>
+          <tr>
+            <td>HOTA</td>
+            <td>—</td>
+            <td>48.1</td>
+            <td>63.1</td>
+            <td>64.4</td>
+            <td>65.0</td>
+          </tr>
+          <tr>
+            <td>FPS (paper)</td>
+            <td>260</td>
+            <td>~40</td>
+            <td>30</td>
+            <td>7.5</td>
+            <td>4.5</td>
+          </tr>
+          <tr>
+            <td>Best for</td>
+            <td>fast, clean scenes</td>
+            <td>occluded persons</td>
+            <td>real-time multi-class</td>
+            <td>offline, ID-critical</td>
+            <td>moving cameras, dense</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout gotcha">
+      <span class="label">Don't quote numbers without caveats</span>
+      <p>MOTA is dominated by detector recall and is often misleading for tracker-quality discussions. <strong>HOTA and IDF1 are the metrics interviewers actually want you to discuss</strong> — they reward identity preservation, which is what a tracker (vs a detector) actually contributes. If asked "is ByteTrack better than DeepSORT," the right answer is "on what metric, on what dataset, with what detector?" — and you should mention HOTA.<sup class="ref"><a href="#r-hota">15</a></sup></p>
+    </div>
+  </section>
+
+  <!-- ─────────── 9. INTERVIEW QUESTIONS ─────────── -->
+  <section id="interview">
+    <div class="section-marker">§ 09 · Whiteboard</div>
+    <h2>Interview Questions &amp; Model Answers</h2>
+    <p class="lede">Curated from real MOT-adjacent loops at Nvidia, Tesla, Cruise, robotics startups, and Big-Tech CV teams. Answer briefly; expand only when probed.</p>
+
+    <div class="qa">
+      <div class="q">Walk me through SORT in one minute.</div>
+      <div class="a">
+        <p>Per frame: run a detector. For each existing track, run Kalman predict (constant-velocity, 7-state). Build a cost matrix of <code class="inline">1 − IoU</code> between predicted boxes and detections, gated at <code class="inline">IoU &gt; 0.3</code>. Solve with Hungarian. Matched pairs trigger Kalman update; unmatched detections seed new tentative tracks (need 3 hits to confirm); unmatched tracks age out after <code class="inline">T_max</code> frames. No appearance, no Re-ID. Fast, clean, breaks under occlusion.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">Why does DeepSORT use a matching cascade instead of one global Hungarian?</div>
+      <div class="a">
+        <p>Because Kalman covariance grows with time-since-update — a long-lost track has a giant uncertainty ellipse that can swallow detections better explained by recently-seen tracks. The cascade gives recent tracks first priority, which formalizes the prior that fresh memories are more reliable. It's effectively a hierarchical assignment that prevents stale tracks from poaching detections.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">ByteTrack has no Re-ID model and beats DeepSORT. How?</div>
+      <div class="a">
+        <p>ByteTrack's insight: low-confidence detections aren't garbage — they are mostly partially occluded objects that the detector marked uncertain. The standard pipeline throws them away. ByteTrack runs two association passes: high-confidence detections vs all tracks first (strict IoU gate), then low-confidence detections vs whatever tracks remain (loose gate). New tracks are only born from high-confidence detections, so the noise floor stays low. Every "improvement" turns out to be in the cost matrix and the control flow, not in any learned component.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">When would you use ByteTrack vs StrongSORT?</div>
+      <div class="a">
+        <p>ByteTrack: real-time constraints, multi-class workloads (where you don't have a per-class Re-ID model), no GPU budget for a separate Re-ID network, and your detector confidence calibration is solid. StrongSORT: identity preservation matters more than throughput (forensic review, sports analytics, athlete tracking), you can tolerate the Re-ID inference cost, and you may run offline post-processing (AFLink/GSI). On HOTA they're roughly comparable; StrongSORT pulls ahead on long-term identity preservation.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">What's the Mahalanobis distance and why use it instead of Euclidean for bbox gating?</div>
+      <div class="a">
+        <p>Mahalanobis is the squared distance between a point and a distribution, normalized by the distribution's covariance: <code class="inline">d² = (x−μ)ᵀ Σ⁻¹ (x−μ)</code>. It accounts for the fact that the Kalman filter's prediction has different uncertainties along different axes — a fast-moving track has high uncertainty in its direction of travel and low uncertainty perpendicular. Euclidean distance would treat all directions symmetrically; Mahalanobis gates correctly. The threshold <code class="inline">9.4877</code> is the chi-squared inverse CDF at 0.95 with 4 dof.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">Why doesn't SORT track aspect ratio velocity?</div>
+      <div class="a">
+        <p>Design choice: aspect ratio is assumed constant per object. For rigid objects (vehicles in plan view, packages on a conveyor) it's correct. For pedestrians it's a known limitation — articulation changes <code class="inline">w/h</code> over a gait cycle. BoT-SORT's 8-dim state separates <code class="inline">w</code> and <code class="inline">h</code> with their own velocities and gets a real but small improvement on pedestrian benchmarks.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">Walk through how a moving camera breaks SORT and how BoT-SORT fixes it.</div>
+      <div class="a">
+        <p>SORT's Kalman models per-object motion in the image plane. When the camera pans 30 px/frame, every static object on the background also moves 30 px — and so do pedestrians whose motion is now camera-motion + body-motion. The Kalman filter, expecting constant velocity, accumulates large prediction errors and tracks fragment. BoT-SORT estimates a frame-to-frame warp (sparse ORB features + RANSAC affine) and applies it to every Kalman prediction <em>before</em> matching, removing the camera contribution. The Kalman now models only the residual object-relative-to-scene motion, which is well-behaved.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">How would you debug a tracker that's swapping IDs in crowds?</div>
+      <div class="a">
+        <p>First, separate detector from tracker. Render boxes with detector-only IDs (frame-local) — if those are unstable, fix the detector. If detection is solid: log the cost matrix at the swap frame; if the Hungarian cost between the two confused IDs is near-tied, you have an <em>ambiguity</em> problem and need either better appearance features or longer-range temporal context. If the swap is decisive (one cost much lower than the other but wrong), your features or your Kalman are mismodeling. Specifically check: is camera motion compensated? Is the Re-ID model trained on this domain? Is the gallery/EMA capturing recent appearance changes? In production: add per-track logging of (predicted bbox, matched bbox, IoU, ReID distance) and replay around switches.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">What is HOTA and why do practitioners prefer it over MOTA?</div>
+      <div class="a">
+        <p>MOTA = 1 − (FP + FN + IDSW) / GT. It's dominated by FP+FN (detector errors), which means an excellent tracker on a mediocre detector can score worse than a mediocre tracker on a great detector. HOTA decomposes into detection accuracy (DetA) and association accuracy (AssA), and reports their geometric mean across IoU thresholds. AssA is the part that actually measures what a tracker contributes — identity preservation across time. For tracker-vs-tracker comparison with detection held constant, HOTA and AssA are the right metrics. IDF1 is a more interpretable proxy for AssA.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">Design a tracker for [vision-based partition robot / parts on a conveyor / warehouse pick station].</div>
+      <div class="a">
+        <p>Constraints first: fixed camera (no CMC), single class (parts), high frame-rate (industrial cameras), tight latency budget (control loop), and you usually own the Re-ID training data. My default: ByteTrack with a 7-state Kalman, no appearance for the hot path. Add a class-specific Re-ID head only if visually-similar parts cause ID swaps (then BoT-SORT). For lifecycle: <code class="inline">T_max</code> tuned to the maximum occlusion you expect (gripper crossing the part); <code class="inline">θ_high</code> tuned conservatively to avoid spawning phantom parts. Important: log everything — track creation/death events, missed associations, and ID swaps — into the same telemetry as your detection metrics. Tracker bugs in industrial settings show up as downstream task failures (wrong pick, wrong placement); the trace path needs to be one query.</p>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="q">Your tracker runs at 30 FPS on a workstation but needs to run at 60 FPS on an edge device. What do you cut?</div>
+      <div class="a">
+        <p>Profile first — Re-ID inference is usually 60–80% of cost. In order: (1) drop appearance, switch to ByteTrack (eliminates Re-ID forward pass entirely); (2) if you need appearance, batch all detections per frame into one Re-ID forward, use a smaller backbone (OSNet-x0.25, 1M params); (3) skip association on every Nth frame and just Kalman-predict (works if motion is slow); (4) run Re-ID at lower resolution; (5) cap the gallery size or switch to EMA. Don't quantize the detector to claw back ms — the tracker is the right place to optimize, since detector regressions are visible and tracker regressions are subtle.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── 10. PRODUCTION ─────────── -->
+  <section id="production">
+    <div class="section-marker">§ 10 · Beyond the Paper</div>
+    <h2>Production Considerations</h2>
+    <p class="lede">What papers don't say. Battle scars from shipping trackers in factories, retail, sports, and autonomy.</p>
+
+    <h3>Detector–tracker calibration</h3>
+    <p>Tracker thresholds are <em>not</em> portable across detectors. Switch from Faster R-CNN to YOLOX and the score distribution shifts; ByteTrack's <code class="inline">θ_high = 0.6</code> may now be either too lenient (flooding tracks) or too strict (starving them). Always re-calibrate <code class="inline">θ_high, θ_low, θ_new</code> when you swap detectors. The right way: dump a held-out validation set with score histograms split by TP / FP, find the operating points that optimize HOTA.</p>
+
+    <h3>Class-aware Re-ID</h3>
+    <p>Multi-class tracking (people + vehicles + animals) with a single Re-ID model trained on pedestrians is a recipe for ID swaps across classes. Either train a class-conditional Re-ID, train per-class Re-ID heads, or restrict appearance association to within-class pairs. For factory settings with one part type, you can train a tiny domain-specific Re-ID and beat the public benchmarks easily.</p>
+
+    <h3>Track export semantics</h3>
+    <p>Decide what your downstream consumer sees. Options: (a) raw tracker output including tentative tracks (max recall, noisy IDs); (b) confirmed tracks only (clean but lagged by <code class="inline">T_min</code> frames); (c) confirmed-and-coasted tracks (Kalman-predicted positions during occlusion gaps — useful for visualization, dangerous for control). Pick one explicitly, document it, and never let consumers pick.</p>
+
+    <h3>Time vs frame indexing</h3>
+    <p>Most reference implementations index everything by frame number. In production with variable frame rates (network camera dropouts, processing backpressure, edge → cloud handoff), this is wrong. Use timestamps in the Kalman <code class="inline">F</code> matrix's <code class="inline">Δt</code>. SORT and DeepSORT reference implementations don't do this — fix it before you ship.</p>
+
+    <h3>Long-term re-identification</h3>
+    <p>Online trackers all assume short-term re-id (seconds). For multi-camera handoff, store-wide pedestrian tracking, or sports broadcast (player leaves frame for 2 minutes), the online tracker's <code class="inline">T_max</code> is too short. The right architecture: tracker handles short occlusions; a separate cross-frame/cross-camera Re-ID system handles long-term identity. Don't try to unify them.</p>
+
+    <h3>Failure-mode telemetry</h3>
+    <p>Log every: track birth, track death, association failure, association below confidence. These are the events that correlate with downstream errors. Fragmentation rate (tracks split mid-life) and birth rate (tracks spawned per frame) are the two leading indicators of tracker health. Watch them per camera, per class, per hour.</p>
+
+    <div class="callout">
+      <span class="label">Open-source reference implementations</span>
+      <p><strong>SORT:</strong> <a href="https://github.com/abewley/sort">github.com/abewley/sort</a><br>
+      <strong>DeepSORT:</strong> <a href="https://github.com/nwojke/deep_sort">github.com/nwojke/deep_sort</a><br>
+      <strong>ByteTrack:</strong> <a href="https://github.com/ifzhang/ByteTrack">github.com/ifzhang/ByteTrack</a><br>
+      <strong>StrongSORT:</strong> <a href="https://github.com/dyhBUPT/StrongSORT">github.com/dyhBUPT/StrongSORT</a><br>
+      <strong>BoT-SORT:</strong> <a href="https://github.com/NirAharon/BoT-SORT">github.com/NirAharon/BoT-SORT</a><br>
+      <strong>Unified library:</strong> <a href="https://github.com/mikel-brostrom/boxmot">boxmot</a> — drop-in interface to all of the above + OC-SORT, HybridSort, and more.</p>
+    </div>
+  </section>
+
+  <!-- ─────────── 11. REFERENCES ─────────── -->
+  <section id="references">
+    <div class="section-marker">§ 11 · Bibliography</div>
+    <h2>References</h2>
+
+    <div class="refs">
+      <ol>
+        <li id="r-sort">
+          <span class="title">Simple Online and Realtime Tracking</span>
+          <span class="authors">Bewley, A.; Ge, Z.; Ott, L.; Ramos, F.; Upcroft, B.</span> ·
+          <span class="venue">IEEE ICIP 2016</span> ·
+          arXiv:<a href="https://arxiv.org/abs/1602.00763">1602.00763</a>
+        </li>
+        <li id="r-deepsort">
+          <span class="title">Simple Online and Realtime Tracking with a Deep Association Metric</span>
+          <span class="authors">Wojke, N.; Bewley, A.; Paulus, D.</span> ·
+          <span class="venue">IEEE ICIP 2017</span> ·
+          arXiv:<a href="https://arxiv.org/abs/1703.07402">1703.07402</a>
+        </li>
+        <li id="r-bytetrack">
+          <span class="title">ByteTrack: Multi-Object Tracking by Associating Every Detection Box</span>
+          <span class="authors">Zhang, Y.; Sun, P.; Jiang, Y.; Yu, D.; Weng, F.; Yuan, Z.; Luo, P.; Liu, W.; Wang, X.</span> ·
+          <span class="venue">ECCV 2022</span> ·
+          arXiv:<a href="https://arxiv.org/abs/2110.06864">2110.06864</a>
+        </li>
+        <li id="r-strongsort">
+          <span class="title">StrongSORT: Make DeepSORT Great Again</span>
+          <span class="authors">Du, Y.; Zhao, Z.; Song, Y.; Zhao, Y.; Su, F.; Gong, T.; Meng, H.</span> ·
+          <span class="venue">IEEE Transactions on Multimedia, 2023</span> ·
+          arXiv:<a href="https://arxiv.org/abs/2202.13514">2202.13514</a>
+        </li>
+        <li id="r-botsort">
+          <span class="title">BoT-SORT: Robust Associations Multi-Pedestrian Tracking</span>
+          <span class="authors">Aharon, N.; Orfaig, R.; Bobrovsky, B.-Z.</span> ·
+          <span class="venue">arXiv preprint, 2022</span> ·
+          arXiv:<a href="https://arxiv.org/abs/2206.14651">2206.14651</a>
+        </li>
+        <li id="r-ocsort">
+          <span class="title">Observation-Centric SORT: Rethinking SORT for Robust Multi-Object Tracking</span>
+          <span class="authors">Cao, J.; Pang, J.; Weng, X.; Khirodkar, R.; Kitani, K.</span> ·
+          <span class="venue">CVPR 2023</span> ·
+          arXiv:<a href="https://arxiv.org/abs/2203.14360">2203.14360</a>
+        </li>
+        <li id="r-kalman">
+          <span class="title">A New Approach to Linear Filtering and Prediction Problems</span>
+          <span class="authors">Kalman, R. E.</span> ·
+          <span class="venue">Trans. ASME, J. Basic Engineering, 1960</span>
+        </li>
+        <li id="r-hungarian">
+          <span class="title">The Hungarian Method for the Assignment Problem</span>
+          <span class="authors">Kuhn, H. W.</span> ·
+          <span class="venue">Naval Research Logistics Quarterly, 2:83–97, 1955</span>
+        </li>
+        <li id="r-motchallenge">
+          <span class="title">MOTChallenge: A Benchmark for Single-Camera Multiple Target Tracking</span>
+          <span class="authors">Dendorfer, P.; Osep, A.; Milan, A.; Schindler, K.; Cremers, D.; Reid, I.; Roth, S.; Leal-Taixé, L.</span> ·
+          <span class="venue">IJCV 129, 2021</span> ·
+          <a href="https://motchallenge.net/">motchallenge.net</a>
+        </li>
+        <li id="r-mot-survey">
+          <span class="title">Deep Learning in Video Multi-Object Tracking: A Survey</span>
+          <span class="authors">Ciaparrone, G.; Sánchez, F. L.; Tabik, S.; Troiano, L.; Tagliaferri, R.; Herrera, F.</span> ·
+          <span class="venue">Neurocomputing 381, 2020</span> ·
+          arXiv:<a href="https://arxiv.org/abs/1907.12740">1907.12740</a>
+        </li>
+        <li id="r-mars">
+          <span class="title">MARS: A Video Benchmark for Large-Scale Person Re-Identification</span>
+          <span class="authors">Zheng, L.; Bie, Z.; Sun, Y.; Wang, J.; Su, C.; Wang, S.; Tian, Q.</span> ·
+          <span class="venue">ECCV 2016</span>
+        </li>
+        <li id="r-fastreid">
+          <span class="title">FastReID: A Pytorch Toolbox for General Instance Re-identification</span>
+          <span class="authors">He, L.; Liao, X.; Liu, W.; Liu, X.; Cheng, P.; Mei, T.</span> ·
+          <span class="venue">ACM MM 2023</span> ·
+          arXiv:<a href="https://arxiv.org/abs/2006.02631">2006.02631</a>
+        </li>
+        <li id="r-nsa">
+          <span class="title">GIAOTracker: A comprehensive framework for MCMOT with global information and optimizing strategies in VisDrone 2021</span>
+          <span class="authors">Du, Y.; Wan, J.; Zhao, Y.; Zhang, B.; Tong, Z.; Dong, J.</span> ·
+          <span class="venue">ICCV Workshops 2021</span> · (origin of NSA Kalman)
+        </li>
+        <li id="r-ecc">
+          <span class="title">Parametric Image Alignment Using Enhanced Correlation Coefficient Maximization</span>
+          <span class="authors">Evangelidis, G. D.; Psarakis, E. Z.</span> ·
+          <span class="venue">IEEE TPAMI 30(10), 2008</span>
+        </li>
+        <li id="r-hota">
+          <span class="title">HOTA: A Higher Order Metric for Evaluating Multi-Object Tracking</span>
+          <span class="authors">Luiten, J.; Osep, A.; Dendorfer, P.; Torr, P.; Geiger, A.; Leal-Taixé, L.; Leibe, B.</span> ·
+          <span class="venue">IJCV 129, 2021</span> ·
+          arXiv:<a href="https://arxiv.org/abs/2009.07736">2009.07736</a>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+</body>
+</html>
