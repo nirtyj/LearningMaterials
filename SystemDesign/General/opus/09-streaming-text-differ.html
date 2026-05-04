@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>09 · Token-Level Streaming Text Differ with Rollback — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="09">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">09</span>
+      <span class="meta-rule"></span>
+      <span>Data Structures · Q4</span>
+    </div>
+    <h1 class="article-title">Token-Level Streaming Text Differ with Rollback</h1>
+    <p class="article-lede">From naive O(n) rollback to persistent trees with O(log n) snapshots, Myers diff, and how ChatGPT branches conversations.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#91-requirements">9.1 Requirements</a></li>
+<li><a class="h2" href="#92-why-naïve-designs-fail">9.2 Why Naïve Designs Fail</a></li>
+<li><a class="h3" href="#naïve-snapshot-every-token">Naïve: Snapshot Every Token</a></li>
+<li><a class="h3" href="#naïve-list-linear-diff">Naïve: List + Linear Diff</a></li>
+<li><a class="h2" href="#93-high-level-architecture">9.3 High-Level Architecture</a></li>
+<li><a class="h2" href="#94-mid-level-persistent-vector">9.4 Mid-Level: Persistent Vector</a></li>
+<li><a class="h2" href="#95-token-level-diff-generation-myers-algorithm">9.5 Token-Level Diff Generation: Myers Algorithm</a></li>
+<li><a class="h2" href="#96-low-level-streaming-differ-with-rollback">9.6 Low-Level: Streaming Differ with Rollback</a></li>
+<li><a class="h2" href="#97-production-systems">9.7 Production Systems</a></li>
+<li><a class="h3" href="#operational-transforms-ot">Operational Transforms (OT)</a></li>
+<li><a class="h3" href="#crdts-see-10">CRDTs (see §10)</a></li>
+<li><a class="h3" href="#yjs-javascript-crdt">Yjs (JavaScript CRDT)</a></li>
+<li><a class="h3" href="#automerge-json-crdt">Automerge (JSON CRDT)</a></li>
+<li><a class="h3" href="#loro-rust-crdt-eg-walker">Loro (Rust CRDT, Eg-walker)</a></li>
+<li><a class="h3" href="#git-internals">Git Internals</a></li>
+<li><a class="h3" href="#mercurial-revlog">Mercurial RevLog</a></li>
+<li><a class="h3" href="#vs-code-piece-tree">VS Code Piece Tree</a></li>
+<li><a class="h3" href="#figma-multiplayer">Figma Multiplayer</a></li>
+<li><a class="h3" href="#chatgpt-message-tree">ChatGPT Message Tree</a></li>
+<li><a class="h2" href="#98-streaming-json-partial-parsing">9.8 Streaming JSON Partial Parsing</a></li>
+<li><a class="h2" href="#99-common-interview-follow-ups">9.9 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#910-references">9.10 References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="91-requirements">9.1 Requirements</h2>
+<ul>
+<li>Input: a stream of tokens <code>(token_id, position, timestamp, text)</code>.</li>
+<li>Output: incremental diff events: <code>INSERT(pos, text)</code>, <code>DELETE(pos, len)</code>, <code>MODIFY(pos, old, new)</code>.</li>
+<li>Support: random access rollback to any timestamp <code>T</code> (return text-as-of-T).</li>
+<li>Performance: <code>O(log n)</code> insert/rollback, not <code>O(n)</code>.</li>
+</ul>
+<p>This is the OpenAI internal use case for <strong>assistant message editing</strong> — a token mid-stream gets revised, and downstream sees the delta.</p>
+<h2 id="92-why-naïve-designs-fail">9.2 Why Naïve Designs Fail</h2>
+<h3 id="naïve-snapshot-every-token">Naïve: Snapshot Every Token</h3>
+<p>Memory: <code>O(N²)</code>. Untenable.</p>
+<h3 id="naïve-list-linear-diff">Naïve: List + Linear Diff</h3>
+<p>Each rollback: O(N) memory copy. Each insert: O(N) shift. Quadratic in the worst case.</p>
+<p>The interviewee's actual answer was a <strong>versioned tree where each token maintains a chain of versions and the differ walks the chain</strong> — close to a CRDT (RGA-flavored), but with O(n) rollback. The improvement is to use a <strong>persistent (immutable) tree</strong> for O(log n) rollback.</p>
+<h2 id="93-high-level-architecture">9.3 High-Level Architecture</h2>
+<pre><code>   ┌──────────────────────────────────────────────────────────────┐
+   │                  TOKEN STREAM SOURCE                         │
+   │       LLM emits (id, pos, ts, text, op?)                     │
+   └────────────────────────────┬─────────────────────────────────┘
+                                │
+                                ▼
+   ┌──────────────────────────────────────────────────────────────┐
+   │                    DIFFER ENGINE                             │
+   │                                                              │
+   │   ┌─────────────────────────────────────────────────────┐    │
+   │   │   PERSISTENT TREE (RRB / Finger / Piece tree)        │   │
+   │   │   ──────────────────────────────────────────────    │    │
+   │   │   versions: [v0, v1, v2, …]  (path-copying)         │    │
+   │   │   each version is O(log n) edit from previous       │    │
+   │   └─────────────────────────────────────────────────────┘    │
+   │                                                              │
+   │   ┌─────────────────────────────────────────────────────┐    │
+   │   │   DIFF EMITTER                                       │   │
+   │   │   walks v_prev → v_curr structural diff;             │   │
+   │   │   emits INSERT/DELETE/MODIFY events                  │   │
+   │   └─────────────────────────────────────────────────────┘    │
+   └────────────────────────────┬─────────────────────────────────┘
+                                │
+                                ▼
+   ┌──────────────────────────────────────────────────────────────┐
+   │              SUBSCRIBERS (UI, log, downstream agents)        │
+   │   rollback(ts):  return materialize(version_at(ts))          │
+   └──────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="94-mid-level-persistent-vector">9.4 Mid-Level: Persistent Vector</h2>
+<p>Clojure's PersistentVector is a 32-way trie + tail buffer. Update: walk the path, copy each node along the path with the change applied, leave siblings shared. Per update: O(log₃₂ N) nodes copied = ~7 nodes for N up to 4 billion.</p>
+<pre><code>              ┌──┐
+              │  │
+        ┌──┼──┼──┼──┐
+        ▼     ▼     ▼
+      ┌──┐  ┌──┐  ┌──┐
+      │  │  │  │  │  │           After update at index i:
+   ┌──┼──┼──┴──┼──┴──┼──┐        - copy root → root'
+   ▼     ▼     ▼     ▼            - copy 1st-level child on path
+   ...                            - copy 2nd-level child on path
+                                  - copy leaf
+                                  All other nodes are shared.
+</code></pre>
+<p>Implementation reference: Clojure's <code>PersistentVector.java</code>. Python: <code>pyrsistent.pvector</code>.</p>
+<h2 id="95-token-level-diff-generation-myers-algorithm">9.5 Token-Level Diff Generation: Myers Algorithm</h2>
+<pre><code class="language-python">def myers_diff(a: list, b: list):
+    &quot;&quot;&quot;O((N+M)·D) where D = edit distance. The Git default.&quot;&quot;&quot;
+    N, M = len(a), len(b)
+    max_d = N + M
+    v = {1: 0}
+    trace = []
+    for d in range(max_d + 1):
+        trace.append(dict(v))
+        for k in range(-d, d+1, 2):
+            if k == -d or (k != d and v.get(k-1, -1) &lt; v.get(k+1, -1)):
+                x = v.get(k+1, 0)        # down (insert from b)
+            else:
+                x = v.get(k-1, 0) + 1    # right (delete from a)
+            y = x - k
+            while x &lt; N and y &lt; M and a[x] == b[y]:
+                x += 1; y += 1
+            v[k] = x
+            if x &gt;= N and y &gt;= M:
+                return _trace_back(trace, a, b)
+    return []
+</code></pre>
+<p>Variants:
+- <strong>Patience diff</strong> (Bram Cohen): finds longest common subsequence of unique lines first; used by Git when <code>--patience</code>. Better for code with reordered functions.
+- <strong>Histogram diff</strong>: Git's default since 2.18; faster than patience, similar quality.
+- <strong>Hirschberg</strong>: O(N) space variant of LCS; doubled time.
+- <strong>Heckel</strong> (1978): O(N) for low-edit cases; used by Mercurial in some paths.</p>
+<p>Reference: https://luppeng.wordpress.com/2020/10/10/when-to-use-each-of-the-git-diff-algorithms/</p>
+<h2 id="96-low-level-streaming-differ-with-rollback">9.6 Low-Level: Streaming Differ with Rollback</h2>
+<pre><code class="language-python">from pyrsistent import pvector
+
+class StreamingDiffer:
+    def __init__(self):
+        self.versions = [pvector()]      # version_index → state
+        self.timestamps = [0]            # version_index → ts
+
+    def insert(self, pos, token, ts):
+        prev = self.versions[-1]
+        new = prev.set(pos, token) if pos &lt; len(prev) else prev.append(token)
+        self.versions.append(new)
+        self.timestamps.append(ts)
+        yield (&quot;INSERT&quot;, pos, token)
+
+    def delete(self, pos, ts):
+        prev = self.versions[-1]
+        new = prev.delete(pos)
+        self.versions.append(new)
+        self.timestamps.append(ts)
+        yield (&quot;DELETE&quot;, pos)
+
+    def modify(self, pos, new_token, ts):
+        prev = self.versions[-1]
+        old = prev[pos]
+        new = prev.set(pos, new_token)
+        self.versions.append(new)
+        self.timestamps.append(ts)
+        yield (&quot;MODIFY&quot;, pos, old, new_token)
+
+    def rollback(self, ts):
+        # binary search for last version with timestamps &lt;= ts
+        import bisect
+        idx = bisect.bisect_right(self.timestamps, ts) - 1
+        return list(self.versions[idx])
+
+    def diff_between(self, ts1, ts2):
+        s1, s2 = self.rollback(ts1), self.rollback(ts2)
+        return list(myers_diff(s1, s2))
+</code></pre>
+<p>Memory per edit: O(log n) shared nodes. 1M tokens × 64 nodes/edit × 32 bytes = 2 GB for full history; with structural sharing it drops to a small fraction.</p>
+<h2 id="97-production-systems">9.7 Production Systems</h2>
+<h3 id="operational-transforms-ot">Operational Transforms (OT)</h3>
+<p>Used in Google Docs, Etherpad, ShareJS. Each edit is an "operation" (Insert/Delete with position). When two clients concurrently edit, the OT function transforms one operation against the other so applying both yields the same final state.</p>
+<p>Properties:
+- <strong>TP1</strong>: <code>O1' = T(O1, O2)</code> and <code>O2' = T(O2, O1)</code> such that <code>O1 . O2' = O2 . O1'</code>.
+- <strong>TP2</strong>: required for triple-concurrent edits; harder to satisfy.</p>
+<p>Drawback: O(N²) ops to transform a sequence of N ops. Doesn't scale to long histories. CRDTs replaced OT in many places.</p>
+<h3 id="crdts-see-10">CRDTs (see §10)</h3>
+<h3 id="yjs-javascript-crdt">Yjs (JavaScript CRDT)</h3>
+<p>YATA algorithm (Yet Another Transformation Approach). Block-based: each insert is a "block" with <code>(client_id, clock)</code>. Yjs is the dominant CRDT in production:
+- TipTap, BlockNote (rich-text editors).
+- Liveblocks.
+- Hocuspocus (Yjs server).
+- JupyterLab real-time collaboration.</p>
+<p>Reference: https://github.com/yjs/yjs</p>
+<h3 id="automerge-json-crdt">Automerge (JSON CRDT)</h3>
+<p>Kleppmann's CRDT for arbitrary JSON. Uses RGA for arrays, MVR for registers, OR-Set for objects. v2 (Rust) is dramatically faster than v1.</p>
+<p>Benchmark on B4 trace (Kleppmann's standard):
+- Yjs ~970 ms / 3 MB.
+- Automerge v1 291 s / 880 MB.
+- Automerge v2 &lt; 5 s.</p>
+<p>Reference: https://martin.kleppmann.com/2017/04/24/json-crdt.html</p>
+<h3 id="loro-rust-crdt-eg-walker">Loro (Rust CRDT, Eg-walker)</h3>
+<p>Loro implements the Eg-walker algorithm — a sub-O(N) text CRDT competitive with Yjs but with persistent history (DAG-based). DAG checkpoint API for "what did doc look like at op X".</p>
+<h3 id="git-internals">Git Internals</h3>
+<ul>
+<li><strong>Blob</strong>: file content (compressed).</li>
+<li><strong>Tree</strong>: directory snapshot (list of <code>mode name blob_sha</code>).</li>
+<li><strong>Commit</strong>: <code>tree + parent + author + msg</code>.</li>
+<li><strong>Pack files</strong>: offset-deltas — file v2 stored as delta against v1.</li>
+</ul>
+<p>Persistent tree of trees → snapshot at any commit is just a tree-walk.</p>
+<h3 id="mercurial-revlog">Mercurial RevLog</h3>
+<p>Each file has a revlog: alternating snapshot + delta. Reconstructing rev N: find nearest snapshot, apply deltas forward. Tradeoff between space (deltas cheap) and time (long delta chains slow to reconstruct).</p>
+<h3 id="vs-code-piece-tree">VS Code Piece Tree</h3>
+<p>For large files, VS Code uses <strong>piece tree</strong>: a red-black tree where each node represents a "piece" (a slice of either the original file or the add buffer). Insert = split piece + insert. Delete = split + remove range. Each piece tree node caches <code>line_count</code>, allowing O(log N) line-number lookups.</p>
+<p>Reference: https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation</p>
+<h3 id="figma-multiplayer">Figma Multiplayer</h3>
+<p>Figma uses <strong>LWW per property</strong> + tree CRDT for hierarchy. NOT a full CRDT system overall — they explicitly state that for atomic operations like "move object to new parent", they use server-side ordering (server is the arbiter), not CRDT semantics. See: https://www.figma.com/blog/how-figmas-multiplayer-technology-works/</p>
+<h3 id="chatgpt-message-tree">ChatGPT Message Tree</h3>
+<p>ChatGPT models conversation as a tree: each message has <code>parent_id</code>. When you edit a message, a new sibling is created (not in-place). Regenerate creates a sibling response. The "current" view is a single root-to-leaf path. This is a <strong>branching version tree</strong>, like Git.</p>
+<p>Reference: https://knowledge.buka.sh/the-hidden-fork-how-editing-messages-in-chatgpt-lets-you-branch-conversations/</p>
+<h2 id="98-streaming-json-partial-parsing">9.8 Streaming JSON Partial Parsing</h2>
+<p>LLMs emit JSON token-by-token. Downstream UIs want to render partial state (e.g., rendering as fields fill in). Solutions:</p>
+<ul>
+<li><strong>partial-json-parser</strong> (Promplate): vendored by OpenAI Node SDK; handles partial keys/values by inserting closing brackets.</li>
+<li><strong>partialjson</strong> (Python).</li>
+<li><strong>openai-partial-stream</strong>.</li>
+<li>Aha! engineering note: naive recursive parsers are O(N²) on growing input; use an incremental parser.</li>
+</ul>
+<p>Reference: https://www.aha.io/engineering/articles/streaming-ai-responses-incomplete-json</p>
+<h2 id="99-common-interview-follow-ups">9.9 Common Interview Follow-ups</h2>
+<p><strong>Q: How do you handle concurrent edits from multiple sources?</strong>
+A: CRDT (RGA / Yjs) for true concurrency; OT if you control all clients and have a single source of truth.</p>
+<p><strong>Q: How do you bound memory if history is unbounded?</strong>
+A: Periodic snapshots + compaction. Keep last N versions in fine detail, older ones at coarse granularity.</p>
+<p><strong>Q: O(n) rollback in your initial design — how do you fix?</strong>
+A: Path-copying persistent vector / RRB-tree gives O(log n) rollback. Each version shares O(n - log n) nodes with predecessors.</p>
+<p><strong>Q: Token-level vs character-level diffing?</strong>
+A: Token-level matches LLM unit of generation. Character-level matches user expectations (e.g., word-level highlighting in UI). Both are valid; tokenize first, then diff per granularity.</p>
+<p><strong>Q: How do you handle out-of-order tokens?</strong>
+A: Each token has a logical position from the LLM (vector-clock-style or unique ID). Use a CRDT-like ordering: arriving tokens are inserted at their logical position regardless of arrival order.</p>
+<h2 id="910-references">9.10 References</h2>
+<ul>
+<li>Myers diff (1986): http://www.xmailserver.org/diff2.pdf</li>
+<li>Patience diff: https://bramcohen.livejournal.com/73318.html</li>
+<li>Yjs: https://github.com/yjs/yjs</li>
+<li>Automerge: https://automerge.org/</li>
+<li>Loro: https://github.com/loro-dev/loro</li>
+<li>Kleppmann JSON CRDT: https://arxiv.org/pdf/1608.03960</li>
+<li>VS Code piece tree: https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation</li>
+<li>Clojure persistent vector: https://hypirion.com/musings/understanding-persistent-vector-pt-1</li>
+<li>Figma multiplayer: https://www.figma.com/blog/how-figmas-multiplayer-technology-works/</li>
+<li>ChatGPT branching: https://knowledge.buka.sh/the-hidden-fork-how-editing-messages-in-chatgpt-lets-you-branch-conversations/</li>
+<li>Streaming JSON: https://www.aha.io/engineering/articles/streaming-ai-responses-incomplete-json</li>
+<li>Linear sync engine reverse-eng: https://github.com/wzhudev/reverse-linear-sync-engine</li>
+<li>Replicache: https://replicache.dev/</li>
+</ul>
+<hr />
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="10-crdts.html"><span class="side-num">10</span><span class="side-title">CRDTs Deep Dive</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Diff algorithms</h4>
+<div class="tool-chips">
+<span class="tool-chip">Myers (1986)</span>
+<span class="tool-chip">Patience diff (Bram Cohen)</span>
+<span class="tool-chip">Histogram (Git default)</span>
+<span class="tool-chip">Hirschberg</span>
+<span class="tool-chip">Heckel</span>
+</div></div>
+<div class="tool-group"><h4>OT systems</h4>
+<div class="tool-chips">
+<span class="tool-chip">Google Docs</span>
+<span class="tool-chip">Etherpad</span>
+<span class="tool-chip">ShareJS</span>
+<span class="tool-chip">CodeMirror OT</span>
+</div></div>
+<div class="tool-group"><h4>CRDT systems</h4>
+<div class="tool-chips">
+<span class="tool-chip">Yjs (YATA)</span>
+<span class="tool-chip">Automerge (JSON)</span>
+<span class="tool-chip">Loro (Eg-walker)</span>
+</div></div>
+<div class="tool-group"><h4>Persistent data structures</h4>
+<div class="tool-chips">
+<span class="tool-chip">Clojure persistent vector</span>
+<span class="tool-chip">RRB-tree</span>
+<span class="tool-chip">Finger tree</span>
+<span class="tool-chip">HAMT (Bagwell)</span>
+<span class="tool-chip">pyrsistent.pvector</span>
+</div></div>
+<div class="tool-group"><h4>Production text editors</h4>
+<div class="tool-chips">
+<span class="tool-chip">VS Code piece tree</span>
+<span class="tool-chip">Atom rope</span>
+<span class="tool-chip">Zed rope+SumTree</span>
+</div></div>
+<div class="tool-group"><h4>Versioning systems</h4>
+<div class="tool-chips">
+<span class="tool-chip">Git internals</span>
+<span class="tool-chip">Mercurial revlog</span>
+<span class="tool-chip">Linear sync engine</span>
+<span class="tool-chip">Replicache</span>
+</div></div>
+<div class="tool-group"><h4>Conversation trees</h4>
+<div class="tool-chips">
+<span class="tool-chip">ChatGPT message tree (parent_id)</span>
+<span class="tool-chip">branching on edit/regenerate</span>
+</div></div>
+<div class="tool-group"><h4>Streaming JSON</h4>
+<div class="tool-chips">
+<span class="tool-chip">partial-json-parser (OpenAI SDK)</span>
+<span class="tool-chip">partialjson</span>
+<span class="tool-chip">openai-partial-stream</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="08-lease-fencing-tokens.html"><span class="nav-label">← Chapter 08</span><span class="nav-title">Lease &amp; Fencing Tokens</span></a>
+    <a class="nav-next nav-next-link" href="10-crdts.html"><span class="nav-label">Chapter 10 →</span><span class="nav-title">CRDTs Deep Dive</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

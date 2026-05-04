@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>01 · Real-Time Event Aggregator with Rolling Windows — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="01">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">01</span>
+      <span class="meta-rule"></span>
+      <span>Streaming · Q1</span>
+    </div>
+    <h1 class="article-title">Real-Time Event Aggregator with Rolling Windows</h1>
+    <p class="article-lede">Maintain rolling counts over 1m / 5m / 1h windows over an out-of-order event stream — without the deque-per-window trap.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#11-problem-decomposition">1.1 Problem Decomposition</a></li>
+<li><a class="h2" href="#12-high-level-architecture">1.2 High-Level Architecture</a></li>
+<li><a class="h2" href="#13-mid-level-architecture-per-key-state">1.3 Mid-Level Architecture (per-key state)</a></li>
+<li><a class="h2" href="#14-low-level-data-structure-options">1.4 Low-Level Data Structure Options</a></li>
+<li><a class="h2" href="#15-ring-buffer-implementation-the-production-answer">1.5 Ring Buffer Implementation (the production answer)</a></li>
+<li><a class="h2" href="#16-component-deep-dives">1.6 Component Deep Dives</a></li>
+<li><a class="h3" href="#161-watermark-generator">1.6.1 Watermark Generator</a></li>
+<li><a class="h3" href="#162-state-backend-rocksdb">1.6.2 State Backend (RocksDB)</a></li>
+<li><a class="h3" href="#163-hyperloglog-for-distinct-counts">1.6.3 HyperLogLog for Distinct Counts</a></li>
+<li><a class="h3" href="#164-count-min-sketch-for-frequency-estimation">1.6.4 Count-Min Sketch for Frequency Estimation</a></li>
+<li><a class="h3" href="#165-ddsketch-t-digest-for-quantiles">1.6.5 DDSketch / t-digest for Quantiles</a></li>
+<li><a class="h2" href="#17-production-systems">1.7 Production Systems</a></li>
+<li><a class="h2" href="#18-common-interview-follow-ups">1.8 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#19-production-gotchas">1.9 Production Gotchas</a></li>
+<li><a class="h2" href="#110-references">1.10 References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="11-problem-decomposition">1.1 Problem Decomposition</h2>
+<p><strong>Functional requirements:</strong>
+- Ingest events <code>(event_id, timestamp_ms, key, value)</code> at arbitrary throughput.
+- Maintain rolling counts (and ideally sums, distinct counts, percentiles) over multiple sliding windows simultaneously.
+- Out-of-order tolerance: an event arriving at processing time <code>T_p</code> may have <code>event_time</code> substantially earlier (network delay, clock skew, mobile buffering).
+- Query: <code>count(key, window_size)</code> returns the count of events for <code>key</code> in the last <code>window_size</code> seconds, with a freshness SLO (e.g., ≤ 1s lag at p99).</p>
+<p><strong>Non-functional:</strong>
+- Sub-millisecond write latency, single-digit-ms read latency at p99.
+- Horizontal scalability — partition by <code>key</code> (consistent hash).
+- Bounded memory regardless of event rate or skew.
+- Exactly-once semantics for aggregations (or at least idempotent re-processing).</p>
+<p><strong>Why a <code>deque</code> per window breaks:</strong>
+A naïve <code>collections.deque</code> per window pushes events in arrival order. Eviction works only when stream is in event-time order — when an event with <code>t = now - 30s</code> arrives after <code>now</code>, it must be inserted in the <em>middle</em> of the deque, which is <code>O(n)</code>. Out-of-order events break the monotone invariant the deque relies on.</p>
+<p><strong>The fix (sorted bucket structure):</strong> Discretize time into fixed-width buckets (e.g., 1-second granularity), keep buckets in a sorted map (<code>treemap</code> / <code>BTreeMap</code> / <code>SortedDict</code>), and answer queries by summing buckets that overlap the window. Insertion into the right bucket is <code>O(log B)</code> where <code>B</code> is the number of buckets in the largest window. Evict buckets older than max window when their right edge falls outside <code>[now - max_window, now]</code>. For 1h window at 1s granularity, <code>B = 3600</code> — very small.</p>
+<h2 id="12-high-level-architecture">1.2 High-Level Architecture</h2>
+<pre><code>                  ┌────────────────────────────────────────────────┐
+                  │            EVENT INGRESS (gRPC / Kafka)        │
+                  └────────────────────────┬───────────────────────┘
+                                           │ partition by key
+                                           ▼
+                  ┌────────────────────────────────────────────────┐
+                  │   STREAM PROCESSOR  (Flink / Beam / custom)    │
+                  │                                                │
+                  │   ┌────────────┐    ┌────────────┐   ┌──────┐  │
+                  │   │  Source    │───▶│ Watermark  │──▶│ Win. │  │
+                  │   │  operator  │    │ generator  │   │ Aggr │  │
+                  │   └────────────┘    └────────────┘   └──┬───┘  │
+                  │                                         │      │
+                  │   ┌─────────────────────────────────────▼───┐  │
+                  │   │   STATE BACKEND (RocksDB / in-memory)   │  │
+                  │   │   keyed: key → BucketMap                │  │
+                  │   └─────────────────────────────────────────┘  │
+                  └───────────────────────┬────────────────────────┘
+                                          │
+                  ┌───────────────────────▼────────────────────────┐
+                  │       SERVING LAYER (low-latency reads)        │
+                  │   ┌──────────────┐    ┌───────────────────┐    │
+                  │   │ Hot cache    │    │ Materialized view │    │
+                  │   │ (Redis)      │    │ (Druid / Pinot)   │    │
+                  │   └──────────────┘    └───────────────────┘    │
+                  └────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="13-mid-level-architecture-per-key-state">1.3 Mid-Level Architecture (per-key state)</h2>
+<pre><code>                For a single key K, state in the worker:
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │   BucketMap[K]   (sorted by bucket_start_ms)                 │
+    │                                                              │
+    │   bucket_start_ms │ count │ sum  │ HLL  │ tdigest            │
+    │   ─────────────── ┼ ───── ┼ ──── ┼ ──── ┼ ────────           │
+    │   1700000000000   │  17   │  84  │ ...  │ ...                │
+    │   1700000001000   │  23   │ 110  │ ...  │ ...                │
+    │   1700000002000   │  19   │  96  │ ...  │ ...                │
+    │   ...             │  ...  │ ...  │ ...  │ ...                │
+    └──────────────────────────────────────────────────────────────┘
+                                ▲
+                                │ insert / merge on each event
+                                │
+    ┌──────────────────────────────────────────────────────────────┐
+    │   On event(ts, val, key=K):                                  │
+    │     bucket_start = ts - (ts mod GRANULARITY_MS)              │
+    │     entry = state[K].get_or_create(bucket_start)             │
+    │     entry.count += 1                                         │
+    │     entry.sum   += val                                       │
+    │     entry.hll.add(unique_id_or_event_id)                     │
+    │     mark_dirty(K, bucket_start)                              │
+    │     advance_watermark_if_appropriate(ts)                     │
+    └──────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │   On query(K, window_seconds):                               │
+    │     now = current_processing_time()                          │
+    │     lo = now - window_seconds * 1000                         │
+    │     return sum(b.count for b in state[K].range(lo, now))     │
+    └──────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────┐
+    │   GC: every 5s,                                              │
+    │     for each K, drop buckets where bucket_start &lt; now - 1h   │
+    └──────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="14-low-level-data-structure-options">1.4 Low-Level Data Structure Options</h2>
+<table>
+<thead>
+<tr>
+<th>Structure</th>
+<th>Insert</th>
+<th>Range Query</th>
+<th>Memory</th>
+<th>Out-of-order</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>deque</code> (in-order)</td>
+<td>O(1) amortized</td>
+<td>O(W/G)</td>
+<td>O(B)</td>
+<td>❌ broken</td>
+<td>Original naive</td>
+</tr>
+<tr>
+<td><code>deque</code> + binary search insert</td>
+<td>O(B)</td>
+<td>O(W/G)</td>
+<td>O(B)</td>
+<td>✅ but slow</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Sorted bucket map</strong> (BTreeMap)</td>
+<td>O(log B)</td>
+<td>O(W/G)</td>
+<td>O(B)</td>
+<td>✅</td>
+<td>The interview pivot</td>
+</tr>
+<tr>
+<td>Ring buffer (mod arithmetic)</td>
+<td>O(1)</td>
+<td>O(W/G)</td>
+<td>O(B fixed)</td>
+<td>✅ if within range</td>
+<td>Fastest; bounded; what Flink rolling state uses internally for hot keys</td>
+</tr>
+<tr>
+<td>Fenwick (BIT) over time slots</td>
+<td>O(log B)</td>
+<td>O(log B)</td>
+<td>O(B)</td>
+<td>✅</td>
+<td>Prefix-sum range queries</td>
+</tr>
+<tr>
+<td>Segment tree over time slots</td>
+<td>O(log B)</td>
+<td>O(log B)</td>
+<td>O(B)</td>
+<td>✅</td>
+<td>More flexible (min/max/count)</td>
+</tr>
+<tr>
+<td>Skip list keyed on ts</td>
+<td>O(log B) avg</td>
+<td>O(log B + k)</td>
+<td>O(B)</td>
+<td>✅</td>
+<td>RocksDB memtable shape</td>
+</tr>
+<tr>
+<td>Two-stack window-min</td>
+<td>O(1) amortized</td>
+<td>O(1)</td>
+<td>O(W)</td>
+<td>❌</td>
+<td>Only for in-order streams; useful for sliding min/max</td>
+</tr>
+</tbody>
+</table>
+<p><code>B</code> = number of buckets in largest window, <code>W</code> = window size, <code>G</code> = bucket granularity.</p>
+<p><strong>The right answer in interview:</strong> "I'd discretize time into fixed buckets (1s for 1m/5m windows, 1m for 1h window — multi-resolution), store each key's bucket map as a <code>BTreeMap&lt;bucket_start, AggValue&gt;</code>. Insertion is O(log B). Range query is O(W/G). Out-of-order events are inserted in their correct bucket. To bound memory I evict buckets older than <code>now - max_window</code> lazily on insert and via a periodic sweeper. For high cardinality, I use ring buffers per key with a fixed slot count = max_window/granularity, since <code>B</code> is bounded (3600 for 1h@1s)."</p>
+<h2 id="15-ring-buffer-implementation-the-production-answer">1.5 Ring Buffer Implementation (the production answer)</h2>
+<pre><code class="language-python">class RollingCounter:
+    &quot;&quot;&quot;
+    Multi-resolution ring buffer counter.
+    - 1s granularity for 1-min and 5-min windows
+    - 1m granularity for 1-hour window (60 × less memory)
+    &quot;&quot;&quot;
+    def __init__(self):
+        # 1-second buckets, 5 minutes deep (covers 1m + 5m windows)
+        self.fine_slots = [0] * 300
+        self.fine_ts    = [0] * 300         # bucket_start_ms each slot represents
+        # 1-minute buckets, 60 minutes deep (covers 1h window)
+        self.coarse_slots = [0] * 60
+        self.coarse_ts    = [0] * 60
+
+    def _idx_fine(self, t_ms):    return (t_ms // 1000) % 300
+    def _idx_coarse(self, t_ms):  return (t_ms // 60_000) % 60
+
+    def add(self, ts_ms, n=1):
+        i = self._idx_fine(ts_ms)
+        bucket = ts_ms - (ts_ms % 1000)
+        if self.fine_ts[i] != bucket:
+            self.fine_slots[i] = 0
+            self.fine_ts[i]    = bucket
+        self.fine_slots[i] += n
+
+        j = self._idx_coarse(ts_ms)
+        cb = ts_ms - (ts_ms % 60_000)
+        if self.coarse_ts[j] != cb:
+            self.coarse_slots[j] = 0
+            self.coarse_ts[j]    = cb
+        self.coarse_slots[j] += n
+
+    def count(self, now_ms, window_ms):
+        if window_ms &lt;= 300_000:                       # ≤ 5 min: use fine
+            slots, ts, gran, depth = self.fine_slots, self.fine_ts, 1000, 300
+        else:                                          # 1 hour: use coarse
+            slots, ts, gran, depth = self.coarse_slots, self.coarse_ts, 60_000, 60
+        lo = now_ms - window_ms
+        total = 0
+        for k in range(depth):
+            if lo &lt;= ts[k] &lt;= now_ms:
+                total += slots[k]
+        return total
+</code></pre>
+<p><strong>Key insight:</strong> The <strong>lazy zeroing via timestamp check</strong> (<code>if self.fine_ts[i] != bucket: zero it</code>) is what gives us O(1) writes for out-of-order events without an explicit eviction pass — when you wrap around the ring, the slot is implicitly "expired" because its <code>ts</code> is from a previous epoch.</p>
+<h2 id="16-component-deep-dives">1.6 Component Deep Dives</h2>
+<h3 id="161-watermark-generator">1.6.1 Watermark Generator</h3>
+<p>The watermark is the system's belief that "no event with <code>event_time &lt; W</code> will arrive after this point." It's the single most important concept for out-of-order processing. See §2 for full deep dive.</p>
+<p><strong>Common strategies:</strong>
+- <code>BoundedOutOfOrderness(d)</code>: <code>W = max_observed_event_time - d</code>. Used in Flink. Simple, robust.
+- <code>Punctuated</code>: emit watermark on specific marker events (e.g., every Nth event includes a bound).
+- <code>Adaptive</code>: track lag percentile and shift watermark accordingly.
+- <code>Idle source detection</code>: if no events for <code>T_idle</code>, mark partition as idle to avoid stalling.</p>
+<h3 id="162-state-backend-rocksdb">1.6.2 State Backend (RocksDB)</h3>
+<p>Apache Flink's RocksDB state backend stores keyed state as RocksDB key-value pairs in an embedded LSM tree. For windowed aggregations, the key is <code>(operator_id, key, namespace, window)</code>.</p>
+<p><strong>Why RocksDB:</strong>
+- Handles state larger than RAM (paged from local SSD).
+- Supports range scans (needed to fetch all buckets for a key's window).
+- Incremental checkpoints: only ship newly-written SSTs to remote storage.
+- Compaction merges old SSTs in background.</p>
+<p><strong>Tuning gotchas:</strong>
+- <code>write_buffer_size</code> too small → frequent flushes → high write amplification.
+- Bloom filters on <code>block_based_table_factory</code> reduce SST scan cost on point reads.
+- Use <strong>prefix extractor</strong> for windowed state (key prefix = <code>(operator, key)</code>) so range scans hit a single SST.
+- For Flink ≥ 1.15: enable <strong>changelog state backend (DSTL)</strong> to make checkpointing async and incremental at second-granularity (<a href="https://nightlies.apache.org/flink/flink-docs-master/docs/ops/state/state_backends/">Flink docs</a>).
+- Flink 1.20 introduced <strong>ForStStateBackend</strong> — RocksDB fork tuned for disaggregated cloud storage (S3-backed).</p>
+<h3 id="163-hyperloglog-for-distinct-counts">1.6.3 HyperLogLog for Distinct Counts</h3>
+<p>If we want <code>distinct(user_id)</code> over a rolling window, exact counting needs a set per bucket → memory explosion. HyperLogLog (Flajolet-Fusy-Gandouet-Meunier 2007) gives <code>O(1)</code> merge with controlled error:</p>
+<pre><code class="language-python">import math, hashlib
+
+class HLL:
+    def __init__(self, p=14):           # 2^p registers; p=14 → 16384 registers, ≈ 0.81% error
+        self.p = p
+        self.m = 1 &lt;&lt; p
+        self.regs = [0] * self.m
+        self.alpha = 0.7213 / (1 + 1.079 / self.m)
+
+    def add(self, x):
+        h = int(hashlib.md5(str(x).encode()).hexdigest(), 16)
+        idx = h &amp; (self.m - 1)
+        w = h &gt;&gt; self.p
+        # rank = position of leftmost 1-bit in w
+        rank = (w.bit_length() ^ 0xFFFFFFFFFFFFFFFF) if w == 0 else (((w &amp; -w).bit_length()))
+        self.regs[idx] = max(self.regs[idx], rank)
+
+    def estimate(self):
+        Z = 1.0 / sum(2 ** -r for r in self.regs)
+        E = self.alpha * self.m * self.m * Z
+        # small-range correction
+        if E &lt;= 2.5 * self.m:
+            zeros = self.regs.count(0)
+            if zeros: E = self.m * math.log(self.m / zeros)
+        return int(E)
+
+    def merge(self, other):
+        self.regs = [max(a, b) for a, b in zip(self.regs, other.regs)]
+</code></pre>
+<p>Memory: 16 KiB per sketch (HLL++ in BigQuery, Redis <code>PFADD</code>, Druid all use this). Per-bucket merging across windows is associative and commutative — perfect fit.</p>
+<h3 id="164-count-min-sketch-for-frequency-estimation">1.6.4 Count-Min Sketch for Frequency Estimation</h3>
+<p>For "top-K events" or "is this key heavy hitter?" — Count-Min Sketch (Cormode-Muthukrishnan 2005). Keep <code>d × w</code> 2D counter array. On insert, hash key with <code>d</code> independent functions and increment all <code>d</code> cells. Estimate is the <code>min</code> of <code>d</code> cells (which bounds the over-estimation; under-estimation is impossible since we only add). Used in Druid (<code>approxCount</code>), Pinot, Apache DataSketches, Redis-Bloom CMS.</p>
+<h3 id="165-ddsketch-t-digest-for-quantiles">1.6.5 DDSketch / t-digest for Quantiles</h3>
+<p>For p50/p95/p99 over a rolling window:
+- <strong>t-digest</strong> (Ted Dunning): clustered centroids, good for extreme quantiles.
+- <strong>DDSketch</strong> (Datadog, VLDB 2019): relative-error guarantees, mergeable. Used in Datadog, OTLP.
+- Reference: <a href="https://www.vldb.org/pvldb/vol12/p2195-masson.pdf">DDSketch paper</a></p>
+<h2 id="17-production-systems">1.7 Production Systems</h2>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Window model</th>
+<th>State</th>
+<th>Out-of-order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Apache Flink</strong></td>
+<td>Tumbling, sliding, session, global windows; explicit <code>WindowAssigner</code> + <code>Trigger</code> + <code>Evictor</code></td>
+<td>RocksDB / heap</td>
+<td>Watermarks + allowed lateness + side outputs</td>
+</tr>
+<tr>
+<td><strong>Kafka Streams</strong></td>
+<td>Tumbling, hopping, sliding, session</td>
+<td>RocksDB local</td>
+<td>Grace period (KIP-328) — events older than <code>window_close + grace</code> are dropped</td>
+</tr>
+<tr>
+<td><strong>Apache Beam / Dataflow</strong></td>
+<td>Generalized (W, T, R) — window, trigger, refinement</td>
+<td>Pluggable</td>
+<td>First-class via Akidau Dataflow paper</td>
+</tr>
+<tr>
+<td><strong>Spark Structured Streaming</strong></td>
+<td>Micro-batch; tumbling/sliding windows</td>
+<td>HDFS-checkpointed</td>
+<td>Watermarks</td>
+</tr>
+<tr>
+<td><strong>Druid</strong></td>
+<td>Time-chunked segments, real-time + historical tiers</td>
+<td>Memory + S3 segments</td>
+<td>Late events go to a separate index task</td>
+</tr>
+<tr>
+<td><strong>Apache Pinot</strong></td>
+<td>Star-tree pre-aggregation; real-time + offline tables</td>
+<td>RocksDB realtime, segments offline</td>
+<td>Late events appended; star-tree merges on commit</td>
+</tr>
+<tr>
+<td><strong>Materialize</strong></td>
+<td>Differential dataflow; arbitrary SQL streaming</td>
+<td>RocksDB / shared dataflow</td>
+<td>Timely dataflow timestamp progress</td>
+</tr>
+<tr>
+<td><strong>RisingWave</strong></td>
+<td>SQL streaming; Hummock state store (S3-backed LSM)</td>
+<td>Object storage</td>
+<td>Watermarks + retention</td>
+</tr>
+<tr>
+<td><strong>ClickHouse</strong></td>
+<td><code>AggregatingMergeTree</code> + materialized views</td>
+<td>Disk</td>
+<td>Inserts only; no out-of-order semantics — relies on merge</td>
+</tr>
+<tr>
+<td><strong>Snowflake Dynamic Tables</strong></td>
+<td>Declarative pipeline; lag SLO</td>
+<td>Snowflake storage</td>
+<td>Re-computes affected micro-partitions</td>
+</tr>
+<tr>
+<td><strong>Prometheus</strong></td>
+<td><code>rate()</code>, <code>irate()</code>, <code>increase()</code> over <code>[Δt]</code></td>
+<td>TSDB chunks</td>
+<td>Scrape-time only — no event-time</td>
+</tr>
+<tr>
+<td><strong>VictoriaMetrics</strong></td>
+<td>Same model, more efficient</td>
+<td>mergeset</td>
+<td>Same</td>
+</tr>
+<tr>
+<td><strong>InfluxDB / TimescaleDB CAGGs</strong></td>
+<td>Continuous aggregates, refresh policies</td>
+<td>TSM / hypertables</td>
+<td>Refresh window</td>
+</tr>
+<tr>
+<td><strong>MillWheel</strong> (Google paper, predecessor to Dataflow)</td>
+<td>Strong watermarks, low watermark protocol</td>
+<td>Bigtable-like</td>
+<td>Low watermark = min over all upstream</td>
+</tr>
+</tbody>
+</table>
+<h2 id="18-common-interview-follow-ups">1.8 Common Interview Follow-ups</h2>
+<p><strong>Q: How would you handle a key with 10 million events/sec?</strong>
+A: Pre-aggregate at the source (combiner / <code>aggregateByKey</code> push-down). Sub-shard the hot key (key + bucket-of-time-prefix) and merge at query time. Use approximate sketches if exact count isn't required. See <code>Cassandra-style hot key isolation</code> and Dataflow's <code>combine.PerKey</code>.</p>
+<p><strong>Q: How do you handle the watermark stalling because one source partition is idle?</strong>
+A: Mark the partition as idle after <code>T_idle</code>. Downstream watermark = min over <em>active</em> partitions only. Flink: <code>WatermarkStrategy.withIdleness(Duration.ofSeconds(30))</code>.</p>
+<p><strong>Q: What if events can be late by 24 hours?</strong>
+A: Use allowed-lateness with side output to a dead-letter topic for super-late events. Reprocess via batch backfill. Don't make the watermark wait 24 hours — that destroys freshness.</p>
+<p><strong>Q: How does the system survive a worker crash?</strong>
+A: Periodic checkpoints to durable storage (S3/GCS). Flink: distributed snapshot via Chandy-Lamport-style barriers. On restart, restore state and rewind input offset to last checkpointed position.</p>
+<p><strong>Q: Two-stack constant-time window approach — when does it work?</strong>
+A: Only for in-order streams (it's the classic "queue using two stacks" with min/max tracking). Doesn't generalize to out-of-order. Mention it to show breadth.</p>
+<h2 id="19-production-gotchas">1.9 Production Gotchas</h2>
+<ul>
+<li><strong>Bucket boundary skew</strong>: if granularity is 1s and you align buckets at exact second boundaries, every event at <code>t=N.000</code> lands in the same bucket — fine. But if you compute window edges with floating-point math, you'll get off-by-one boundary bugs.</li>
+<li><strong>Time-zone bugs</strong>: store and reason in UTC milliseconds. Display TZ at the edge.</li>
+<li><strong>Skewed keys</strong>: 1% of keys can carry 90% of traffic. Combine + sub-shard.</li>
+<li><strong>State explosion under cardinality</strong>: a million unique keys × 3600 buckets × 64 bytes = 230 MB. Manageable. A billion keys = 230 GB. Need RocksDB + TTL.</li>
+<li><strong>Checkpoint stalls</strong>: with hundreds of GB of state, full checkpoints can take minutes. Use incremental checkpoints + DSTL.</li>
+<li><strong>Late event correctness</strong>: depending on accumulation mode (DISCARDING vs ACCUMULATING vs ACCUMULATING_AND_RETRACTING), downstream sees different truths. Choose consciously.</li>
+</ul>
+<h2 id="110-references">1.10 References</h2>
+<ul>
+<li>Akidau et al. <em>The Dataflow Model</em> (VLDB 2015). https://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf</li>
+<li>Akidau et al. <em>MillWheel</em> (VLDB 2013). http://www.vldb.org/pvldb/vol6/p1033-akidau.pdf</li>
+<li>Akidau, Chernyak, Lax. <em>Streaming Systems</em> (O'Reilly 2018). https://www.oreilly.com/library/view/streaming-systems/9781491983867/</li>
+<li>Flink Windowing: https://nightlies.apache.org/flink/flink-docs-master/docs/dev/datastream/operators/windows/</li>
+<li>Flink RocksDB: https://nightlies.apache.org/flink/flink-docs-master/docs/ops/state/state_backends/</li>
+<li>Beam triggers: https://beam.apache.org/documentation/programming-guide/#triggers</li>
+<li>KIP-328 (Kafka Streams grace period): https://cwiki.apache.org/confluence/display/KAFKA/KIP-328</li>
+<li>Flajolet et al. <em>HyperLogLog</em> (2007). https://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf</li>
+<li>Cormode-Muthukrishnan <em>Count-Min Sketch</em> (2005). http://dimacs.rutgers.edu/~graham/pubs/papers/cm-full.pdf</li>
+<li>Masson, Rim, Lee. <em>DDSketch</em> (VLDB 2019). https://www.vldb.org/pvldb/vol12/p2195-masson.pdf</li>
+<li>Druid streaming: https://druid.apache.org/docs/latest/ingestion/streaming.html</li>
+<li>Pinot star-tree: https://docs.pinot.apache.org/basics/indexing/star-tree-index</li>
+<li>Materialize: https://materialize.com/blog/missing-element-data-architecture/</li>
+<li>RisingWave Hummock: https://risingwave.com/glossary/hummock-risingwave-specific/</li>
+<li>Snowflake Dynamic Tables: https://yukidata.com/snowflake-dynamic-tables-guide/</li>
+</ul>
+<hr />
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="02-watermarks.html"><span class="side-num">02</span><span class="side-title">Watermarks &amp; Event-Time Processing</span></a></li>
+<li><a href="16-backpressure-patterns.html"><span class="side-num">16</span><span class="side-title">Backpressure Patterns</span></a></li>
+<li><a href="15-consistent-hashing.html"><span class="side-num">15</span><span class="side-title">Consistent Hashing</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Stream processors</h4>
+<div class="tool-chips">
+<span class="tool-chip">Apache Flink</span>
+<span class="tool-chip">Apache Beam</span>
+<span class="tool-chip">Google Dataflow</span>
+<span class="tool-chip">Kafka Streams</span>
+<span class="tool-chip">Spark Structured Streaming</span>
+</div></div>
+<div class="tool-group"><h4>Real-time OLAP</h4>
+<div class="tool-chips">
+<span class="tool-chip">Apache Druid</span>
+<span class="tool-chip">Apache Pinot</span>
+<span class="tool-chip">Materialize</span>
+<span class="tool-chip">RisingWave</span>
+<span class="tool-chip">ClickHouse</span>
+<span class="tool-chip">Snowflake Dynamic Tables</span>
+</div></div>
+<div class="tool-group"><h4>Time-series DBs</h4>
+<div class="tool-chips">
+<span class="tool-chip">Prometheus</span>
+<span class="tool-chip">VictoriaMetrics</span>
+<span class="tool-chip">InfluxDB</span>
+<span class="tool-chip">TimescaleDB</span>
+</div></div>
+<div class="tool-group"><h4>Sketches &amp; approximations</h4>
+<div class="tool-chips">
+<span class="tool-chip">HyperLogLog</span>
+<span class="tool-chip">Count-Min Sketch</span>
+<span class="tool-chip">DDSketch</span>
+<span class="tool-chip">t-digest</span>
+</div></div>
+<div class="tool-group"><h4>Data structures</h4>
+<div class="tool-chips">
+<span class="tool-chip">Sorted bucket map</span>
+<span class="tool-chip">Ring buffer</span>
+<span class="tool-chip">Fenwick tree (BIT)</span>
+<span class="tool-chip">Segment tree</span>
+<span class="tool-chip">Skip list</span>
+<span class="tool-chip">Two-stack window</span>
+</div></div>
+<div class="tool-group"><h4>Foundational papers</h4>
+<div class="tool-chips">
+<span class="tool-chip">Dataflow (Akidau, VLDB &#x27;15)</span>
+<span class="tool-chip">MillWheel (VLDB &#x27;13)</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="index.html"><span class="nav-label">← Index</span><span class="nav-title">Back to Contents</span></a>
+    <a class="nav-next nav-next-link" href="02-watermarks.html"><span class="nav-label">Chapter 02 →</span><span class="nav-title">Watermarks &amp; Event-Time Processing</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

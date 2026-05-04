@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>07 · In-Process Queue with At-Least-Once Delivery — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="07">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">07</span>
+      <span class="meta-rule"></span>
+      <span>Coding · Q3 Take-Home</span>
+    </div>
+    <h1 class="article-title">In-Process Queue with At-Least-Once Delivery</h1>
+    <p class="article-lede">Build a SQS-class queue from scratch — WAL, group commit, visibility timeout, lease tokens, the full reference impl.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#71-core-semantics">7.1 Core Semantics</a></li>
+<li><a class="h2" href="#72-high-level-architecture">7.2 High-Level Architecture</a></li>
+<li><a class="h2" href="#73-mid-level-state-transitions">7.3 Mid-Level: State Transitions</a></li>
+<li><a class="h2" href="#74-low-level-reference-implementation">7.4 Low-Level: Reference Implementation</a></li>
+<li><a class="h2" href="#75-component-deep-dives">7.5 Component Deep Dives</a></li>
+<li><a class="h3" href="#751-wal-design-group-commit">7.5.1 WAL Design (Group Commit)</a></li>
+<li><a class="h3" href="#752-visibility-timeout-tracking-hashed-wheel-timer">7.5.2 Visibility Timeout Tracking — Hashed Wheel Timer</a></li>
+<li><a class="h3" href="#753-recovery-snapshots">7.5.3 Recovery &amp; Snapshots</a></li>
+<li><a class="h3" href="#754-admin-api">7.5.4 Admin API</a></li>
+<li><a class="h2" href="#76-production-systems-comparison">7.6 Production Systems Comparison</a></li>
+<li><a class="h3" href="#aws-sqs">AWS SQS</a></li>
+<li><a class="h3" href="#bullmq-nodejs-redis">BullMQ (Node.js, Redis)</a></li>
+<li><a class="h3" href="#sidekiq-ruby-redis">Sidekiq (Ruby, Redis)</a></li>
+<li><a class="h3" href="#rabbitmq">RabbitMQ</a></li>
+<li><a class="h3" href="#kafka-consumer-groups">Kafka Consumer Groups</a></li>
+<li><a class="h3" href="#google-pubsub">Google Pub/Sub</a></li>
+<li><a class="h3" href="#apache-pulsar">Apache Pulsar</a></li>
+<li><a class="h3" href="#beanstalkd">Beanstalkd</a></li>
+<li><a class="h3" href="#nats-jetstream">NATS JetStream</a></li>
+<li><a class="h3" href="#temporal-durable-execution">Temporal (Durable Execution)</a></li>
+<li><a class="h3" href="#step-functions-aws">Step Functions (AWS)</a></li>
+<li><a class="h3" href="#sqlite-backed-queues-litequeue-solid-queue">SQLite-Backed Queues (Litequeue, Solid Queue, …)</a></li>
+<li><a class="h2" href="#77-common-interview-follow-ups">7.7 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#78-production-gotchas">7.8 Production Gotchas</a></li>
+<li><a class="h2" href="#79-references">7.9 References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="71-core-semantics">7.1 Core Semantics</h2>
+<ul>
+<li><strong>At-least-once</strong>: every successfully enqueued message is delivered to (at least) one consumer, eventually. Possible duplicates if a worker crashes after processing but before acking.</li>
+<li><strong>Visibility timeout</strong>: when a worker dequeues a message, the message becomes invisible to other consumers for <code>T_vt</code> seconds. If the worker doesn't ack within <code>T_vt</code>, the message becomes visible again.</li>
+<li><strong>Lease token</strong>: every dequeue increments a monotonic counter; when the worker acks, it includes the token. If the token is stale (a re-delivery happened in the interim), the ack is rejected — preventing the late-finishing-worker double-commit.</li>
+</ul>
+<p>This last property is the <strong>fence-token pattern</strong> (see §8) applied to message acks.</p>
+<h2 id="72-high-level-architecture">7.2 High-Level Architecture</h2>
+<pre><code>   ┌─────────────────────────────────────────────────────────────┐
+   │                    QUEUE PROCESS                            │
+   │                                                             │
+   │   ┌─────────────────────────────────────────────────────┐   │
+   │   │         CLIENT API (HTTP / gRPC / lib)              │   │
+   │   │  enqueue(body) | dequeue() | ack(id, token)         │   │
+   │   │  extend(id, token, secs) | nack(id, token)          │   │
+   │   └─────────┬───────────────────────────────────────────┘   │
+   │             ▼                                               │
+   │   ┌─────────────────────────────────────────────────────┐   │
+   │   │              IN-MEMORY QUEUE STATE                   │   │
+   │   │   ready_heap: min-heap by (visible_at, seq)         │   │
+   │   │   in_flight:  HashMap&lt;msg_id, (lease_token,         │   │
+   │   │                              expires_at, body)&gt;      │   │
+   │   │   acked_log:  set&lt;msg_id&gt;  (for replay safety)       │   │
+   │   └─────────┬───────────────────────────────────────────┘   │
+   │             ▼                                               │
+   │   ┌─────────────────────────────────────────────────────┐   │
+   │   │     WAL (write-ahead log) — durable                  │   │
+   │   │     append-only file with CRC32C per record         │   │
+   │   │     records: ENQ | DEQ(id, token) | ACK(id, token)  │   │
+   │   │              | NACK | EXTEND | TICK(timestamp)      │   │
+   │   └─────────┬───────────────────────────────────────────┘   │
+   │             ▼                                               │
+   │   ┌─────────────────────────────────────────────────────┐   │
+   │   │        PERIODIC SNAPSHOT (every N records or M MB)  │   │
+   │   │        compacts WAL, truncates old segments         │   │
+   │   └─────────────────────────────────────────────────────┘   │
+   └─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="73-mid-level-state-transitions">7.3 Mid-Level: State Transitions</h2>
+<pre><code>                  enqueue(body)
+                       │
+                       ▼
+                 ┌──────────┐
+                 │  READY   │◀───────────┐
+                 └─────┬────┘            │
+                       │ dequeue()       │
+                       │ (assigns lease) │ visibility expired
+                       ▼                 │ OR  nack()
+                 ┌─────────────┐         │
+                 │ IN_FLIGHT   │─────────┘
+                 │ (lease=L)   │
+                 └─────┬───────┘
+                       │ ack(id, L)
+                       ▼
+                 ┌──────────┐
+                 │   DONE   │
+                 └──────────┘
+</code></pre>
+<p>When a message moves READY → IN_FLIGHT, lease counter increments. If worker fails to ack before <code>expires_at</code>, a sweeper moves it back to READY <em>with a new lease counter on next dequeue</em>. Stale acks (workers using old lease) are rejected.</p>
+<h2 id="74-low-level-reference-implementation">7.4 Low-Level: Reference Implementation</h2>
+<pre><code class="language-python">import collections, heapq, hashlib, os, struct, time, threading, uuid
+from dataclasses import dataclass, field
+from typing import Optional
+
+@dataclass(order=True)
+class _ReadyEntry:
+    visible_at: float
+    seq: int
+    msg_id: str = field(compare=False)
+
+@dataclass
+class _InFlight:
+    msg_id: str
+    body: bytes
+    lease_token: int            # monotonically increasing per dequeue
+    expires_at: float
+    enq_seq: int                # original enqueue seq for stable ordering on requeue
+
+class Queue:
+    def __init__(self, wal_path, default_vt=30.0, max_attempts=10):
+        self.lock = threading.Lock()
+        self.ready: list[_ReadyEntry] = []
+        self.in_flight: dict[str, _InFlight] = {}
+        self.bodies: dict[str, bytes] = {}
+        self.attempts: dict[str, int] = {}
+        self.dlq: list[bytes] = []
+        self.seq = 0
+        self.lease_ctr = 0
+        self.default_vt = default_vt
+        self.max_attempts = max_attempts
+        self.wal = open(wal_path, &quot;ab+&quot;, buffering=0)
+
+    # ─── WAL primitives ─────────────────────────────────────────
+    def _wal_write(self, op: bytes, payload: bytes):
+        rec = op + payload
+        crc = self._crc32c(rec)
+        hdr = struct.pack(&quot;&lt;II&quot;, len(rec), crc)
+        self.wal.write(hdr + rec)
+        os.fsync(self.wal.fileno())   # group-commit in real impl
+
+    @staticmethod
+    def _crc32c(data: bytes) -&gt; int:
+        # In production use crcmod / google-crc32c. Placeholder:
+        import zlib
+        return zlib.crc32(data) &amp; 0xFFFFFFFF
+
+    # ─── Public API ─────────────────────────────────────────────
+    def enqueue(self, body: bytes) -&gt; str:
+        with self.lock:
+            self.seq += 1
+            msg_id = uuid.uuid4().hex
+            self.bodies[msg_id] = body
+            self.attempts[msg_id] = 0
+            heapq.heappush(self.ready, _ReadyEntry(time.monotonic(), self.seq, msg_id))
+            self._wal_write(b&quot;E&quot;, msg_id.encode() + b&quot;\x00&quot; + body)
+            return msg_id
+
+    def dequeue(self, vt: Optional[float] = None) -&gt; Optional[tuple[str, bytes, int]]:
+        vt = vt or self.default_vt
+        with self.lock:
+            now = time.monotonic()
+            self._reap_expired_locked(now)
+            while self.ready:
+                entry = self.ready[0]
+                if entry.visible_at &gt; now:
+                    return None
+                heapq.heappop(self.ready)
+                if entry.msg_id not in self.bodies:
+                    continue       # already acked or dropped
+                self.lease_ctr += 1
+                tok = self.lease_ctr
+                expires = now + vt
+                self.in_flight[entry.msg_id] = _InFlight(
+                    entry.msg_id, self.bodies[entry.msg_id], tok, expires, entry.seq)
+                self.attempts[entry.msg_id] = self.attempts.get(entry.msg_id, 0) + 1
+                self._wal_write(b&quot;D&quot;, entry.msg_id.encode()
+                                + b&quot;\x00&quot; + str(tok).encode())
+                return entry.msg_id, self.bodies[entry.msg_id], tok
+            return None
+
+    def ack(self, msg_id: str, token: int) -&gt; bool:
+        with self.lock:
+            entry = self.in_flight.get(msg_id)
+            if not entry or entry.lease_token != token:
+                return False        # stale lease — rejected
+            del self.in_flight[msg_id]
+            self.bodies.pop(msg_id, None)
+            self.attempts.pop(msg_id, None)
+            self._wal_write(b&quot;A&quot;, msg_id.encode() + b&quot;\x00&quot; + str(token).encode())
+            return True
+
+    def nack(self, msg_id: str, token: int, requeue_after: float = 0.0) -&gt; bool:
+        with self.lock:
+            entry = self.in_flight.get(msg_id)
+            if not entry or entry.lease_token != token:
+                return False
+            del self.in_flight[msg_id]
+            if self.attempts.get(msg_id, 0) &gt;= self.max_attempts:
+                self.dlq.append(self.bodies.pop(msg_id))
+                self._wal_write(b&quot;X&quot;, msg_id.encode())
+            else:
+                heapq.heappush(self.ready,
+                               _ReadyEntry(time.monotonic() + requeue_after,
+                                           entry.enq_seq, msg_id))
+                self._wal_write(b&quot;N&quot;, msg_id.encode())
+            return True
+
+    def extend(self, msg_id: str, token: int, secs: float) -&gt; bool:
+        with self.lock:
+            entry = self.in_flight.get(msg_id)
+            if not entry or entry.lease_token != token:
+                return False
+            entry.expires_at = time.monotonic() + secs
+            self._wal_write(b&quot;V&quot;, msg_id.encode() + b&quot;\x00&quot; + str(secs).encode())
+            return True
+
+    # ─── Internal: visibility expiry sweeper ────────────────────
+    def _reap_expired_locked(self, now):
+        expired = [m for m, e in self.in_flight.items() if e.expires_at &lt;= now]
+        for msg_id in expired:
+            entry = self.in_flight.pop(msg_id)
+            if self.attempts.get(msg_id, 0) &gt;= self.max_attempts:
+                self.dlq.append(self.bodies.pop(msg_id))
+                self._wal_write(b&quot;X&quot;, msg_id.encode())
+            else:
+                heapq.heappush(self.ready,
+                               _ReadyEntry(now, entry.enq_seq, msg_id))
+                self._wal_write(b&quot;R&quot;, msg_id.encode())   # &quot;Re-queued&quot;
+
+    # ─── Recovery: replay WAL on startup ────────────────────────
+    @classmethod
+    def recover(cls, wal_path):
+        q = cls(wal_path + &quot;.tmp&quot;)
+        # ... read records from old WAL, apply to in-memory, re-write to new WAL
+        # ... atomically rename .tmp → wal_path
+        # In production: snapshot every N records to bound replay time.
+        return q
+</code></pre>
+<p><strong>Why the lease token solves the race:</strong></p>
+<pre><code>   T=0   Worker A dequeues msg X, gets lease=42, vt=30s
+   T=15  Worker A's process pauses (GC, network hiccup)
+   T=30  Visibility expires; sweeper requeues X (still attempt #1)
+   T=31  Worker B dequeues X, gets lease=43
+   T=32  Worker B processes X, calls ack(X, 43) → SUCCESS
+   T=33  Worker A wakes up, calls ack(X, 42) → REJECTED (stale lease)
+</code></pre>
+<p>Without the token, A's ack would commit a second time. The token makes ack a CAS on <code>(msg_id, lease)</code>.</p>
+<h2 id="75-component-deep-dives">7.5 Component Deep Dives</h2>
+<h3 id="751-wal-design-group-commit">7.5.1 WAL Design (Group Commit)</h3>
+<p>Single-record <code>fsync</code> per enqueue is throughput-bottlenecked at ~200/s on commodity SSD. <strong>Group commit</strong>: batch up to N writes or M ms, then one <code>fsync</code>. Each batch is an atomic commit unit.</p>
+<pre><code class="language-python">class GroupCommitWAL:
+    def __init__(self, path, max_batch=100, max_ms=5):
+        self.f = open(path, &quot;ab+&quot;, buffering=0)
+        self.pending = []
+        self.cv = threading.Condition()
+        # background thread flushes
+        threading.Thread(target=self._flusher, daemon=True).start()
+
+    def append(self, rec):
+        with self.cv:
+            fut = threading.Event()
+            self.pending.append((rec, fut))
+            self.cv.notify()
+        fut.wait()
+
+    def _flusher(self):
+        while True:
+            with self.cv:
+                while not self.pending:
+                    self.cv.wait()
+                batch = self.pending; self.pending = []
+            for rec, _ in batch:
+                self.f.write(rec)
+            os.fsync(self.f.fileno())
+            for _, fut in batch:
+                fut.set()
+</code></pre>
+<p>Throughput: 100k+ msgs/s on a single SSD (vs. ~200/s without group commit).</p>
+<h3 id="752-visibility-timeout-tracking-hashed-wheel-timer">7.5.2 Visibility Timeout Tracking — Hashed Wheel Timer</h3>
+<p>Naive <code>for msg in in_flight: if expired ...</code> is O(N) per tick. Better: hashed wheel timer (Varghese-Lauck 1987). Used in Netty, Kafka, Akka.</p>
+<pre><code>   Wheel of W buckets, each bucket = list of (msg_id, expiry).
+   tick_ms = e.g., 100ms.
+   add(msg, expires_at):
+      slot = (expires_at / tick_ms) % W
+      buckets[slot].append((msg_id, expires_at))
+   on tick:
+      slot = (now / tick_ms) % W
+      for (msg_id, exp) in buckets[slot]:
+          if exp &lt;= now: requeue(msg_id)
+</code></pre>
+<p>Reference: https://netty.io/4.0/api/io/netty/util/HashedWheelTimer.html</p>
+<h3 id="753-recovery-snapshots">7.5.3 Recovery &amp; Snapshots</h3>
+<p>WAL grows unbounded. Periodically snapshot in-memory state:</p>
+<pre><code>   1. Acquire write lock.
+   2. Note current WAL offset O.
+   3. Serialize state to snapshot.tmp.
+   4. Release lock.
+   5. fsync(snapshot.tmp); rename → snapshot.bin.
+   6. Truncate WAL records &lt; O.
+</code></pre>
+<p>On restart: load <code>snapshot.bin</code>, then replay WAL from offset.</p>
+<h3 id="754-admin-api">7.5.4 Admin API</h3>
+<pre><code>   GET  /queues/{q}/stats          → {ready, in_flight, dlq, total_enqueued}
+   GET  /queues/{q}/messages?state=ready&amp;limit=10
+   POST /queues/{q}/purge          → drains all ready
+   POST /queues/{q}/dlq/replay     → puts DLQ items back into ready
+   GET  /queues/{q}/healthz
+   GET  /metrics                   → Prometheus
+</code></pre>
+<h2 id="76-production-systems-comparison">7.6 Production Systems Comparison</h2>
+<h3 id="aws-sqs">AWS SQS</h3>
+<ul>
+<li>Visibility timeout: 0–43200s (12h max).</li>
+<li>FIFO queues: ordering per <code>MessageGroupId</code>; throughput 300 msg/s standard, 3000/s high-throughput mode.</li>
+<li>Deduplication: 5-min window via <code>MessageDeduplicationId</code> or content hash.</li>
+<li>Retention: 14 days max.</li>
+<li>120k in-flight messages max per queue (limit).</li>
+<li>See: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html</li>
+</ul>
+<h3 id="bullmq-nodejs-redis">BullMQ (Node.js, Redis)</h3>
+<ul>
+<li>Built on Redis Streams + atomic Lua scripts.</li>
+<li>Sliding-window visibility via <code>processed-stalled-jobs.lua</code>.</li>
+<li>Job priorities, delayed jobs (sorted set keyed on time), repeating jobs (cron).</li>
+<li>See: https://docs.bullmq.io/</li>
+</ul>
+<h3 id="sidekiq-ruby-redis">Sidekiq (Ruby, Redis)</h3>
+<ul>
+<li>BRPOP from list; reliable-fetch variant uses LMOVE to a "private" queue per worker (visibility tracking).</li>
+<li>See: https://github.com/sidekiq/sidekiq/wiki</li>
+</ul>
+<h3 id="rabbitmq">RabbitMQ</h3>
+<ul>
+<li><strong>Quorum queues</strong> (since 3.8): Raft-replicated; at-least-once delivery; dead-letter routing on <code>x-overflow=reject-publish-dlx</code>.</li>
+<li>Per-consumer <code>prefetch_count</code> caps in-flight per channel (max 2000 in modern versions).</li>
+<li>See: https://www.rabbitmq.com/docs/confirms</li>
+</ul>
+<h3 id="kafka-consumer-groups">Kafka Consumer Groups</h3>
+<ul>
+<li>Offsets are visibility tokens (committed after processing).</li>
+<li><code>max.poll.interval.ms</code> = 5 min default; if processing exceeds, consumer is removed and partition reassigned.</li>
+<li>Cooperative-sticky rebalancing minimizes disruption.</li>
+<li>At-least-once via <code>enable.auto.commit=false</code> + manual commit after processing.</li>
+</ul>
+<h3 id="google-pubsub">Google Pub/Sub</h3>
+<ul>
+<li>Ack deadline 10s default, extendable up to 600s.</li>
+<li>Exactly-once delivery (newer feature) via dedup window + fence-token-equivalent.</li>
+<li>See: https://docs.cloud.google.com/pubsub/docs/lease-management</li>
+</ul>
+<h3 id="apache-pulsar">Apache Pulsar</h3>
+<ul>
+<li>Subscription types: Exclusive, Failover, Shared, Key_Shared.</li>
+<li>Key_Shared = ordered per key but parallel across keys — great for tenant ordering.</li>
+<li>See: https://dattell.com/data-architecture-blog/subscription-types-in-apache-pulsar/</li>
+</ul>
+<h3 id="beanstalkd">Beanstalkd</h3>
+<ul>
+<li>TTR (time-to-run) = visibility timeout.</li>
+<li><code>bury</code> / <code>kick</code> for DLQ-style operations.</li>
+<li>Single binary; very lean. Used by older PHP shops.</li>
+</ul>
+<h3 id="nats-jetstream">NATS JetStream</h3>
+<ul>
+<li>Stream-based; consumer state durably tracked.</li>
+<li>Pull and push consumers; <code>MaxAckPending</code> controls in-flight cap.</li>
+<li>See: https://docs.nats.io/nats-concepts/jetstream</li>
+</ul>
+<h3 id="temporal-durable-execution">Temporal (Durable Execution)</h3>
+<ul>
+<li>Not a queue per se; workflow state machines with sticky task queues.</li>
+<li>History replay reconstructs state on worker crash.</li>
+<li>See: https://docs.temporal.io/sticky-execution</li>
+</ul>
+<h3 id="step-functions-aws">Step Functions (AWS)</h3>
+<ul>
+<li>Task tokens: a long-lived activity sends <code>SendTaskSuccess(taskToken, output)</code>.</li>
+<li>Token is essentially a fence — bound to a specific execution attempt.</li>
+</ul>
+<h3 id="sqlite-backed-queues-litequeue-solid-queue">SQLite-Backed Queues (Litequeue, Solid Queue, …)</h3>
+<ul>
+<li><code>PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;</code></li>
+<li><code>BEGIN IMMEDIATE; SELECT ... ORDER BY id LIMIT 1; UPDATE ... SET state='IN_FLIGHT', lease_token=lease_token+1 WHERE id=?; COMMIT;</code> is the dequeue.</li>
+<li>See: https://github.com/litements/litequeue</li>
+</ul>
+<h2 id="77-common-interview-follow-ups">7.7 Common Interview Follow-ups</h2>
+<p><strong>Q: How do you guarantee at-most-once instead?</strong>
+A: Don't redeliver on visibility timeout — drop. But you'll lose messages on worker crash. Better: at-least-once + idempotent consumer with inbox pattern (§6.5).</p>
+<p><strong>Q: How do you support priority?</strong>
+A: Multiple ready heaps (one per priority); dequeue tries higher-priority first. Or weighted fair queueing across priority classes to avoid starvation.</p>
+<p><strong>Q: How do you support delayed messages?</strong>
+A: <code>visible_at = now + delay_secs</code>. The same heap structure handles it.</p>
+<p><strong>Q: Memory blows up with 100M ready messages?</strong>
+A: Spill to disk. Postgres / RocksDB backing for ready set. In-memory only for in-flight (which is bounded by worker count × per-worker concurrency).</p>
+<p><strong>Q: Two workers race on dequeue — is the lease token enough?</strong>
+A: For ack correctness, yes. But the dequeue itself must be atomic — under a lock or via atomic-CAS in the storage backend.</p>
+<h2 id="78-production-gotchas">7.8 Production Gotchas</h2>
+<ul>
+<li><strong>Long-running consumers</strong>: extend lease before expiry. Worker that takes 10min on a 30s VT will see message redelivered. Have consumers periodically call <code>ChangeMessageVisibility</code>.</li>
+<li><strong>Poison pills</strong>: a message that always crashes the worker — without max-attempts → DLQ, infinite retry loop.</li>
+<li><strong>Clock skew between sweeper and worker</strong>: use <code>time.monotonic()</code>, not wall clock, for visibility math.</li>
+<li><strong>Ack-after-reboot</strong>: WAL replay must idempotently re-establish state. Use sequence numbers in WAL records.</li>
+<li><strong>In-flight message count caps</strong>: SQS limits 120k. Helps prevent runaway producers.</li>
+</ul>
+<h2 id="79-references">7.9 References</h2>
+<ul>
+<li>Kleppmann distributed locking: https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html</li>
+<li>SQS visibility: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html</li>
+<li>BullMQ: https://docs.bullmq.io/</li>
+<li>RabbitMQ quorum queues: https://www.rabbitmq.com/docs/quorum-queues</li>
+<li>Pub/Sub lease management: https://docs.cloud.google.com/pubsub/docs/lease-management</li>
+<li>Pulsar key-shared: https://streamnative.io/blog/scalable-stream-processing-pulsars-key-shared-subscription</li>
+<li>Beanstalkd protocol: https://raw.githubusercontent.com/kr/beanstalkd/master/doc/protocol.txt</li>
+<li>Hashed wheel timer (Varghese-Lauck 1987): https://www.cs.columbia.edu/~nahum/w6998/papers/sosp87-timing-wheels.pdf</li>
+<li>SQLite + WAL for queues: https://simonwillison.net/tags/sqlite-busy/</li>
+<li>Temporal sticky exec: https://docs.temporal.io/sticky-execution</li>
+</ul>
+<hr />
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="08-lease-fencing-tokens.html"><span class="side-num">08</span><span class="side-title">Lease &amp; Fencing Tokens</span></a></li>
+<li><a href="06-idempotency.html"><span class="side-num">06</span><span class="side-title">Idempotency in Distributed Systems</span></a></li>
+<li><a href="16-backpressure-patterns.html"><span class="side-num">16</span><span class="side-title">Backpressure Patterns</span></a></li>
+<li><a href="03-webhook-delivery.html"><span class="side-num">03</span><span class="side-title">Webhook Delivery Platform</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Production queues</h4>
+<div class="tool-chips">
+<span class="tool-chip">AWS SQS</span>
+<span class="tool-chip">RabbitMQ Quorum Queues</span>
+<span class="tool-chip">Apache Kafka</span>
+<span class="tool-chip">Google Pub/Sub</span>
+<span class="tool-chip">Apache Pulsar</span>
+<span class="tool-chip">NATS JetStream</span>
+<span class="tool-chip">Beanstalkd</span>
+</div></div>
+<div class="tool-group"><h4>Job systems</h4>
+<div class="tool-chips">
+<span class="tool-chip">BullMQ (Node)</span>
+<span class="tool-chip">Sidekiq (Ruby)</span>
+<span class="tool-chip">Celery (Python)</span>
+<span class="tool-chip">Resque</span>
+<span class="tool-chip">Litequeue (SQLite)</span>
+</div></div>
+<div class="tool-group"><h4>Workflow engines</h4>
+<div class="tool-chips">
+<span class="tool-chip">Temporal</span>
+<span class="tool-chip">AWS Step Functions</span>
+<span class="tool-chip">Cadence</span>
+</div></div>
+<div class="tool-group"><h4>Building blocks</h4>
+<div class="tool-chips">
+<span class="tool-chip">Write-ahead log (WAL)</span>
+<span class="tool-chip">Group commit</span>
+<span class="tool-chip">Hashed wheel timer (Varghese-Lauck &#x27;87)</span>
+<span class="tool-chip">Min-heap visibility timeout</span>
+<span class="tool-chip">Lease tokens</span>
+</div></div>
+<div class="tool-group"><h4>Subscription models</h4>
+<div class="tool-chips">
+<span class="tool-chip">Pulsar Key_Shared</span>
+<span class="tool-chip">Kafka cooperative-sticky</span>
+<span class="tool-chip">RabbitMQ prefetch</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="06-idempotency.html"><span class="nav-label">← Chapter 06</span><span class="nav-title">Idempotency in Distributed Systems</span></a>
+    <a class="nav-next nav-next-link" href="08-lease-fencing-tokens.html"><span class="nav-label">Chapter 08 →</span><span class="nav-title">Lease &amp; Fencing Tokens</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

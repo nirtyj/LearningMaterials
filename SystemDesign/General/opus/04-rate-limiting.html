@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>04 · Rate Limiting Algorithms — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="04">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">04</span>
+      <span class="meta-rule"></span>
+      <span>Distributed · Deep Dive</span>
+    </div>
+    <h1 class="article-title">Rate Limiting Algorithms</h1>
+    <p class="article-lede">Token bucket, leaky bucket, GCRA, sliding window — the math, the Lua, and when to choose each.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#41-the-five-canonical-algorithms">4.1 The Five Canonical Algorithms</a></li>
+<li><a class="h3" href="#411-fixed-window-counter">4.1.1 Fixed Window Counter</a></li>
+<li><a class="h3" href="#412-sliding-window-log">4.1.2 Sliding Window Log</a></li>
+<li><a class="h3" href="#413-sliding-window-counter">4.1.3 Sliding Window Counter</a></li>
+<li><a class="h3" href="#414-token-bucket">4.1.4 Token Bucket</a></li>
+<li><a class="h3" href="#415-leaky-bucket">4.1.5 Leaky Bucket</a></li>
+<li><a class="h3" href="#416-gcra-generic-cell-rate-algorithm">4.1.6 GCRA (Generic Cell Rate Algorithm)</a></li>
+<li><a class="h2" href="#42-distributed-rate-limiting">4.2 Distributed Rate Limiting</a></li>
+<li><a class="h3" href="#centralized-redis">Centralized (Redis)</a></li>
+<li><a class="h3" href="#local-sync">Local + Sync</a></li>
+<li><a class="h2" href="#43-hierarchical-token-buckets-htb">4.3 Hierarchical Token Buckets (HTB)</a></li>
+<li><a class="h2" href="#44-per-endpoint-vs-per-tenant-vs-per-both">4.4 Per-Endpoint vs Per-Tenant vs Per-Both</a></li>
+<li><a class="h2" href="#45-references">4.5 References</a></li>
+<li><a class="h2" href="#46-atomic-redis-lua-for-token-bucket">4.6 Atomic Redis Lua for Token Bucket</a></li>
+<li><a class="h2" href="#47-sliding-window-counter-cloudflares-math">4.7 Sliding Window Counter — Cloudflare&#x27;s Math</a></li>
+<li><a class="h2" href="#48-gcra-worked-example">4.8 GCRA Worked Example</a></li>
+<li><a class="h2" href="#49-distributed-token-bucket-sync-strategies">4.9 Distributed Token Bucket — Sync Strategies</a></li>
+<li><a class="h3" href="#borrowing">Borrowing</a></li>
+<li><a class="h3" href="#periodic-sync">Periodic Sync</a></li>
+<li><a class="h3" href="#probabilistic">Probabilistic</a></li>
+<li><a class="h2" href="#410-hierarchical-token-bucket-implementation">4.10 Hierarchical Token Bucket Implementation</a></li>
+<li><a class="h2" href="#411-penalty-soft-hard-limits">4.11 Penalty / Soft / Hard Limits</a></li>
+<li><a class="h2" href="#412-burst-allowance-token-bucket-as-a-feature">4.12 Burst Allowance (Token Bucket as a Feature)</a></li>
+<li><a class="h2" href="#413-what-to-limit">4.13 What to Limit</a></li>
+<li><a class="h2" href="#414-headers-standardization">4.14 Headers (Standardization)</a></li>
+<li><a class="h2" href="#415-more-references">4.15 More References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="41-the-five-canonical-algorithms">4.1 The Five Canonical Algorithms</h2>
+<h3 id="411-fixed-window-counter">4.1.1 Fixed Window Counter</h3>
+<pre><code>   bucket = floor(now / window_size)
+   if redis.incr(f&quot;rl:{key}:{bucket}&quot;) &gt; limit:
+       return DENY
+</code></pre>
+<ul>
+<li><strong>Pro</strong>: Trivial; minimal storage (1 int per window).</li>
+<li><strong>Con</strong>: Boundary spike — a client can do <code>2×limit</code> in a 2-second span by hitting at <code>t=window_end - 0.5s</code> and <code>t=window_end + 0.5s</code>.</li>
+</ul>
+<h3 id="412-sliding-window-log">4.1.2 Sliding Window Log</h3>
+<p>Store every request timestamp; on each request, drop entries older than <code>now - window</code>, count remaining.</p>
+<ul>
+<li><strong>Pro</strong>: Exact.</li>
+<li><strong>Con</strong>: O(N) memory per key per window. Awful at scale.</li>
+</ul>
+<h3 id="413-sliding-window-counter">4.1.3 Sliding Window Counter</h3>
+<p>Approximate. Two adjacent fixed windows + linear interpolation:</p>
+<pre><code>   curr = count[current_window]
+   prev = count[previous_window]
+   weight_prev = (window_size - elapsed_in_curr) / window_size
+   approx_count = prev * weight_prev + curr
+</code></pre>
+<p>Cloudflare reports 0.003% wrong allow/deny on 400M requests at peak — accurate enough for almost all use cases. (<a href="https://blog.cloudflare.com/counting-things-a-lot-of-different-things/">blog.cloudflare.com</a>)</p>
+<h3 id="414-token-bucket">4.1.4 Token Bucket</h3>
+<p>Tokens accumulate at rate <code>r</code> up to capacity <code>C</code>. Each request consumes 1 token. If empty, deny (or wait).</p>
+<pre><code class="language-python">class TokenBucket:
+    def __init__(self, rate, capacity):
+        self.rate = rate; self.capacity = capacity
+        self.tokens = capacity; self.last = time.monotonic()
+    def try_acquire(self, n=1):
+        now = time.monotonic()
+        delta = now - self.last
+        self.tokens = min(self.capacity, self.tokens + delta * self.rate)
+        self.last = now
+        if self.tokens &gt;= n:
+            self.tokens -= n; return True
+        return False
+</code></pre>
+<ul>
+<li><strong>Pro</strong>: Allows controlled bursts (up to <code>C</code>); steady-state is <code>r</code>.</li>
+<li><strong>Used by</strong>: AWS, Stripe (older), most SDK clients (<code>tenacity</code>, <code>retry</code>).</li>
+</ul>
+<h3 id="415-leaky-bucket">4.1.5 Leaky Bucket</h3>
+<p>Requests are inserted into a queue; queue drains at constant rate <code>r</code>. If queue full, deny.</p>
+<ul>
+<li><strong>Pro</strong>: Output rate is <em>constant</em> (smooths bursts).</li>
+<li><strong>Con</strong>: Adds latency (queueing); requires queue memory.</li>
+<li><strong>Used by</strong>: NGINX <code>limit_req</code>, traffic shapers.</li>
+</ul>
+<h3 id="416-gcra-generic-cell-rate-algorithm">4.1.6 GCRA (Generic Cell Rate Algorithm)</h3>
+<p>Constant-time, single-state-variable equivalent of leaky bucket. Used by Stripe (Lua in Redis), <code>redis-cell</code> module.</p>
+<pre><code class="language-python">def gcra(now, tat, period, burst):
+    # tat = &quot;Theoretical Arrival Time&quot; (state we keep)
+    increment = period           # 1 / rate
+    new_tat = max(tat, now) + increment
+    allow_at = new_tat - burst * increment
+    if now &lt; allow_at:
+        return False, tat        # too early; deny
+    return True, new_tat
+</code></pre>
+<p>Atomic Redis Lua:</p>
+<pre><code class="language-lua">-- KEYS[1] = key  ARGV: now, period, burst
+local tat = tonumber(redis.call('GET', KEYS[1]) or '0')
+local now = tonumber(ARGV[1])
+local period = tonumber(ARGV[2])
+local burst  = tonumber(ARGV[3])
+local new_tat = math.max(tat, now) + period
+local allow_at = new_tat - burst * period
+if now &lt; allow_at then
+    return 0
+end
+redis.call('SET', KEYS[1], new_tat, 'PX', math.ceil(burst * period))
+return 1
+</code></pre>
+<h2 id="42-distributed-rate-limiting">4.2 Distributed Rate Limiting</h2>
+<p>Single-node bucket doesn't work when the rate-limited entity (a tenant) talks to many servers. Two designs:</p>
+<h3 id="centralized-redis">Centralized (Redis)</h3>
+<ul>
+<li>All servers <code>INCR</code> against a Redis key.</li>
+<li>Pro: Exact.</li>
+<li>Con: 1 RTT per request to Redis; Redis is SPOF; ~100k ops/s ceiling per node.</li>
+</ul>
+<h3 id="local-sync">Local + Sync</h3>
+<ul>
+<li>Each node has its own bucket sized as <code>total / N</code>.</li>
+<li>Periodically sync surplus tokens (every 1s) so under-utilized nodes can lend to busy ones.</li>
+<li>Pro: No per-request RTT.</li>
+<li>Con: Approximate; fairness across nodes not perfect.</li>
+</ul>
+<p>Lyft's <a href="https://github.com/envoyproxy/ratelimit"><code>ratelimit</code></a> (used by Envoy): centralized Redis, gRPC service, supports hierarchical descriptors (<code>{user_id: alice, endpoint: /api/expensive}</code>). Used at scale at Lyft, Reddit, others.</p>
+<h2 id="43-hierarchical-token-buckets-htb">4.3 Hierarchical Token Buckets (HTB)</h2>
+<p>For multi-tier limits (per-user, per-tenant, global):</p>
+<pre><code>                    ┌──────────── Global limit (10K rps) ────────────┐
+                    │                                                │
+              ┌─────┴─────┐                                ┌─────────┴──────┐
+              │ Tenant A  │                                │   Tenant B     │
+              │ (3K rps)  │                                │   (5K rps)     │
+              └─┬─────┬───┘                                └────────┬───────┘
+                │     │                                             │
+            ┌───┘     └───┐                                          │
+            ▼             ▼                                          ▼
+       User a1 (1K)   User a2 (1K)                            User b1 (4K)
+</code></pre>
+<p>A request must pass <em>all</em> levels. Excess capacity at one level can be lent to siblings. Linux <code>tc</code> HTB is a classic implementation.</p>
+<h2 id="44-per-endpoint-vs-per-tenant-vs-per-both">4.4 Per-Endpoint vs Per-Tenant vs Per-Both</h2>
+<p>In webhooks, the natural axes:
+- Per-tenant: protect each customer's quota.
+- Per-endpoint: customer endpoint has its own SLA (might be slower than tenant's quota).
+- Per-event-type: prioritize critical events.</p>
+<p>Typically combine: minimum of per-tenant and per-endpoint rates.</p>
+<h2 id="45-references">4.5 References</h2>
+<ul>
+<li>Stripe rate limiting: https://stripe.com/blog/rate-limiters</li>
+<li>Cloudflare sliding window: https://blog.cloudflare.com/counting-things-a-lot-of-different-things/</li>
+<li>GCRA (RFC-like): https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm</li>
+<li>redis-cell module: https://github.com/brandur/redis-cell</li>
+<li>Envoy/Lyft ratelimit: https://github.com/envoyproxy/ratelimit</li>
+<li>Brandur on Stripe: https://brandur.org/rate-limiting</li>
+</ul>
+<hr />
+<h2 id="46-atomic-redis-lua-for-token-bucket">4.6 Atomic Redis Lua for Token Bucket</h2>
+<pre><code class="language-lua">-- KEYS[1] = bucket key
+-- ARGV[1] = capacity, ARGV[2] = refill_rate (per sec), ARGV[3] = now_ms, ARGV[4] = tokens_requested
+local capacity = tonumber(ARGV[1])
+local rate     = tonumber(ARGV[2])
+local now_ms   = tonumber(ARGV[3])
+local need     = tonumber(ARGV[4])
+
+local data = redis.call('HMGET', KEYS[1], 'tokens', 'last_ms')
+local tokens  = tonumber(data[1]) or capacity
+local last_ms = tonumber(data[2]) or now_ms
+
+local elapsed_ms = now_ms - last_ms
+tokens = math.min(capacity, tokens + (elapsed_ms / 1000.0) * rate)
+
+local allowed = 0
+if tokens &gt;= need then
+    tokens = tokens - need
+    allowed = 1
+end
+
+redis.call('HMSET', KEYS[1], 'tokens', tokens, 'last_ms', now_ms)
+redis.call('PEXPIRE', KEYS[1], math.ceil((capacity / rate) * 1000 * 2))
+return {allowed, tokens}
+</code></pre>
+<p>Single <code>EVAL</code> is atomic; survives concurrent clients. Returns <code>{allowed, remaining}</code> for the client to display rate-limit headers.</p>
+<h2 id="47-sliding-window-counter-cloudflares-math">4.7 Sliding Window Counter — Cloudflare's Math</h2>
+<p>For window of size <code>W</code> with two adjacent counters:
+- <code>weight_prev = (W - elapsed_in_curr) / W</code>
+- <code>approx = floor(prev × weight_prev) + curr</code></p>
+<p>This is exact only if traffic is uniform within each window. In bursty traffic, it can over- or under-estimate by up to one window's burst. Cloudflare measured 0.003% wrong allow/deny on 400M requests, demonstrating accuracy is fine for almost all use cases. Reference: https://blog.cloudflare.com/counting-things-a-lot-of-different-things/</p>
+<h2 id="48-gcra-worked-example">4.8 GCRA Worked Example</h2>
+<p>Limit: 10 requests per second, burst 5.
+- <code>period = 1/10 = 100 ms</code>.
+- <code>burst = 5</code>.</p>
+<p>Trace:</p>
+<pre><code>   t=0:   tat=0
+          new_tat = max(0, 0) + 100 = 100
+          allow_at = 100 - 5*100 = -400
+          0 &lt; -400? No → ALLOW; tat = 100
+
+   t=10:  new_tat = max(100, 10) + 100 = 200
+          allow_at = 200 - 500 = -300
+          10 &lt; -300? No → ALLOW; tat = 200
+
+   ... (after 5 rapid requests at t≈0)
+   t=4:   tat=400 (after 4 prior)
+          new_tat = max(400, 4) + 100 = 500
+          allow_at = 500 - 500 = 0
+          4 &lt; 0? No → ALLOW; tat = 500
+
+   t=5:   new_tat = max(500, 5) + 100 = 600
+          allow_at = 600 - 500 = 100
+          5 &lt; 100? YES → DENY; tat unchanged
+   ...
+   t=100: new_tat = max(500, 100) + 100 = 600
+          allow_at = 100
+          100 &lt; 100? No → ALLOW; tat = 600
+</code></pre>
+<p>Single state variable (<code>tat</code>), constant time. Exact rate; configurable burst. Why Stripe and <code>redis-cell</code> use it.</p>
+<h2 id="49-distributed-token-bucket-sync-strategies">4.9 Distributed Token Bucket — Sync Strategies</h2>
+<p>When local buckets approximate global:</p>
+<h3 id="borrowing">Borrowing</h3>
+<p>Each node has <code>quota = global / N</code>. When a node depletes its quota, it borrows from a central reservoir. Central reservoir is replenished periodically.</p>
+<h3 id="periodic-sync">Periodic Sync</h3>
+<p>Each node tracks consumed; every 1s, syncs to central counter. If global is exceeded, central tells nodes to throttle.</p>
+<h3 id="probabilistic">Probabilistic</h3>
+<p>Each request, sample whether to apply local or central limit (e.g., 90% local, 10% central). Central enforces "ground truth"; local is best-effort.</p>
+<p>Lyft's <code>ratelimit</code> (https://github.com/envoyproxy/ratelimit): centralized Redis with descriptors. Used in Envoy global rate limits.</p>
+<h2 id="410-hierarchical-token-bucket-implementation">4.10 Hierarchical Token Bucket Implementation</h2>
+<pre><code class="language-python">class HTBNode:
+    def __init__(self, parent, rate, ceil):
+        self.parent = parent
+        self.rate = rate          # guaranteed
+        self.ceil = ceil          # max with borrowing
+        self.tokens = rate
+        self.last = time.monotonic()
+        self.children = []
+
+    def try_acquire(self, n=1):
+        now = time.monotonic()
+        delta = now - self.last
+        self.tokens = min(self.ceil, self.tokens + delta * self.rate)
+        self.last = now
+        if self.tokens &gt;= n:
+            if self.parent and not self.parent.try_acquire(n):
+                return False
+            self.tokens -= n
+            return True
+        # try borrowing from parent
+        if self.parent and self.parent.try_acquire(n):
+            return True
+        return False
+</code></pre>
+<p>Each request walks up the tree; all levels must allow. Borrowing is implicit through <code>ceil &gt; rate</code>.</p>
+<p>Linux <code>tc htb</code> is the canonical implementation; AWS API Gateway also uses HTB-like semantics.</p>
+<h2 id="411-penalty-soft-hard-limits">4.11 Penalty / Soft / Hard Limits</h2>
+<p>For UX, separate:
+- <strong>Soft limit</strong> (e.g., 80% of hard): warn the client; no actual rejection.
+- <strong>Hard limit</strong> (100%): reject with 429.</p>
+<p>Helps clients self-throttle before hitting hard limits. Useful for paying customers — they can scale down gracefully.</p>
+<h2 id="412-burst-allowance-token-bucket-as-a-feature">4.12 Burst Allowance (Token Bucket as a Feature)</h2>
+<p>Token bucket allows bursts up to <code>capacity</code>. This is desirable for client SDKs that batch:
+- Steady state: 100 RPS limit.
+- Burst: 500 in 5s allowed.</p>
+<p>Leaky bucket forbids bursts entirely (output is always smooth). Use leaky bucket when downstream is fragile (DB, slow API); token bucket when downstream tolerates spikes.</p>
+<h2 id="413-what-to-limit">4.13 What to Limit</h2>
+<ul>
+<li><strong>Per-user / per-API-key</strong>: standard.</li>
+<li><strong>Per-endpoint</strong>: protect specific expensive operations.</li>
+<li><strong>Per-tenant</strong>: in B2B SaaS.</li>
+<li><strong>Per-IP</strong>: anti-abuse (DDoS).</li>
+<li><strong>Composite</strong>: <code>(user, endpoint)</code> — fairness across users on each endpoint.</li>
+</ul>
+<p>In webhooks: per-tenant + per-endpoint with <code>min</code> of the two.</p>
+<h2 id="414-headers-standardization">4.14 Headers (Standardization)</h2>
+<p>Per IETF draft <code>RateLimit Header Fields for HTTP</code>:
+- <code>RateLimit-Limit: 100, 100;w=60</code> (100 req/min)
+- <code>RateLimit-Remaining: 87</code>
+- <code>RateLimit-Reset: 47</code> (seconds until reset)
+- <code>Retry-After: 30</code> (on 429)</p>
+<p>Older convention (still widely used): <code>X-RateLimit-*</code>.</p>
+<h2 id="415-more-references">4.15 More References</h2>
+<ul>
+<li>IETF RateLimit draft: https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-ratelimit-headers</li>
+<li>redis-cell module: https://github.com/brandur/redis-cell</li>
+<li>Brandur on GCRA: https://brandur.org/rate-limiting</li>
+<li>Lyft Ratelimit: https://github.com/envoyproxy/ratelimit</li>
+<li>HAProxy stick-table rate limiting: https://www.haproxy.com/blog/four-examples-of-haproxy-rate-limiting</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="03-webhook-delivery.html"><span class="side-num">03</span><span class="side-title">Webhook Delivery Platform</span></a></li>
+<li><a href="16-backpressure-patterns.html"><span class="side-num">16</span><span class="side-title">Backpressure Patterns</span></a></li>
+<li><a href="05-exponential-backoff.html"><span class="side-num">05</span><span class="side-title">Exponential Backoff with Jitter</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Algorithms</h4>
+<div class="tool-chips">
+<span class="tool-chip">Token bucket</span>
+<span class="tool-chip">Leaky bucket</span>
+<span class="tool-chip">Fixed window</span>
+<span class="tool-chip">Sliding window log</span>
+<span class="tool-chip">Sliding window counter</span>
+<span class="tool-chip">GCRA</span>
+</div></div>
+<div class="tool-group"><h4>Distributed implementations</h4>
+<div class="tool-chips">
+<span class="tool-chip">Redis + Lua atomic</span>
+<span class="tool-chip">Envoy/Lyft ratelimit</span>
+<span class="tool-chip">redis-cell module</span>
+<span class="tool-chip">Cloudflare sliding window</span>
+</div></div>
+<div class="tool-group"><h4>Hierarchical</h4>
+<div class="tool-chips">
+<span class="tool-chip">Linux tc HTB</span>
+<span class="tool-chip">AWS API Gateway</span>
+<span class="tool-chip">Stripe rate limiter</span>
+</div></div>
+<div class="tool-group"><h4>Protocol</h4>
+<div class="tool-chips">
+<span class="tool-chip">RateLimit-* IETF headers</span>
+<span class="tool-chip">Retry-After (RFC 7231)</span>
+<span class="tool-chip">X-RateLimit-* (legacy)</span>
+</div></div>
+<div class="tool-group"><h4>Production references</h4>
+<div class="tool-chips">
+<span class="tool-chip">Stripe blog</span>
+<span class="tool-chip">Cloudflare blog</span>
+<span class="tool-chip">Brandur on GCRA</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="03-webhook-delivery.html"><span class="nav-label">← Chapter 03</span><span class="nav-title">Webhook Delivery Platform</span></a>
+    <a class="nav-next nav-next-link" href="05-exponential-backoff.html"><span class="nav-label">Chapter 05 →</span><span class="nav-title">Exponential Backoff with Jitter</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>10 · CRDTs Deep Dive — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="10">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">10</span>
+      <span class="meta-rule"></span>
+      <span>Distributed · Deep Dive</span>
+    </div>
+    <h1 class="article-title">CRDTs Deep Dive</h1>
+    <p class="article-lede">RGA, Yjs YATA, Automerge JSON, Loro Eg-walker — the SEC math, the production benchmarks, the OT-vs-CRDT inflection.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#101-what-crdts-are">10.1 What CRDTs Are</a></li>
+<li><a class="h2" href="#102-the-crdt-catalog">10.2 The CRDT Catalog</a></li>
+<li><a class="h2" href="#103-rga-replicated-growable-array-the-canonical-text-crdt">10.3 RGA — Replicated Growable Array (the canonical text CRDT)</a></li>
+<li><a class="h2" href="#104-yjs-yata">10.4 Yjs YATA</a></li>
+<li><a class="h2" href="#105-automerge-json">10.5 Automerge JSON</a></li>
+<li><a class="h2" href="#106-the-tree-move-problem">10.6 The Tree-Move Problem</a></li>
+<li><a class="h2" href="#107-ot-vs-crdt-joseph-gentle-i-was-wrong">10.7 OT vs CRDT (Joseph Gentle: &quot;I was wrong&quot;)</a></li>
+<li><a class="h2" href="#108-production-crdt-usage">10.8 Production CRDT Usage</a></li>
+<li><a class="h2" href="#109-limitations-tradeoffs">10.9 Limitations / Tradeoffs</a></li>
+<li><a class="h2" href="#1010-references">10.10 References</a></li>
+<li><a class="h2" href="#1011-state-based-vs-op-based-concrete-example">10.11 State-Based vs Op-Based — Concrete Example</a></li>
+<li><a class="h3" href="#g-counter-state-based">G-Counter (state-based)</a></li>
+<li><a class="h3" href="#g-counter-op-based">G-Counter (op-based)</a></li>
+<li><a class="h2" href="#1012-or-set-construction">10.12 OR-Set Construction</a></li>
+<li><a class="h2" href="#1013-rga-insertion-algorithm-detail">10.13 RGA Insertion Algorithm Detail</a></li>
+<li><a class="h2" href="#1014-yata-yjs-block-encoding">10.14 YATA (Yjs) Block Encoding</a></li>
+<li><a class="h2" href="#1015-automerges-append-only-op-log">10.15 Automerge&#x27;s Append-Only Op Log</a></li>
+<li><a class="h2" href="#1016-loros-eg-walker">10.16 Loro&#x27;s Eg-Walker</a></li>
+<li><a class="h2" href="#1017-the-tree-move-problem-kleppmann-2022">10.17 The Tree-Move Problem (Kleppmann 2022)</a></li>
+<li><a class="h2" href="#1018-garbage-collection-in-crdts">10.18 Garbage Collection in CRDTs</a></li>
+<li><a class="h2" href="#1019-ot-vs-crdt-when-each-wins">10.19 OT vs CRDT — When Each Wins</a></li>
+<li><a class="h2" href="#1020-production-crdt-performance-numbers">10.20 Production CRDT Performance Numbers</a></li>
+<li><a class="h2" href="#1021-practical-choice-matrix">10.21 Practical Choice Matrix</a></li>
+<li><a class="h2" href="#1022-more-references">10.22 More References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="101-what-crdts-are">10.1 What CRDTs Are</h2>
+<p>A <strong>Conflict-Free Replicated Data Type</strong> is a data type whose state can be replicated across nodes and updated independently, where merging always converges to the same value (Strong Eventual Consistency, SEC).</p>
+<p>Two flavors:
+- <strong>State-based (CvRDT)</strong>: replicas exchange full state; merge is associative, commutative, idempotent (a join-semilattice).
+- <strong>Op-based (CmRDT)</strong>: replicas exchange operations; messages are commutative; need reliable causal broadcast.</p>
+<p>Foundational paper: Shapiro et al., <em>A comprehensive study of CRDTs</em> (INRIA RR-7506, 2011). https://hal.inria.fr/inria-00555588/document</p>
+<h2 id="102-the-crdt-catalog">10.2 The CRDT Catalog</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>G-Counter</strong></td>
+<td>Grow-only counter; per-replica counter, total = sum</td>
+<td>View counters, like counts</td>
+</tr>
+<tr>
+<td><strong>PN-Counter</strong></td>
+<td>Two G-Counters (P + N) for increment/decrement</td>
+<td>General counters</td>
+</tr>
+<tr>
+<td><strong>OR-Set</strong></td>
+<td>Observed-Remove Set; tag each add with unique ID</td>
+<td>Generic sets</td>
+</tr>
+<tr>
+<td><strong>2P-Set</strong></td>
+<td>Add+Remove, but item can never re-add</td>
+<td>Tombstone-only sets</td>
+</tr>
+<tr>
+<td><strong>LWW-Element-Set</strong></td>
+<td>Last-Writer-Wins per element</td>
+<td>When timestamps are reliable</td>
+</tr>
+<tr>
+<td><strong>MV-Register</strong></td>
+<td>Multi-Value Register; concurrent writes both kept</td>
+<td>"Branch and resolve"</td>
+</tr>
+<tr>
+<td><strong>RGA</strong></td>
+<td>Replicated Growable Array; tree of insertions</td>
+<td>Text</td>
+</tr>
+<tr>
+<td><strong>WOOT</strong></td>
+<td>Without Operational Transform; original CRDT for text</td>
+<td>Historical</td>
+</tr>
+<tr>
+<td><strong>Logoot</strong></td>
+<td>Position identifiers as ordered sequences</td>
+<td>Text, no tombstones</td>
+</tr>
+<tr>
+<td><strong>LSEQ</strong></td>
+<td>Logoot with allocation strategies</td>
+<td>Text, balanced</td>
+</tr>
+<tr>
+<td><strong>YATA</strong> (Yjs)</td>
+<td>Block-based, integration insertions</td>
+<td>Production text</td>
+</tr>
+<tr>
+<td><strong>Automerge JSON</strong></td>
+<td>Tree of CRDTs for any JSON shape</td>
+<td>Documents</td>
+</tr>
+<tr>
+<td><strong>Eg-walker</strong> (Loro)</td>
+<td>Event-graph walker, sub-O(N) text</td>
+<td>Modern text CRDT</td>
+</tr>
+<tr>
+<td><strong>Tree-Move</strong> (Kleppmann)</td>
+<td>Move operation with cycle prevention</td>
+<td>Filesystem-like</td>
+</tr>
+</tbody>
+</table>
+<h2 id="103-rga-replicated-growable-array-the-canonical-text-crdt">10.3 RGA — Replicated Growable Array (the canonical text CRDT)</h2>
+<p>Each character has a unique <code>id = (timestamp, replica_id)</code>. Inserting at position <code>p</code> means "insert after the character whose id is at position p-1". Concurrent inserts at the same anchor are ordered by id (e.g., higher timestamp wins).</p>
+<pre><code>   Initial:  [A]
+   Replica 1 inserts B after A, id=(2, R1) → [A, B(2,R1)]
+   Replica 2 inserts C after A, id=(2, R2) → [A, C(2,R2)]
+   Merge:    sort children of A by id desc → [A, C(2,R2), B(2,R1)]
+             (deterministic — both replicas converge)
+</code></pre>
+<p>Tombstones: deleted characters become tombstones (kept for causal context). Garbage collection requires consensus on which tombstones can be removed.</p>
+<h2 id="104-yjs-yata">10.4 Yjs YATA</h2>
+<p>YATA is RGA-flavored but simpler integration:
+- Each block is <code>(id, origin_left, origin_right, content)</code>.
+- Insertion finds its place between origin_left and origin_right.
+- Concurrent inserts at the same place use lexicographic id ordering.</p>
+<p>Yjs encodes blocks compactly; runs of consecutive characters from the same client are merged into one block. This is why Yjs is so much smaller and faster than naïve RGA.</p>
+<h2 id="105-automerge-json">10.5 Automerge JSON</h2>
+<p>Automerge supports arbitrary JSON. Each map field is an MV-register; each list is RGA; nested objects are independent CRDTs. v2 changed the storage to a binary format with offset compression.</p>
+<p>Comparison with Yjs (Kleppmann's B4 benchmark):</p>
+<table>
+<thead>
+<tr>
+<th>Library</th>
+<th>Time</th>
+<th>Memory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Yjs</td>
+<td>970 ms</td>
+<td>3 MB</td>
+</tr>
+<tr>
+<td>Automerge v1</td>
+<td>291 s</td>
+<td>880 MB</td>
+</tr>
+<tr>
+<td>Automerge v2</td>
+<td>&lt; 5 s</td>
+<td>30 MB</td>
+</tr>
+</tbody>
+</table>
+<h2 id="106-the-tree-move-problem">10.6 The Tree-Move Problem</h2>
+<p>Moving an item to a new parent has a subtle issue: if A moves item X under Y, and concurrently B moves Y under X, you get a cycle. Kleppmann's paper <em>A Highly Available Move Operation for Replicated Trees</em> (TPDS 2022) presents a deterministic resolution: order operations by timestamp, undo conflicting moves on reception.</p>
+<p>Reference: https://martin.kleppmann.com/2021/10/07/crdt-tree-move-operation.html</p>
+<h2 id="107-ot-vs-crdt-joseph-gentle-i-was-wrong">10.7 OT vs CRDT (Joseph Gentle: "I was wrong")</h2>
+<p>OT was the dominant approach 2000s-2010s (Google Docs, Etherpad). CRDTs took over from ~2018 onward. Joseph Gentle (ShareJS author) wrote <em>I was wrong, CRDTs are the future</em>: https://josephg.com/blog/crdts-are-the-future/</p>
+<p>Key arguments:
+- CRDTs work without a central server; OT requires one.
+- CRDTs can be authored offline and synced.
+- Modern CRDTs (Yjs, Loro) match OT performance.</p>
+<p>But: server-mediated apps (Figma, Notion) often choose hybrid because CRDT semantics don't always match user intent (e.g., "I edited this, the other person's old edit shouldn't reappear" needs causal context).</p>
+<h2 id="108-production-crdt-usage">10.8 Production CRDT Usage</h2>
+<ul>
+<li><strong>Yjs</strong>: TipTap, BlockNote, Liveblocks, Hocuspocus, JupyterLab.</li>
+<li><strong>Automerge</strong>: Ink+Switch demos, some local-first apps.</li>
+<li><strong>Loro</strong>: emerging; used in Affine.</li>
+<li><strong>Riak</strong>: ORSWOT (subset of OR-Set) for distributed key-value semantics.</li>
+<li><strong>Redis Enterprise</strong>: CRDB feature; geo-replicated CRDTs.</li>
+<li><strong>Figma</strong>: LWW-per-property with tree-CRDT for hierarchy.</li>
+</ul>
+<h2 id="109-limitations-tradeoffs">10.9 Limitations / Tradeoffs</h2>
+<ul>
+<li><strong>Metadata overhead</strong>: tombstones, vector clocks, IDs per element.</li>
+<li><strong>Garbage collection</strong> is hard — when can we forget a tombstone?</li>
+<li><strong>Causal broadcast</strong> — op-based CRDTs need it; over WAN this means buffering.</li>
+<li><strong>No invariants across keys</strong>: CRDTs guarantee per-key convergence, not "balance ≥ 0" across an account.</li>
+</ul>
+<p>For invariants, you need either consensus or compensating actions.</p>
+<h2 id="1010-references">10.10 References</h2>
+<ul>
+<li>Shapiro RR-7506: https://hal.inria.fr/inria-00555588/document</li>
+<li>Kleppmann JSON CRDT: https://martin.kleppmann.com/2017/04/24/json-crdt.html</li>
+<li>Kleppmann CRDTs: The Hard Parts (talk): https://martin.kleppmann.com/2020/07/06/crdt-hard-parts-hydra.html</li>
+<li>Yjs internals: https://docs.yjs.dev/api/internals</li>
+<li>Joseph Gentle CRDTs are the future: https://josephg.com/blog/crdts-are-the-future/</li>
+<li>Loro: https://www.loro.dev/</li>
+<li>Automerge benchmarks: https://github.com/automerge/automerge-perf</li>
+<li>Riak ORSWOT: https://github.com/basho/riak_dt</li>
+</ul>
+<hr />
+<h2 id="1011-state-based-vs-op-based-concrete-example">10.11 State-Based vs Op-Based — Concrete Example</h2>
+<h3 id="g-counter-state-based">G-Counter (state-based)</h3>
+<p>State at each replica: <code>vector&lt;int&gt;</code> indexed by replica ID.</p>
+<pre><code class="language-python">class GCounter:
+    def __init__(self, replica_id, num_replicas):
+        self.id = replica_id
+        self.counts = [0] * num_replicas
+
+    def increment(self, n=1):
+        self.counts[self.id] += n
+
+    def value(self):
+        return sum(self.counts)
+
+    def merge(self, other):
+        # Element-wise max; commutative, associative, idempotent
+        for i in range(len(self.counts)):
+            self.counts[i] = max(self.counts[i], other.counts[i])
+</code></pre>
+<p>The <code>merge</code> is a join in a semilattice (<code>max</code> is a least-upper-bound operation). All replicas converge to the same value regardless of merge order or message duplication.</p>
+<h3 id="g-counter-op-based">G-Counter (op-based)</h3>
+<pre><code class="language-python">class GCounterOp:
+    def __init__(self):
+        self.value = 0
+
+    def apply(self, op):
+        # op = (&quot;inc&quot;, n)
+        if op[0] == &quot;inc&quot;:
+            self.value += op[1]
+</code></pre>
+<p>Op-based: just broadcast <code>("inc", 1)</code>. Increment is commutative. But: needs reliable, exactly-once delivery (else under/over-count). State-based is more robust to network shenanigans.</p>
+<h2 id="1012-or-set-construction">10.12 OR-Set Construction</h2>
+<p>The naive set CRDT (just union) doesn't allow removal. The 2P-Set adds a remove-set, but you can't re-add an element after removing.</p>
+<p>OR-Set (Observed-Remove): tag each add with a unique id. On remove, mark all currently-known ids as removed.</p>
+<pre><code class="language-python">class ORSet:
+    def __init__(self):
+        self.adds = {}    # element → set of unique ids
+        self.tomb = {}    # element → set of removed ids
+
+    def add(self, x):
+        uid = uuid.uuid4().hex
+        self.adds.setdefault(x, set()).add(uid)
+        return uid
+
+    def remove(self, x):
+        ids = self.adds.get(x, set())
+        self.tomb.setdefault(x, set()).update(ids)
+
+    def contains(self, x):
+        live = self.adds.get(x, set()) - self.tomb.get(x, set())
+        return bool(live)
+
+    def merge(self, other):
+        for x, ids in other.adds.items():
+            self.adds.setdefault(x, set()).update(ids)
+        for x, ids in other.tomb.items():
+            self.tomb.setdefault(x, set()).update(ids)
+</code></pre>
+<p>Concurrent add and remove: add wins (the add's uid wasn't in the remove-set when remove ran). This matches user intuition for "I just added, don't remove based on stale state".</p>
+<h2 id="1013-rga-insertion-algorithm-detail">10.13 RGA Insertion Algorithm Detail</h2>
+<pre><code class="language-python">class RGANode:
+    def __init__(self, char, id, parent_id):
+        self.char = char
+        self.id = id              # (timestamp, replica)
+        self.parent = parent_id   # the node this was inserted after
+        self.children = []        # child nodes; sorted by id desc
+        self.tombstone = False
+
+class RGA:
+    def __init__(self, replica_id):
+        self.replica_id = replica_id
+        self.clock = 0
+        self.root = RGANode(None, (0, 0), None)
+        self.index = {(0, 0): self.root}
+
+    def _next_id(self):
+        self.clock += 1
+        return (self.clock, self.replica_id)
+
+    def insert_after(self, parent_id, char):
+        new_id = self._next_id()
+        node = RGANode(char, new_id, parent_id)
+        parent = self.index[parent_id]
+        # Insert into children sorted by id descending
+        # so concurrent inserts at same parent are deterministically ordered
+        bisect.insort(parent.children, node, key=lambda n: -n.id)
+        self.index[new_id] = node
+        return new_id
+
+    def delete(self, node_id):
+        if node_id in self.index:
+            self.index[node_id].tombstone = True
+
+    def render(self):
+        out = []
+        def walk(node):
+            for c in node.children:
+                if not c.tombstone:
+                    out.append(c.char)
+                walk(c)
+        walk(self.root)
+        return &quot;&quot;.join(out)
+</code></pre>
+<p>The id sort gives <strong>determinism</strong> under concurrency: replicas that see the same set of operations produce the same render order, regardless of order of receipt.</p>
+<h2 id="1014-yata-yjs-block-encoding">10.14 YATA (Yjs) Block Encoding</h2>
+<p>Yjs encodes runs of consecutive characters from the same client into a "block":</p>
+<pre><code>   block = {
+     id: (client_id, clock_start, length),
+     content: &quot;hello world&quot;,
+     origin_left: &lt;id of left neighbor&gt;,
+     origin_right: &lt;id of right neighbor&gt;,
+   }
+</code></pre>
+<p>This dramatically compresses storage when one user types a long sequence. A 10000-character paste becomes one block, not 10000 nodes.</p>
+<p>Splits happen on:
+- A different client's insertion in the middle.
+- A delete in the middle (creates two blocks with a tombstone gap).</p>
+<p>This is why Yjs's memory and disk usage are 1-2 orders of magnitude smaller than naive RGA.</p>
+<h2 id="1015-automerges-append-only-op-log">10.15 Automerge's Append-Only Op Log</h2>
+<p>Automerge stores all operations in a log; the document state is derived by applying them in causal order.</p>
+<pre><code>   ops = [
+     {action: &quot;set&quot;, obj: ROOT, key: &quot;title&quot;, value: &quot;Doc&quot;,   pred: []},
+     {action: &quot;set&quot;, obj: ROOT, key: &quot;title&quot;, value: &quot;Notes&quot;, pred: [op1.id]},
+     ...
+   ]
+</code></pre>
+<p>Each op cites which prior ops it supersedes (pred). Concurrent ops are ones not in each other's pred. Automerge resolves concurrent register writes via MVR (kept as multi-value).</p>
+<p>Versioning: any state can be reconstructed by applying any prefix of the log. Branching: hand someone a set of ops; they can replay in their own causal order.</p>
+<p>Reference: https://arxiv.org/pdf/1608.03960</p>
+<h2 id="1016-loros-eg-walker">10.16 Loro's Eg-Walker</h2>
+<p>Eg-walker (Event Graph Walker) by Loro re-thinks RGA. Instead of maintaining the full tree, store ops in a DAG ordered by causal dependencies. To compute current state, walk the DAG.</p>
+<p>Key advantage: most operations don't need to materialize the full tree; they walk only the paths that are causally ordered relative to themselves. This sidesteps the O(N²) cost of OT and the heavy metadata cost of classical RGA.</p>
+<p>Reports on Kleppmann's B4 trace are competitive with Yjs (often within 2×) while supporting time-travel via DAG checkpoints.</p>
+<p>Reference: https://arxiv.org/abs/2409.14252</p>
+<h2 id="1017-the-tree-move-problem-kleppmann-2022">10.17 The Tree-Move Problem (Kleppmann 2022)</h2>
+<p>For a filesystem-like CRDT (folders containing items), naive concurrent moves can create cycles:</p>
+<pre><code>   Initial: A → B → C
+   User 1: Move B inside C  → A, C → B
+   User 2: Move C inside B  → A, B → C
+
+   Naive merge: B → C and C → B → cycle
+</code></pre>
+<p>Solution: each move op has timestamp; on receive, replicas check if applying would create a cycle; if so, undo the op and re-apply later in different order. The deterministic algorithm guarantees all replicas converge.</p>
+<p>Reference: https://martin.kleppmann.com/2021/10/07/crdt-tree-move-operation.html</p>
+<h2 id="1018-garbage-collection-in-crdts">10.18 Garbage Collection in CRDTs</h2>
+<p>Tombstones, op logs, and version vectors grow unboundedly. GC strategies:
+- <strong>Stable point detection</strong>: an op is stable when all replicas have observed it. Stable ops can be compacted into "snapshots".
+- <strong>Causal-stability protocol</strong>: each replica reports its observed-version vector; intersection is the stable frontier.
+- <strong>Lossy GC</strong>: drop history older than X days at the cost of losing time-travel.</p>
+<p>Yjs supports incremental GC; Automerge has snapshot+log compaction; Loro's DAG checkpoints define stable boundaries.</p>
+<h2 id="1019-ot-vs-crdt-when-each-wins">10.19 OT vs CRDT — When Each Wins</h2>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>OT</th>
+<th>CRDT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Server required</td>
+<td>Yes (single point of order)</td>
+<td>No (peer-to-peer OK)</td>
+</tr>
+<tr>
+<td>Per-op overhead</td>
+<td>Low (just position)</td>
+<td>Higher (id, refs)</td>
+</tr>
+<tr>
+<td>Offline editing</td>
+<td>Hard</td>
+<td>Native</td>
+</tr>
+<tr>
+<td>Algorithmic complexity</td>
+<td>T() function per op-pair</td>
+<td>Merge / Apply</td>
+</tr>
+<tr>
+<td>Convergence proof</td>
+<td>TP1 / TP2 conditions</td>
+<td>Semi-lattice math</td>
+</tr>
+<tr>
+<td>Modern usage</td>
+<td>Google Docs, Etherpad</td>
+<td>Yjs, Automerge, Loro</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Today's consensus</strong> (Joseph Gentle's blog): CRDTs win for most new builds. OT remains for systems already invested in server-mediated single-source-of-truth.</p>
+<h2 id="1020-production-crdt-performance-numbers">10.20 Production CRDT Performance Numbers</h2>
+<p>On Kleppmann's "B4 trace" (a realistic editing trace from his thesis):</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Time</th>
+<th>Memory</th>
+<th>File size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Yjs</td>
+<td>~970ms</td>
+<td>3MB</td>
+<td>~150KB</td>
+</tr>
+<tr>
+<td>Automerge v1</td>
+<td>291s</td>
+<td>880MB</td>
+<td>~30MB</td>
+</tr>
+<tr>
+<td>Automerge v2 (Rust)</td>
+<td>~5s</td>
+<td>30MB</td>
+<td>~1MB</td>
+</tr>
+<tr>
+<td>Loro</td>
+<td>~700ms</td>
+<td>8MB</td>
+<td>~250KB</td>
+</tr>
+</tbody>
+</table>
+<p>Numbers from public benchmarks; vary by test suite. Reference: https://github.com/dmonad/crdt-benchmarks</p>
+<h2 id="1021-practical-choice-matrix">10.21 Practical Choice Matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rich-text in browser</td>
+<td>Yjs + TipTap</td>
+</tr>
+<tr>
+<td>JSON document, multi-platform</td>
+<td>Automerge v2</td>
+</tr>
+<tr>
+<td>Modern, time-travel, fast</td>
+<td>Loro</td>
+</tr>
+<tr>
+<td>Just counters</td>
+<td>Riak ORSWOT, redis-crdt</td>
+</tr>
+<tr>
+<td>Whiteboard / canvas</td>
+<td>Yjs (used by Liveblocks)</td>
+</tr>
+<tr>
+<td>Code editor</td>
+<td>Yjs (CodeMirror Y-extension)</td>
+</tr>
+<tr>
+<td>Mobile-first local-first</td>
+<td>Automerge / Replicache</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1022-more-references">10.22 More References</h2>
+<ul>
+<li>Shapiro RR-7506: https://hal.inria.fr/inria-00555588/document</li>
+<li>Yjs internals: https://docs.yjs.dev/api/internals</li>
+<li>YATA paper: https://www.researchgate.net/publication/315851606_Near_Real-Time_Peer-to-Peer_Shared_Editing_on_Extensible_Data_Types</li>
+<li>Loro: https://www.loro.dev/</li>
+<li>Kleppmann <em>Local-First Software</em>: https://www.inkandswitch.com/local-first/</li>
+<li>Joseph Gentle "I was wrong, CRDTs are the future": https://josephg.com/blog/crdts-are-the-future/</li>
+<li>CRDT benchmarks: https://github.com/dmonad/crdt-benchmarks</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="09-streaming-text-differ.html"><span class="side-num">09</span><span class="side-title">Token-Level Streaming Text Differ with Rollback</span></a></li>
+<li><a href="06-idempotency.html"><span class="side-num">06</span><span class="side-title">Idempotency in Distributed Systems</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Counter / set CRDTs</h4>
+<div class="tool-chips">
+<span class="tool-chip">G-Counter</span>
+<span class="tool-chip">PN-Counter</span>
+<span class="tool-chip">OR-Set</span>
+<span class="tool-chip">2P-Set</span>
+<span class="tool-chip">LWW-Element-Set</span>
+<span class="tool-chip">MV-Register</span>
+</div></div>
+<div class="tool-group"><h4>Sequence CRDTs</h4>
+<div class="tool-chips">
+<span class="tool-chip">RGA</span>
+<span class="tool-chip">WOOT</span>
+<span class="tool-chip">Logoot</span>
+<span class="tool-chip">LSEQ</span>
+<span class="tool-chip">YATA (Yjs)</span>
+</div></div>
+<div class="tool-group"><h4>Document CRDTs</h4>
+<div class="tool-chips">
+<span class="tool-chip">Automerge JSON</span>
+<span class="tool-chip">Loro Eg-walker</span>
+<span class="tool-chip">Ink+Switch demos</span>
+</div></div>
+<div class="tool-group"><h4>Production usage</h4>
+<div class="tool-chips">
+<span class="tool-chip">TipTap</span>
+<span class="tool-chip">BlockNote</span>
+<span class="tool-chip">Liveblocks</span>
+<span class="tool-chip">Hocuspocus</span>
+<span class="tool-chip">JupyterLab RTC</span>
+<span class="tool-chip">Riak ORSWOT</span>
+<span class="tool-chip">Redis Enterprise CRDB</span>
+</div></div>
+<div class="tool-group"><h4>Foundational papers</h4>
+<div class="tool-chips">
+<span class="tool-chip">Shapiro INRIA RR-7506 (2011)</span>
+<span class="tool-chip">Kleppmann JSON CRDT (2017)</span>
+<span class="tool-chip">Kleppmann tree-move (2022)</span>
+</div></div>
+<div class="tool-group"><h4>Hybrid systems</h4>
+<div class="tool-chips">
+<span class="tool-chip">Figma multiplayer (LWW + tree CRDT + server arbitration)</span>
+<span class="tool-chip">Notion data model</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="09-streaming-text-differ.html"><span class="nav-label">← Chapter 09</span><span class="nav-title">Token-Level Streaming Text Differ with Rollback</span></a>
+    <a class="nav-next nav-next-link" href="11-chatgpt-system-design.html"><span class="nav-label">Chapter 11 →</span><span class="nav-title">ChatGPT System Design</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

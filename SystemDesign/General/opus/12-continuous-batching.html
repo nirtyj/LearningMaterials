@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>12 · Continuous Batching Internals — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="12">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">12</span>
+      <span class="meta-rule"></span>
+      <span>LLM Serving · Deep Dive</span>
+    </div>
+    <h1 class="article-title">Continuous Batching Internals</h1>
+    <p class="article-lede">Orca&#x27;s iteration-level batching, vLLM v0/v1 schedulers, Sarathi&#x27;s stall-free chunked prefill, and FlashAttention&#x27;s role.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#121-the-problem-with-static-batching">12.1 The Problem with Static Batching</a></li>
+<li><a class="h2" href="#122-dynamic-batching-old">12.2 Dynamic Batching (Old)</a></li>
+<li><a class="h2" href="#123-continuous-batching-orca-osdi-22">12.3 Continuous Batching (Orca, OSDI &#x27;22)</a></li>
+<li><a class="h2" href="#124-vllm-v1-scheduler">12.4 vLLM V1 Scheduler</a></li>
+<li><a class="h2" href="#125-sarathi-serve-stall-free-chunked-prefill">12.5 Sarathi-Serve: Stall-Free Chunked Prefill</a></li>
+<li><a class="h2" href="#126-selective-batching-orca-paper">12.6 Selective Batching (Orca paper)</a></li>
+<li><a class="h2" href="#127-throughput-vs-tbt-curves-h100-llama-2-70b">12.7 Throughput vs TBT Curves (H100, Llama-2-70B)</a></li>
+<li><a class="h2" href="#128-references">12.8 References</a></li>
+<li><a class="h2" href="#129-iteration-level-granularity-vs-request-level">12.9 Iteration-Level Granularity (vs Request-Level)</a></li>
+<li><a class="h2" href="#1210-vllm-v0-vs-v1-architectural-differences">12.10 vLLM V0 vs V1 Architectural Differences</a></li>
+<li><a class="h2" href="#1211-flashattention-123-why-it-matters-here">12.11 FlashAttention 1/2/3 — Why It Matters Here</a></li>
+<li><a class="h2" href="#1212-sarathi-serve-algorithm-pseudocode">12.12 Sarathi-Serve Algorithm Pseudocode</a></li>
+<li><a class="h2" href="#1213-speculative-decoding">12.13 Speculative Decoding</a></li>
+<li><a class="h2" href="#1214-throughput-vs-latency-curves">12.14 Throughput vs Latency Curves</a></li>
+<li><a class="h2" href="#1215-production-implementations">12.15 Production Implementations</a></li>
+<li><a class="h2" href="#1216-common-interview-follow-ups">12.16 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#1217-further-references">12.17 Further References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="121-the-problem-with-static-batching">12.1 The Problem with Static Batching</h2>
+<p>In a fixed-size batch, all requests must produce the same number of tokens. The batch finishes when the longest request finishes. Short requests sit idle waiting:</p>
+<pre><code>   Static batch (size 4):
+
+   t=0  ┌────┬────┬────┬────┐    R1 wants 50 tokens
+        │ R1 │ R2 │ R3 │ R4 │    R2 wants 100
+   t=49 │ R1 ✓                   R3 wants 30 ✓ at t=29  but stays in batch
+   t=29 │           │ R3 ✓          (idle for 70 steps)
+   ...
+   GPU is idle for short requests waiting for longest.
+</code></pre>
+<h2 id="122-dynamic-batching-old">12.2 Dynamic Batching (Old)</h2>
+<p>NVIDIA Triton dynamic batching: form a batch from incoming requests every <code>T</code> ms or when batch is full, dispatch, return when all done. Slight improvement, still suffers from "batch finishes when longest finishes".</p>
+<h2 id="123-continuous-batching-orca-osdi-22">12.3 Continuous Batching (Orca, OSDI '22)</h2>
+<p>Per-iteration batching: at every decode step, check the active set, evict finished requests, admit new ones. Each iteration has its own batch:</p>
+<pre><code>   Continuous batching:
+
+   t=0:  batch = {R1, R2, R3, R4}
+   t=1:  batch = {R1, R2, R3, R4}     each does 1 step
+   ...
+   t=29: R3 finishes → evict
+   t=30: batch = {R1, R2, R4}; admit R5 → {R1, R2, R4, R5}
+   t=49: R1 finishes → evict; admit R6
+   ...
+</code></pre>
+<p>Each request makes progress; GPU is fully utilized; new requests admitted as soon as KV cache has room. Orca reports 36.9× throughput vs. FasterTransformer.</p>
+<h2 id="124-vllm-v1-scheduler">12.4 vLLM V1 Scheduler</h2>
+<p>vLLM v1 (released Jan 2025) unified prefill and decode into a single primitive. Each iteration step admits a token budget:</p>
+<pre><code>   schedule_step(token_budget=512):
+       admit_set = {}
+       remaining = token_budget
+
+       # 1. Continue running requests (decode = 1 token each)
+       for req in running:
+           admit_set[req.id] = 1
+           remaining -= 1
+
+       # 2. Resume preempted requests (prefill from saved tokens)
+       for req in preempted:
+           if remaining &gt;= req.remaining_prefill:
+               admit_set[req.id] = req.remaining_prefill
+               remaining -= req.remaining_prefill
+
+       # 3. Admit new requests up to budget
+       for req in waiting:
+           chunk = min(req.prompt_len, remaining)
+           admit_set[req.id] = chunk
+           req.prompt_offset += chunk
+           remaining -= chunk
+           if remaining == 0: break
+
+       return admit_set
+</code></pre>
+<p>V1 dropped CPU swap (V0 had it); recompute is faster than swap on H100. KV-cache pages of preempted requests are simply freed; on resume, the prefill chunks re-run.</p>
+<h2 id="125-sarathi-serve-stall-free-chunked-prefill">12.5 Sarathi-Serve: Stall-Free Chunked Prefill</h2>
+<p>The interleave problem: a long prefill (say, 16k tokens) takes 100 ms in one iteration, blocking all decodes. Sarathi-Serve splits prefill into chunks and interleaves with decodes:</p>
+<pre><code>   Naïve:
+   t=0   prefill R_new (16k tokens, 100ms)  ← all decodes blocked
+   t=100 decode all  (10ms)
+
+   Sarathi-Serve (token_budget=512):
+   t=0   prefill R_new chunk 1 (512) + decode 8 in same fwd pass (~4ms)
+   t=4   prefill R_new chunk 2 (512) + decode 8 (~4ms)
+   ...
+   t=128 prefill done; all decodes have made steady progress
+</code></pre>
+<p>Every iteration packs <code>chunk_prefill_tokens + decode_tokens ≤ token_budget</code>. TBT (time-between-tokens) is bounded; throughput maintained.</p>
+<p>Token budget tuning (Sarathi paper):
+- 7B model on A100: 256.
+- 70B model on 4×A100: 512.
+- 180B Falcon: 5.6× capacity at strict SLO.</p>
+<p>Reference: https://arxiv.org/abs/2403.02310</p>
+<h2 id="126-selective-batching-orca-paper">12.6 Selective Batching (Orca paper)</h2>
+<p>The non-attention ops (LayerNorm, MLP, residual) are simple matmul/elementwise — they batch as <code>[L_total, H]</code> with no padding overhead, where <code>L_total = sum of seq lens in batch</code>. Attention is sequence-specific — done per-request via PagedAttention.</p>
+<pre><code>   Batch state:
+     R1: seq_len=20, doing decode (1 token)
+     R2: seq_len=512, doing prefill (chunk of 256)
+     R3: seq_len=1, doing decode
+
+   For non-attn ops: input is [277, H] (20+256+1) — single big matmul
+   For attn ops: PagedAttention launches a kernel per request
+                 (each attends to its own KV cache block list)
+</code></pre>
+<p>This is why FlashAttention and FlashInfer have specialized kernels for "varlen" — variable length attention with packed sequences.</p>
+<h2 id="127-throughput-vs-tbt-curves-h100-llama-2-70b">12.7 Throughput vs TBT Curves (H100, Llama-2-70B)</h2>
+<p>Roughly:
+- Static batch=1: 50 tokens/s, TBT = 20 ms.
+- Static batch=8: 250 tokens/s, TBT = 30 ms.
+- Continuous batch (vLLM): 1000 tokens/s aggregate, p99 TBT = 35 ms.
+- + chunked prefill (Sarathi): 1500 tokens/s, p99 TBT = 25 ms.</p>
+<p>Numbers vary heavily with prompt length distribution.</p>
+<h2 id="128-references">12.8 References</h2>
+<ul>
+<li>Orca (OSDI '22): https://www.usenix.org/conference/osdi22/presentation/yu</li>
+<li>vLLM PagedAttention paper (SOSP '23): https://arxiv.org/abs/2309.06180</li>
+<li>vLLM V1 blog: https://blog.vllm.ai/2025/01/27/v1-alpha-release.html</li>
+<li>Sarathi-Serve (OSDI '24): https://arxiv.org/abs/2403.02310</li>
+<li>Anyscale continuous batching deep dive: https://www.anyscale.com/blog/continuous-batching-llm-inference</li>
+<li>Friendli on Orca: https://medium.com/friendliai/orca-how-to-serve-large-scale-transformer-models-b7130e5a9cd6</li>
+</ul>
+<hr />
+<h2 id="129-iteration-level-granularity-vs-request-level">12.9 Iteration-Level Granularity (vs Request-Level)</h2>
+<p>Static batching: schedule decisions made when batch starts and ends.
+Continuous batching: decision at every model forward pass.</p>
+<p>This means "selective batching" on attention but full-batch on everything else. The model is fed:</p>
+<pre><code>   forward_pass_input:
+     embeddings = stack(all_active_tokens_this_step)   # [B_total, H]
+     positions  = positions_for_each_token             # [B_total]
+     block_table_per_request                            # for PagedAttention
+</code></pre>
+<p>Non-attention layers (LayerNorm, MLP, residual) compute over <code>[B_total, H]</code> once. Attention is invoked per request, indexing into its KV blocks.</p>
+<h2 id="1210-vllm-v0-vs-v1-architectural-differences">12.10 vLLM V0 vs V1 Architectural Differences</h2>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>v0</th>
+<th>v1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scheduler step</td>
+<td>separate paths for prefill/decode</td>
+<td>unified <code>(req_id → n_tokens)</code></td>
+</tr>
+<tr>
+<td>Preemption</td>
+<td>swap KV to CPU</td>
+<td>recompute on resume</td>
+</tr>
+<tr>
+<td>Iteration loop</td>
+<td>Python overhead on hot path</td>
+<td>Rust core for hot path</td>
+</tr>
+<tr>
+<td>Chunked prefill</td>
+<td>optional plugin</td>
+<td>native, default-enabled</td>
+</tr>
+<tr>
+<td>CUDA graphs</td>
+<td>manual capture</td>
+<td>automatic</td>
+</tr>
+</tbody>
+</table>
+<p>V1 is ~30% faster on average, dramatically faster on tail latency.</p>
+<p>Reference: https://blog.vllm.ai/2025/01/27/v1-alpha-release.html</p>
+<h2 id="1211-flashattention-123-why-it-matters-here">12.11 FlashAttention 1/2/3 — Why It Matters Here</h2>
+<p>Continuous batching needs <em>fast</em> attention because attention is invoked per-request per-step. FlashAttention (Dao et al.) reorders attention computation to fuse softmax and matmul, reducing HBM traffic from O(N²) to O(N).</p>
+<p>FA-3 (Hopper) further uses TMA + warp specialization. Numbers (H100 Llama-2-7B, 2048 ctx):
+- Naive PyTorch: 32 TFLOP/s.
+- FA-2: 580 TFLOP/s.
+- FA-3: 740 TFLOP/s.</p>
+<p>For decode (sequence length 1 query against length N KV), the throughput-relevant version is FlashDecoding / FlashInfer's varlen kernels.</p>
+<p>References:
+- FA-1: https://arxiv.org/abs/2205.14135
+- FA-2: https://arxiv.org/abs/2307.08691
+- FA-3: https://arxiv.org/abs/2407.08608
+- FlashInfer: https://github.com/flashinfer-ai/flashinfer</p>
+<h2 id="1212-sarathi-serve-algorithm-pseudocode">12.12 Sarathi-Serve Algorithm Pseudocode</h2>
+<pre><code class="language-python">def schedule(running, waiting, token_budget):
+    &quot;&quot;&quot;Compute next batch step to maintain TBT bound.&quot;&quot;&quot;
+    batch = []
+    used = 0
+
+    # Decode tokens always go first (they're cheap, 1 each)
+    for r in running:
+        if used + 1 &gt; token_budget: break
+        batch.append((r, &quot;decode&quot;, 1))
+        used += 1
+
+    # Then chunk-prefill from waiting, up to budget
+    for r in waiting:
+        if used &gt;= token_budget: break
+        chunk = min(r.remaining_prefill, token_budget - used)
+        batch.append((r, &quot;prefill&quot;, chunk))
+        used += chunk
+        r.remaining_prefill -= chunk
+        if r.remaining_prefill &gt; 0:
+            r.state = &quot;running&quot;  # will continue chunked
+
+    return batch
+</code></pre>
+<p>Token budget tuning:
+- Smaller budget → tighter TBT, lower throughput.
+- Larger budget → higher throughput, looser TBT.
+- Sweet spot: 256-512 for 70B-class models on A100/H100.</p>
+<p>The genius: chunked prefill doesn't compromise prefill latency much (it would have taken the same total time anyway), but it absolutely bounds decode TBT.</p>
+<h2 id="1213-speculative-decoding">12.13 Speculative Decoding</h2>
+<p>Orthogonal optimization that integrates with continuous batching:</p>
+<pre><code>   Use small &quot;draft&quot; model to propose K tokens.
+   Run main model on the K-token proposal in one fwd pass.
+   Accept the longest prefix that matches.
+   ────────────────────────────────────────────────
+   If draft is right ~70% of the time: ~3-4× decode speedup.
+</code></pre>
+<p>Variants: vanilla speculative (Leviathan et al.), Medusa (multi-head draft), EAGLE (verifier-aware), DeepMind's StaffSeer. Production: vLLM supports it; OpenAI uses something similar internally per their dev day talks.</p>
+<h2 id="1214-throughput-vs-latency-curves">12.14 Throughput vs Latency Curves</h2>
+<p>Plotted on a typical H100 with Llama-3.1-70B (rough numbers):</p>
+<pre><code>   tokens/s  ▲
+   1500─────┤              ┌───●────●───── (cont. batch + Sarathi)
+            │             /
+   1000─────┤            ●───────────● (cont. batch only)
+            │           / 
+    500─────┤          ●               (static batch=8)
+            │        /
+            │     / 
+      50────┤  ●                       (static batch=1)
+            └──────────────────────────────►
+                low req/s          high req/s
+</code></pre>
+<p>The scaling-on-load behavior reveals: continuous batching has near-linear throughput up to memory limits; static batching plateaus at the longest-request-length.</p>
+<h2 id="1215-production-implementations">12.15 Production Implementations</h2>
+<ul>
+<li><strong>vLLM</strong>: open source; widest adoption; v1 is current.</li>
+<li><strong>TensorRT-LLM</strong>: NVIDIA's; tightly coupled to TRT runtime; best perf on H100.</li>
+<li><strong>SGLang</strong>: research-driven; RadixAttention; strong for structured outputs.</li>
+<li><strong>Hugging Face TGI</strong>: continuous batching since v0.9.x; widely deployed.</li>
+<li><strong>DeepSpeed-MII</strong>: Microsoft; integrates Splitwise.</li>
+<li><strong>Friendli (PeriFlow)</strong>: original Orca authors; commercial.</li>
+<li><strong>NVIDIA Triton + custom backend</strong>: lowest-level integration.</li>
+</ul>
+<h2 id="1216-common-interview-follow-ups">12.16 Common Interview Follow-ups</h2>
+<p><strong>Q: Why does continuous batching work better than dynamic batching?</strong>
+A: Dynamic batching forms a batch and runs it to completion. Continuous batching reforms the batch every iteration — short requests exit early, GPU stays busy.</p>
+<p><strong>Q: What's the throughput-latency tradeoff?</strong>
+A: Higher batch sizes → higher throughput, higher latency per token. Sarathi's chunked prefill lets you decouple: maintain throughput at small token budgets while bounding TBT.</p>
+<p><strong>Q: How do you handle the batch being smaller than KV-cache budget?</strong>
+A: Admit more requests until KV cache fills. Continuous batching naturally drives this — when running set is small, scheduler grabs from waiting queue.</p>
+<p><strong>Q: When does continuous batching not help?</strong>
+A: When all requests have similar length (e.g., embedding generation with fixed-length output). Static batching is fine there.</p>
+<h2 id="1217-further-references">12.17 Further References</h2>
+<ul>
+<li>Orca paper (OSDI 2022): https://www.usenix.org/conference/osdi22/presentation/yu</li>
+<li>vLLM PagedAttention paper (SOSP 2023): https://arxiv.org/abs/2309.06180</li>
+<li>vLLM V1: https://blog.vllm.ai/2025/01/27/v1-alpha-release.html</li>
+<li>Sarathi-Serve: https://arxiv.org/abs/2403.02310</li>
+<li>FlashInfer: https://flashinfer.ai/</li>
+<li>Anyscale "What is continuous batching": https://www.anyscale.com/blog/continuous-batching-llm-inference</li>
+<li>Friendli on Orca: https://medium.com/friendliai/orca-how-to-serve-large-scale-transformer-models-b7130e5a9cd6</li>
+<li>Speculative decoding survey: https://arxiv.org/abs/2401.07851</li>
+<li>Medusa: https://arxiv.org/abs/2401.10774</li>
+<li>EAGLE: https://arxiv.org/abs/2401.15077</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="13-kv-cache-management.html"><span class="side-num">13</span><span class="side-title">KV Cache Management</span></a></li>
+<li><a href="14-llm-serving-fairness.html"><span class="side-num">14</span><span class="side-title">LLM Serving Fairness &amp; Scheduling</span></a></li>
+<li><a href="11-chatgpt-system-design.html"><span class="side-num">11</span><span class="side-title">ChatGPT System Design</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Batching evolution</h4>
+<div class="tool-chips">
+<span class="tool-chip">Static batching</span>
+<span class="tool-chip">Dynamic batching (Triton)</span>
+<span class="tool-chip">Continuous batching (Orca)</span>
+<span class="tool-chip">Chunked prefill (Sarathi-Serve)</span>
+</div></div>
+<div class="tool-group"><h4>Schedulers</h4>
+<div class="tool-chips">
+<span class="tool-chip">vLLM v0 (separate prefill/decode)</span>
+<span class="tool-chip">vLLM v1 (unified token-budget)</span>
+</div></div>
+<div class="tool-group"><h4>Attention kernels</h4>
+<div class="tool-chips">
+<span class="tool-chip">FlashAttention 1/2/3</span>
+<span class="tool-chip">FlashInfer</span>
+<span class="tool-chip">FlashDecoding</span>
+<span class="tool-chip">PagedAttention kernel</span>
+</div></div>
+<div class="tool-group"><h4>Speculative decoding</h4>
+<div class="tool-chips">
+<span class="tool-chip">Vanilla speculative (Leviathan)</span>
+<span class="tool-chip">Medusa</span>
+<span class="tool-chip">EAGLE</span>
+<span class="tool-chip">DeepMind StaffSeer</span>
+</div></div>
+<div class="tool-group"><h4>Selective batching</h4>
+<div class="tool-chips">
+<span class="tool-chip">Per-request attention</span>
+<span class="tool-chip">Batched non-attention layers (LayerNorm, MLP)</span>
+</div></div>
+<div class="tool-group"><h4>Foundational papers</h4>
+<div class="tool-chips">
+<span class="tool-chip">Orca (OSDI &#x27;22)</span>
+<span class="tool-chip">vLLM/PagedAttention (SOSP &#x27;23)</span>
+<span class="tool-chip">Sarathi-Serve (OSDI &#x27;24)</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="11-chatgpt-system-design.html"><span class="nav-label">← Chapter 11</span><span class="nav-title">ChatGPT System Design</span></a>
+    <a class="nav-next nav-next-link" href="13-kv-cache-management.html"><span class="nav-label">Chapter 13 →</span><span class="nav-title">KV Cache Management</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

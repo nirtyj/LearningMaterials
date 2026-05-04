@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>05 · Exponential Backoff with Jitter — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="05">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">05</span>
+      <span class="meta-rule"></span>
+      <span>Distributed · Deep Dive</span>
+    </div>
+    <h1 class="article-title">Exponential Backoff with Jitter</h1>
+    <p class="article-lede">Why pure exponential is a stampede, four jitter modes, retry budgets, and the math of storms.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#51-why-pure-exponential-backoff-fails">5.1 Why Pure Exponential Backoff Fails</a></li>
+<li><a class="h2" href="#52-the-four-modes-marc-brookers-classification">5.2 The Four Modes (Marc Brooker&#x27;s classification)</a></li>
+<li><a class="h2" href="#53-bounded-backoff-vs-open-ended">5.3 Bounded Backoff vs. Open-Ended</a></li>
+<li><a class="h2" href="#54-retry-budgets-google-sre">5.4 Retry Budgets (Google SRE)</a></li>
+<li><a class="h2" href="#55-finagle-resilience4j-retrybudget">5.5 Finagle / Resilience4j RetryBudget</a></li>
+<li><a class="h2" href="#56-retry-after-header-compliance">5.6 Retry-After Header Compliance</a></li>
+<li><a class="h2" href="#57-references">5.7 References</a></li>
+<li><a class="h2" href="#58-quantitative-storm-analysis">5.8 Quantitative Storm Analysis</a></li>
+<li><a class="h2" href="#59-per-aws-architecture-blog-recommendations">5.9 Per-AWS Architecture Blog Recommendations</a></li>
+<li><a class="h2" href="#510-stacked-retry-anti-pattern">5.10 Stacked Retry Anti-Pattern</a></li>
+<li><a class="h2" href="#511-decorrelated-jitter-when-to-use">5.11 Decorrelated Jitter (When to Use)</a></li>
+<li><a class="h2" href="#512-idempotency-interaction">5.12 Idempotency Interaction</a></li>
+<li><a class="h2" href="#513-client-vs-server-side">5.13 Client vs Server Side</a></li>
+<li><a class="h2" href="#514-going-beyond-adaptive-backoff">5.14 Going Beyond: Adaptive Backoff</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="51-why-pure-exponential-backoff-fails">5.1 Why Pure Exponential Backoff Fails</h2>
+<p>When <code>N</code> clients all hit a downed service, all retry at <code>t=2s</code>, then <code>t=4s</code>, then <code>t=8s</code> — synchronized waves. Each retry storm is as bad as the original outage.</p>
+<p>The fix: add <strong>randomness</strong> (jitter) so retries spread out.</p>
+<h2 id="52-the-four-modes-marc-brookers-classification">5.2 The Four Modes (Marc Brooker's classification)</h2>
+<pre><code class="language-python">import random
+
+def no_jitter(attempt, base=0.1, cap=60):
+    return min(cap, base * (2 ** attempt))
+
+def full_jitter(attempt, base=0.1, cap=60):
+    return random.uniform(0, min(cap, base * (2 ** attempt)))
+
+def equal_jitter(attempt, base=0.1, cap=60):
+    bound = min(cap, base * (2 ** attempt))
+    return bound / 2 + random.uniform(0, bound / 2)
+
+def decorrelated_jitter(prev_sleep, base=0.1, cap=60):
+    return min(cap, random.uniform(base, prev_sleep * 3))
+</code></pre>
+<p>Marc Brooker's analysis shows <strong>full jitter</strong> beats the others on convergence speed and tail load reduction in nearly all simulations. Reference: https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/</p>
+<h2 id="53-bounded-backoff-vs-open-ended">5.3 Bounded Backoff vs. Open-Ended</h2>
+<p>Always cap retries: max attempts (e.g., 5) AND max wait (e.g., 60s). Beyond cap → fail and let upstream decide.</p>
+<h2 id="54-retry-budgets-google-sre">5.4 Retry Budgets (Google SRE)</h2>
+<p>Per the SRE book: each client maintains a moving-window of <code>(requests, accepts)</code>. Retry probability:</p>
+<pre><code>p_retry = max(0, (requests - K * accepts) / (requests + 1))
+</code></pre>
+<p>with <code>K = 2</code> typically. When the backend is healthy, <code>accepts ≈ requests</code>, p_retry ≈ 0 → retries are essentially free (rare). When backend is unhealthy, accepts drop, retries get suppressed adaptively.</p>
+<p>Reference: https://sre.google/sre-book/handling-overload/</p>
+<p>This prevents the canonical retry-storm scenario where 1 retry per failed call doubles upstream load — making outage worse.</p>
+<h2 id="55-finagle-resilience4j-retrybudget">5.5 Finagle / Resilience4j RetryBudget</h2>
+<ul>
+<li><strong>Finagle (Twitter)</strong>: time-bounded budget. e.g., "no more than 20% of requests over the last 10s can be retries."</li>
+<li><strong>Resilience4j</strong>: similar; configurable.</li>
+</ul>
+<h2 id="56-retry-after-header-compliance">5.6 Retry-After Header Compliance</h2>
+<p>If server returns <code>Retry-After: &lt;delta-seconds&gt;</code> (RFC 7231), respect it instead of computing local backoff. This lets server steer load — critical for AWS / Stripe / GitHub APIs at limits.</p>
+<h2 id="57-references">5.7 References</h2>
+<ul>
+<li>Marc Brooker's blog: https://brooker.co.za/blog/</li>
+<li>AWS Builders' Library on backoff: https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/</li>
+<li>Google SRE on overload: https://sre.google/sre-book/handling-overload/</li>
+<li>Resilience4j retry: https://resilience4j.readme.io/docs/retry</li>
+<li>Thinhdang on retry storms: https://thinhdanggroup.github.io/retry-without-thundering-herds/</li>
+</ul>
+<hr />
+<h2 id="58-quantitative-storm-analysis">5.8 Quantitative Storm Analysis</h2>
+<p>Suppose backend can handle 1000 RPS. Outage causes all clients to fail. Without jitter and with <code>2^n</code> backoff, all clients retry at <code>t = 1, 2, 4, 8, ...</code>. At each spike, request rate equals N (number of clients). With N=10,000 clients, every retry instant is 10× over capacity → cascading failure, slow recovery.</p>
+<p>With <strong>full jitter</strong>: retries are uniformly distributed in <code>[0, 2^n)</code>. At <code>n=3</code> (window 8s), 10,000 clients spread over 8s → 1250 RPS. Still over capacity but recoverable. By <code>n=5</code> (window 32s) → 312 RPS, under capacity.</p>
+<p>This is why AWS SDKs default to full jitter with exponential backoff.</p>
+<h2 id="59-per-aws-architecture-blog-recommendations">5.9 Per-AWS Architecture Blog Recommendations</h2>
+<p>From Marc Brooker's <em>Builders' Library</em> article:
+- Cap retries at 3-5 (ideally on the client) — past that, fail and tell upstream.
+- Cap total time waiting (e.g., 60s aggregate) — beyond that, the user has likely abandoned.
+- Use full jitter unless you have a specific reason for decorrelated.
+- Apply circuit breakers at the next layer up (don't stack retries).</p>
+<h2 id="510-stacked-retry-anti-pattern">5.10 Stacked Retry Anti-Pattern</h2>
+<p>If layer A retries 3× and layer B (which A calls) also retries 3×, then a single user request can produce 9 backend calls. With three layers: 27. This is how "retry storms" form. Solutions:
+- <strong>Single retry layer</strong>: pick one layer to own retries; others propagate failures.
+- <strong>Idempotency keys</strong> so retries don't double-bill.
+- <strong>Retry budgets</strong> at every layer to cap retry overhead.</p>
+<p>Reference: https://thomwright.co.uk/2022/09/12/retries-upon-retries/
+Reference: https://thinhdanggroup.github.io/retry-without-thundering-herds/</p>
+<h2 id="511-decorrelated-jitter-when-to-use">5.11 Decorrelated Jitter (When to Use)</h2>
+<pre><code class="language-python">def decorrelated_jitter(prev_sleep, base=0.1, cap=60):
+    return min(cap, random.uniform(base, prev_sleep * 3))
+</code></pre>
+<p>Each sleep is chosen relative to previous sleep, not to the attempt count. Properties:
+- More uniform load over time.
+- Tail (max wait) bounded.
+- Slightly slower convergence than full jitter.</p>
+<p>Used in some Stripe SDKs, some retry libraries that want bounded tail behavior.</p>
+<h2 id="512-idempotency-interaction">5.12 Idempotency Interaction</h2>
+<p>Backoff + retries only works if the operation is idempotent. Otherwise, retries cause duplicate side effects. See §6 for idempotency patterns. Always pair: backoff → retry → idempotency key.</p>
+<h2 id="513-client-vs-server-side">5.13 Client vs Server Side</h2>
+<p>Two complementary places to throttle:
+- <strong>Client-side</strong>: backoff, jitter, retry budgets. Reduces wasted server work.
+- <strong>Server-side</strong>: rate limiting, load shedding (return 429/503). Protects server from any client misbehaving.</p>
+<p>Don't rely on only one. Server-side is the last line of defense.</p>
+<h2 id="514-going-beyond-adaptive-backoff">5.14 Going Beyond: Adaptive Backoff</h2>
+<p>For long-running API integrations:
+- Track per-endpoint success rate.
+- Adjust base or cap based on observed health.
+- On extended outage, switch to circuit-breaker mode: 0 retries until a probe succeeds.</p>
+<p>This is what client SDKs like the Go AWS SDK v2 or <code>aws-sdk-go-v2</code> do internally — they ship with adaptive retry.</p>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="03-webhook-delivery.html"><span class="side-num">03</span><span class="side-title">Webhook Delivery Platform</span></a></li>
+<li><a href="06-idempotency.html"><span class="side-num">06</span><span class="side-title">Idempotency in Distributed Systems</span></a></li>
+<li><a href="04-rate-limiting.html"><span class="side-num">04</span><span class="side-title">Rate Limiting Algorithms</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Jitter modes</h4>
+<div class="tool-chips">
+<span class="tool-chip">No jitter</span>
+<span class="tool-chip">Full jitter (AWS default)</span>
+<span class="tool-chip">Equal jitter</span>
+<span class="tool-chip">Decorrelated jitter</span>
+</div></div>
+<div class="tool-group"><h4>Retry budgets</h4>
+<div class="tool-chips">
+<span class="tool-chip">Google SRE adaptive throttler</span>
+<span class="tool-chip">Finagle RetryBudget</span>
+<span class="tool-chip">Resilience4j retry</span>
+</div></div>
+<div class="tool-group"><h4>Foundational reads</h4>
+<div class="tool-chips">
+<span class="tool-chip">Marc Brooker / AWS Builders&#x27; Library</span>
+<span class="tool-chip">Google SRE book Ch. 21</span>
+</div></div>
+<div class="tool-group"><h4>Anti-patterns</h4>
+<div class="tool-chips">
+<span class="tool-chip">Stacked retries</span>
+<span class="tool-chip">Synchronized retry waves</span>
+<span class="tool-chip">Unbounded backoff</span>
+<span class="tool-chip">Retries without idempotency</span>
+</div></div>
+<div class="tool-group"><h4>Adaptive</h4>
+<div class="tool-chips">
+<span class="tool-chip">AWS SDK v2 adaptive retry</span>
+<span class="tool-chip">Per-endpoint health tracking</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="04-rate-limiting.html"><span class="nav-label">← Chapter 04</span><span class="nav-title">Rate Limiting Algorithms</span></a>
+    <a class="nav-next nav-next-link" href="06-idempotency.html"><span class="nav-label">Chapter 06 →</span><span class="nav-title">Idempotency in Distributed Systems</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

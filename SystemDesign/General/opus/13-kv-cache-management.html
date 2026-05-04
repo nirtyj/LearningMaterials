@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>13 · KV Cache Management — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="13">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">13</span>
+      <span class="meta-rule"></span>
+      <span>LLM Serving · Deep Dive</span>
+    </div>
+    <h1 class="article-title">KV Cache Management</h1>
+    <p class="article-lede">PagedAttention block tables, copy-on-write prefix sharing, RadixAttention, MLA / GQA / SWA / CLA, INT8 quantization.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#131-what-kv-cache-is">13.1 What KV Cache Is</a></li>
+<li><a class="h2" href="#132-pagedattention-vllm">13.2 PagedAttention (vLLM)</a></li>
+<li><a class="h2" href="#133-eviction-preemption">13.3 Eviction &amp; Preemption</a></li>
+<li><a class="h2" href="#134-prefix-cache-hashing">13.4 Prefix Cache Hashing</a></li>
+<li><a class="h2" href="#135-radixattention-sglang">13.5 RadixAttention (SGLang)</a></li>
+<li><a class="h2" href="#136-disaggregated-kv-distserve-mooncake">13.6 Disaggregated KV (DistServe / Mooncake)</a></li>
+<li><a class="h2" href="#137-quantization">13.7 Quantization</a></li>
+<li><a class="h2" href="#138-memory-budget-math">13.8 Memory Budget Math</a></li>
+<li><a class="h2" href="#139-references">13.9 References</a></li>
+<li><a class="h2" href="#1310-block-table-representation-detail">13.10 Block Table Representation Detail</a></li>
+<li><a class="h2" href="#1311-prefix-cache-hit-detection">13.11 Prefix Cache Hit Detection</a></li>
+<li><a class="h2" href="#1312-radixattention-tree-structure">13.12 RadixAttention Tree Structure</a></li>
+<li><a class="h2" href="#1313-eviction-policy-decisions">13.13 Eviction Policy Decisions</a></li>
+<li><a class="h2" href="#1314-quantization-math">13.14 Quantization Math</a></li>
+<li><a class="h2" href="#1315-production-numbers-characterai">13.15 Production Numbers — Character.AI</a></li>
+<li><a class="h2" href="#1316-disaggregated-kv-transfer-mechanics">13.16 Disaggregated KV Transfer Mechanics</a></li>
+<li><a class="h2" href="#1317-memory-pressure-warning-levels">13.17 Memory Pressure Warning Levels</a></li>
+<li><a class="h2" href="#1318-common-interview-follow-ups">13.18 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#1319-references-extended">13.19 References (extended)</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="131-what-kv-cache-is">13.1 What KV Cache Is</h2>
+<p>In a Transformer decoder, attention at step <code>t</code> reads keys <code>K_1...K_t</code> and values <code>V_1...V_t</code>. To avoid recomputing K and V for tokens 1..t-1 each step, we cache them. The cache size grows linearly with sequence length and dominates GPU memory in long-context workloads.</p>
+<p><strong>Per-token KV size formula:</strong></p>
+<pre><code>   KV_per_token = 2 (K and V)
+                × num_layers
+                × num_kv_heads
+                × head_dim
+                × bytes_per_element (2 for fp16, 1 for fp8)
+</code></pre>
+<p>Worked examples:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>layers</th>
+<th>kv_heads</th>
+<th>head_dim</th>
+<th>per-tok bytes</th>
+<th>per-tok @ 128k</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Llama-2-70B (MHA)</td>
+<td>80</td>
+<td>64</td>
+<td>128</td>
+<td>2.6 MB</td>
+<td>320 GB</td>
+</tr>
+<tr>
+<td>Llama-3.1-70B (GQA-8)</td>
+<td>80</td>
+<td>8</td>
+<td>128</td>
+<td>320 KB</td>
+<td>40 GB</td>
+</tr>
+<tr>
+<td>Llama-3.1-8B (GQA-8)</td>
+<td>32</td>
+<td>8</td>
+<td>128</td>
+<td>128 KB</td>
+<td>16 GB</td>
+</tr>
+<tr>
+<td>Mistral 7B (SWA-4096)</td>
+<td>32</td>
+<td>8</td>
+<td>128</td>
+<td>128 KB capped at 4096 ≈ 512 MB</td>
+<td>(capped)</td>
+</tr>
+</tbody>
+</table>
+<p>GQA (Grouped-Query Attention) and SWA (Sliding Window Attention) are the two memory-saving architectural changes. CLA (Cross-Layer Attention) and MLA (Multi-Latent Attention, DeepSeek) push further.</p>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>KV memory</th>
+<th>Quality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MHA</td>
+<td>full</td>
+<td>best</td>
+</tr>
+<tr>
+<td>MQA (1 KV head)</td>
+<td>1/H</td>
+<td>small drop</td>
+</tr>
+<tr>
+<td>GQA (G KV heads)</td>
+<td>G/H</td>
+<td>matches MHA</td>
+</tr>
+<tr>
+<td>SWA</td>
+<td>constant in seq len</td>
+<td>local context only</td>
+</tr>
+<tr>
+<td>CLA</td>
+<td>shared across layer pairs</td>
+<td>small drop</td>
+</tr>
+<tr>
+<td>MLA (DeepSeek)</td>
+<td>compressed via low-rank projection</td>
+<td>matches MHA</td>
+</tr>
+</tbody>
+</table>
+<h2 id="132-pagedattention-vllm">13.2 PagedAttention (vLLM)</h2>
+<p>Classical KV layout: contiguous tensor per request. Wastes memory when requests have different lengths (internal fragmentation) and when memory is freed and re-allocated (external fragmentation).</p>
+<p>PagedAttention: KV is stored in fixed-size blocks (e.g., 16 tokens each). Each request has a "block table" pointing to its blocks. New blocks allocated as the sequence grows. Memory is paged like an OS — minimal fragmentation.</p>
+<pre><code>   Request R1, seq_len=40, block_size=16:
+     block_table = [3, 17, 5]   (slots 0-15 in block 3, 16-31 in block 17, 32-39 in block 5)
+
+   Logical view of K, V for R1:
+   [K_0..K_15 | K_16..K_31 | K_32..K_39]
+       block 3      block 17      block 5
+</code></pre>
+<p>Shared prefix optimization (CoW): when N requests have the same prompt prefix, point all their block tables to the same blocks until divergence. This is key to high prefix-cache hit rates (Character.AI 95%).</p>
+<pre><code>   System prompt cached once:
+     block_table_user_A = [3, 7, 11, ..., A_specific_blocks]
+     block_table_user_B = [3, 7, 11, ..., B_specific_blocks]
+                          ^^^^^^^^^^^^
+                          shared blocks (refcounted)
+</code></pre>
+<p>Reference: https://blog.vllm.ai/2023/06/20/vllm.html</p>
+<h2 id="133-eviction-preemption">13.3 Eviction &amp; Preemption</h2>
+<p>When KV cache is full and a new request needs admission, an existing request must be preempted:</p>
+<ul>
+<li><strong>vLLM v0 swap</strong>: copy KV blocks to CPU pinned memory; swap back on resume.</li>
+<li><strong>vLLM v1 recompute</strong>: free blocks, re-prefill on resume. Faster on H100 (NVLink swap is bottlenecked).</li>
+<li><strong>KVFlow / priority-aware</strong>: evict by priority (free-tier first).</li>
+</ul>
+<p>Eviction policies:
+- <strong>LRU on request</strong>: simple, common.
+- <strong>Oldest-prefill-first</strong>: prefer evicting requests that haven't started decoding (sunk cost is lower).
+- <strong>By tier</strong>: preserve pro requests; evict free first.</p>
+<h2 id="134-prefix-cache-hashing">13.4 Prefix Cache Hashing</h2>
+<p>Prefix cache key = hash of (model_id, prompt_token_ids[0:N]). Look up before allocation; on hit, reuse blocks.</p>
+<p>Hash chaining:</p>
+<pre><code>   h_0 = hash(model_id)
+   h_1 = hash(h_0, token_1)
+   h_2 = hash(h_1, token_2)
+   ...
+   h_n = hash(h_{n-1}, token_n)
+</code></pre>
+<p>Block boundary hashes are stored. New request with same prefix → block table starts with cached blocks, refcount++.</p>
+<h2 id="135-radixattention-sglang">13.5 RadixAttention (SGLang)</h2>
+<p>SGLang generalizes prefix caching to a <strong>radix tree</strong> of prefixes. Two requests sharing prefix P then diverging into A and B share a root → P → split into A and B subtrees. Higher hit rate than block-aligned hashing.</p>
+<p>Reference: https://lmsys.org/blog/2024-01-17-sglang/</p>
+<h2 id="136-disaggregated-kv-distserve-mooncake">13.6 Disaggregated KV (DistServe / Mooncake)</h2>
+<p>Prefill and decode pools are separate. After prefill finishes, KV must transfer to a decode replica.</p>
+<pre><code>   KV size = seq_len × per-token_bytes
+   For 1k tokens × 320 KB = 320 MB
+   Over NVLink (600 GB/s): 320 MB / 600 GB/s ≈ 0.5 ms — hidden in pipeline.
+   Over IB 400 Gb/s: 320 MB / 50 GB/s ≈ 6 ms — still fine.
+   Over 25 Gb/s ethernet: too slow.
+</code></pre>
+<p>Mooncake at Kimi runs the disaggregated architecture in production on A800/H800. Their innovation: <strong>KVCache-centric scheduling</strong> — admission decisions consider whether prefix-cached KV is on the right replica, prefer those replicas.</p>
+<p>References:
+- DistServe: https://arxiv.org/abs/2401.09670
+- Splitwise: https://arxiv.org/abs/2311.18677
+- Mooncake (FAST '25): https://www.usenix.org/conference/fast25/presentation/qin</p>
+<h2 id="137-quantization">13.7 Quantization</h2>
+<p>KV cache can be stored at lower precision:
+- FP16 → INT8: 2× savings, &lt; 0.5% quality loss with proper scaling.
+- INT8 → INT4: 4× savings, ~1-2% quality loss; more careful calibration needed.
+- FP8 (E4M3 or E5M2): hardware-accelerated on H100/H200; 2× savings.</p>
+<p>Character.AI: INT8 KV quantization with custom attention kernel (based on FlashAttention 3). Reduced KV memory 20× combined with MQA + CLA + SWA.</p>
+<h2 id="138-memory-budget-math">13.8 Memory Budget Math</h2>
+<p>Suppose 80GB H100, model weights = 140GB (so two H100 with TP=2, ~70GB per GPU). Available KV per GPU = 80 - 70 = 10 GB. With 320 KB/token (Llama-3.1-70B), that's 30k tokens per GPU. With 2 GPUs and TP=2 sharing, ~60k tokens total active. Suppose average request = 4k context + 500 output → 4500 tokens per request → 13 concurrent requests max.</p>
+<p>This is why prefix cache + GQA + INT8 are essential — without them, you serve almost no concurrency.</p>
+<h2 id="139-references">13.9 References</h2>
+<ul>
+<li>vLLM PagedAttention paper (SOSP '23): https://arxiv.org/abs/2309.06180</li>
+<li>vLLM blog: https://blog.vllm.ai/2023/06/20/vllm.html</li>
+<li>Anatomy of vLLM (talk): https://www.youtube.com/watch?v=9ih0EmcXRHE</li>
+<li>KV cache opt techniques: https://www.omrimallis.com/posts/techniques-for-kv-cache-optimization/</li>
+<li>SGLang RadixAttention: https://lmsys.org/blog/2024-01-17-sglang/</li>
+<li>DeepSeek MLA: https://arxiv.org/abs/2405.04434</li>
+<li>Cross-Layer Attention: https://arxiv.org/abs/2405.12981</li>
+<li>FlashAttention 3: https://arxiv.org/abs/2407.08608</li>
+<li>Character.AI optimization: https://research.character.ai/optimizing-ai-inference-at-character-ai-part-deux/</li>
+</ul>
+<hr />
+<h2 id="1310-block-table-representation-detail">13.10 Block Table Representation Detail</h2>
+<p>Each request has an associated block table — a list of physical block IDs that store its KV.</p>
+<pre><code class="language-python"># vLLM-style block table
+class Sequence:
+    def __init__(self, prompt_tokens, block_size=16):
+        self.tokens = list(prompt_tokens)
+        self.block_size = block_size
+        self.block_table = []      # list of physical block ids
+
+    def num_blocks(self):
+        return (len(self.tokens) + self.block_size - 1) // self.block_size
+
+class BlockManager:
+    def __init__(self, num_blocks, block_size):
+        self.free_blocks = list(range(num_blocks))
+        self.block_size = block_size
+        self.refcount = {}        # block_id → count (for shared blocks)
+
+    def allocate(self, seq):
+        needed = seq.num_blocks() - len(seq.block_table)
+        for _ in range(needed):
+            if not self.free_blocks:
+                return False  # OOM
+            blk = self.free_blocks.pop()
+            seq.block_table.append(blk)
+            self.refcount[blk] = 1
+        return True
+
+    def share_with(self, parent_seq, child_seq, num_shared_blocks):
+        &quot;&quot;&quot;Copy-on-write: child shares parent's first N blocks.&quot;&quot;&quot;
+        for i in range(num_shared_blocks):
+            blk = parent_seq.block_table[i]
+            child_seq.block_table.append(blk)
+            self.refcount[blk] = self.refcount.get(blk, 1) + 1
+
+    def fork_on_write(self, seq, block_idx):
+        &quot;&quot;&quot;If a shared block is being written to, copy it first.&quot;&quot;&quot;
+        old_blk = seq.block_table[block_idx]
+        if self.refcount[old_blk] &gt; 1:
+            new_blk = self.free_blocks.pop()
+            self._copy_block(old_blk, new_blk)
+            seq.block_table[block_idx] = new_blk
+            self.refcount[old_blk] -= 1
+            self.refcount[new_blk] = 1
+
+    def free(self, seq):
+        for blk in seq.block_table:
+            self.refcount[blk] -= 1
+            if self.refcount[blk] == 0:
+                self.free_blocks.append(blk)
+                del self.refcount[blk]
+        seq.block_table.clear()
+</code></pre>
+<p>The refcount is critical for prefix sharing — multiple sequences can share the same physical blocks until one of them writes (then COW).</p>
+<h2 id="1311-prefix-cache-hit-detection">13.11 Prefix Cache Hit Detection</h2>
+<pre><code class="language-python">class PrefixCache:
+    def __init__(self):
+        self.cache = {}  # hash → (block_ids, last_used_ts)
+
+    def lookup(self, token_prefix):
+        h = self._hash_chain(token_prefix)
+        if h in self.cache:
+            block_ids, _ = self.cache[h]
+            self.cache[h] = (block_ids, time.time())  # update LRU
+            return block_ids
+        return None
+
+    def store(self, token_prefix, block_ids):
+        h = self._hash_chain(token_prefix)
+        self.cache[h] = (block_ids, time.time())
+
+    def evict_lru(self, n):
+        sorted_keys = sorted(self.cache.items(), key=lambda kv: kv[1][1])
+        for k, _ in sorted_keys[:n]:
+            del self.cache[k]
+
+    def _hash_chain(self, tokens):
+        h = 0
+        for t in tokens:
+            h = hash((h, t))
+        return h
+</code></pre>
+<p>Production systems (vLLM, SGLang) use block-aligned hashing: hash every block_size tokens, store hashes per block. Lookup walks blocks one at a time, allowing partial prefix matches.</p>
+<h2 id="1312-radixattention-tree-structure">13.12 RadixAttention Tree Structure</h2>
+<p>SGLang's RadixAttention generalizes block-level prefix caching:</p>
+<pre><code>              ROOT
+               │
+        ┌──────┴──────┐
+        │             │
+       &quot;You&quot;        &quot;Hello&quot;
+        │             │
+   ┌────┴────┐    ┌───┴───┐
+   &quot;are&quot;   &quot;can&quot;  ...     ...
+    │       │
+   ...     ...
+</code></pre>
+<p>Each node = a token sequence (one or more tokens). Nodes with shared prefix share the same path. Lookups: descend from root following query tokens; longest matching path = cached prefix.</p>
+<p>Gives higher hit rate than block-aligned hashing because matches can be sub-block. Reference: https://lmsys.org/blog/2024-01-17-sglang/</p>
+<h2 id="1313-eviction-policy-decisions">13.13 Eviction Policy Decisions</h2>
+<p>When KV is full and a new request arrives:</p>
+<pre><code class="language-python">def select_victim(running, waiting):
+    candidates = [r for r in running if r.priority == &quot;free&quot;]
+    if not candidates:
+        candidates = sorted(running, key=lambda r: -r.tokens_remaining)
+    # Prefer evicting requests with most remaining work (lowest sunk cost progress)
+    return min(candidates, key=lambda r: r.tokens_generated_so_far)
+</code></pre>
+<p>Production heuristics:
+- Evict by tier (free first).
+- Within tier, evict by sunk-cost-recovered (a request that's 90% done won't be evicted; a request that just started, more likely).
+- Evict whole sequences, not partial — partial KV can't be reused easily.</p>
+<h2 id="1314-quantization-math">13.14 Quantization Math</h2>
+<p>INT8 KV cache: store K and V as int8 with per-channel scale.</p>
+<pre><code>   K_int8 = round(K_fp16 / scale_K)
+   K_fp16_recovered = K_int8 * scale_K
+</code></pre>
+<p>Scale chosen to minimize quantization error per (layer, head) channel. Calibration on validation prompts.</p>
+<p>INT4: paired (or grouped) quantization to reduce overhead. Per-group scales (e.g., one scale per 64 channels) keep accuracy.</p>
+<p>FP8 (E4M3 or E5M2): native on H100. E4M3 (4-bit exponent, 3-bit mantissa) for activations; E5M2 for gradients. Arithmetic done in FP8 then accumulated in FP32.</p>
+<p>Reference: https://arxiv.org/abs/2208.09225 (FP8 paper from NVIDIA + Intel + ARM)</p>
+<h2 id="1315-production-numbers-characterai">13.15 Production Numbers — Character.AI</h2>
+<p>Character.AI's blog reports a 20× KV memory reduction:
+- MQA: 1/16 of MHA (16 query heads, 1 KV head).
+- Cross-Layer Attention (CLA): 1/2 (sharing KV across layer pairs).
+- Sliding Window Attention: ~1/4 effective at 8k context.
+- INT8 KV: 1/2.</p>
+<p>Combined: 1/16 × 1/2 × 1/4 × 1/2 = 1/256 of MHA fp16. Practical savings closer to 20-25× because of overhead and quality-preserving constraints.</p>
+<p>Custom kernel: based on FlashAttention-3, modified to handle their attention layout. ~95% prefix cache hit rate at the application layer.</p>
+<p>Reference: https://research.character.ai/optimizing-ai-inference-at-character-ai-part-deux/</p>
+<h2 id="1316-disaggregated-kv-transfer-mechanics">13.16 Disaggregated KV Transfer Mechanics</h2>
+<p>Prefill on GPU A, decode on GPU B:</p>
+<pre><code>   1. A finishes prefill of request R; KV resides on A's HBM.
+   2. Router publishes assignment: R → B.
+   3. KV transfer initiated:
+      - intra-node: NVLink (600 GB/s on H100 NVL) — ~1ms for 600MB
+      - inter-node: InfiniBand (400 Gb/s = 50 GB/s) — ~12ms for 600MB
+      - across DC: too slow; don't disaggregate across DCs.
+   4. B receives KV, begins decode.
+</code></pre>
+<p>Key optimization: overlap transfer with prefill of next request. Mooncake reports 100% overlap on Kimi production.</p>
+<p>When disaggregation isn't worth it: short prompts (&lt;256 tokens) where prefill is fast and decode is the dominant cost — colocated is fine.</p>
+<h2 id="1317-memory-pressure-warning-levels">13.17 Memory Pressure Warning Levels</h2>
+<p>Production systems define thresholds:</p>
+<table>
+<thead>
+<tr>
+<th>Threshold</th>
+<th>KV Occupancy</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Green</td>
+<td>&lt; 70%</td>
+<td>accept all</td>
+</tr>
+<tr>
+<td>Yellow</td>
+<td>70-85%</td>
+<td>accept high-tier only</td>
+</tr>
+<tr>
+<td>Orange</td>
+<td>85-95%</td>
+<td>preempt low-tier; reject mid-tier</td>
+</tr>
+<tr>
+<td>Red</td>
+<td>&gt; 95%</td>
+<td>reject all new; preempt aggressively</td>
+</tr>
+</tbody>
+</table>
+<p>Anti-pattern: ignore until OOM, then crash the replica. Always shed load before OOM.</p>
+<h2 id="1318-common-interview-follow-ups">13.18 Common Interview Follow-ups</h2>
+<p><strong>Q: How much KV does a 70B model need at 100k context?</strong>
+A: 320KB/token × 100k = 32GB just for KV. With 8-bit quantization: 16GB. With MQA: 4GB. Architecture matters more than quantization for long context.</p>
+<p><strong>Q: Why not just store KV on disk?</strong>
+A: Decode is memory-bandwidth-bound. Reading 32GB of KV per token from NVMe (~7GB/s) takes 4.5s/token. NVMe is 100× slower than HBM. Disk-based KV is only viable for very long contexts where you also tolerate batch latency.</p>
+<p><strong>Q: How do you handle KV-cache eviction without losing user state?</strong>
+A: vLLM v0 swaps to CPU pinned memory (paged from HBM). vLLM v1 recomputes from prompt. Recompute is faster on H100 because NVLink is the bottleneck.</p>
+<p><strong>Q: What's the relationship between KV cache and context window?</strong>
+A: KV cache size grows linearly with context. To support 1M-token contexts, you need MLA-like compression or sliding window, otherwise memory is prohibitive.</p>
+<h2 id="1319-references-extended">13.19 References (extended)</h2>
+<ul>
+<li>vLLM PagedAttention paper: https://arxiv.org/abs/2309.06180</li>
+<li>vLLM design docs (block manager): https://docs.vllm.ai/en/stable/design/</li>
+<li>SGLang RadixAttention: https://lmsys.org/blog/2024-01-17-sglang/</li>
+<li>DeepSeek MLA (V2 paper): https://arxiv.org/abs/2405.04434</li>
+<li>Cross-Layer Attention: https://arxiv.org/abs/2405.12981</li>
+<li>Sliding Window Attention (Mistral): https://arxiv.org/abs/2310.06825</li>
+<li>Character.AI optimization: https://research.character.ai/optimizing-ai-inference-at-character-ai-part-deux/</li>
+<li>FlashAttention 3: https://arxiv.org/abs/2407.08608</li>
+<li>FlashInfer: https://github.com/flashinfer-ai/flashinfer</li>
+<li>DistServe: https://arxiv.org/abs/2401.09670</li>
+<li>Splitwise: https://arxiv.org/abs/2311.18677</li>
+<li>Mooncake: https://arxiv.org/abs/2407.00079</li>
+<li>KV optimization techniques survey: https://www.omrimallis.com/posts/techniques-for-kv-cache-optimization/</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="12-continuous-batching.html"><span class="side-num">12</span><span class="side-title">Continuous Batching Internals</span></a></li>
+<li><a href="14-llm-serving-fairness.html"><span class="side-num">14</span><span class="side-title">LLM Serving Fairness &amp; Scheduling</span></a></li>
+<li><a href="11-chatgpt-system-design.html"><span class="side-num">11</span><span class="side-title">ChatGPT System Design</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Memory architecture</h4>
+<div class="tool-chips">
+<span class="tool-chip">PagedAttention block tables</span>
+<span class="tool-chip">Prefix cache (block-aligned hashing)</span>
+<span class="tool-chip">RadixAttention (SGLang)</span>
+<span class="tool-chip">Copy-on-write block sharing</span>
+</div></div>
+<div class="tool-group"><h4>Attention variants</h4>
+<div class="tool-chips">
+<span class="tool-chip">MHA (full)</span>
+<span class="tool-chip">MQA (1 KV head)</span>
+<span class="tool-chip">GQA (grouped)</span>
+<span class="tool-chip">SWA (sliding window)</span>
+<span class="tool-chip">CLA (cross-layer)</span>
+<span class="tool-chip">MLA (DeepSeek)</span>
+</div></div>
+<div class="tool-group"><h4>Eviction strategies</h4>
+<div class="tool-chips">
+<span class="tool-chip">LRU on requests</span>
+<span class="tool-chip">Oldest-prefill-first</span>
+<span class="tool-chip">Tier-priority eviction</span>
+<span class="tool-chip">KVFlow priority-aware</span>
+</div></div>
+<div class="tool-group"><h4>Preemption modes</h4>
+<div class="tool-chips">
+<span class="tool-chip">vLLM v0 swap (CPU pinned)</span>
+<span class="tool-chip">vLLM v1 recompute</span>
+</div></div>
+<div class="tool-group"><h4>Quantization</h4>
+<div class="tool-chips">
+<span class="tool-chip">INT8 KV</span>
+<span class="tool-chip">INT4 grouped</span>
+<span class="tool-chip">FP8 (E4M3 / E5M2)</span>
+</div></div>
+<div class="tool-group"><h4>Disaggregated transfer</h4>
+<div class="tool-chips">
+<span class="tool-chip">NVLink (intra-node)</span>
+<span class="tool-chip">InfiniBand (inter-node)</span>
+<span class="tool-chip">NVMe-oF (long-context tier)</span>
+</div></div>
+<div class="tool-group"><h4>Production</h4>
+<div class="tool-chips">
+<span class="tool-chip">Character.AI 20× KV reduction</span>
+<span class="tool-chip">Mooncake KVCache-centric scheduling</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="12-continuous-batching.html"><span class="nav-label">← Chapter 12</span><span class="nav-title">Continuous Batching Internals</span></a>
+    <a class="nav-next nav-next-link" href="14-llm-serving-fairness.html"><span class="nav-label">Chapter 14 →</span><span class="nav-title">LLM Serving Fairness &amp; Scheduling</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>15 · Consistent Hashing — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="15">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">15</span>
+      <span class="meta-rule"></span>
+      <span>Cross-Cutting · Foundations</span>
+    </div>
+    <h1 class="article-title">Consistent Hashing</h1>
+    <p class="article-lede">Karger&#x27;s ring with virtual nodes, Jump hash, Maglev&#x27;s M=65537 table, rendezvous hashing, bounded loads — the algorithm matrix.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#151-the-problem">15.1 The Problem</a></li>
+<li><a class="h2" href="#152-kargers-ring-1997">15.2 Karger&#x27;s Ring (1997)</a></li>
+<li><a class="h3" href="#implementation">Implementation</a></li>
+<li><a class="h3" href="#why-virtual-nodes">Why Virtual Nodes</a></li>
+<li><a class="h3" href="#cost">Cost</a></li>
+<li><a class="h2" href="#153-jump-consistent-hash-google-2014">15.3 Jump Consistent Hash (Google, 2014)</a></li>
+<li><a class="h2" href="#154-rendezvous-hashing-hrw-1996">15.4 Rendezvous Hashing (HRW, 1996)</a></li>
+<li><a class="h3" href="#weighted-hrw-schindelhauer-schomaker">Weighted HRW (Schindelhauer-Schomaker)</a></li>
+<li><a class="h2" href="#155-maglev-hashing-google-nsdi-2016">15.5 Maglev Hashing (Google, NSDI 2016)</a></li>
+<li><a class="h2" href="#156-multi-probe-consistent-hashing">15.6 Multi-Probe Consistent Hashing</a></li>
+<li><a class="h2" href="#157-anchor-hashing-2018">15.7 Anchor Hashing (2018)</a></li>
+<li><a class="h2" href="#158-consistent-hashing-with-bounded-loads-mirrokni-thorup-zadimoghaddam-2017">15.8 Consistent Hashing with Bounded Loads (Mirrokni-Thorup-Zadimoghaddam, 2017)</a></li>
+<li><a class="h2" href="#159-chord-dht-2001">15.9 Chord (DHT, 2001)</a></li>
+<li><a class="h2" href="#1510-production-systems-matrix">15.10 Production Systems Matrix</a></li>
+<li><a class="h2" href="#1511-tradeoff-matrix">15.11 Tradeoff Matrix</a></li>
+<li><a class="h2" href="#1512-hot-key-mitigations">15.12 Hot-Key Mitigations</a></li>
+<li><a class="h2" href="#1513-common-interview-follow-ups">15.13 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#1514-references">15.14 References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="151-the-problem">15.1 The Problem</h2>
+<p>You have N keys you want to map to M servers. Naive <code>hash(key) % M</code> works — until M changes. Adding or removing a server changes <code>M</code>, which changes the modulo, which remaps almost all keys. For a cache, that's catastrophic (cold cache → backend overload). For a sharded DB, it's a re-shuffle of all data.</p>
+<p>We want: a hash function such that adding or removing a server only remaps <code>O(N/M)</code> keys. That's "consistent hashing" in the general sense; multiple algorithms achieve this with different tradeoffs.</p>
+<h2 id="152-kargers-ring-1997">15.2 Karger's Ring (1997)</h2>
+<p>Conceptually place servers as random points on a unit circle. Hash a key to a point on the same circle. Walk clockwise from the key; the first server encountered owns the key.</p>
+<p>Adding a server places one new point; only keys in the arc between the new point and its predecessor get remapped. Removing one moves its keys to its successor.</p>
+<pre><code>                    ┌─────────────┐
+                    │      A      │
+                    │   (server)  │
+                    │             │
+                    │  K1 → A     │
+              D ────│             │──── B
+            (svr)   │  K2 → B     │  (svr)
+                    │             │
+                    │  K3 → C     │
+                    │      C      │
+                    │   (server)  │
+                    └─────────────┘
+                  hash(key) lands on circle;
+                  walk clockwise to next server.
+</code></pre>
+<h3 id="implementation">Implementation</h3>
+<pre><code class="language-python">import bisect
+import hashlib
+
+class ConsistentHashRing:
+    def __init__(self, vnodes_per_node=128):
+        self.vnodes = vnodes_per_node
+        self.ring = []          # sorted list of (hash_position, node_id)
+        self.positions = []     # sorted list of just hash_positions for bisect
+
+    def _hash(self, key: str) -&gt; int:
+        return int(hashlib.md5(key.encode()).hexdigest(), 16)
+
+    def add_node(self, node_id: str):
+        for i in range(self.vnodes):
+            h = self._hash(f&quot;{node_id}:{i}&quot;)
+            bisect.insort(self.ring, (h, node_id))
+        self.positions = [h for h, _ in self.ring]
+
+    def remove_node(self, node_id: str):
+        self.ring = [(h, n) for h, n in self.ring if n != node_id]
+        self.positions = [h for h, _ in self.ring]
+
+    def get_node(self, key: str) -&gt; str:
+        if not self.ring:
+            raise RuntimeError(&quot;ring empty&quot;)
+        h = self._hash(key)
+        idx = bisect.bisect_right(self.positions, h)
+        if idx == len(self.ring):
+            idx = 0
+        return self.ring[idx][1]
+
+    def get_n_nodes(self, key: str, n: int) -&gt; list[str]:
+        &quot;&quot;&quot;For replication factor n: return next n distinct nodes.&quot;&quot;&quot;
+        if not self.ring:
+            return []
+        h = self._hash(key)
+        idx = bisect.bisect_right(self.positions, h)
+        seen = []
+        while len(seen) &lt; n and len(seen) &lt; len(set(x[1] for x in self.ring)):
+            if idx &gt;= len(self.ring):
+                idx = 0
+            node = self.ring[idx][1]
+            if node not in seen:
+                seen.append(node)
+            idx += 1
+        return seen
+</code></pre>
+<h3 id="why-virtual-nodes">Why Virtual Nodes</h3>
+<p>If each physical node = 1 ring position, distribution variance is high (some nodes get much larger arcs by chance). Each physical node = <code>V</code> virtual positions reduces standard deviation by <code>1/√V</code>. V=128 typical; 256 historically Cassandra default; modern Cassandra (4.x) is reducing to 16.</p>
+<p>Reference (Cassandra vnode tradeoffs): https://thelastpickle.com/blog/2021/01/29/impacts-of-changing-the-number-of-vnodes.html</p>
+<h3 id="cost">Cost</h3>
+<ul>
+<li>Lookup: O(log(N·V)) per key (binary search).</li>
+<li>Memory: O(N·V) (the sorted ring).</li>
+<li>Add/Remove: O(V·log(N·V)) per operation.</li>
+</ul>
+<h2 id="153-jump-consistent-hash-google-2014">15.3 Jump Consistent Hash (Google, 2014)</h2>
+<p>For scenarios where buckets are numbered 0..M-1 (not arbitrary IDs) and you want to map a 64-bit key to a bucket. No memory at all — pure computation.</p>
+<pre><code class="language-python">def jump_hash(key: int, num_buckets: int) -&gt; int:
+    b, j = -1, 0
+    while j &lt; num_buckets:
+        b = j
+        key = (key * 2862933555777941757 + 1) &amp; 0xFFFFFFFFFFFFFFFF
+        j = int((b + 1) * (1 &lt;&lt; 31) / ((key &gt;&gt; 33) + 1))
+    return b
+</code></pre>
+<p>Five lines. O(log M) time, O(1) memory. Used in Google internal systems, Riak Core, some Pulsar paths.</p>
+<p>Limitation: buckets must be 0..M-1 contiguous integers. You can't remove an arbitrary bucket — only shrink the largest index. So it's perfect for stateless services with a single autoscaling group, but awkward for systems where servers come and go arbitrarily.</p>
+<p>Reference: https://arxiv.org/abs/1406.2294</p>
+<h2 id="154-rendezvous-hashing-hrw-1996">15.4 Rendezvous Hashing (HRW, 1996)</h2>
+<p>Highest Random Weight: for each key, compute <code>hash(key, server)</code> for every server; pick the server with the highest hash.</p>
+<pre><code class="language-python">import hashlib
+
+def rendezvous(key: str, nodes: list[str]) -&gt; str:
+    def score(node):
+        return int(hashlib.md5(f&quot;{node}:{key}&quot;.encode()).hexdigest(), 16)
+    return max(nodes, key=score)
+</code></pre>
+<ul>
+<li>O(M) per lookup.</li>
+<li>O(0) memory (besides node list).</li>
+<li>Trivially supports add/remove (just change node list).</li>
+<li>Variance is excellent — every key independently selects.</li>
+</ul>
+<p>Best for small M (M &lt; 100). Used in CARP web caching protocol, some Cassandra paths internally.</p>
+<h3 id="weighted-hrw-schindelhauer-schomaker">Weighted HRW (Schindelhauer-Schomaker)</h3>
+<p>For unequal-capacity nodes, weight each node:</p>
+<pre><code class="language-python">import math, hashlib
+
+def weighted_hrw(key: str, nodes: list[tuple[str, float]]) -&gt; str:
+    &quot;&quot;&quot;nodes = [(node_id, weight), ...]&quot;&quot;&quot;
+    def score(node, w):
+        h = int(hashlib.md5(f&quot;{node}:{key}&quot;.encode()).hexdigest(), 16)
+        # Normalize hash to (0, 1), then -ln(u)/w gives an exponential variate
+        u = (h + 1) / (1 &lt;&lt; 128)
+        return -w / math.log(u)
+    return max(nodes, key=lambda nw: score(*nw))[0]
+</code></pre>
+<p>This gives bucket sharing exactly proportional to weights — a property the basic ring doesn't have without manual vnode count tuning.</p>
+<h2 id="155-maglev-hashing-google-nsdi-2016">15.5 Maglev Hashing (Google, NSDI 2016)</h2>
+<p>Designed for L4 network load balancers where you need:
+- Constant lookup time (single array index).
+- Uniform distribution.
+- Resilience to backend changes (consistent enough that flow state isn't disrupted).</p>
+<p>Builds a permutation table of size M (M = prime, typically 65537). Each backend has a "preference list" — a permutation of [0..M-1]. Build the lookup table by having each backend in turn place itself at its next preferred slot:</p>
+<pre><code class="language-python">def build_maglev_table(backends: list[str], M: int = 65537) -&gt; list[str]:
+    N = len(backends)
+    # Each backend produces an offset and skip
+    offsets = [hash_a(b) % M for b in backends]
+    skips   = [hash_b(b) % (M-1) + 1 for b in backends]
+    next_idx = [0] * N
+    table = [None] * M
+    filled = 0
+    while filled &lt; M:
+        for i in range(N):
+            # Find next slot for backend i
+            while True:
+                slot = (offsets[i] + next_idx[i] * skips[i]) % M
+                next_idx[i] += 1
+                if table[slot] is None:
+                    break
+            table[slot] = backends[i]
+            filled += 1
+            if filled == M:
+                break
+    return table
+
+def maglev_lookup(table: list[str], key: str) -&gt; str:
+    return table[hash_key(key) % len(table)]
+</code></pre>
+<ul>
+<li>Lookup: O(1) — one hash, one array access.</li>
+<li>Build: O(M) per backend on average.</li>
+<li>Add/Remove a backend: rebuild the entire table; ~1-2% of slots change (per the paper, with proper M ≫ N).</li>
+</ul>
+<p>Used in Google's Maglev L4 LB, Envoy's <code>MAGLEV</code> cluster type, Cilium eBPF datapath.</p>
+<p>References:
+- Maglev paper: https://research.google/pubs/maglev-a-fast-and-reliable-software-network-load-balancer/
+- Erlang impl: https://github.com/nomasystems/nmaglev</p>
+<h2 id="156-multi-probe-consistent-hashing">15.6 Multi-Probe Consistent Hashing</h2>
+<p>A variant where each key hashes K times; you pick the bucket where the hash falls closest to a node. Reduces variance compared to single-probe ring without needing vnodes. Used in some FB internal systems.</p>
+<h2 id="157-anchor-hashing-2018">15.7 Anchor Hashing (2018)</h2>
+<p>A modern alternative to ring hashing with O(1) lookups (without Maglev's table overhead). Each bucket has an "anchor" position; lookup walks anchors. Comparable distribution to vnode ring with less memory.</p>
+<p>Reference: https://arxiv.org/abs/1812.09674</p>
+<h2 id="158-consistent-hashing-with-bounded-loads-mirrokni-thorup-zadimoghaddam-2017">15.8 Consistent Hashing with Bounded Loads (Mirrokni-Thorup-Zadimoghaddam, 2017)</h2>
+<p>The basic ring has unbounded load imbalance — a popular key can swamp one server. Bounded loads adds a constraint: no server may carry more than <code>c × (N/M)</code> keys for some <code>c &gt; 1</code>. If a server is "full", spill to next.</p>
+<p>Lookup is O(log) instead of O(M) on average; falls back when overloaded.</p>
+<pre><code class="language-python">def get_node_bounded(self, key, max_load_factor=1.25):
+    target_load = total_load * max_load_factor / num_nodes
+    h = self._hash(key)
+    idx = bisect.bisect_right(self.positions, h)
+    for _ in range(len(self.ring)):
+        if idx &gt;= len(self.ring): idx = 0
+        node = self.ring[idx][1]
+        if self.load[node] &lt; target_load:
+            return node
+        idx += 1
+    raise RuntimeError(&quot;all nodes overloaded&quot;)
+</code></pre>
+<p>Used by:
+- HAProxy <code>hash-balance-factor</code> parameter.
+- Vimeo's case study reported 8× improvement: https://blog.vimeo.com/news/everything-about-the-internet-load-balancer/
+- Google research blog: https://research.google/blog/consistent-hashing-with-bounded-loads/</p>
+<h2 id="159-chord-dht-2001">15.9 Chord (DHT, 2001)</h2>
+<p>Original distributed hash table. Each node has a "finger table" of size <code>log N</code> pointing to nodes at exponentially increasing distances. Lookup: <code>O(log N)</code> hops over the network. Used in BitTorrent DHT, IPFS, original Cassandra design (later replaced with simpler gossip-based ring).</p>
+<p>Reference: https://pdos.csail.mit.edu/papers/chord:sigcomm01/</p>
+<h2 id="1510-production-systems-matrix">15.10 Production Systems Matrix</h2>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Algorithm</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Akamai</strong></td>
+<td>Karger-style ring</td>
+<td>Original consumer; coined "consistent hashing"</td>
+</tr>
+<tr>
+<td><strong>Amazon Dynamo</strong></td>
+<td>Ring + vnodes</td>
+<td>Canonical 2007 paper</td>
+</tr>
+<tr>
+<td><strong>Amazon DynamoDB</strong></td>
+<td>Internal partition map (managed)</td>
+<td>Not user-visible</td>
+</tr>
+<tr>
+<td><strong>Apache Cassandra</strong></td>
+<td>Ring; 256→16 vnodes (4.0+)</td>
+<td>Replication factor walks ring</td>
+</tr>
+<tr>
+<td><strong>Riak</strong></td>
+<td>Ring (Karger), 1024 partitions default</td>
+<td>Riak Core library</td>
+</tr>
+<tr>
+<td><strong>Couchbase</strong></td>
+<td>Vbucket map (precomputed) + ketama for client-side proxying</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>HAProxy</strong></td>
+<td><code>balance hash</code> with <code>hash-balance-factor</code> (bounded loads)</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Nginx</strong></td>
+<td><code>hash</code> directive with <code>consistent</code> flag</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Envoy</strong></td>
+<td><code>RING_HASH</code> and <code>MAGLEV</code> cluster types</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Cilium (eBPF)</strong></td>
+<td>Maglev</td>
+<td>L4 service routing</td>
+</tr>
+<tr>
+<td><strong>Google Maglev</strong></td>
+<td>Maglev (eponymous)</td>
+<td>L4 LB</td>
+</tr>
+<tr>
+<td><strong>Twitter Manhattan</strong></td>
+<td>Ring</td>
+<td>Internal KV store</td>
+</tr>
+<tr>
+<td><strong>Discord</strong></td>
+<td>Custom: <code>hash(channel_id)</code> partition + bucket within</td>
+<td>Per Cassandra writeup</td>
+</tr>
+<tr>
+<td><strong>Apache Pulsar</strong></td>
+<td>Lookup by topic; broker placement uses hash</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Memcached / Memcache clients</strong></td>
+<td>ketama (Karger ring with 160 vnodes)</td>
+<td>Original libketama by Last.fm</td>
+</tr>
+</tbody>
+</table>
+<p>References:
+- Discord scaling on Cassandra: https://medium.com/@mathurvarun84/cassandra-at-scale-how-discord-stored-billions-of-messages-4d293d859598
+- Cassandra vnodes: https://thelastpickle.com/blog/2021/01/29/impacts-of-changing-the-number-of-vnodes.html</p>
+<h2 id="1511-tradeoff-matrix">15.11 Tradeoff Matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Algorithm</th>
+<th>Lookup</th>
+<th>Memory</th>
+<th>Add Cost</th>
+<th>Variance</th>
+<th>Weighted</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Modulo (naive)</strong></td>
+<td>O(1)</td>
+<td>O(0)</td>
+<td>rehash all</td>
+<td>very low</td>
+<td>yes</td>
+<td>breaks on resize</td>
+</tr>
+<tr>
+<td><strong>Karger ring</strong></td>
+<td>O(log NV)</td>
+<td>O(NV)</td>
+<td>O(V log)</td>
+<td>medium (vnodes help)</td>
+<td>indirect (vnode counts)</td>
+<td>classic</td>
+</tr>
+<tr>
+<td><strong>Jump</strong></td>
+<td>O(log M)</td>
+<td>O(0)</td>
+<td>append only</td>
+<td>very low</td>
+<td>no</td>
+<td>only contiguous buckets</td>
+</tr>
+<tr>
+<td><strong>Rendezvous (HRW)</strong></td>
+<td>O(M)</td>
+<td>O(0)</td>
+<td>O(0)</td>
+<td>very low</td>
+<td>yes</td>
+<td>best for small M</td>
+</tr>
+<tr>
+<td><strong>Maglev</strong></td>
+<td>O(1)</td>
+<td>O(M)</td>
+<td>O(NM) rebuild</td>
+<td>very low</td>
+<td>indirect</td>
+<td>best for L4 LB</td>
+</tr>
+<tr>
+<td><strong>Multi-probe</strong></td>
+<td>O(K)</td>
+<td>O(N)</td>
+<td>O(0)</td>
+<td>low</td>
+<td>yes</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Anchor</strong></td>
+<td>O(1)</td>
+<td>O(N)</td>
+<td>O(1) amortized</td>
+<td>low</td>
+<td>yes</td>
+<td>modern entry</td>
+</tr>
+<tr>
+<td><strong>Bounded loads</strong></td>
+<td>O(log NV) avg</td>
+<td>O(NV)</td>
+<td>O(V log)</td>
+<td>bounded</td>
+<td>yes</td>
+<td>best for hot-key safety</td>
+</tr>
+<tr>
+<td><strong>Chord (DHT)</strong></td>
+<td>O(log N) hops</td>
+<td>O(log N)</td>
+<td>O(log² N)</td>
+<td>low</td>
+<td>no</td>
+<td>distributed lookup</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1512-hot-key-mitigations">15.12 Hot-Key Mitigations</h2>
+<p>A hot key is fundamentally a load-balancing problem, not a hashing problem. Solutions:</p>
+<ol>
+<li><strong>Bounded-loads consistent hashing</strong> (HAProxy, Vimeo).</li>
+<li><strong>Replicate hot keys</strong>: top-K most-accessed keys are replicated to N servers; client picks one randomly.</li>
+<li><strong>Two-level routing</strong>: first level partitions by <code>hash(key)</code>; second level partitions by <code>hash(key, sub_id)</code> where <code>sub_id</code> rotates.</li>
+<li><strong>Partition-key bucketing</strong> (Discord): <code>hash(channel_id)</code> partitions; within a hot channel, bucket by message ID range to spread.</li>
+<li><strong>Aggregation at the edge</strong>: hot writes batched/coalesced before reaching the hot partition.</li>
+</ol>
+<h2 id="1513-common-interview-follow-ups">15.13 Common Interview Follow-ups</h2>
+<p><strong>Q: Modulo hashing fails because resize remaps everything. Why doesn't a deterministic-hash + modulo hashing work?</strong>
+A: Because changing M is the issue, not the hash quality. <code>hash(k) % M</code> itself is deterministic, but <code>M</code> changes when the cluster resizes. Consistent hashing decouples key→position from <code>M</code> so the position is stable.</p>
+<p><strong>Q: How do you choose vnode count?</strong>
+A: Tradeoff between distribution variance (1/√V) and overhead (memory, lookup). 100-300 typical for caches. Cassandra moved to 16 because gossip and streaming overhead per vnode is non-trivial.</p>
+<p><strong>Q: Why not just use Maglev everywhere?</strong>
+A: Maglev rebuild is O(M·log) per backend change. For systems with frequent changes (autoscaling), ring is better. Maglev shines for stable or slow-changing topology (L4 LB).</p>
+<p><strong>Q: How does prefix-cache routing for LLMs use consistent hashing?</strong>
+A: Hash on <code>(conversation_id, prefix_hash)</code> rather than just <code>conversation_id</code> — improves cache hit rate when prompt tokens overlap across conversations. Use bounded-loads to avoid one replica getting all requests for one popular prompt.</p>
+<h2 id="1514-references">15.14 References</h2>
+<ul>
+<li>Karger et al., <em>Consistent Hashing and Random Trees</em> (STOC 1997): https://www.akamai.com/site/en/documents/research-paper/consistent-hashing-and-random-trees-distributed-caching-protocols-for-relieving-hot-spots-on-the-world-wide-web.pdf</li>
+<li>Lamping &amp; Veach, <em>A Fast, Minimal Memory, Consistent Hash Algorithm</em> (Jump): https://arxiv.org/abs/1406.2294</li>
+<li>Eisenbud et al., <em>Maglev</em> (NSDI 2016): https://research.google/pubs/maglev-a-fast-and-reliable-software-network-load-balancer/</li>
+<li>Mirrokni-Thorup-Zadimoghaddam, <em>Consistent Hashing with Bounded Loads</em>: https://research.google/blog/consistent-hashing-with-bounded-loads/</li>
+<li>Stoica et al., <em>Chord</em>: https://pdos.csail.mit.edu/papers/chord:sigcomm01/</li>
+<li>DeCandia et al., <em>Dynamo</em> (SOSP 2007): https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf</li>
+<li>Anchor hash paper: https://arxiv.org/abs/1812.09674</li>
+<li>Vimeo bounded loads writeup: https://blog.vimeo.com/news/everything-about-the-internet-load-balancer/</li>
+<li>Cassandra vnodes deep dive: https://thelastpickle.com/blog/2021/01/29/impacts-of-changing-the-number-of-vnodes.html</li>
+<li>Envoy load balancing types: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/load_balancers</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="03-webhook-delivery.html"><span class="side-num">03</span><span class="side-title">Webhook Delivery Platform</span></a></li>
+<li><a href="11-chatgpt-system-design.html"><span class="side-num">11</span><span class="side-title">ChatGPT System Design</span></a></li>
+<li><a href="07-in-process-queue.html"><span class="side-num">07</span><span class="side-title">In-Process Queue with At-Least-Once Delivery</span></a></li>
+<li><a href="01-event-aggregator.html"><span class="side-num">01</span><span class="side-title">Real-Time Event Aggregator with Rolling Windows</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Algorithms</h4>
+<div class="tool-chips">
+<span class="tool-chip">Karger ring (virtual nodes)</span>
+<span class="tool-chip">Jump hash (Lamping-Veach 2014)</span>
+<span class="tool-chip">Rendezvous / HRW</span>
+<span class="tool-chip">Maglev (NSDI &#x27;16)</span>
+<span class="tool-chip">Multi-probe</span>
+<span class="tool-chip">Anchor</span>
+<span class="tool-chip">Bounded loads (Mirrokni)</span>
+</div></div>
+<div class="tool-group"><h4>DHTs</h4>
+<div class="tool-chips">
+<span class="tool-chip">Chord (SIGCOMM &#x27;01)</span>
+<span class="tool-chip">Pastry</span>
+<span class="tool-chip">Kademlia</span>
+<span class="tool-chip">BitTorrent DHT</span>
+</div></div>
+<div class="tool-group"><h4>Sharded databases</h4>
+<div class="tool-chips">
+<span class="tool-chip">Amazon Dynamo (SOSP &#x27;07)</span>
+<span class="tool-chip">Apache Cassandra</span>
+<span class="tool-chip">Riak</span>
+<span class="tool-chip">Couchbase ketama</span>
+<span class="tool-chip">DynamoDB</span>
+<span class="tool-chip">Twitter Manhattan</span>
+</div></div>
+<div class="tool-group"><h4>Load balancers</h4>
+<div class="tool-chips">
+<span class="tool-chip">HAProxy hash-balance-factor</span>
+<span class="tool-chip">Nginx hash consistent</span>
+<span class="tool-chip">Envoy RING_HASH</span>
+<span class="tool-chip">Envoy MAGLEV</span>
+<span class="tool-chip">Cilium eBPF (Maglev)</span>
+<span class="tool-chip">Google Maglev L4</span>
+</div></div>
+<div class="tool-group"><h4>Hot-key mitigations</h4>
+<div class="tool-chips">
+<span class="tool-chip">Bounded loads</span>
+<span class="tool-chip">Replicate hot keys</span>
+<span class="tool-chip">Two-level routing</span>
+<span class="tool-chip">Discord channel+bucket pattern</span>
+</div></div>
+<div class="tool-group"><h4>Caches</h4>
+<div class="tool-chips">
+<span class="tool-chip">Memcached (libketama, 160 vnodes)</span>
+<span class="tool-chip">Last.fm reference impl</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="14-llm-serving-fairness.html"><span class="nav-label">← Chapter 14</span><span class="nav-title">LLM Serving Fairness &amp; Scheduling</span></a>
+    <a class="nav-next nav-next-link" href="16-backpressure-patterns.html"><span class="nav-label">Chapter 16 →</span><span class="nav-title">Backpressure Patterns</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

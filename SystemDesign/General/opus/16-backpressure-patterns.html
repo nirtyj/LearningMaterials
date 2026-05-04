@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>16 · Backpressure Patterns — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="16">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">16</span>
+      <span class="meta-rule"></span>
+      <span>Cross-Cutting · Foundations</span>
+    </div>
+    <h1 class="article-title">Backpressure Patterns</h1>
+    <p class="article-lede">Reactive Streams demand, credit-based flow control, TCP rwnd vs cwnd, Netflix adaptive concurrency, the Google SRE throttler.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#161-the-core-pattern">16.1 The Core Pattern</a></li>
+<li><a class="h2" href="#162-bounded-queue-strategy">16.2 Bounded Queue + Strategy</a></li>
+<li><a class="h3" href="#red-random-early-detection">RED (Random Early Detection)</a></li>
+<li><a class="h3" href="#codel-controlled-delay-nichols-jacobson-2012">CoDel (Controlled Delay, Nichols &amp; Jacobson, 2012)</a></li>
+<li><a class="h2" href="#163-reactive-streams-demand-based">16.3 Reactive Streams (Demand-Based)</a></li>
+<li><a class="h2" href="#164-credit-based-flow-control">16.4 Credit-Based Flow Control</a></li>
+<li><a class="h2" href="#165-tcp-rwnd-vs-cwnd">16.5 TCP rwnd vs cwnd</a></li>
+<li><a class="h2" href="#166-token-bucket-as-shaper">16.6 Token Bucket as Shaper</a></li>
+<li><a class="h2" href="#167-adaptive-concurrency-limits-netflix-concurrency-limits">16.7 Adaptive Concurrency Limits (Netflix concurrency-limits)</a></li>
+<li><a class="h3" href="#vegas-style-limit">Vegas-style limit</a></li>
+<li><a class="h3" href="#gradient2">Gradient2</a></li>
+<li><a class="h2" href="#168-bulkhead-pattern">16.8 Bulkhead Pattern</a></li>
+<li><a class="h2" href="#169-llm-specific-backpressure">16.9 LLM-Specific Backpressure</a></li>
+<li><a class="h2" href="#1610-google-sre-adaptive-throttler-client-side">16.10 Google SRE Adaptive Throttler (Client-Side)</a></li>
+<li><a class="h2" href="#1611-decision-sheet">16.11 Decision Sheet</a></li>
+<li><a class="h2" href="#1612-common-interview-follow-ups">16.12 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#1613-references">16.13 References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="161-the-core-pattern">16.1 The Core Pattern</h2>
+<p>Producer P sends to Consumer C. C is slower than P. Without intervention, items queue between them. Eventually queue exhausts memory.</p>
+<p>Three high-level responses:
+1. <strong>Block</strong> the producer (synchronous coupling).
+2. <strong>Drop</strong> items (sample / reject / load-shed).
+3. <strong>Demand-driven</strong>: consumer pulls only what it can handle.</p>
+<p>The third is "true" backpressure. The first two are degraded modes.</p>
+<h2 id="162-bounded-queue-strategy">16.2 Bounded Queue + Strategy</h2>
+<pre><code class="language-python">class BoundedQueue:
+    def __init__(self, capacity, strategy=&quot;block&quot;):
+        self.q = collections.deque()
+        self.cap = capacity
+        self.strategy = strategy
+        self.cv = threading.Condition()
+
+    def offer(self, item, timeout=None):
+        with self.cv:
+            if len(self.q) &gt;= self.cap:
+                if self.strategy == &quot;drop_newest&quot;:
+                    return False
+                elif self.strategy == &quot;drop_oldest&quot;:
+                    self.q.popleft()
+                elif self.strategy == &quot;block&quot;:
+                    if not self.cv.wait_for(lambda: len(self.q) &lt; self.cap, timeout):
+                        return False
+                elif self.strategy == &quot;reject&quot;:
+                    raise QueueFullError()
+            self.q.append(item)
+            self.cv.notify()
+            return True
+
+    def take(self):
+        with self.cv:
+            self.cv.wait_for(lambda: self.q)
+            x = self.q.popleft()
+            self.cv.notify()
+            return x
+</code></pre>
+<p>Strategy implications:
+- <strong>Block</strong>: producer slows; latency rises but no loss; thread waste if many producers.
+- <strong>Drop newest</strong>: prefer keeping older items (good for state — last update unimportant).
+- <strong>Drop oldest</strong>: prefer freshest (good for telemetry — old samples worthless).
+- <strong>Reject</strong>: explicit signal upstream; use <code>Retry-After</code>. Aligns with HTTP 429.</p>
+<h3 id="red-random-early-detection">RED (Random Early Detection)</h3>
+<p>Don't wait until queue is full to drop. Above threshold T1, drop probabilistically; at T2 (full), drop unconditionally. Smooths burst-induced retransmits in TCP-like protocols. Used in Cisco routers, Linux qdisc.</p>
+<h3 id="codel-controlled-delay-nichols-jacobson-2012">CoDel (Controlled Delay, Nichols &amp; Jacobson, 2012)</h3>
+<p>Parameterless: drop the head-of-queue packet if it's been queued &gt; 5ms (target) for &gt; 100ms (interval). Adapts to queue's natural drain rate without configuration. Used in Linux <code>fq_codel</code> qdisc, iOS network stack.</p>
+<p>Reference: https://en.wikipedia.org/wiki/CoDel</p>
+<h2 id="163-reactive-streams-demand-based">16.3 Reactive Streams (Demand-Based)</h2>
+<p>Standardized in JDK 9 (<code>java.util.concurrent.Flow</code>), implemented in Project Reactor, RxJava, Akka Streams. Four interfaces:</p>
+<pre><code class="language-java">public interface Publisher&lt;T&gt; { void subscribe(Subscriber&lt;? super T&gt; s); }
+
+public interface Subscriber&lt;T&gt; {
+    void onSubscribe(Subscription s);
+    void onNext(T t);
+    void onError(Throwable t);
+    void onComplete();
+}
+
+public interface Subscription {
+    void request(long n);   // ← demand signal (the backpressure)
+    void cancel();
+}
+
+public interface Processor&lt;T,R&gt; extends Subscriber&lt;T&gt;, Publisher&lt;R&gt; {}
+</code></pre>
+<p>The consumer issues <code>subscription.request(n)</code> — only after that does the producer push up to <code>n</code> items. No demand → no items → no buffer growth.</p>
+<pre><code class="language-java">public class BackpressureExample {
+    public static void main(String[] args) {
+        Flow.Publisher&lt;Integer&gt; publisher = subscriber -&gt; {
+            subscriber.onSubscribe(new Flow.Subscription() {
+                int next = 0;
+                public void request(long n) {
+                    for (long i = 0; i &lt; n &amp;&amp; next &lt; 100; i++) {
+                        subscriber.onNext(next++);
+                    }
+                    if (next &gt;= 100) subscriber.onComplete();
+                }
+                public void cancel() {}
+            });
+        };
+
+        publisher.subscribe(new Flow.Subscriber&lt;Integer&gt;() {
+            Flow.Subscription sub;
+            public void onSubscribe(Flow.Subscription s) {
+                this.sub = s;
+                s.request(10);                  // initial demand
+            }
+            public void onNext(Integer x) {
+                process(x);
+                sub.request(1);                  // 1-for-1 replenishment
+            }
+            public void onError(Throwable t) {}
+            public void onComplete() {}
+        });
+    }
+}
+</code></pre>
+<p>Reference: https://github.com/reactive-streams/reactive-streams-jvm</p>
+<h2 id="164-credit-based-flow-control">16.4 Credit-Based Flow Control</h2>
+<p>A generalization of demand-based: receiver sends "credits" representing buffer slots. Sender may send up to its credit balance. On each receive, receiver reclaims a credit and (eventually) sends more.</p>
+<p>Used in:
+- <strong>Apache Pulsar</strong>: per-consumer flow control via <code>consumer.receive()</code> triggering credit replenishment.
+- <strong>AMQP 1.0</strong>: explicit <code>flow</code> frames with credit values.
+- <strong>RDMA / InfiniBand</strong>: hardware-level credits per QP.
+- <strong>HTTP/2 and gRPC</strong>: flow-control windows per stream and per connection. <code>WINDOW_UPDATE</code> frames replenish credits.</p>
+<pre><code>   [Sender]                    [Receiver]
+       │ INITIAL_WINDOW=65535    │
+       │←────────────────────────│
+       │                         │
+       │ DATA[0..1024]           │
+       │────────────────────────→│  (window: 65535-1024 = 64511)
+       │ DATA[1024..2048]        │
+       │────────────────────────→│  (window: 63487)
+       │                         │
+       │ WINDOW_UPDATE +16384    │
+       │←────────────────────────│  (window: 79871)
+</code></pre>
+<p>Common pitfall: <strong>window-stall</strong> when receiver is slow to send <code>WINDOW_UPDATE</code>. Mitigate by replenishing aggressively (every X% of consumed window, e.g., every 25%).</p>
+<h2 id="165-tcp-rwnd-vs-cwnd">16.5 TCP rwnd vs cwnd</h2>
+<p>TCP has two windows:
+- <strong>rwnd (receive window)</strong>: how much the receiver can buffer. Advertised in TCP headers. Pure backpressure.
+- <strong>cwnd (congestion window)</strong>: how much the sender estimates the network can carry. Computed from packet-loss / RTT signals. Network-level backpressure.</p>
+<p>Effective window = <code>min(rwnd, cwnd)</code>. Modern algorithms:
+- <strong>Reno / NewReno</strong>: AIMD (additive increase, multiplicative decrease).
+- <strong>CUBIC</strong>: nonlinear cwnd growth; default in Linux.
+- <strong>BBR (Google)</strong>: model-based; estimates bottleneck bandwidth and round-trip propagation. Doesn't react to single losses; better in deep buffers.</p>
+<p>Reference: RFC 9293 (TCP), https://datatracker.ietf.org/doc/html/rfc9293</p>
+<h2 id="166-token-bucket-as-shaper">16.6 Token Bucket as Shaper</h2>
+<p>Use a token bucket to shape the <em>output</em> rate of a producer. Producer waits when no tokens; smooth rate maintained. Classic egress shaping in Linux <code>tc tbf</code>. Combine with bounded queue for safe burst handling.</p>
+<h2 id="167-adaptive-concurrency-limits-netflix-concurrency-limits">16.7 Adaptive Concurrency Limits (Netflix concurrency-limits)</h2>
+<p>Static concurrency caps are wrong for elastic workloads. Adaptive algorithms learn the optimal concurrency from latency feedback:</p>
+<h3 id="vegas-style-limit">Vegas-style limit</h3>
+<p>Inspired by TCP Vegas. Maintain <code>limit</code>. Compare actual RTT to estimated minimum RTT.
+- If <code>RTT_actual ≈ RTT_min</code>: capacity available → increase <code>limit</code>.
+- If <code>RTT_actual ≫ RTT_min</code>: queueing → decrease.</p>
+<h3 id="gradient2">Gradient2</h3>
+<pre><code class="language-python">class Gradient2Limit:
+    def __init__(self, init=10, min_limit=1, max_limit=200):
+        self.limit = init
+        self.min_limit = min_limit
+        self.max_limit = max_limit
+        self.long_avg_rtt = 0.0
+        self.short_avg_rtt = 0.0
+
+    def on_sample(self, in_flight, rtt_ms, did_drop):
+        if did_drop:
+            self.limit = max(self.min_limit, int(self.limit * 0.9))
+            return
+        # EMA
+        a_long, a_short = 0.95, 0.7
+        self.long_avg_rtt  = a_long  * self.long_avg_rtt  + (1 - a_long)  * rtt_ms
+        self.short_avg_rtt = a_short * self.short_avg_rtt + (1 - a_short) * rtt_ms
+        gradient = max(0.5, min(1.0, self.long_avg_rtt / self.short_avg_rtt))
+        new_limit = self.limit * gradient + 4
+        self.limit = max(self.min_limit, min(self.max_limit, new_limit))
+</code></pre>
+<p>Drop on excess concurrency: signal upstream with <code>Retry-After</code>. Reference: https://github.com/Netflix/concurrency-limits</p>
+<h2 id="168-bulkhead-pattern">16.8 Bulkhead Pattern</h2>
+<p>Isolate resources by partition: separate thread pools, connection pools, semaphores per dependency. Failure of one dependency can't exhaust shared resources used by others. Used in Hystrix, Resilience4j.</p>
+<pre><code class="language-python">import asyncio
+class Bulkhead:
+    def __init__(self, max_concurrent):
+        self.sem = asyncio.Semaphore(max_concurrent)
+    async def call(self, fn, *args):
+        async with self.sem:
+            return await fn(*args)
+</code></pre>
+<p>Per-dependency bulkheads: hot dependency gets its own bulkhead; cold ones share. Prevents single dependency saturation from blocking everything.</p>
+<h2 id="169-llm-specific-backpressure">16.9 LLM-Specific Backpressure</h2>
+<p>LLM serving has unique challenges:
+- Output length is unknown until completion.
+- KV memory is the dominant resource, not CPU.
+- Premature drop wastes prefill (sunk cost).</p>
+<p>Strategies:
+1. <strong>Queue-depth-weighted-by-output-tokens</strong> for autoscale signal (see §11.4).
+2. <strong>Per-tenant adaptive concurrency limits</strong> rather than static rate limits.
+3. <strong>KV-budget admission</strong>: estimate <code>KV_needed = prompt_tokens + max_output × 320KB</code> (Llama-3.1-70B). Reject if exceeds available.
+4. <strong>Cancellation propagation</strong>: client disconnects → server stops generating. gRPC <code>RST_STREAM</code>, HTTP/2 <code>RST_STREAM</code>. vLLM v1 supports cancellation natively.</p>
+<pre><code>   Backpressure signals in LLM serving:
+   ─────────────────────────────────────
+   Edge gateway:   per-API-key RPS via token bucket (Redis)
+   Router:         queue depth × E[output_tokens] vs SLO budget
+   Replica:        KV occupancy vs total; reject @ 90%
+   Worker:         continuous batching natural backpressure
+                    (admit only what fits in token budget)
+</code></pre>
+<h2 id="1610-google-sre-adaptive-throttler-client-side">16.10 Google SRE Adaptive Throttler (Client-Side)</h2>
+<p>For RPCs to a backend, client maintains rolling window of <code>(requests, accepts)</code>. Throttle probability:</p>
+<pre><code>   p_throttle = max(0, (requests - K * accepts) / (requests + 1))
+</code></pre>
+<p>with <code>K = 2</code>. When backend rejects, client throttles itself rather than retrying.</p>
+<pre><code class="language-python">class ClientThrottler:
+    def __init__(self, k=2.0, window_s=60):
+        self.k = k
+        self.window = collections.deque()       # (timestamp, accepted_bool)
+
+    def _gc(self):
+        cutoff = time.time() - 60
+        while self.window and self.window[0][0] &lt; cutoff:
+            self.window.popleft()
+
+    def should_send(self):
+        self._gc()
+        reqs = len(self.window)
+        accepts = sum(1 for _, a in self.window if a)
+        p = max(0, (reqs - self.k * accepts) / (reqs + 1))
+        return random.random() &gt;= p
+
+    def record(self, accepted: bool):
+        self.window.append((time.time(), accepted))
+</code></pre>
+<p>Reference: https://sre.google/sre-book/handling-overload/</p>
+<h2 id="1611-decision-sheet">16.11 Decision Sheet</h2>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Recommended pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>In-process pipeline (single language)</td>
+<td>Reactive Streams / Project Reactor</td>
+</tr>
+<tr>
+<td>Cross-process (within DC)</td>
+<td>gRPC + flow control + adaptive concurrency</td>
+</tr>
+<tr>
+<td>Cross-DC</td>
+<td>Token bucket + retry budget + circuit breaker</td>
+</tr>
+<tr>
+<td>Streaming media</td>
+<td>Credit-based with <code>WINDOW_UPDATE</code></td>
+</tr>
+<tr>
+<td>LLM serving</td>
+<td>KV-budget admission + queue-depth-weighted scaling</td>
+</tr>
+<tr>
+<td>Network qdisc</td>
+<td>fq_codel (CoDel)</td>
+</tr>
+<tr>
+<td>Load balancer</td>
+<td>Adaptive concurrency limits (Netflix)</td>
+</tr>
+<tr>
+<td>Untrusted external producer</td>
+<td>Reject 429 with Retry-After</td>
+</tr>
+<tr>
+<td>Telemetry / metrics ingest</td>
+<td>Drop-oldest with sampling</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1612-common-interview-follow-ups">16.12 Common Interview Follow-ups</h2>
+<p><strong>Q: Producer is faster; what do you do?</strong>
+A: Apply backpressure or drop. Choose based on the data's value: state updates → block; telemetry → drop oldest with sampling.</p>
+<p><strong>Q: How do you avoid head-of-line blocking when one slow consumer holds up all producers?</strong>
+A: Bulkheads — independent queues per consumer. Or asynchronous fanout (each consumer pulls from a per-consumer offset, like Kafka topics).</p>
+<p><strong>Q: How do you size a bounded queue?</strong>
+A: Little's Law: <code>L = λ × W</code>. If max latency budget is 100ms and arrival rate 1000/s, queue capacity &gt; 100 keeps you in spec. Add 2× buffer for bursts. Beyond that, drop or reject.</p>
+<p><strong>Q: What's the connection between TCP and Reactive Streams?</strong>
+A: Both are demand-driven backpressure protocols. TCP <code>rwnd</code> is to bytes as Reactive Streams <code>request(n)</code> is to messages. Conceptually identical.</p>
+<p><strong>Q: How do you avoid tail latency from long-running requests blocking new ones?</strong>
+A: Pre-emption (Llumnix for LLM), priority queues, quota-based scheduling. Long-running requests pay-as-they-go; can be evicted when over their quota.</p>
+<h2 id="1613-references">16.13 References</h2>
+<ul>
+<li>Reactive Streams JVM spec: https://github.com/reactive-streams/reactive-streams-jvm</li>
+<li>Netflix concurrency-limits: https://github.com/Netflix/concurrency-limits</li>
+<li>CoDel paper: https://queue.acm.org/detail.cfm?id=2209336</li>
+<li>Google SRE on overload: https://sre.google/sre-book/handling-overload/</li>
+<li>BBR paper (ACM Queue): https://queue.acm.org/detail.cfm?id=3022184</li>
+<li>HTTP/2 RFC 7540 §5.2: https://www.rfc-editor.org/rfc/rfc7540#section-5.2</li>
+<li>gRPC concurrency: https://grpc.io/docs/guides/performance/</li>
+<li>Resilience4j bulkhead: https://resilience4j.readme.io/docs/bulkhead</li>
+<li>Hystrix bulkhead: https://github.com/Netflix/Hystrix/wiki/How-it-Works#BulkheadIsolation</li>
+<li>Linux qdisc fq_codel: https://www.bufferbloat.net/projects/codel/wiki</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="04-rate-limiting.html"><span class="side-num">04</span><span class="side-title">Rate Limiting Algorithms</span></a></li>
+<li><a href="05-exponential-backoff.html"><span class="side-num">05</span><span class="side-title">Exponential Backoff with Jitter</span></a></li>
+<li><a href="03-webhook-delivery.html"><span class="side-num">03</span><span class="side-title">Webhook Delivery Platform</span></a></li>
+<li><a href="14-llm-serving-fairness.html"><span class="side-num">14</span><span class="side-title">LLM Serving Fairness &amp; Scheduling</span></a></li>
+<li><a href="11-chatgpt-system-design.html"><span class="side-num">11</span><span class="side-title">ChatGPT System Design</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Demand-driven</h4>
+<div class="tool-chips">
+<span class="tool-chip">Reactive Streams (JDK 9 Flow)</span>
+<span class="tool-chip">Project Reactor</span>
+<span class="tool-chip">RxJava</span>
+<span class="tool-chip">Akka Streams</span>
+</div></div>
+<div class="tool-group"><h4>Credit-based</h4>
+<div class="tool-chips">
+<span class="tool-chip">Apache Pulsar</span>
+<span class="tool-chip">AMQP 1.0</span>
+<span class="tool-chip">RDMA/InfiniBand</span>
+<span class="tool-chip">HTTP/2 WINDOW_UPDATE</span>
+<span class="tool-chip">gRPC flow control</span>
+</div></div>
+<div class="tool-group"><h4>Network-level</h4>
+<div class="tool-chips">
+<span class="tool-chip">TCP rwnd / cwnd</span>
+<span class="tool-chip">BBR</span>
+<span class="tool-chip">CUBIC</span>
+<span class="tool-chip">RED (Random Early Detection)</span>
+<span class="tool-chip">CoDel (Nichols-Jacobson)</span>
+<span class="tool-chip">Linux fq_codel</span>
+</div></div>
+<div class="tool-group"><h4>Adaptive concurrency</h4>
+<div class="tool-chips">
+<span class="tool-chip">Netflix concurrency-limits</span>
+<span class="tool-chip">Vegas-style</span>
+<span class="tool-chip">Gradient2</span>
+<span class="tool-chip">AIMD</span>
+</div></div>
+<div class="tool-group"><h4>Bulkhead / isolation</h4>
+<div class="tool-chips">
+<span class="tool-chip">Hystrix bulkhead</span>
+<span class="tool-chip">Resilience4j bulkhead</span>
+<span class="tool-chip">Per-dependency thread pools</span>
+</div></div>
+<div class="tool-group"><h4>Load shedding</h4>
+<div class="tool-chips">
+<span class="tool-chip">Google SRE adaptive throttler</span>
+<span class="tool-chip">Drop-newest / drop-oldest</span>
+<span class="tool-chip">Reject with Retry-After</span>
+<span class="tool-chip">RED-style probabilistic drop</span>
+</div></div>
+<div class="tool-group"><h4>LLM-specific</h4>
+<div class="tool-chips">
+<span class="tool-chip">KV-budget admission</span>
+<span class="tool-chip">Output-token-weighted queue depth</span>
+<span class="tool-chip">Cancellation propagation (gRPC RST_STREAM)</span>
+</div></div>
+<div class="tool-group"><h4>Theory</h4>
+<div class="tool-chips">
+<span class="tool-chip">Little&#x27;s Law (L = λW)</span>
+<span class="tool-chip">Queueing theory</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="15-consistent-hashing.html"><span class="nav-label">← Chapter 15</span><span class="nav-title">Consistent Hashing</span></a>
+    <div class="nav-empty"></div>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

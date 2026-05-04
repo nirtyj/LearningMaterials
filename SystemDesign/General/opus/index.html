@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>OPUS — A Staff Engineering Compendium</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="00">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="index-shell">
+    <section class="hero">
+  <p class="hero-eyebrow">Staff Engineering · System Design · LLM Infrastructure</p>
+  <h1>A field manual<br>for the <em>staff-level</em> system&nbsp;design interview.</h1>
+  <p class="hero-lede">
+    Sixteen chapters covering five interview rounds and eleven cross-cutting
+    deep dives. Real production systems, ASCII architecture at three levels,
+    code that compiles, and references that hold up under follow-up questions.
+  </p>
+  <dl class="hero-meta">
+    <div><dt>Chapters</dt><dd>16</dd></div>
+    <div><dt>Words</dt><dd>≈&nbsp;28k</dd></div>
+    <div><dt>Production systems cited</dt><dd>120+</dd></div>
+    <div><dt>Reading time</dt><dd>≈&nbsp;3&nbsp;hours</dd></div>
+  </dl>
+</section>
+    <section class="strategy">
+  <h2>How to read this</h2>
+  <p>The framing is OpenAI's published five-round loop, but the material generalises. Each chapter follows the same shape: <strong>high-level architecture</strong> → <strong>mid-level architecture</strong> → <strong>low-level architecture</strong> → <strong>component deep dives</strong> → <strong>real production systems</strong> → <strong>interview follow-ups</strong> → <strong>references</strong>. ASCII diagrams throughout; no hand-waving.</p>
+  <p>If the interview is imminent, prioritise: <code>Q5 ChatGPT</code> + the three LLM-serving deep dives (chapters 11–14), then <code>Q3 Queue</code> + <code>Lease tokens</code> (7–8), then the streaming pair (1–2), then the webhook cluster (3–6). The two foundation chapters (15–16) are short and worth knowing cold — they appear inside almost every staff-level discussion.</p>
+  <p>Right rail of every chapter has <strong>Related Chapters</strong> and a <strong>Tooling Universe</strong> chip cloud — the latter is where you'll find the connections between papers, products, and primitives. Keyboard: <span class="kbd">G</span> opens contents, <span class="kbd">J</span>/<span class="kbd">K</span> page through chapters.</p>
+</section>
+    <div class="ornament" aria-hidden="true"></div>
+<section class="index-section">
+  <header class="index-section-head">
+    <span class="num">Q1</span>
+    <h2>Streaming</h2>
+  </header>
+  <p class="index-section-blurb">Rolling windows on out-of-order events. The deque-per-window trap, watermarks, and what Beam, Flink, and Kafka Streams actually do.</p>
+  <div class="chapter-grid">
+<a class="chapter-card" href="01-event-aggregator.html">
+  <span class="num">01</span>
+  <div class="kicker">Streaming · Q1</div>
+  <h3>Real-Time Event Aggregator with Rolling Windows</h3>
+  <p class="blurb">Maintain rolling counts over 1m / 5m / 1h windows over an out-of-order event stream — without the deque-per-window trap.</p>
+</a>
+<a class="chapter-card" href="02-watermarks.html">
+  <span class="num">02</span>
+  <div class="kicker">Streaming · Deep Dive</div>
+  <h3>Watermarks &amp; Event-Time Processing</h3>
+  <p class="blurb">Closing the window on time you can&#x27;t trust: watermarks, allowed lateness, triggers, and the Dataflow model.</p>
+</a>
+  </div>
+</section>
+<section class="index-section">
+  <header class="index-section-head">
+    <span class="num">Q2</span>
+    <h2>Distributed Reliability</h2>
+  </header>
+  <p class="index-section-blurb">A webhook delivery platform from ingress to dead-letter — and the four primitives every staff engineer needs to discuss with conviction: rate limiting, jitter, idempotency, retries.</p>
+  <div class="chapter-grid">
+<a class="chapter-card" href="03-webhook-delivery.html">
+  <span class="num">03</span>
+  <div class="kicker">Distributed · Q2</div>
+  <h3>Webhook Delivery Platform</h3>
+  <p class="blurb">Retries, dead-letter queues, per-tenant fairness, signed payloads, circuit breakers, and SSRF defenses at scale.</p>
+</a>
+<a class="chapter-card" href="04-rate-limiting.html">
+  <span class="num">04</span>
+  <div class="kicker">Distributed · Deep Dive</div>
+  <h3>Rate Limiting Algorithms</h3>
+  <p class="blurb">Token bucket, leaky bucket, GCRA, sliding window — the math, the Lua, and when to choose each.</p>
+</a>
+<a class="chapter-card" href="05-exponential-backoff.html">
+  <span class="num">05</span>
+  <div class="kicker">Distributed · Deep Dive</div>
+  <h3>Exponential Backoff with Jitter</h3>
+  <p class="blurb">Why pure exponential is a stampede, four jitter modes, retry budgets, and the math of storms.</p>
+</a>
+<a class="chapter-card" href="06-idempotency.html">
+  <span class="num">06</span>
+  <div class="kicker">Distributed · Deep Dive</div>
+  <h3>Idempotency in Distributed Systems</h3>
+  <p class="blurb">Stripe&#x27;s reference state machine, transactional outbox/inbox, Kafka EOS, and the SAGA-with-compensation playbook.</p>
+</a>
+  </div>
+</section>
+<section class="index-section">
+  <header class="index-section-head">
+    <span class="num">Q3</span>
+    <h2>Coding</h2>
+  </header>
+  <p class="index-section-blurb">Build a SQS-class queue from scratch. WAL, group commit, visibility timeout, and the lease/fence token that makes ack correct.</p>
+  <div class="chapter-grid">
+<a class="chapter-card" href="07-in-process-queue.html">
+  <span class="num">07</span>
+  <div class="kicker">Coding · Q3 Take-Home</div>
+  <h3>In-Process Queue with At-Least-Once Delivery</h3>
+  <p class="blurb">Build a SQS-class queue from scratch — WAL, group commit, visibility timeout, lease tokens, the full reference impl.</p>
+</a>
+<a class="chapter-card" href="08-lease-fencing-tokens.html">
+  <span class="num">08</span>
+  <div class="kicker">Distributed · Deep Dive</div>
+  <h3>Lease &amp; Fencing Tokens</h3>
+  <p class="blurb">Kleppmann&#x27;s GC-pause trap, etcd revisions, ZooKeeper sequences, GFS chunk versions — making leases actually correct.</p>
+</a>
+  </div>
+</section>
+<section class="index-section">
+  <header class="index-section-head">
+    <span class="num">Q4</span>
+    <h2>Data Structures</h2>
+  </header>
+  <p class="index-section-blurb">A token-level streaming text differ with rollback. Persistent trees, Myers diff, OT vs CRDT, and how ChatGPT branches conversations.</p>
+  <div class="chapter-grid">
+<a class="chapter-card" href="09-streaming-text-differ.html">
+  <span class="num">09</span>
+  <div class="kicker">Data Structures · Q4</div>
+  <h3>Token-Level Streaming Text Differ with Rollback</h3>
+  <p class="blurb">From naive O(n) rollback to persistent trees with O(log n) snapshots, Myers diff, and how ChatGPT branches conversations.</p>
+</a>
+<a class="chapter-card" href="10-crdts.html">
+  <span class="num">10</span>
+  <div class="kicker">Distributed · Deep Dive</div>
+  <h3>CRDTs Deep Dive</h3>
+  <p class="blurb">RGA, Yjs YATA, Automerge JSON, Loro Eg-walker — the SEC math, the production benchmarks, the OT-vs-CRDT inflection.</p>
+</a>
+  </div>
+</section>
+<section class="index-section">
+  <header class="index-section-head">
+    <span class="num">Q5</span>
+    <h2>LLM Serving</h2>
+  </header>
+  <p class="index-section-blurb">The OpenAI question and its three deep dives. GPU scheduling across tiers, continuous batching, KV cache management, and the fairness algorithms that keep pro from starving free.</p>
+  <div class="chapter-grid">
+<a class="chapter-card" href="11-chatgpt-system-design.html">
+  <span class="num">11</span>
+  <div class="kicker">Systems · Q5 Centerpiece</div>
+  <h3>ChatGPT System Design</h3>
+  <p class="blurb">GPU capacity allocation across tiers, multi-version conversations, autoscaling under varying latency profiles. The OpenAI question.</p>
+</a>
+<a class="chapter-card" href="12-continuous-batching.html">
+  <span class="num">12</span>
+  <div class="kicker">LLM Serving · Deep Dive</div>
+  <h3>Continuous Batching Internals</h3>
+  <p class="blurb">Orca&#x27;s iteration-level batching, vLLM v0/v1 schedulers, Sarathi&#x27;s stall-free chunked prefill, and FlashAttention&#x27;s role.</p>
+</a>
+<a class="chapter-card" href="13-kv-cache-management.html">
+  <span class="num">13</span>
+  <div class="kicker">LLM Serving · Deep Dive</div>
+  <h3>KV Cache Management</h3>
+  <p class="blurb">PagedAttention block tables, copy-on-write prefix sharing, RadixAttention, MLA / GQA / SWA / CLA, INT8 quantization.</p>
+</a>
+<a class="chapter-card" href="14-llm-serving-fairness.html">
+  <span class="num">14</span>
+  <div class="kicker">LLM Serving · Deep Dive</div>
+  <h3>LLM Serving Fairness &amp; Scheduling</h3>
+  <p class="blurb">VTC&#x27;s tight 2× bound, DLPM locality-aware fairness, FastServe MLFQ, Justitia for agentic workloads.</p>
+</a>
+  </div>
+</section>
+<section class="index-section">
+  <header class="index-section-head">
+    <span class="num"></span>
+    <h2>Foundations</h2>
+  </header>
+  <p class="index-section-blurb">Two cross-cutting chapters every staff engineer should know cold: consistent hashing and backpressure.</p>
+  <div class="chapter-grid">
+<a class="chapter-card" href="15-consistent-hashing.html">
+  <span class="num">15</span>
+  <div class="kicker">Cross-Cutting · Foundations</div>
+  <h3>Consistent Hashing</h3>
+  <p class="blurb">Karger&#x27;s ring with virtual nodes, Jump hash, Maglev&#x27;s M=65537 table, rendezvous hashing, bounded loads — the algorithm matrix.</p>
+</a>
+<a class="chapter-card" href="16-backpressure-patterns.html">
+  <span class="num">16</span>
+  <div class="kicker">Cross-Cutting · Foundations</div>
+  <h3>Backpressure Patterns</h3>
+  <p class="blurb">Reactive Streams demand, credit-based flow control, TCP rwnd vs cwnd, Netflix adaptive concurrency, the Google SRE throttler.</p>
+</a>
+  </div>
+</section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Sources cited inline. Code reads top-to-bottom. ASCII diagrams render best in any monospace-aware browser. Keyboard: <span class="kbd">G</span> opens contents, <span class="kbd">J</span>/<span class="kbd">K</span> navigate chapters.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

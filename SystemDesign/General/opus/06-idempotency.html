@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>06 · Idempotency in Distributed Systems — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="06">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">06</span>
+      <span class="meta-rule"></span>
+      <span>Distributed · Deep Dive</span>
+    </div>
+    <h1 class="article-title">Idempotency in Distributed Systems</h1>
+    <p class="article-lede">Stripe&#x27;s reference state machine, transactional outbox/inbox, Kafka EOS, and the SAGA-with-compensation playbook.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#61-the-problem">6.1 The Problem</a></li>
+<li><a class="h2" href="#62-the-stripe-pattern-brandurs-reference-impl">6.2 The Stripe Pattern (Brandur&#x27;s Reference Impl)</a></li>
+<li><a class="h2" href="#63-the-crunchy-variant">6.3 The Crunchy Variant</a></li>
+<li><a class="h2" href="#64-ietf-draft-idempotency-key">6.4 IETF Draft: Idempotency-Key</a></li>
+<li><a class="h2" href="#65-outbox-inbox-pattern">6.5 Outbox + Inbox Pattern</a></li>
+<li><a class="h2" href="#66-kafka-exactly-once-semantics-eos">6.6 Kafka Exactly-Once Semantics (EOS)</a></li>
+<li><a class="h2" href="#67-saga-pattern-compensation">6.7 Saga Pattern + Compensation</a></li>
+<li><a class="h2" href="#68-references">6.8 References</a></li>
+<li><a class="h2" href="#69-detailed-state-machine-for-stripe-style-idempotency">6.9 Detailed State Machine for Stripe-Style Idempotency</a></li>
+<li><a class="h2" href="#610-two-phase-idempotency-for-external-side-effects">6.10 Two-Phase Idempotency for External Side Effects</a></li>
+<li><a class="h2" href="#611-race-conditions-in-distributed-idempotency">6.11 Race Conditions in Distributed Idempotency</a></li>
+<li><a class="h2" href="#612-idempotency-window-vs-retention">6.12 Idempotency Window vs Retention</a></li>
+<li><a class="h2" href="#613-compound-idempotency-keys">6.13 Compound Idempotency Keys</a></li>
+<li><a class="h2" href="#614-outbox-inbox-the-complete-pattern">6.14 Outbox + Inbox: The Complete Pattern</a></li>
+<li><a class="h2" href="#615-kafka-transactions-deep-dive">6.15 Kafka Transactions Deep Dive</a></li>
+<li><a class="h2" href="#616-common-pitfalls">6.16 Common Pitfalls</a></li>
+<li><a class="h2" href="#617-saga-compensation-patterns">6.17 Saga Compensation Patterns</a></li>
+<li><a class="h2" href="#618-finer-points">6.18 Finer Points</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="61-the-problem">6.1 The Problem</h2>
+<p>A client sends a payment request; the server processes it; the response is lost in the network. Client times out and retries. Without care, the customer is charged twice.</p>
+<p>The fix: <strong>idempotency keys</strong> — a client-generated unique ID per logical operation. The server records the key on first processing; subsequent requests with the same key return the same response without re-executing side effects.</p>
+<h2 id="62-the-stripe-pattern-brandurs-reference-impl">6.2 The Stripe Pattern (Brandur's Reference Impl)</h2>
+<p>Reference: https://brandur.org/idempotency-keys</p>
+<pre><code class="language-sql">CREATE TABLE idempotency_keys (
+    key                 TEXT PRIMARY KEY,
+    user_id             BIGINT NOT NULL,
+    request_method      TEXT NOT NULL,
+    request_path        TEXT NOT NULL,
+    request_params_hash TEXT NOT NULL,    -- SHA256 of canonical body
+    response_status     INTEGER,
+    response_body       JSONB,
+    recovery_point      TEXT NOT NULL,    -- state machine cursor
+    locked_at           TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at          TIMESTAMPTZ NOT NULL DEFAULT now() + interval '24h'
+);
+CREATE UNIQUE INDEX ON idempotency_keys (user_id, key);
+</code></pre>
+<p>State machine for an operation that has multiple side effects (e.g., charge card → record payment → send email):</p>
+<pre><code>   started → charged → recorded → emailed → finished
+</code></pre>
+<p>Each state transition is a Postgres transaction that updates <code>recovery_point</code>. If the client retries, the server resumes from <code>recovery_point</code> instead of restarting. This is <strong>resumable, idempotent execution</strong>.</p>
+<p>If <code>request_params_hash</code> differs from stored, return <code>422 Unprocessable Entity</code> (key reuse with different body — likely a client bug).</p>
+<h2 id="63-the-crunchy-variant">6.3 The Crunchy Variant</h2>
+<p>Brandur's Crunchy variant uses 1h retention (vs. 24h Stripe) — tradeoff between safety and storage. Reference: https://brandur.org/fragments/idempotency-keys-crunchy</p>
+<h2 id="64-ietf-draft-idempotency-key">6.4 IETF Draft: <code>Idempotency-Key</code></h2>
+<p>Standardizes the header. Recommends:
+- Server stores response for <code>≥ 24h</code>.
+- On in-progress concurrent retry, return <code>409 Conflict</code>.
+- On mismatch (same key, different body): <code>422</code>.</p>
+<p>Draft: https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-06.html</p>
+<h2 id="65-outbox-inbox-pattern">6.5 Outbox + Inbox Pattern</h2>
+<p>For event-driven pipelines, the consumer side needs an <em>inbox</em> table:</p>
+<pre><code class="language-sql">CREATE TABLE inbox (
+    event_id TEXT PRIMARY KEY,    -- producer-set unique id
+    processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+</code></pre>
+<p>In the same transaction that performs the side effect, INSERT into <code>inbox</code>. The PRIMARY KEY constraint dedupes — if event already processed, INSERT fails, transaction rolls back.</p>
+<pre><code class="language-python">def handle_event(evt):
+    with db.transaction():
+        try:
+            db.execute(&quot;INSERT INTO inbox(event_id) VALUES (%s)&quot;, evt.id)
+        except UniqueViolation:
+            return  # already processed
+        # idempotent action goes here, committed atomically with the inbox row
+        update_state(evt)
+</code></pre>
+<h2 id="66-kafka-exactly-once-semantics-eos">6.6 Kafka Exactly-Once Semantics (EOS)</h2>
+<pre><code>   producer.initTransactions()
+   producer.beginTransaction()
+   producer.send(...)           # to topic A
+   producer.send(...)           # to topic B
+   producer.sendOffsetsToTransaction(consumed_offsets, &quot;consumer-group&quot;)
+   producer.commitTransaction()
+</code></pre>
+<p>With <code>enable.idempotence=true</code> + <code>transactional.id</code> + consumer's <code>isolation.level=read_committed</code>, you get end-to-end EOS for the read-process-write loop in Kafka.</p>
+<p>Reference: https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/</p>
+<h2 id="67-saga-pattern-compensation">6.7 Saga Pattern + Compensation</h2>
+<p>Long-running operations across multiple services use the Saga pattern: a sequence of local transactions, each with a compensating action. On failure, run compensations in reverse.</p>
+<p>Tools: Temporal, AWS Step Functions, Camunda.</p>
+<h2 id="68-references">6.8 References</h2>
+<ul>
+<li>Brandur (Stripe) idempotency: https://brandur.org/idempotency-keys</li>
+<li>IETF Idempotency-Key draft: https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-06.html</li>
+<li>Confluent EOS: https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/</li>
+<li>Microsoft on Saga: https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/saga/saga</li>
+<li>Temporal Saga: https://docs.temporal.io/</li>
+</ul>
+<hr />
+<h2 id="69-detailed-state-machine-for-stripe-style-idempotency">6.9 Detailed State Machine for Stripe-Style Idempotency</h2>
+<p>The "5-state machine" model:</p>
+<pre><code>   [received] ──HTTP 200 if existing────▶ replay response
+       │
+       │ first time seeing this key (lock acquired)
+       ▼
+   [processing] ── crash ─▶ resume on retry ─▶ continue from recovery_point
+       │
+       │ side effect 1 done; recovery_point = 'after_charge'
+       ▼
+   [partial_a] ─ crash ─▶ resume from after_charge
+       │
+       │ side effect 2 done; recovery_point = 'after_record'
+       ▼
+   [partial_b] ─ crash ─▶ resume from after_record
+       │
+       │ side effect 3 done; response built
+       ▼
+   [finished] ──HTTP 200 with response──▶ done
+</code></pre>
+<p>Each transition writes its own row update in the same database transaction as the side effect (when the side effect is in the same DB) or in a follow-up confirmation step (when the side effect is external — see two-phase variant below).</p>
+<h2 id="610-two-phase-idempotency-for-external-side-effects">6.10 Two-Phase Idempotency for External Side Effects</h2>
+<p>When a side effect is outside the DB (charge a credit card via Stripe API), you can't atomically commit "side effect done" with "DB updated". The pattern:</p>
+<ol>
+<li><strong>Phase 1 (intent)</strong>: in DB transaction, mark request as <code>processing</code>, store recovery_point=<code>pending_charge</code>.</li>
+<li><strong>Phase 2 (call external)</strong>: invoke the external API with an idempotency key derived from your internal ID. Wait for response.</li>
+<li><strong>Phase 3 (commit)</strong>: in a new DB transaction, store the external response, advance recovery_point=<code>charged</code>.</li>
+</ol>
+<p>If we crash between phase 2 and 3: on retry, look up by idempotency key at the external service first. Stripe's API supports this — retrying with the same key returns the original result, not a duplicate.</p>
+<p>This is "transactional outbox + external idempotency key" combined.</p>
+<h2 id="611-race-conditions-in-distributed-idempotency">6.11 Race Conditions in Distributed Idempotency</h2>
+<p>Two concurrent requests with the same key arrive at different servers:</p>
+<pre><code>   Server A: SELECT ... WHERE key = 'X'  → not found
+   Server B: SELECT ... WHERE key = 'X'  → not found
+   Server A: INSERT (key='X', ...)        → succeeds
+   Server B: INSERT (key='X', ...)        → fails (UNIQUE violation)
+</code></pre>
+<p>The primary key constraint serializes. Server B can either:
+- Return 409 Conflict ("already in progress").
+- Wait + retry, then read the response.</p>
+<p>The IETF draft recommends 409. Most APIs return 409 with <code>Retry-After</code>.</p>
+<h2 id="612-idempotency-window-vs-retention">6.12 Idempotency Window vs Retention</h2>
+<ul>
+<li><strong>Window</strong>: how long after submission a retry with the same key is honored.</li>
+<li><strong>Retention</strong>: how long the response is stored.</li>
+</ul>
+<p>Stripe: 24h. Crunchy: 1h. PayPal: forever (per their docs). Different SLAs reflect different fraud / replay risk profiles.</p>
+<h2 id="613-compound-idempotency-keys">6.13 Compound Idempotency Keys</h2>
+<p>For deeply nested operations (e.g., a multi-line invoice), key = hash of (user_id, idempotency_key, request_body_hash). This protects against:
+- Same key + different body → 422.
+- Same key + same body → replay response.</p>
+<p>Brandur's reference includes a <code>request_params_hash</code> column for this exact reason.</p>
+<h2 id="614-outbox-inbox-the-complete-pattern">6.14 Outbox + Inbox: The Complete Pattern</h2>
+<pre><code>   ┌──────────── Service A ──────────────┐
+   │  BEGIN TX                           │
+   │   UPDATE business_state ...         │
+   │   INSERT outbox(event_id, payload)  │
+   │  COMMIT TX                          │
+   │       │                             │
+   │       ▼ (CDC)                       │
+   └──────────────────────────────────────┘
+              │ Kafka / SQS / etc.
+              ▼
+   ┌──────────── Service B ──────────────┐
+   │  BEGIN TX                           │
+   │   INSERT inbox(event_id) → unique   │
+   │   UPDATE business_state ...         │
+   │  COMMIT TX                          │
+   │  (on UNIQUE violation: skip)        │
+   └──────────────────────────────────────┘
+</code></pre>
+<p>This gives end-to-end exactly-once semantics across services without distributed transactions.</p>
+<h2 id="615-kafka-transactions-deep-dive">6.15 Kafka Transactions Deep Dive</h2>
+<p>The Kafka EOS pattern in detail:</p>
+<pre><code class="language-python"># Producer with idempotence
+producer = KafkaProducer(
+    bootstrap_servers='...',
+    enable_idempotence=True,
+    transactional_id='unique-tx-id-per-producer',
+    acks='all',
+    max_in_flight_requests_per_connection=5,  # max for idempotence
+)
+producer.init_transactions()
+
+while True:
+    records = consumer.poll(...)
+    producer.begin_transaction()
+    for r in records:
+        # process
+        producer.send('output_topic', transformed(r))
+    producer.send_offsets_to_transaction(
+        offsets={tp: r.offset+1 for tp, r in last_records.items()},
+        consumer_group_metadata=consumer.group_metadata())
+    producer.commit_transaction()
+</code></pre>
+<p>What guarantees Kafka EOS:
+1. <code>enable.idempotence=true</code>: each producer has a producer ID and sequence number; broker dedupes within a session.
+2. <code>transactional.id</code>: identifies the producer across restarts; broker fences old instances.
+3. <code>send_offsets_to_transaction</code>: commits consumer offsets as part of the same transaction.
+4. Consumers with <code>isolation.level=read_committed</code>: only see committed transaction outputs.</p>
+<p>Reference: https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/</p>
+<h2 id="616-common-pitfalls">6.16 Common Pitfalls</h2>
+<ul>
+<li><strong>Storing only the response, not the recovery_point</strong>: on crash mid-processing, retry would re-process from scratch — duplicates if side effects are non-idempotent.</li>
+<li><strong>Forgetting to lock during processing</strong>: two concurrent retries both run side effects.</li>
+<li><strong>Using request body as the key</strong>: clients can't reliably retry exactly the same body (timestamps, retry counters change).</li>
+<li><strong>Letting client choose key freely without validation</strong>: client could collide with another client. Scope key per user.</li>
+<li><strong>Garbage-collecting too aggressively</strong>: client retries after retention window expires → duplicate processing.</li>
+<li><strong>Using non-monotonic generation</strong>: in distributed systems, ensure key uniqueness via UUID or per-client counter.</li>
+</ul>
+<h2 id="617-saga-compensation-patterns">6.17 Saga Compensation Patterns</h2>
+<p>When you can't have idempotent commit, use compensating actions:</p>
+<pre><code>   ┌─ Charge → ─ Reserve Inventory → ─ Ship → ─ Notify ─┐
+   │                                                    │
+   │ on error:                                          │
+   │   undo Notify ← undo Ship ← undo Reserve ← Refund │
+   └────────────────────────────────────────────────────┘
+</code></pre>
+<p>Each forward action has an inverse. Failures roll back via inverses. State machine tracks progress; on crash, resume forward or backward.</p>
+<p>Implementations: Temporal, AWS Step Functions, Camunda, Eventuate.</p>
+<h2 id="618-finer-points">6.18 Finer Points</h2>
+<ul>
+<li><strong>Idempotency vs. exactly-once</strong>: idempotency is at the application protocol level; exactly-once is a stronger consistency property. Idempotency + at-least-once delivery ≈ exactly-once effects.</li>
+<li><strong>Conditional writes</strong> (DynamoDB, S3, Postgres <code>WHERE version = X</code>): a form of optimistic-concurrency that gives idempotency for in-place updates.</li>
+<li><strong>HTTP methods</strong>: PUT and DELETE are <em>defined</em> idempotent in HTTP; POST is not. But idempotency-key headers turn POST idempotent.</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="03-webhook-delivery.html"><span class="side-num">03</span><span class="side-title">Webhook Delivery Platform</span></a></li>
+<li><a href="07-in-process-queue.html"><span class="side-num">07</span><span class="side-title">In-Process Queue with At-Least-Once Delivery</span></a></li>
+<li><a href="08-lease-fencing-tokens.html"><span class="side-num">08</span><span class="side-title">Lease &amp; Fencing Tokens</span></a></li>
+<li><a href="05-exponential-backoff.html"><span class="side-num">05</span><span class="side-title">Exponential Backoff with Jitter</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Reference patterns</h4>
+<div class="tool-chips">
+<span class="tool-chip">Stripe / Brandur reference impl</span>
+<span class="tool-chip">IETF Idempotency-Key draft</span>
+<span class="tool-chip">Crunchy 1h variant</span>
+</div></div>
+<div class="tool-group"><h4>Patterns</h4>
+<div class="tool-chips">
+<span class="tool-chip">Transactional outbox</span>
+<span class="tool-chip">Inbox dedup table</span>
+<span class="tool-chip">Compound idempotency keys</span>
+<span class="tool-chip">Saga + compensating actions</span>
+</div></div>
+<div class="tool-group"><h4>Engines</h4>
+<div class="tool-chips">
+<span class="tool-chip">Kafka EOS (transactions)</span>
+<span class="tool-chip">Temporal</span>
+<span class="tool-chip">AWS Step Functions</span>
+<span class="tool-chip">Camunda</span>
+<span class="tool-chip">Eventuate</span>
+</div></div>
+<div class="tool-group"><h4>DB primitives</h4>
+<div class="tool-chips">
+<span class="tool-chip">UNIQUE constraint</span>
+<span class="tool-chip">DynamoDB ConditionExpression</span>
+<span class="tool-chip">Postgres optimistic concurrency</span>
+<span class="tool-chip">S3 If-Match</span>
+</div></div>
+<div class="tool-group"><h4>Status codes</h4>
+<div class="tool-chips">
+<span class="tool-chip">409 Conflict (in-progress)</span>
+<span class="tool-chip">422 Unprocessable (param mismatch)</span>
+<span class="tool-chip">200 (replay)</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="05-exponential-backoff.html"><span class="nav-label">← Chapter 05</span><span class="nav-title">Exponential Backoff with Jitter</span></a>
+    <a class="nav-next nav-next-link" href="07-in-process-queue.html"><span class="nav-label">Chapter 07 →</span><span class="nav-title">In-Process Queue with At-Least-Once Delivery</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

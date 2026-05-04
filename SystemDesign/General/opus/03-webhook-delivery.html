@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>03 · Webhook Delivery Platform — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="03">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">03</span>
+      <span class="meta-rule"></span>
+      <span>Distributed · Q2</span>
+    </div>
+    <h1 class="article-title">Webhook Delivery Platform</h1>
+    <p class="article-lede">Retries, dead-letter queues, per-tenant fairness, signed payloads, circuit breakers, and SSRF defenses at scale.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#31-requirements-constraints">3.1 Requirements &amp; Constraints</a></li>
+<li><a class="h2" href="#32-high-level-architecture">3.2 High-Level Architecture</a></li>
+<li><a class="h2" href="#33-mid-level-architecture-dispatcher-tier">3.3 Mid-Level Architecture (Dispatcher Tier)</a></li>
+<li><a class="h2" href="#34-low-level-worker-loop">3.4 Low-Level: Worker Loop</a></li>
+<li><a class="h2" href="#35-component-deep-dives">3.5 Component Deep Dives</a></li>
+<li><a class="h3" href="#351-ingestion-transactional-outbox">3.5.1 Ingestion (Transactional Outbox)</a></li>
+<li><a class="h3" href="#352-durable-event-log">3.5.2 Durable Event Log</a></li>
+<li><a class="h3" href="#353-per-tenant-fairness-drr-wfq">3.5.3 Per-Tenant Fairness (DRR / WFQ)</a></li>
+<li><a class="h3" href="#354-hmac-signing-stripe-style">3.5.4 HMAC Signing (Stripe-style)</a></li>
+<li><a class="h3" href="#355-circuit-breaker">3.5.5 Circuit Breaker</a></li>
+<li><a class="h3" href="#356-ssrf-endpoint-trust">3.5.6 SSRF / Endpoint Trust</a></li>
+<li><a class="h2" href="#36-production-systems-deep-dives">3.6 Production Systems Deep Dives</a></li>
+<li><a class="h3" href="#stripe-webhooks">Stripe Webhooks</a></li>
+<li><a class="h3" href="#svix-open-source-webhook-infra">Svix (open-source webhook infra)</a></li>
+<li><a class="h3" href="#hookdeck">Hookdeck</a></li>
+<li><a class="h3" href="#github-webhooks">GitHub Webhooks</a></li>
+<li><a class="h3" href="#shopify-webhooks">Shopify Webhooks</a></li>
+<li><a class="h3" href="#aws-eventbridge">AWS EventBridge</a></li>
+<li><a class="h3" href="#slack-events-api">Slack Events API</a></li>
+<li><a class="h3" href="#twilio-webhooks">Twilio Webhooks</a></li>
+<li><a class="h3" href="#sendgrid-event-webhooks">SendGrid Event Webhooks</a></li>
+<li><a class="h2" href="#37-cap-tradeoffs">3.7 CAP Tradeoffs</a></li>
+<li><a class="h2" href="#38-common-interview-follow-ups">3.8 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#39-production-gotchas">3.9 Production Gotchas</a></li>
+<li><a class="h2" href="#310-references">3.10 References</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="31-requirements-constraints">3.1 Requirements &amp; Constraints</h2>
+<p><strong>Functional:</strong>
+- Tenants register webhook endpoints with event subscriptions.
+- Producer system emits events; platform delivers via HTTP POST.
+- Retry on 5xx / network errors with exponential backoff + jitter.
+- DLQ after <code>N</code> retries.
+- Per-tenant rate limit (e.g., 100 RPS to a slow endpoint).
+- Optional FIFO per <code>(tenant, ordering_key)</code>.
+- Signed payloads (HMAC SHA-256 with rotation).
+- Replay / redelivery API.
+- 99.9% delivery within 1 minute SLO at p99 (when endpoints are healthy).</p>
+<p><strong>Non-functional:</strong>
+- Millions of events/sec ingest.
+- Tens of thousands of concurrent in-flight deliveries.
+- Endpoint failure isolation (one slow tenant must not stall others).
+- Multi-tenant fairness.
+- Audit log: every delivery attempt + response code + body (truncated) for support.</p>
+<h2 id="32-high-level-architecture">3.2 High-Level Architecture</h2>
+<pre><code>                     ┌────────────────────────────────────┐
+                     │   Producer / Source-of-Truth       │
+                     │   (transactional outbox writes)    │
+                     └────────────────┬───────────────────┘
+                                      │
+                                      ▼
+       ┌────────────────────────────────────────────────────────────┐
+       │                  INGESTION TIER                            │
+       │  Validates, enriches with subscribers, persists durably    │
+       │  (Postgres outbox  → Kafka / Redis Streams / SQS topic)    │
+       └────────────────┬───────────────────────────────────────────┘
+                        │
+                        ▼
+       ┌────────────────────────────────────────────────────────────┐
+       │             DURABLE EVENT LOG (per shard)                  │
+       │   Events: {id, tenant_id, endpoint_id, payload, attempts}  │
+       │   Partitioned by (tenant_id, ordering_key)                 │
+       └─────┬───────────┬────────────┬──────────┬──────────────────┘
+             │           │            │          │
+             ▼           ▼            ▼          ▼
+       ┌──────────────────────────────────────────────────────────┐
+       │            DISPATCHER WORKER POOL                        │
+       │  Pull from log → check rate limit → HTTP POST            │
+       │  → on success: ack │ on retry: re-enqueue with delay    │
+       │  → on max retries: DLQ                                  │
+       └─────┬──────────┬───────────┬──────────┬──────────────────┘
+             │          │           │          │
+             ▼          ▼           ▼          ▼
+       ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐
+       │ DLQ    │  │ Audit  │  │ Metrics│  │ Replay │
+       │ store  │  │  log   │  │        │  │  API   │
+       └────────┘  └────────┘  └────────┘  └────────┘
+                        │
+                        ▼
+       ┌────────────────────────────────────────────────────────────┐
+       │              CUSTOMER ENDPOINT (untrusted)                 │
+       └────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="33-mid-level-architecture-dispatcher-tier">3.3 Mid-Level Architecture (Dispatcher Tier)</h2>
+<pre><code>   ┌────────────────────────────────────────────────────────────────┐
+   │                    DISPATCHER NODE                             │
+   │                                                                │
+   │   ┌──────────────────────────────────────────────────────┐     │
+   │   │  Per-Tenant SHARDS (consistent-hash on tenant_id)    │     │
+   │   │                                                      │     │
+   │   │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ...      │     │
+   │   │   │ tenant A │  │ tenant B │  │ tenant C │           │     │
+   │   │   │ in-flight│  │ in-flight│  │ in-flight│           │     │
+   │   │   │  queue   │  │  queue   │  │  queue   │           │     │
+   │   │   └────┬─────┘  └────┬─────┘  └────┬─────┘           │     │
+   │   │        │             │             │                 │     │
+   │   │        ▼             ▼             ▼                 │     │
+   │   │   ┌──────────────────────────────────────┐           │     │
+   │   │   │     FAIR SCHEDULER (DRR / WFQ)       │           │     │
+   │   │   └──────────────────┬───────────────────┘           │     │
+   │   │                      ▼                               │     │
+   │   │   ┌──────────────────────────────────────┐           │     │
+   │   │   │ TOKEN BUCKET / GCRA gate per tenant  │           │     │
+   │   │   └──────────────────┬───────────────────┘           │     │
+   │   │                      ▼                               │     │
+   │   │   ┌──────────────────────────────────────┐           │     │
+   │   │   │   CIRCUIT BREAKER per endpoint URL   │           │     │
+   │   │   └──────────────────┬───────────────────┘           │     │
+   │   │                      ▼                               │     │
+   │   │   ┌──────────────────────────────────────┐           │     │
+   │   │   │  HTTP CLIENT (HTTP/2, conn pool,     │           │     │
+   │   │   │  timeout, SSRF block, no-redirect)   │           │     │
+   │   │   └──────────────────────────────────────┘           │     │
+   │   └──────────────────────────────────────────────────────┘     │
+   └────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="34-low-level-worker-loop">3.4 Low-Level: Worker Loop</h2>
+<pre><code>   Worker thread (Goroutine / async task):
+
+   loop:
+     msg = consume_from_local_priority_heap()  # by (visible_at, tenant_score)
+     if msg is None: sleep(50ms); continue
+
+     # 1. Rate limit gate (token bucket / GCRA in Redis)
+     if not gate.try_acquire(msg.tenant_id):
+        msg.visible_at = now + retry_after_for_throttle()
+        re_enqueue(msg); continue
+
+     # 2. Circuit breaker check
+     if breaker[msg.endpoint_url].is_open():
+        msg.visible_at = now + breaker_cooloff()
+        re_enqueue(msg); continue
+
+     # 3. HMAC sign
+     signature = hmac_sha256(secret, f&quot;{msg.timestamp}.{msg.body}&quot;)
+     headers = {
+        &quot;X-Signature&quot;: signature,
+        &quot;X-Timestamp&quot;: msg.timestamp,
+        &quot;X-Idempotency-Key&quot;: msg.event_id,
+        &quot;X-Attempt&quot;: str(msg.attempt + 1),
+        &quot;User-Agent&quot;: &quot;WebhookSvc/1.0&quot;
+     }
+
+     # 4. Dispatch with timeout
+     try:
+        resp = http_client.post(msg.endpoint_url, body=msg.body,
+                                headers=headers, timeout=15s)
+     except TimeoutError, ConnectionError:
+        record_attempt(msg, &quot;network_error&quot;)
+        breaker[msg.endpoint_url].record_failure()
+        if msg.attempt + 1 &gt;= MAX_ATTEMPTS:
+           dlq.put(msg); continue
+        msg.attempt += 1
+        msg.visible_at = now + backoff(msg.attempt)
+        re_enqueue(msg); continue
+
+     # 5. Classify response
+     if 200 &lt;= resp.status &lt; 300:
+        breaker[msg.endpoint_url].record_success()
+        ack(msg)
+     elif resp.status in (410, 404):  # gone — disable endpoint
+        disable_endpoint(msg.endpoint_id)
+        record_attempt(msg, f&quot;http_{resp.status}_disabled&quot;)
+     elif resp.status == 429:
+        retry_after = parse_retry_after(resp) or backoff(msg.attempt)
+        msg.visible_at = now + retry_after
+        re_enqueue(msg)
+     elif 500 &lt;= resp.status &lt; 600:
+        breaker[msg.endpoint_url].record_failure()
+        if msg.attempt + 1 &gt;= MAX_ATTEMPTS:
+           dlq.put(msg); continue
+        msg.attempt += 1
+        msg.visible_at = now + backoff(msg.attempt)
+        re_enqueue(msg)
+     else:
+        # 4xx other — don't retry (client bug)
+        dlq.put(msg)
+</code></pre>
+<h2 id="35-component-deep-dives">3.5 Component Deep Dives</h2>
+<h3 id="351-ingestion-transactional-outbox">3.5.1 Ingestion (Transactional Outbox)</h3>
+<p>To avoid the dual-write problem ("we wrote to DB, but Kafka publish failed"), use the outbox pattern:</p>
+<pre><code class="language-sql">BEGIN;
+INSERT INTO orders (id, ...) VALUES (...);
+INSERT INTO outbox (event_id, topic, payload, created_at, status)
+   VALUES (uuid_v7(), 'order.created', '...', now(), 'pending');
+COMMIT;
+</code></pre>
+<p>Then a CDC poller (Debezium) or polling worker reads <code>outbox</code> rows and publishes them to Kafka with at-least-once semantics. On success, marks status=<code>published</code>. Idempotent because each outbox row has a unique ID.</p>
+<p>Reference: Confluent — <em>The Transactional Outbox Pattern</em>. https://developer.confluent.io/courses/microservices/the-transactional-outbox-pattern/</p>
+<h3 id="352-durable-event-log">3.5.2 Durable Event Log</h3>
+<p>Choices:
+- <strong>Kafka</strong>: high throughput, partitioned by <code>(tenant_id, endpoint_id)</code> for ordering. Consumer offset tracking is a pain at high consumer count.
+- <strong>Redis Streams</strong>: simpler, in-memory + AOF. Good for medium scale (millions of events/day).
+- <strong>Postgres</strong>: <code>SELECT ... FOR UPDATE SKIP LOCKED</code> enables pull-based queue. Works up to ~10k msg/s per shard. Used by Sidekiq alternatives like Solid Queue and by Svix.
+- <strong>AWS SQS / SNS</strong>: managed; SQS FIFO supports per-<code>MessageGroupId</code> ordering. Throughput-limited at 300 msg/s per group (3000 with high-throughput mode).</p>
+<h3 id="353-per-tenant-fairness-drr-wfq">3.5.3 Per-Tenant Fairness (DRR / WFQ)</h3>
+<p>Without fairness, a noisy tenant with 1M pending deliveries will starve other tenants. Use <strong>Deficit Round Robin</strong>:</p>
+<pre><code class="language-python">class DeficitRoundRobin:
+    def __init__(self, quantum=10):
+        self.queues = {}        # tenant -&gt; deque
+        self.deficit = {}       # tenant -&gt; int
+        self.active = []        # round-robin order
+        self.quantum = quantum
+
+    def enqueue(self, tenant, item):
+        if tenant not in self.queues:
+            self.queues[tenant] = collections.deque()
+            self.deficit[tenant] = 0
+            self.active.append(tenant)
+        self.queues[tenant].append(item)
+
+    def dequeue(self):
+        while self.active:
+            t = self.active[0]
+            self.deficit[t] += self.quantum
+            served_this_round = []
+            while self.queues[t] and self.deficit[t] &gt;= 1:
+                item = self.queues[t].popleft()
+                self.deficit[t] -= item.cost   # cost = bytes / a fixed 1
+                served_this_round.append(item)
+                yield item
+            if not self.queues[t]:
+                self.active.pop(0)
+                del self.deficit[t]; del self.queues[t]
+            else:
+                self.active.append(self.active.pop(0))
+</code></pre>
+<p>DRR gives O(1) per packet (no priority queue) and bounded fairness. Used in router QoS (Cisco), Linux <code>tc</code> qdisc.</p>
+<h3 id="354-hmac-signing-stripe-style">3.5.4 HMAC Signing (Stripe-style)</h3>
+<pre><code class="language-python">import hmac, hashlib, time
+
+def sign(secret: bytes, body: bytes, ts: int = None) -&gt; tuple[str, int]:
+    ts = ts or int(time.time())
+    payload = f&quot;{ts}.&quot;.encode() + body
+    sig = hmac.new(secret, payload, hashlib.sha256).hexdigest()
+    return sig, ts
+
+def verify(secret: bytes, body: bytes, ts: int, sig: str, tolerance=300) -&gt; bool:
+    if abs(time.time() - ts) &gt; tolerance:    # reject replays
+        return False
+    expected, _ = sign(secret, body, ts)
+    return hmac.compare_digest(expected, sig)
+</code></pre>
+<p>Header format (Stripe): <code>Stripe-Signature: t=1700000000,v1=&lt;hex&gt;,v1=&lt;hex_next_secret&gt;</code>.
+Multiple <code>v1</code> values let you rotate secrets without downtime — verify against any active secret.</p>
+<h3 id="355-circuit-breaker">3.5.5 Circuit Breaker</h3>
+<p>Three states: <code>closed</code> (normal), <code>open</code> (fail fast, no calls), <code>half-open</code> (probe one request).</p>
+<pre><code class="language-python">class CircuitBreaker:
+    def __init__(self, fail_threshold=5, reset_after=30):
+        self.state = &quot;closed&quot;
+        self.failures = 0
+        self.opened_at = 0
+
+    def is_open(self):
+        if self.state == &quot;open&quot;:
+            if time.time() - self.opened_at &gt; self.reset_after:
+                self.state = &quot;half-open&quot;
+                return False
+            return True
+        return False
+
+    def record_success(self):
+        self.failures = 0; self.state = &quot;closed&quot;
+
+    def record_failure(self):
+        self.failures += 1
+        if self.failures &gt;= self.fail_threshold:
+            self.state = &quot;open&quot;; self.opened_at = time.time()
+</code></pre>
+<p>In production, use <strong>rolling-window counts</strong> (last 60s of calls) and trip on failure ratio &gt; X% with a min request count (else flapping on low traffic).</p>
+<p>References: Hystrix, Resilience4j, <a href="https://github.com/resilience4j/resilience4j">GitHub circuit-breaker doc</a>.</p>
+<h3 id="356-ssrf-endpoint-trust">3.5.6 SSRF / Endpoint Trust</h3>
+<p>Customer endpoints are untrusted. Defenses:
+- Resolve DNS yourself; reject if it resolves to RFC1918, link-local, loopback, or your internal VPC ranges.
+- Disable HTTP redirects (a 302 to <code>http://169.254.169.254</code> would exfiltrate cloud metadata).
+- Set <code>Connection: close</code> to avoid HTTP/2 connection reuse to a different <code>:authority</code>.
+- Egress through a hardened proxy that re-validates the IP at TCP connect time (TOCTOU on DNS).</p>
+<h2 id="36-production-systems-deep-dives">3.6 Production Systems Deep Dives</h2>
+<h3 id="stripe-webhooks">Stripe Webhooks</h3>
+<ul>
+<li>Retries up to 3 days with exponential backoff.</li>
+<li>Signature in <code>Stripe-Signature</code> with <code>t=</code> (timestamp) and <code>v1=</code> (HMAC-SHA256 of <code>t.body</code>).</li>
+<li>Tolerance window 5 minutes for replay protection.</li>
+<li>Idempotency key retention: 24 hours.</li>
+<li>Endpoints disabled after long failure streak; can be reactivated via dashboard.</li>
+<li>See: https://docs.stripe.com/webhooks</li>
+</ul>
+<h3 id="svix-open-source-webhook-infra">Svix (open-source webhook infra)</h3>
+<ul>
+<li>Built in Rust; backed by Postgres + Redis.</li>
+<li>Uses <strong>omniqueue</strong> (their own queue abstraction — Postgres or Redis Streams backend).</li>
+<li>HMAC-SHA256 signing with timestamp-prefixed body (<code>v1,t=1700000000,sig=...</code>).</li>
+<li>Ed25519 supported for newer customers.</li>
+<li>Retry schedule: immediately, 5s, 5m, 30m, 2h, 5h, 10h, 1d, 1d (9 attempts total over ~24h).</li>
+<li>Per-app SSRF blocking, no following redirects.</li>
+<li>Source: https://github.com/svix/svix-webhooks</li>
+</ul>
+<h3 id="hookdeck">Hookdeck</h3>
+<ul>
+<li>"Event gateway" — sits between producer and consumer.</li>
+<li>Adds queue, retry, replay, transformation, filtering.</li>
+<li>Per-destination rate limiting and queueing.</li>
+<li>See: https://hookdeck.com/event-gateway</li>
+</ul>
+<h3 id="github-webhooks">GitHub Webhooks</h3>
+<ul>
+<li>Max payload 25 MB.</li>
+<li>Signature in <code>X-Hub-Signature-256</code> (<code>sha256=&lt;hex&gt;</code>).</li>
+<li><code>X-GitHub-Delivery</code>: GUID for idempotency / debugging.</li>
+<li>Redelivery API: <code>POST /repos/{owner}/{repo}/hooks/{hook_id}/deliveries/{delivery_id}/attempts</code>.</li>
+<li>See: https://docs.github.com/en/webhooks</li>
+</ul>
+<h3 id="shopify-webhooks">Shopify Webhooks</h3>
+<ul>
+<li>48h retry window; 19 failed attempts before auto-removal.</li>
+<li><code>X-Shopify-Hmac-Sha256</code>: base64-encoded HMAC of body (note: not <code>t.body</code>).</li>
+<li><code>X-Shopify-Event-Id</code>: idempotency token.</li>
+<li>See: https://shopify.dev/docs/apps/webhooks</li>
+</ul>
+<h3 id="aws-eventbridge">AWS EventBridge</h3>
+<ul>
+<li>Archive-and-replay: capture events for <code>N</code> days, replay arbitrary ranges into rules.</li>
+<li>Rules can fan out to up to 5 targets each.</li>
+<li>See: https://aws.amazon.com/blogs/compute/archiving-and-replaying-events-with-amazon-eventbridge/</li>
+</ul>
+<h3 id="slack-events-api">Slack Events API</h3>
+<ul>
+<li>3 retries + delayed events queue (24h).</li>
+<li><code>X-Slack-No-Retry: 1</code> response header tells Slack not to retry on a specific failure (good for permanent errors).</li>
+<li>See: https://docs.slack.dev/apis/events-api/</li>
+</ul>
+<h3 id="twilio-webhooks">Twilio Webhooks</h3>
+<ul>
+<li>Validates with <code>X-Twilio-Signature</code> = base64(HMAC-SHA1(token, full_url + sorted_params)).</li>
+<li>Supports TwiML responses inline (for voice/SMS routing).</li>
+<li>See: https://www.twilio.com/docs/usage/webhooks/webhooks-security</li>
+</ul>
+<h3 id="sendgrid-event-webhooks">SendGrid Event Webhooks</h3>
+<ul>
+<li>Posts JSON arrays of events.</li>
+<li><code>sg_event_id</code> for idempotency.</li>
+<li>See: https://docs.sendgrid.com/for-developers/tracking-events/event</li>
+</ul>
+<h2 id="37-cap-tradeoffs">3.7 CAP Tradeoffs</h2>
+<ul>
+<li><strong>Availability</strong>: customer endpoint is up but slow → we MUST keep retrying without dropping (durability of the queue is paramount).</li>
+<li><strong>Consistency</strong>: ordering per <code>(tenant, ordering_key)</code> requires a single consumer per partition — sacrificing parallelism.</li>
+<li><strong>Partition tolerance</strong>: between dispatcher and customer endpoint we always assume partition (it's the internet). Backoff + retry + DLQ.</li>
+</ul>
+<h2 id="38-common-interview-follow-ups">3.8 Common Interview Follow-ups</h2>
+<p><strong>Q: How do you ensure ordering when retries reorder events?</strong>
+A: Per-(tenant, ordering_key) FIFO queue. On retry, the message stays in its queue and blocks subsequent messages. Customers opting into ordering accept that a slow event blocks subsequent ones.</p>
+<p><strong>Q: What happens when an endpoint is down for an hour?</strong>
+A: Circuit breaker opens after <code>N</code> failures in a window. We stop hammering and let the message wait. After cooldown, half-open probe. Total retry budget = <code>MAX_ATTEMPTS</code> (e.g., 19) with backoff up to <code>MAX_BACKOFF</code> (e.g., 6h). Beyond that → DLQ + alert customer (email).</p>
+<p><strong>Q: How do you scale to 10M events/sec?</strong>
+A: Partition log by <code>tenant_id</code>; ~thousands of partitions. Dispatcher pool auto-scales on queue depth. Use HTTP/2 connection pooling. Saturate at NIC, not CPU.</p>
+<p><strong>Q: How do you guarantee no duplicate delivery?</strong>
+A: You can't (network is unreliable; the 200 OK can be lost). Best you can do is at-least-once + give consumer an idempotency key (<code>X-Webhook-ID</code>). They dedupe on their end.</p>
+<p><strong>Q: How do you handle the "noisy neighbor" tenant?</strong>
+A: Per-tenant rate limit + per-tenant queue depth cap. If a tenant exceeds depth, new events are rejected at ingestion (return 503 to producer with <code>Retry-After</code>).</p>
+<h2 id="39-production-gotchas">3.9 Production Gotchas</h2>
+<ul>
+<li><strong>Slow endpoints holding connections</strong>: HTTP timeout MUST be aggressive (15s typical). Worker pool can blow up otherwise.</li>
+<li><strong>DNS TTL = 1s</strong> for endpoint hostnames; aggressive caching can mask outage.</li>
+<li><strong>Customer's <code>100 Continue</code> quirk</strong>: send body in same request, don't wait.</li>
+<li><strong>TLS handshake cost</strong>: connection pooling per origin.</li>
+<li><strong>Large payloads</strong>: cap at 5MB; over that, send a pre-signed URL instead.</li>
+<li><strong>Thundering herd on resume</strong>: when an endpoint comes back, all queued events flood it. Add jitter to wake-up.</li>
+</ul>
+<h2 id="310-references">3.10 References</h2>
+<ul>
+<li>Stripe webhook docs: https://docs.stripe.com/webhooks</li>
+<li>Svix source: https://github.com/svix/svix-webhooks</li>
+<li>Hookdeck blog: https://hookdeck.com/blog</li>
+<li>Confluent transactional outbox: https://developer.confluent.io/courses/microservices/the-transactional-outbox-pattern/</li>
+<li>Marc Brooker on retries (AWS Builders' Library): https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/</li>
+<li>Cloudflare rate limiting at scale: https://blog.cloudflare.com/counting-things-a-lot-of-different-things/</li>
+<li>Google SRE — Handling Overload: https://sre.google/sre-book/handling-overload/</li>
+</ul>
+<hr />
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="04-rate-limiting.html"><span class="side-num">04</span><span class="side-title">Rate Limiting Algorithms</span></a></li>
+<li><a href="05-exponential-backoff.html"><span class="side-num">05</span><span class="side-title">Exponential Backoff with Jitter</span></a></li>
+<li><a href="06-idempotency.html"><span class="side-num">06</span><span class="side-title">Idempotency in Distributed Systems</span></a></li>
+<li><a href="07-in-process-queue.html"><span class="side-num">07</span><span class="side-title">In-Process Queue with At-Least-Once Delivery</span></a></li>
+<li><a href="08-lease-fencing-tokens.html"><span class="side-num">08</span><span class="side-title">Lease &amp; Fencing Tokens</span></a></li>
+<li><a href="16-backpressure-patterns.html"><span class="side-num">16</span><span class="side-title">Backpressure Patterns</span></a></li>
+<li><a href="15-consistent-hashing.html"><span class="side-num">15</span><span class="side-title">Consistent Hashing</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Reference implementations</h4>
+<div class="tool-chips">
+<span class="tool-chip">Stripe Webhooks</span>
+<span class="tool-chip">Svix (open source)</span>
+<span class="tool-chip">Hookdeck</span>
+<span class="tool-chip">GitHub Webhooks</span>
+<span class="tool-chip">Shopify Webhooks</span>
+<span class="tool-chip">AWS EventBridge</span>
+<span class="tool-chip">Slack Events API</span>
+<span class="tool-chip">Twilio</span>
+<span class="tool-chip">SendGrid</span>
+</div></div>
+<div class="tool-group"><h4>Queue backends</h4>
+<div class="tool-chips">
+<span class="tool-chip">Apache Kafka</span>
+<span class="tool-chip">Redis Streams</span>
+<span class="tool-chip">Postgres outbox + CDC</span>
+<span class="tool-chip">AWS SQS FIFO</span>
+<span class="tool-chip">RabbitMQ</span>
+</div></div>
+<div class="tool-group"><h4>Fairness algorithms</h4>
+<div class="tool-chips">
+<span class="tool-chip">Deficit Round Robin</span>
+<span class="tool-chip">Weighted Fair Queueing</span>
+<span class="tool-chip">Hierarchical Token Bucket</span>
+</div></div>
+<div class="tool-group"><h4>Resilience</h4>
+<div class="tool-chips">
+<span class="tool-chip">Circuit breaker</span>
+<span class="tool-chip">Hystrix</span>
+<span class="tool-chip">Resilience4j</span>
+<span class="tool-chip">Bulkhead pattern</span>
+</div></div>
+<div class="tool-group"><h4>Security</h4>
+<div class="tool-chips">
+<span class="tool-chip">HMAC-SHA256</span>
+<span class="tool-chip">Ed25519</span>
+<span class="tool-chip">Stripe-Signature header</span>
+<span class="tool-chip">X-Hub-Signature-256</span>
+<span class="tool-chip">SSRF guards</span>
+</div></div>
+<div class="tool-group"><h4>Patterns</h4>
+<div class="tool-chips">
+<span class="tool-chip">Transactional outbox</span>
+<span class="tool-chip">Idempotency-Key header</span>
+<span class="tool-chip">Replay API</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="02-watermarks.html"><span class="nav-label">← Chapter 02</span><span class="nav-title">Watermarks &amp; Event-Time Processing</span></a>
+    <a class="nav-next nav-next-link" href="04-rate-limiting.html"><span class="nav-label">Chapter 04 →</span><span class="nav-title">Rate Limiting Algorithms</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

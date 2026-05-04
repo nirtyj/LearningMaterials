@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>14 · LLM Serving Fairness &amp; Scheduling — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="14">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">14</span>
+      <span class="meta-rule"></span>
+      <span>LLM Serving · Deep Dive</span>
+    </div>
+    <h1 class="article-title">LLM Serving Fairness &amp; Scheduling</h1>
+    <p class="article-lede">VTC&#x27;s tight 2× bound, DLPM locality-aware fairness, FastServe MLFQ, Justitia for agentic workloads.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#141-why-naive-fairness-fails-for-llms">14.1 Why Naive Fairness Fails for LLMs</a></li>
+<li><a class="h2" href="#142-virtual-token-counter-vtc">14.2 Virtual Token Counter (VTC)</a></li>
+<li><a class="h2" href="#143-dlpm-locality-aware-fair-deepsched-2025">14.3 DLPM (Locality-Aware Fair) — DeepSched 2025</a></li>
+<li><a class="h2" href="#144-drf-dominant-resource-fairness">14.4 DRF — Dominant Resource Fairness</a></li>
+<li><a class="h2" href="#145-skip-join-mlfq-fastserve">14.5 Skip-Join MLFQ (FastServe)</a></li>
+<li><a class="h2" href="#146-fairserve-interaction-aware">14.6 FairServe (Interaction-Aware)</a></li>
+<li><a class="h2" href="#147-equinox-holistic-fairness">14.7 Equinox (Holistic Fairness)</a></li>
+<li><a class="h2" href="#148-justitia-agentic-workloads">14.8 Justitia (Agentic Workloads)</a></li>
+<li><a class="h2" href="#149-composite-production-scheduler">14.9 Composite Production Scheduler</a></li>
+<li><a class="h2" href="#1410-common-interview-follow-ups">14.10 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#1411-references">14.11 References</a></li>
+<li><a class="h2" href="#1412-the-full-vtc-algorithm-with-counter-lift">14.12 The Full VTC Algorithm (with Counter-Lift)</a></li>
+<li><a class="h3" href="#detailed-pseudocode">Detailed Pseudocode</a></li>
+<li><a class="h3" href="#tightness-theorem">Tightness Theorem</a></li>
+<li><a class="h2" href="#1413-counter-lift-subtleties">14.13 Counter-Lift Subtleties</a></li>
+<li><a class="h2" href="#1414-dlpm-locality-aware-fair-why-cache-matters">14.14 DLPM (Locality-Aware Fair) — Why Cache Matters</a></li>
+<li><a class="h2" href="#1415-drf-worked-example">14.15 DRF Worked Example</a></li>
+<li><a class="h2" href="#1416-skip-join-mlfq-detail">14.16 Skip-Join MLFQ Detail</a></li>
+<li><a class="h2" href="#1417-fairserve-interaction-aware">14.17 FairServe (Interaction-Aware)</a></li>
+<li><a class="h2" href="#1418-equinox-holistic-fairness">14.18 Equinox Holistic Fairness</a></li>
+<li><a class="h2" href="#1419-justitia-for-agentic-workloads">14.19 Justitia for Agentic Workloads</a></li>
+<li><a class="h2" href="#1420-composite-production-scheduler-detailed">14.20 Composite Production Scheduler — Detailed</a></li>
+<li><a class="h2" href="#1421-live-migration-llumnix-for-rebalance">14.21 Live Migration (Llumnix) for Rebalance</a></li>
+<li><a class="h2" href="#1422-tail-latency-controls">14.22 Tail Latency Controls</a></li>
+<li><a class="h2" href="#1423-common-interview-follow-ups">14.23 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#1424-references-extended">14.24 References (extended)</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="141-why-naive-fairness-fails-for-llms">14.1 Why Naive Fairness Fails for LLMs</h2>
+<p>Classical fair queueing (round-robin, WFQ) treats each <em>request</em> as a unit. But LLM requests have:
+- Variable prefill cost (proportional to prompt length).
+- Variable decode cost (proportional to output length).
+- Variable KV memory (proportional to total length).</p>
+<p>Round-robin gives equal <em>requests</em>, not equal <em>work</em>. A user with 100k-token prompts gets the same share as a user with 10-token prompts — unfair to the small-prompt user, who's effectively donating GPU time.</p>
+<h2 id="142-virtual-token-counter-vtc">14.2 Virtual Token Counter (VTC)</h2>
+<p>VTC (OSDI '24, Sheng et al.) tracks per-user token consumption with virtual time accounting:</p>
+<pre><code class="language-python">class VTC:
+    def __init__(self, weights):
+        self.weights = weights        # tier → weight
+        self.vt = {}                   # user → virtual time consumed
+
+    def on_admit(self, req):
+        # weight tokens by tier weight
+        cost = (req.prompt_tokens + req.expected_output) / self.weights[req.tier]
+        self.vt[req.user] = self.vt.get(req.user, self._min_vt()) + cost
+
+    def _min_vt(self):
+        return min(self.vt.values()) if self.vt else 0
+
+    def pick_next(self, candidates):
+        # pick request from user with smallest vt
+        return min(candidates, key=lambda r: self.vt.get(r.user, 0))
+</code></pre>
+<p>Counter-lift on re-appearance: a user who hasn't sent requests for a while shouldn't be allowed unbounded backlog of credit. Lift their <code>vt</code> to <code>min(global_vt)</code> on re-entry.</p>
+<p>The paper proves a 2× tight bound: VTC ensures any two users with continuous demand within the same window receive shares within a factor of 2 of their fair share.</p>
+<p>Reference: https://www.usenix.org/conference/osdi24/presentation/sheng</p>
+<h2 id="143-dlpm-locality-aware-fair-deepsched-2025">14.3 DLPM (Locality-Aware Fair) — DeepSched 2025</h2>
+<p>VTC ignores cache locality. DLPM adds a "stickiness bonus" — same user's next request prefers a replica that already has their KV/prefix cached. 2.87× throughput, 7.18× lower latency vs. raw VTC. Reference: https://arxiv.org/abs/2501.14312</p>
+<h2 id="144-drf-dominant-resource-fairness">14.4 DRF — Dominant Resource Fairness</h2>
+<p>Multiple resource types (compute, KV memory). DRF: each user has a "dominant share" = max over resources of (their use / total). Equalize dominant shares.</p>
+<p>For LLMs: compute = TFLOPs/s, memory = KV bytes. A long-prompt user has dominant share in compute; a long-context one in memory. DRF correctly balances both.</p>
+<h2 id="145-skip-join-mlfq-fastserve">14.5 Skip-Join MLFQ (FastServe)</h2>
+<p>FastServe (2023): multi-level feedback queue where new requests start at level 0, demoted on each iteration. Short requests finish at level 0; long requests sink to level N. Higher-level queues get scheduled first.</p>
+<p>Reports 31.4× throughput improvement over FCFS at same SLO.</p>
+<p>Reference: https://arxiv.org/html/2305.05920v3</p>
+<h2 id="146-fairserve-interaction-aware">14.6 FairServe (Interaction-Aware)</h2>
+<p>For chat: a user's "perceived" experience is dominated by TTFT and per-token latency, not throughput. FairServe weights the scheduler by user-perceived latency.</p>
+<h2 id="147-equinox-holistic-fairness">14.7 Equinox (Holistic Fairness)</h2>
+<p>Equinox (2025) integrates fairness across multiple dimensions: throughput, TTFT, TBT, prefix-cache hit rate. Multi-objective optimization.</p>
+<p>Reference: https://arxiv.org/html/2508.16646</p>
+<h2 id="148-justitia-agentic-workloads">14.8 Justitia (Agentic Workloads)</h2>
+<p>Agent workloads (multiple sequential LLM calls per user task) need different fairness — Justitia "selectively pampers" agentic tasks to avoid them being stuck behind long single-shot users.</p>
+<p>Reference: https://arxiv.org/html/2510.17015</p>
+<h2 id="149-composite-production-scheduler">14.9 Composite Production Scheduler</h2>
+<p>A production-quality LLM scheduler combines:</p>
+<ol>
+<li><strong>Admission control</strong>: EDF; reject if SLO can't be met.</li>
+<li><strong>Per-tier WFQ</strong>: hierarchical token bucket with weights {free:1, plus:4, pro:16}.</li>
+<li><strong>Within tier: VTC</strong>: fair across users.</li>
+<li><strong>Tie-break with DLPM</strong>: cache locality for picking replica.</li>
+<li><strong>Per-replica: Sarathi chunked prefill</strong> with token budget.</li>
+<li><strong>Live migration (Llumnix)</strong> for rebalance.</li>
+</ol>
+<pre><code>   ┌──────────────────────────────────────────────┐
+   │       INCOMING REQUESTS                      │
+   └─────────────────┬────────────────────────────┘
+                     ▼
+   ┌──────────────────────────────────────────────┐
+   │   ADMISSION (EDF + reserved/shared pools)    │
+   └─────────────────┬────────────────────────────┘
+                     ▼
+   ┌──────────────────────────────────────────────┐
+   │   PER-TIER WFQ (free/plus/pro/api)           │
+   └─────────────────┬────────────────────────────┘
+                     ▼
+   ┌──────────────────────────────────────────────┐
+   │   WITHIN TIER: VTC (per-user)                │
+   └─────────────────┬────────────────────────────┘
+                     ▼
+   ┌──────────────────────────────────────────────┐
+   │   ROUTING: DLPM (cache-aware replica pick)   │
+   └─────────────────┬────────────────────────────┘
+                     ▼
+   ┌──────────────────────────────────────────────┐
+   │   REPLICA: Sarathi chunked-prefill scheduler │
+   └──────────────────────────────────────────────┘
+</code></pre>
+<h2 id="1410-common-interview-follow-ups">14.10 Common Interview Follow-ups</h2>
+<p><strong>Q: Free tier user has been waiting 60s. Pro user just arrived. Who runs?</strong>
+A: With pure VTC, pro runs (lower vt per token due to weight). With aging (free's vt decays over time), free eventually wins. Tradeoff: aging gives better tail fairness but slightly weaker pro-tier guarantees. Most production: aging with cap (free tier latency capped at X min).</p>
+<p><strong>Q: Pro user has 100M tokens of credit (paid up). Should they monopolize?</strong>
+A: No — convert credit to weighted virtual time, not absolute slots. Monopolization would degrade other pro users. Apply per-user rate caps even within tier.</p>
+<p><strong>Q: How do you ensure the scheduler itself isn't a bottleneck?</strong>
+A: Decentralize: each replica has a local scheduler; global router just does layer-7 routing. Global VTC counter is in Redis with periodic batch updates.</p>
+<h2 id="1411-references">14.11 References</h2>
+<ul>
+<li>VTC paper (OSDI '24): https://www.usenix.org/conference/osdi24/presentation/sheng</li>
+<li>AI Insider on VTC: https://theaiinsider.tech/2024/07/08/what-is-a-virtual-token-counter-how-vtcs-might-improve-fairness-for-llm-scheduling/</li>
+<li>DLPM: https://arxiv.org/abs/2501.14312</li>
+<li>FastServe: https://arxiv.org/html/2305.05920v3</li>
+<li>Equinox: https://arxiv.org/html/2508.16646</li>
+<li>Justitia: https://arxiv.org/html/2510.17015</li>
+<li>FairServe: https://arxiv.org/html/2411.15997</li>
+</ul>
+<hr />
+<h2 id="1412-the-full-vtc-algorithm-with-counter-lift">14.12 The Full VTC Algorithm (with Counter-Lift)</h2>
+<p>The Sheng et al. (OSDI '24) paper presents this in detail. Key invariants:</p>
+<ol>
+<li><strong>Service counter</strong>: each user has a virtual time <code>vt[u]</code> representing service consumed.</li>
+<li><strong>Tier weight</strong>: <code>w[u]</code> = tier weight (free=1, plus=4, pro=16).</li>
+<li><strong>Cost per token</strong>: <code>cost = tokens_processed / w[u]</code> — high-tier users "pay less" per token.</li>
+<li><strong>Min-vt selection</strong>: scheduler picks the request with the lowest <code>vt</code>, breaking ties by FCFS.</li>
+<li><strong>Counter-lift</strong>: when a user re-appears after silence, set <code>vt[u] = max(vt[u], min_active_vt)</code> so they don't accumulate unbounded credit.</li>
+</ol>
+<h3 id="detailed-pseudocode">Detailed Pseudocode</h3>
+<pre><code class="language-python">class VTCScheduler:
+    def __init__(self, tier_weights):
+        self.weights = tier_weights
+        self.vt = {}  # user → virtual time
+        self.last_seen = {}  # user → last activity timestamp
+
+    def admit_request(self, req):
+        u = req.user
+        # Counter-lift if user was inactive
+        if u in self.last_seen and time.time() - self.last_seen[u] &gt; 60:
+            self.vt[u] = max(self.vt.get(u, 0), self._min_active_vt())
+        elif u not in self.vt:
+            self.vt[u] = self._min_active_vt()  # join at minimum
+        self.last_seen[u] = time.time()
+        # Estimate work; will be debited as tokens process
+        return req
+
+    def on_token_processed(self, req, n_tokens=1):
+        u = req.user
+        cost = n_tokens / self.weights[req.tier]
+        self.vt[u] += cost
+
+    def pick_next(self, candidates):
+        # Pick request from user with smallest vt
+        return min(candidates, key=lambda r: (self.vt[r.user], r.arrival_time))
+
+    def _min_active_vt(self):
+        if not self.vt:
+            return 0
+        return min(self.vt.values())
+</code></pre>
+<h3 id="tightness-theorem">Tightness Theorem</h3>
+<p>VTC guarantees that for any two continuously-active users <code>u₁</code> and <code>u₂</code> over interval <code>[t₁, t₂]</code>:</p>
+<pre><code>   |service(u₁) / w[u₁] - service(u₂) / w[u₂]| ≤ 2 × max_request_size
+</code></pre>
+<p>Tight to within 2× max_request_size. Both proven and simulated in the OSDI paper.</p>
+<h2 id="1413-counter-lift-subtleties">14.13 Counter-Lift Subtleties</h2>
+<p>Without counter-lift, a user who's been silent for hours could "bank" infinite credit. Then return and dominate.</p>
+<pre><code>   Naive (no lift):
+   t=0: user A active, vt=0
+   t=60: A goes idle. min_vt advances as others use service. 
+         At t=600, min_vt = 100. A's vt is still 0.
+   t=601: A returns. vt[A]=0 &lt; min_vt=100 → A scheduled exclusively
+          until vt[A] catches up = ~100 requests of starvation.
+</code></pre>
+<p>Lift fixes this:</p>
+<pre><code>   t=601: A returns. Lift vt[A] to max(0, 100) = 100. A enters as equal.
+</code></pre>
+<h2 id="1414-dlpm-locality-aware-fair-why-cache-matters">14.14 DLPM (Locality-Aware Fair) — Why Cache Matters</h2>
+<p>VTC doesn't know about cache locality. If user A's KV is on replica R1, scheduling A on R2 wastes the cache.</p>
+<p>DLPM's key idea: weight the scheduler's selection by cache locality bonus.</p>
+<pre><code class="language-python">def dlpm_pick(replicas, candidates):
+    best = None
+    best_score = -1
+    for c in candidates:
+        for r in replicas:
+            if not r.has_capacity(): continue
+            cache_hit = r.prefix_cache_hit(c.prompt)
+            fairness_score = -vtc.vt[c.user]   # higher is better
+            locality_bonus = 0.5 if cache_hit else 0
+            score = fairness_score + locality_bonus
+            if score &gt; best_score:
+                best, best_score = (c, r), score
+    return best
+</code></pre>
+<p>Reports: 2.87× throughput, 7.18× lower latency vs raw VTC. Reference: https://arxiv.org/abs/2501.14312</p>
+<h2 id="1415-drf-worked-example">14.15 DRF Worked Example</h2>
+<p>Two users, two resources (compute, KV memory):
+- User A: 80% compute, 20% memory per request.
+- User B: 20% compute, 60% memory per request.</p>
+<p>Dominant share:
+- A: max(80%, 20%) = 80% — compute-dominated.
+- B: max(20%, 60%) = 60% — memory-dominated.</p>
+<p>DRF schedules so dominant shares are equal. If DRF allocates X% to A and Y% to B:
+- Minimize X·0.8 - Y·0.6 (deviation in dominant-share)
+- Subject to X·0.2 + Y·0.6 ≤ 100 (memory)
+- X·0.8 + Y·0.2 ≤ 100 (compute)</p>
+<p>Solving: X = 75, Y = 50. A gets dominant share 60%, B gets 30%. Both feel "weighted-fair" in their dominant resource.</p>
+<p>DRF source: Ghodsi et al., NSDI 2011. https://www.usenix.org/conference/nsdi11/dominant-resource-fairness-fair-allocation-multiple-resource-types</p>
+<h2 id="1416-skip-join-mlfq-detail">14.16 Skip-Join MLFQ Detail</h2>
+<p>FastServe's MLFQ for LLMs:
+- N priority levels (e.g., 8).
+- New requests start at level 0 (highest priority).
+- After processing K tokens at level i, demote to level i+1.
+- Pick from level 0 first; cascade.</p>
+<p>"Skip-join": predict request length from prompt; large requests directly enter mid-level instead of starting at 0 and walking down.</p>
+<p>Result: short requests (chat messages) finish at level 0 fast. Long requests (RAG with reranking) sink to lower levels and don't block short ones.</p>
+<p>Reports 31.4× throughput improvement at SLO. Reference: https://arxiv.org/html/2305.05920v3</p>
+<h2 id="1417-fairserve-interaction-aware">14.17 FairServe (Interaction-Aware)</h2>
+<p>Standard fairness measures token throughput. But user-perceived fairness is about:
+- TTFT (time-to-first-token).
+- Per-token TBT (smooth streaming).
+- Total response time.</p>
+<p>FairServe weights its scheduler by these perceived metrics, not raw throughput. A user with TTFT &gt; SLO gets boosted priority until satisfied.</p>
+<p>Reference: https://arxiv.org/html/2411.15997</p>
+<h2 id="1418-equinox-holistic-fairness">14.18 Equinox Holistic Fairness</h2>
+<p>Equinox (2025) integrates:
+1. Fairness across users (VTC-like).
+2. Fairness across SLO dimensions (TTFT, TBT, throughput).
+3. Locality (cache hit rate).
+4. Tier weights.</p>
+<p>Multi-objective optimization with adjustable tradeoffs. Helps avoid Pareto-suboptimal combinations.</p>
+<p>Reference: https://arxiv.org/html/2508.16646</p>
+<h2 id="1419-justitia-for-agentic-workloads">14.19 Justitia for Agentic Workloads</h2>
+<p>Agent workloads = sequence of LLM calls per user task (e.g., AutoGPT, LangChain agents). Fairness over individual calls misses the per-task fairness.</p>
+<p>Justitia treats each task as a unit; selectively "pampers" agentic tasks (gives priority bumps) so they don't get stuck behind a single long-prompt user.</p>
+<p>Reference: https://arxiv.org/html/2510.17015</p>
+<h2 id="1420-composite-production-scheduler-detailed">14.20 Composite Production Scheduler — Detailed</h2>
+<pre><code class="language-python">def production_schedule_step(self):
+    # 1. Admission control: EDF-based, reserved capacity per tier
+    for req in self.incoming:
+        if not self.admit(req):
+            req.reject(retry_after=self.estimate_retry_time(req))
+        else:
+            self.queue_per_tier[req.tier].append(req)
+
+    # 2. WFQ: select tier this step
+    tier = self.wfq.next_tier()
+
+    # 3. Within tier: VTC pick
+    candidates = self.queue_per_tier[tier]
+    chosen = self.vtc.pick_next(candidates)
+
+    # 4. DLPM: pick replica with cache locality
+    replica = self.dlpm.pick_replica(chosen)
+
+    # 5. Send to replica's local Sarathi-Serve scheduler
+    replica.enqueue(chosen)
+
+class WFQ:
+    def __init__(self, weights):
+        self.weights = weights  # tier → weight
+        self.virtual_time = {t: 0 for t in weights}
+
+    def next_tier(self):
+        # Pick tier with smallest virtual_time / weight
+        return min(self.virtual_time.items(),
+                   key=lambda kv: kv[1] / self.weights[kv[0]])[0]
+
+    def served(self, tier, work):
+        self.virtual_time[tier] += work
+</code></pre>
+<h2 id="1421-live-migration-llumnix-for-rebalance">14.21 Live Migration (Llumnix) for Rebalance</h2>
+<p>Without live migration, a hot replica stays hot until queue drains. Llumnix moves running requests across replicas via NVLink KV transfer, treating rebalance as a memory copy:</p>
+<pre><code>   Imbalance detected at scheduling tick:
+     R1 KV: 95% full, queue 50 deep.
+     R2 KV: 30% full, queue 5 deep.
+
+   Pick request X from R1 (the one with smallest progress).
+   NVLink transfer X's KV from R1 to R2 (~10ms for 1GB).
+   Resume X on R2.
+</code></pre>
+<p>This makes rebalance a 10ms operation vs the alternative of waiting for X to finish (could be seconds). Reference: https://www.usenix.org/conference/osdi24/presentation/sun-biao</p>
+<h2 id="1422-tail-latency-controls">14.22 Tail Latency Controls</h2>
+<p>p99.9 TTFT/TBT requires explicit attention:
+- <strong>Hedging</strong>: send identical request to two replicas; cancel the slower.
+- <strong>Speculative execution</strong>: run a small model on the same prompt while the big model spins up; if outputs converge, return small model's.
+- <strong>Deadline propagation</strong>: every request carries a deadline; replicas reject when they can't meet it (return 503).
+- <strong>Smaller-batch fast lane</strong>: dedicated queue for sub-100-token requests; no contention with long-context workloads.</p>
+<h2 id="1423-common-interview-follow-ups">14.23 Common Interview Follow-ups</h2>
+<p><strong>Q: How is VTC different from WFQ?</strong>
+A: WFQ is per-flow; VTC is per-token-with-tier-weights. WFQ allocates flows fair shares of bandwidth. VTC weighs each token by tier. Combined: WFQ at tier level, VTC within each tier.</p>
+<p><strong>Q: What if tier weight is 1000 — pro user dominates?</strong>
+A: Aging caps starvation: free user's vt decays over wait time. Even with 1000× weight, free users will eventually run.</p>
+<p><strong>Q: How do you measure fairness?</strong>
+A: Jain's fairness index: <code>J = (Σx_i)² / (n × Σx_i²)</code>. J=1 means perfectly fair. Most production systems target J &gt; 0.9 across users in steady state.</p>
+<p><strong>Q: What if a user submits 100 requests at once?</strong>
+A: Per-user concurrency cap (e.g., 5 concurrent). Excess queued. VTC then sees "1 active per user" rather than disproportionate dispatcher pressure.</p>
+<h2 id="1424-references-extended">14.24 References (extended)</h2>
+<ul>
+<li>VTC paper (OSDI '24): https://www.usenix.org/conference/osdi24/presentation/sheng</li>
+<li>DLPM: https://arxiv.org/abs/2501.14312</li>
+<li>FastServe: https://arxiv.org/html/2305.05920v3</li>
+<li>FairServe: https://arxiv.org/html/2411.15997</li>
+<li>Equinox: https://arxiv.org/html/2508.16646</li>
+<li>Justitia: https://arxiv.org/html/2510.17015</li>
+<li>Llumnix: https://www.usenix.org/conference/osdi24/presentation/sun-biao</li>
+<li>DRF (NSDI '11): https://www.usenix.org/conference/nsdi11/dominant-resource-fairness-fair-allocation-multiple-resource-types</li>
+<li>Jain's fairness index: https://en.wikipedia.org/wiki/Fairness_measure</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="12-continuous-batching.html"><span class="side-num">12</span><span class="side-title">Continuous Batching Internals</span></a></li>
+<li><a href="13-kv-cache-management.html"><span class="side-num">13</span><span class="side-title">KV Cache Management</span></a></li>
+<li><a href="11-chatgpt-system-design.html"><span class="side-num">11</span><span class="side-title">ChatGPT System Design</span></a></li>
+<li><a href="04-rate-limiting.html"><span class="side-num">04</span><span class="side-title">Rate Limiting Algorithms</span></a></li>
+<li><a href="16-backpressure-patterns.html"><span class="side-num">16</span><span class="side-title">Backpressure Patterns</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Fairness algorithms</h4>
+<div class="tool-chips">
+<span class="tool-chip">VTC (Sheng OSDI &#x27;24)</span>
+<span class="tool-chip">DLPM (locality-aware fair)</span>
+<span class="tool-chip">DRF (Ghodsi NSDI &#x27;11)</span>
+<span class="tool-chip">WFQ (per-tier)</span>
+<span class="tool-chip">FastServe skip-join MLFQ</span>
+</div></div>
+<div class="tool-group"><h4>Modern research</h4>
+<div class="tool-chips">
+<span class="tool-chip">FairServe (interaction-aware)</span>
+<span class="tool-chip">Equinox (holistic)</span>
+<span class="tool-chip">Justitia (agentic)</span>
+</div></div>
+<div class="tool-group"><h4>Building blocks</h4>
+<div class="tool-chips">
+<span class="tool-chip">Counter-lift on user re-appearance</span>
+<span class="tool-chip">Aging to prevent starvation</span>
+<span class="tool-chip">Hierarchical Token Bucket</span>
+<span class="tool-chip">EDF admission control</span>
+</div></div>
+<div class="tool-group"><h4>Tail latency controls</h4>
+<div class="tool-chips">
+<span class="tool-chip">Hedging</span>
+<span class="tool-chip">Speculative execution</span>
+<span class="tool-chip">Deadline propagation</span>
+<span class="tool-chip">Fast lane queues</span>
+</div></div>
+<div class="tool-group"><h4>Live migration</h4>
+<div class="tool-chips">
+<span class="tool-chip">Llumnix (KV transfer over NVLink)</span>
+</div></div>
+<div class="tool-group"><h4>Metrics</h4>
+<div class="tool-chips">
+<span class="tool-chip">Jain&#x27;s fairness index</span>
+<span class="tool-chip">Goodput</span>
+<span class="tool-chip">TTFT p99</span>
+<span class="tool-chip">TBT p99</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="13-kv-cache-management.html"><span class="nav-label">← Chapter 13</span><span class="nav-title">KV Cache Management</span></a>
+    <a class="nav-next nav-next-link" href="15-consistent-hashing.html"><span class="nav-label">Chapter 15 →</span><span class="nav-title">Consistent Hashing</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

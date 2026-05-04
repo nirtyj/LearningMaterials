@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>11 · ChatGPT System Design — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="11">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">11</span>
+      <span class="meta-rule"></span>
+      <span>Systems · Q5 Centerpiece</span>
+    </div>
+    <h1 class="article-title">ChatGPT System Design</h1>
+    <p class="article-lede">GPU capacity allocation across tiers, multi-version conversations, autoscaling under varying latency profiles. The OpenAI question.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#111-architecture-top-down">11.1 Architecture (Top-down)</a></li>
+<li><a class="h3" href="#high-level">High-Level</a></li>
+<li><a class="h3" href="#mid-level-per-model-inference-topology">Mid-Level: Per-Model Inference Topology</a></li>
+<li><a class="h3" href="#low-level-single-replica-eg-vllm">Low-Level: Single Replica (e.g., vLLM)</a></li>
+<li><a class="h2" href="#112-gpu-capacity-allocation-the-interviews-deep-question">11.2 GPU Capacity Allocation (the interview&#x27;s deep question)</a></li>
+<li><a class="h3" href="#tier-model">Tier model</a></li>
+<li><a class="h3" href="#cross-tier-traffic-correlation">Cross-tier traffic correlation</a></li>
+<li><a class="h3" href="#admission-control">Admission control</a></li>
+<li><a class="h3" href="#scheduler-bias-toward-pro-without-starving-free">Scheduler bias toward pro without starving free</a></li>
+<li><a class="h2" href="#113-conversation-across-model-versions">11.3 Conversation Across Model Versions</a></li>
+<li><a class="h2" href="#114-autoscaling-under-different-latency-profiles">11.4 Autoscaling Under Different Latency Profiles</a></li>
+<li><a class="h3" href="#scaling-on-goodput-not-throughput">Scaling on goodput, not throughput</a></li>
+<li><a class="h3" href="#cold-start">Cold-start</a></li>
+<li><a class="h3" href="#different-latency-profiles">Different latency profiles</a></li>
+<li><a class="h3" href="#llumnix-live-migration">Llumnix live migration</a></li>
+<li><a class="h2" href="#115-headline-numbers-production-reports">11.5 Headline Numbers (Production Reports)</a></li>
+<li><a class="h2" href="#116-other-components-brief">11.6 Other Components (Brief)</a></li>
+<li><a class="h3" href="#conversation-service">Conversation Service</a></li>
+<li><a class="h3" href="#request-routing">Request Routing</a></li>
+<li><a class="h3" href="#telemetry">Telemetry</a></li>
+<li><a class="h2" href="#117-common-interview-follow-ups">11.7 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#118-production-gotchas">11.8 Production Gotchas</a></li>
+<li><a class="h2" href="#119-references-selected-many-more-in-12-14">11.9 References (selected; many more in §12-14)</a></li>
+</ul></aside>
+      <article class="article-body">
+<p>This is the showpiece question. Treat the framing requested by the interviewer as a strong hint about what they care about (GPU scheduling, multi-tenancy, autoscaling, model-version migration) — and don't waste time on "the obvious pieces" (request routing, model serving, conversation persistence) beyond a brief mention.</p>
+<h2 id="111-architecture-top-down">11.1 Architecture (Top-down)</h2>
+<h3 id="high-level">High-Level</h3>
+<pre><code>   ┌────────────────────────────────────────────────────────────────┐
+   │   USERS (web app, mobile, API clients, embedded integrations)  │
+   └─────────────────┬──────────────────────────────────────────────┘
+                     │ TLS, OAuth, API key, JWT
+                     ▼
+   ┌────────────────────────────────────────────────────────────────┐
+   │            EDGE / API GATEWAY / Auth + Rate Limit              │
+   │   per-user RPS, per-API-key TPS, abuse detection               │
+   └─────────────────┬──────────────────────────────────────────────┘
+                     ▼
+   ┌────────────────────────────────────────────────────────────────┐
+   │            ROUTER + ADMISSION CONTROL                          │
+   │   tier-aware queueing; reject low-tier requests when over SLO  │
+   │   model-version selection; tokenization                        │
+   └─────────────────┬──────────────────────────────────────────────┘
+                     ▼
+   ┌────────────────────────────────────────────────────────────────┐
+   │           CONVERSATION SERVICE (state)                         │
+   │   tree-of-messages persistence (Postgres + Redis)              │
+   │   serves message history; handles edits/regenerate             │
+   └─────────────────┬──────────────────────────────────────────────┘
+                     ▼
+   ┌────────────────────────────────────────────────────────────────┐
+   │           INFERENCE FLEET (per-model deployments)              │
+   │                                                                │
+   │  GPT-5.5 (large, slow, premium)                                │
+   │  GPT-5   (medium)                                              │
+   │  GPT-4o  (small, fast, free)                                   │
+   │                                                                │
+   │  Each model deployment:                                        │
+   │    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │
+   │    │ Replica 1   │  │ Replica 2   │  │ Replica N   │           │
+   │    │ (vLLM /     │  │ (vLLM)      │  │ (DistServe) │           │
+   │    │  Sarathi)   │  │             │  │             │           │
+   │    └─────────────┘  └─────────────┘  └─────────────┘           │
+   │                                                                │
+   │  Disaggregated prefill / decode pools for the largest model    │
+   └─────────────────┬──────────────────────────────────────────────┘
+                     ▼
+   ┌────────────────────────────────────────────────────────────────┐
+   │           SHARED INFRA: KV cache pool, prefix cache, GPU       │
+   │           pool, telemetry (Prometheus + custom GPU metrics)    │
+   └────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="mid-level-per-model-inference-topology">Mid-Level: Per-Model Inference Topology</h3>
+<p>For ChatGPT-scale models, <strong>disaggregated prefill/decode</strong> wins:</p>
+<pre><code>   ┌─────────────────────────────────────────────────────────────┐
+   │                      ROUTER                                 │
+   │   choose model, admit request, attach prefix-cache hint     │
+   └────────────┬────────────────────────────────────────────────┘
+                ▼
+   ┌─────────────────────────────────────────────────────────────┐
+   │                  PREFILL POOL (compute-bound)               │
+   │   ── runs the prompt through the model in parallel          │
+   │   ── produces KV cache for the prompt                       │
+   │   ── chunked-prefill (Sarathi-Serve) to bound iteration time │
+   └────────────┬────────────────────────────────────────────────┘
+                │ KV cache transferred over NVLink / IB / NVMe-oF
+                ▼
+   ┌─────────────────────────────────────────────────────────────┐
+   │                  DECODE POOL (memory-BW-bound)              │
+   │   ── continuous batching of decode-only iterations          │
+   │   ── PagedAttention block table; prefix cache hits          │
+   │   ── streaming SSE/WebSocket back to client                 │
+   └─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>Why disaggregate? Prefill is compute-bound (matmul on long prompt); decode is memory-bandwidth-bound (read entire KV cache per token). Co-locating them means prefill (long-running iteration) blocks decode (fast iterations) — head-of-line blocking. DistServe (Tencent), Splitwise (Microsoft), Mooncake (Moonshot/Kimi) all show 1.4×–7.4× throughput from disaggregation.</p>
+<h3 id="low-level-single-replica-eg-vllm">Low-Level: Single Replica (e.g., vLLM)</h3>
+<pre><code>   ┌─────────────────────────────────────────────────────────────┐
+   │                vLLM v1 SCHEDULER                            │
+   │                                                             │
+   │  WAITING queue (FCFS or priority)                           │
+   │     ┌───┬───┬───┬───┐                                       │
+   │     │R1 │R2 │R3 │R4 │                                       │
+   │     └───┴───┴───┴───┘                                       │
+   │                                                             │
+   │  RUNNING queue (active in current iteration)                │
+   │     ┌───┬───┬───┐                                           │
+   │     │R5 │R6 │R7 │  ← decoded one token last step            │
+   │     └───┴───┴───┘                                           │
+   │                                                             │
+   │  PREEMPTED queue (KV cache evicted)                         │
+   │     ┌───┐                                                   │
+   │     │R8 │  ← will be re-scheduled when capacity returns     │
+   │     └───┘                                                   │
+   │                                                             │
+   │  Each step: compute admit-set ≤ token_budget;               │
+   │             unified prefill+decode primitive                │
+   └────────────────────────┬────────────────────────────────────┘
+                            ▼
+   ┌─────────────────────────────────────────────────────────────┐
+   │       MODEL EXECUTOR (CUDA graphs, FlashAttention)          │
+   │       PagedAttention with block-table indirection           │
+   │       Prefix-cache lookup before allocation                 │
+   └─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="112-gpu-capacity-allocation-the-interviews-deep-question">11.2 GPU Capacity Allocation (the interview's deep question)</h2>
+<h3 id="tier-model">Tier model</h3>
+<p>Define tier weights:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Free</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Plus</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Pro</td>
+<td>16</td>
+</tr>
+<tr>
+<td>API</td>
+<td>varies (per-customer SLA)</td>
+</tr>
+</tbody>
+</table>
+<p>These weights drive the fair scheduler's quanta — see §14.</p>
+<h3 id="cross-tier-traffic-correlation">Cross-tier traffic correlation</h3>
+<p>Spikes are correlated: a viral event drives free, plus, pro all up at once. So slack from one tier rarely covers another's surge. Strategies:</p>
+<ol>
+<li><strong>Reserved capacity per tier (in GPUs)</strong>: Pro gets 20% of fleet reserved, regardless of utilization. Prevents starvation but wastes capacity at off-peak.</li>
+<li><strong>Shared pool with WFQ</strong>: tiers share GPU but compete with weighted fair queueing. When idle, all tiers can use full capacity.</li>
+<li><strong>Hybrid</strong>: small reserved per tier (5%) + large shared pool with WFQ. Best of both.</li>
+</ol>
+<p>The hybrid is the production answer.</p>
+<h3 id="admission-control">Admission control</h3>
+<p>When the fleet is at capacity, new requests must be rejected — but selectively. Pro requests get accepted up to their reserved quota even when free is at capacity.</p>
+<pre><code>   on incoming(req):
+       if pool.utilization &lt; 0.85:
+           accept; route_to_replica()
+       elif req.tier == &quot;free&quot; and free_pool.utilization &gt; free_pool.reserved:
+           reject 429 with Retry-After
+       elif req.tier == &quot;plus&quot; and plus_pool.utilization &gt; plus_pool.reserved:
+           reject (or queue with deadline)
+       else:
+           accept; queue with priority by tier
+</code></pre>
+<p>EDF (earliest-deadline-first) admission gives the best goodput per Hao-Zhang's DistServe analysis.</p>
+<h3 id="scheduler-bias-toward-pro-without-starving-free">Scheduler bias toward pro without starving free</h3>
+<p>Two complementary techniques:</p>
+<ol>
+<li><strong>VTC (Virtual Token Counter)</strong> — see §14. Each user has a token-debt counter weighted by tier. The scheduler picks the request with lowest weighted debt. Provably fair.</li>
+<li><strong>Aging</strong>: free requests gain priority the longer they wait; eventually beat any pro request by enough margin. Prevents starvation regardless of pro inflow.</li>
+</ol>
+<h2 id="113-conversation-across-model-versions">11.3 Conversation Across Model Versions</h2>
+<p>User opens a chat at 9 PM with GPT-5.5; you deploy 5.5.1 at 11 PM; user sends a message at 11:30 PM.</p>
+<p>Options:
+1. <strong>Sticky to original version</strong>: every message in this conversation goes to GPT-5.5.0 — until that version is decommissioned. Pros: behavioral consistency. Cons: keeps old model alive; can't ship hotfixes.
+2. <strong>Always latest</strong>: switch to 5.5.1 mid-conversation. Pros: fresh code. Cons: KV cache from 5.5.0 isn't reusable on 5.5.1 (architecture is the same but weights differ; KV is weight-dependent). Re-prefill the entire history. Latency spike.
+3. <strong>Tokenizer-compatible upgrade with re-prefill</strong>: same tokenizer, run prefill on 5.5.1 over the full history, mark conversation as upgraded. One-time cost.</p>
+<p>Most production systems pick (2) with re-prefill, but mark "conversation upgraded" so the user sees a banner (or doesn't, if behavioral diff is small).</p>
+<p>Detecting tokenizer drift: hash the tokenizer config; reject re-prefill if old conversation has tokens that don't decode under new tokenizer.</p>
+<h2 id="114-autoscaling-under-different-latency-profiles">11.4 Autoscaling Under Different Latency Profiles</h2>
+<p>Naive: scale on CPU/GPU utilization. <strong>Wrong</strong> because LLM serving is bursty and bound by KV cache memory, not utilization.</p>
+<p>Better signals:
+- <strong>Queue depth × E[remaining_output_tokens]</strong>: forward-looking; predicts whether queue can drain.
+- <strong>KV cache occupancy</strong>: the actual memory pressure.
+- <strong>TTFT (time-to-first-token) p95</strong>: directly tied to user experience.
+- <strong>TBT (time-between-tokens) p95</strong>: ditto, decode side.</p>
+<p>When TTFT p95 &gt; SLO for <code>T</code> seconds, scale up. When KV cache occupancy &lt; 50% for <code>T</code> seconds, scale down.</p>
+<p>References: 
+- Hao-AI-Lab on learning-to-rank scheduling: https://hao-ai-lab.github.io/blogs/vllm-ltr/
+- DistServe: https://arxiv.org/abs/2401.09670
+- KEDA scaling: https://keda.sh/</p>
+<h3 id="scaling-on-goodput-not-throughput">Scaling on goodput, not throughput</h3>
+<p>DistServe defines <strong>goodput</strong> = requests per second meeting SLO. Maximize this, not raw tokens/s. Otherwise you can saturate the GPU but fail TTFT.</p>
+<h3 id="cold-start">Cold-start</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Cold-start time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7B</td>
+<td>~30 s</td>
+</tr>
+<tr>
+<td>70B</td>
+<td>~2 min</td>
+</tr>
+<tr>
+<td>400B+</td>
+<td>~20 min</td>
+</tr>
+</tbody>
+</table>
+<p>Mitigations:
+- Always-warm pool of standby replicas.
+- Spot+on-demand mix.
+- Pre-warmed KV cache for popular prompts.</p>
+<h3 id="different-latency-profiles">Different latency profiles</h3>
+<p>GPT-5.5 has higher TTFT (longer prefill) than 4o. Each model gets its own scaling group with own SLO targets and own queue. Don't share scaling logic across models.</p>
+<h3 id="llumnix-live-migration">Llumnix live migration</h3>
+<p>Llumnix (Alibaba, OSDI '24) migrates running requests across replicas — moving the KV cache via NVLink. This makes load-rebalancing as cheap as a memory copy, enabling tighter packing without restarting requests. Reference: https://www.usenix.org/conference/osdi24/presentation/sun-biao</p>
+<h2 id="115-headline-numbers-production-reports">11.5 Headline Numbers (Production Reports)</h2>
+<ul>
+<li><strong>DistServe</strong> (Hao-AI-Lab, OSDI '24): 7.4× more requests at SLO vs co-located baseline.</li>
+<li><strong>Splitwise</strong> (Microsoft): 1.4× throughput at 20% lower cost.</li>
+<li><strong>Mooncake</strong> (Moonshot/Kimi): 115% / 107% more requests on A800 / H800 in production at Kimi.</li>
+<li><strong>Sarathi-Serve</strong>: 5.6× capacity at strict TBT SLO on Falcon-180B.</li>
+<li><strong>vLLM PagedAttention</strong>: 2-4× throughput vs. baseline (HuggingFace TGI of 2023).</li>
+<li><strong>Character.AI</strong>: 95% prefix cache hit rate; KV cache memory reduced 20× via MQA + Cross-Layer Attention + SWA + INT8.</li>
+</ul>
+<h2 id="116-other-components-brief">11.6 Other Components (Brief)</h2>
+<h3 id="conversation-service">Conversation Service</h3>
+<ul>
+<li>Postgres for durable state (tree of messages: parent_id → children).</li>
+<li>Redis for hot session caching.</li>
+<li>Edits create siblings, not in-place modification (preserves history; matches §9 design).</li>
+</ul>
+<h3 id="request-routing">Request Routing</h3>
+<ul>
+<li>Layer 7: pick model (per user choice + tier + availability).</li>
+<li>Within model: pick replica via Maglev consistent hashing on <code>(conversation_id, prefix_hash)</code> to maximize prefix-cache hit rate.</li>
+</ul>
+<h3 id="telemetry">Telemetry</h3>
+<ul>
+<li>Prometheus + Grafana for app metrics.</li>
+<li>DCGM for GPU metrics.</li>
+<li>Distributed tracing (OpenTelemetry) for cross-service.</li>
+<li>Per-replica logging at high volume → Vector → S3.</li>
+</ul>
+<h2 id="117-common-interview-follow-ups">11.7 Common Interview Follow-ups</h2>
+<p><strong>Q: Pro user submits a 100k-token prompt. How do you handle?</strong>
+A: Chunked prefill (Sarathi-Serve): split into 1k-token chunks, interleave with decode iterations of other requests. Prevents head-of-line. Total prefill time same, but other users not stalled.</p>
+<p><strong>Q: A free user is in a tight retry loop, hammering you.</strong>
+A: Per-user RPS at edge gateway; circuit at session level. If still abusive, soft-block with captcha, then hard-block.</p>
+<p><strong>Q: KV cache OOM mid-generation.</strong>
+A: Preempt the lowest-priority request: write its KV to CPU RAM (swap) or recompute on resume (vLLM v1 default — recompute is faster on H100). Resume when memory frees.</p>
+<p><strong>Q: A NCCL collective hangs.</strong>
+A: Watchdog kills the replica after timeout (e.g., 30s). Replica restarts. Outstanding requests on that replica are rerouted with re-prefill. Track NCCL hang rate as fleet KPI.</p>
+<p><strong>Q: How do you A/B test a new model version?</strong>
+A: Shadow traffic — same prompt to both; compare outputs offline. Then: 1% canary, 10%, 50%, 100% over days. Sticky per-user (consistent hash on user_id) so they don't see flipping.</p>
+<h2 id="118-production-gotchas">11.8 Production Gotchas</h2>
+<ul>
+<li><strong>Long-tail stragglers</strong>: 99th percentile request takes 50× the median. Speculative decoding, request-level deadlines.</li>
+<li><strong>KV cache math</strong>: Llama-3.1-70B GQA with 128k context = ~40 GB just for one user's KV. Plan capacity accordingly.</li>
+<li><strong>Prefill blocks decode</strong> — disaggregate or chunk.</li>
+<li><strong>Tensor parallelism across AZ collapses</strong> — TP requires NVLink-grade bandwidth; doesn't survive multi-AZ. Pipeline parallelism is more forgiving.</li>
+<li><strong>OOM cascades</strong>: one replica OOMs → router shifts to others → others OOM. Need admission control upstream of replicas.</li>
+<li><strong>Tokenizer drift on model upgrades</strong>: invalidate prefix cache; warn users.</li>
+<li><strong>Inflight migrations during deploys</strong>: have a graceful drain (stop admitting, finish in-flight).</li>
+</ul>
+<h2 id="119-references-selected-many-more-in-12-14">11.9 References (selected; many more in §12-14)</h2>
+<ul>
+<li>vLLM PagedAttention paper: https://arxiv.org/abs/2309.06180</li>
+<li>vLLM V1 blog: https://blog.vllm.ai/2025/01/27/v1-alpha-release.html</li>
+<li>Sarathi-Serve: https://arxiv.org/abs/2403.02310</li>
+<li>DistServe: https://arxiv.org/abs/2401.09670</li>
+<li>Splitwise: https://arxiv.org/abs/2311.18677</li>
+<li>Mooncake (FAST '25): https://www.usenix.org/conference/fast25/presentation/qin</li>
+<li>Llumnix (OSDI '24): https://www.usenix.org/conference/osdi24/presentation/sun-biao</li>
+<li>Orca (continuous batching, OSDI '22): https://www.usenix.org/conference/osdi22/presentation/yu</li>
+<li>Character.AI inference blog: https://research.character.ai/optimizing-ai-inference-at-character-ai-part-deux/</li>
+<li>Anyscale on continuous batching: https://www.anyscale.com/blog/continuous-batching-llm-inference</li>
+<li>NVIDIA TensorRT-LLM: https://github.com/NVIDIA/TensorRT-LLM</li>
+<li>SGLang: https://github.com/sgl-project/sglang</li>
+<li>HuggingFace TGI: https://github.com/huggingface/text-generation-inference</li>
+</ul>
+<hr />
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="12-continuous-batching.html"><span class="side-num">12</span><span class="side-title">Continuous Batching Internals</span></a></li>
+<li><a href="13-kv-cache-management.html"><span class="side-num">13</span><span class="side-title">KV Cache Management</span></a></li>
+<li><a href="14-llm-serving-fairness.html"><span class="side-num">14</span><span class="side-title">LLM Serving Fairness &amp; Scheduling</span></a></li>
+<li><a href="15-consistent-hashing.html"><span class="side-num">15</span><span class="side-title">Consistent Hashing</span></a></li>
+<li><a href="16-backpressure-patterns.html"><span class="side-num">16</span><span class="side-title">Backpressure Patterns</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Inference engines</h4>
+<div class="tool-chips">
+<span class="tool-chip">vLLM (PagedAttention)</span>
+<span class="tool-chip">TensorRT-LLM</span>
+<span class="tool-chip">SGLang (RadixAttention)</span>
+<span class="tool-chip">HuggingFace TGI</span>
+<span class="tool-chip">DeepSpeed-MII</span>
+<span class="tool-chip">NVIDIA Triton</span>
+<span class="tool-chip">Friendli (PeriFlow)</span>
+</div></div>
+<div class="tool-group"><h4>Disaggregation systems</h4>
+<div class="tool-chips">
+<span class="tool-chip">DistServe (Hao-AI-Lab, OSDI &#x27;24)</span>
+<span class="tool-chip">Splitwise (Microsoft)</span>
+<span class="tool-chip">Mooncake (Moonshot/Kimi, FAST &#x27;25)</span>
+<span class="tool-chip">Llumnix (Alibaba, OSDI &#x27;24)</span>
+</div></div>
+<div class="tool-group"><h4>Scheduling</h4>
+<div class="tool-chips">
+<span class="tool-chip">Sarathi-Serve (chunked prefill)</span>
+<span class="tool-chip">Orca (continuous batching)</span>
+<span class="tool-chip">FastServe (MLFQ)</span>
+</div></div>
+<div class="tool-group"><h4>Hardware fabric</h4>
+<div class="tool-chips">
+<span class="tool-chip">NVLink</span>
+<span class="tool-chip">InfiniBand</span>
+<span class="tool-chip">NCCL</span>
+<span class="tool-chip">DCGM</span>
+</div></div>
+<div class="tool-group"><h4>Autoscaling</h4>
+<div class="tool-chips">
+<span class="tool-chip">KEDA</span>
+<span class="tool-chip">HPA / VPA</span>
+<span class="tool-chip">Custom metrics</span>
+<span class="tool-chip">Goodput-driven scaling</span>
+</div></div>
+<div class="tool-group"><h4>Conversation persistence</h4>
+<div class="tool-chips">
+<span class="tool-chip">Postgres tree</span>
+<span class="tool-chip">Redis hot session</span>
+<span class="tool-chip">Sticky vs re-prefill on upgrade</span>
+</div></div>
+<div class="tool-group"><h4>Real numbers</h4>
+<div class="tool-chips">
+<span class="tool-chip">Character.AI (95% prefix hit, 20× KV reduction)</span>
+<span class="tool-chip">Kimi (Mooncake in production)</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="10-crdts.html"><span class="nav-label">← Chapter 10</span><span class="nav-title">CRDTs Deep Dive</span></a>
+    <a class="nav-next nav-next-link" href="12-continuous-batching.html"><span class="nav-label">Chapter 12 →</span><span class="nav-title">Continuous Batching Internals</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>

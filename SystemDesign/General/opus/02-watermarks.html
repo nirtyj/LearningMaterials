@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OPUS — A staff engineering compendium. Comprehensive technical preparation for staff-level system design interviews: rolling windows, webhooks, queues, CRDTs, ChatGPT system design, KV cache, fairness, consistent hashing, backpressure.">
+<title>02 · Watermarks &amp; Event-Time Processing — OPUS</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4efe1'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23a8472a'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f4efe1">
+</head>
+<body data-chapter="02">
+<header class="site-header">
+  <a href="index.html" class="brand">OPUS<span class="brand-sub">Staff Engineering Compendium</span></a>
+  <nav class="site-nav">
+    <a href="index.html">Index</a>
+    <a href="11-chatgpt-system-design.html">Centerpiece</a>
+  </nav>
+  <button class="toc-toggle" id="toc-toggle" aria-label="Open table of contents">Contents</button>
+</header>
+
+<aside class="toc-drawer" id="toc-drawer" aria-label="All chapters">
+<div class="toc-drawer-head"><h2>Contents</h2><button class="toc-close" id="toc-close" aria-label="Close contents">×</button></div>
+<ul class="toc-list">
+<li><a href="index.html"><span class="toc-num">00</span><span class="toc-title"><strong>Index</strong>Overview, study order, conventions</span></a></li>
+<li class="toc-group-label">Q1 — Streaming</li>
+<li><a href="01-event-aggregator.html" data-chapter="01"><span class="toc-num">01</span><span class="toc-title"><strong>Real-Time Event Aggregator with Rolling Windows</strong>Streaming · Q1</span></a></li>
+<li><a href="02-watermarks.html" data-chapter="02"><span class="toc-num">02</span><span class="toc-title"><strong>Watermarks &amp; Event-Time Processing</strong>Streaming · Deep Dive</span></a></li>
+<li class="toc-group-label">Q2 — Distributed Reliability</li>
+<li><a href="03-webhook-delivery.html" data-chapter="03"><span class="toc-num">03</span><span class="toc-title"><strong>Webhook Delivery Platform</strong>Distributed · Q2</span></a></li>
+<li><a href="04-rate-limiting.html" data-chapter="04"><span class="toc-num">04</span><span class="toc-title"><strong>Rate Limiting Algorithms</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="05-exponential-backoff.html" data-chapter="05"><span class="toc-num">05</span><span class="toc-title"><strong>Exponential Backoff with Jitter</strong>Distributed · Deep Dive</span></a></li>
+<li><a href="06-idempotency.html" data-chapter="06"><span class="toc-num">06</span><span class="toc-title"><strong>Idempotency in Distributed Systems</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q3 — Coding</li>
+<li><a href="07-in-process-queue.html" data-chapter="07"><span class="toc-num">07</span><span class="toc-title"><strong>In-Process Queue with At-Least-Once Delivery</strong>Coding · Q3 Take-Home</span></a></li>
+<li><a href="08-lease-fencing-tokens.html" data-chapter="08"><span class="toc-num">08</span><span class="toc-title"><strong>Lease &amp; Fencing Tokens</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q4 — Data Structures</li>
+<li><a href="09-streaming-text-differ.html" data-chapter="09"><span class="toc-num">09</span><span class="toc-title"><strong>Token-Level Streaming Text Differ with Rollback</strong>Data Structures · Q4</span></a></li>
+<li><a href="10-crdts.html" data-chapter="10"><span class="toc-num">10</span><span class="toc-title"><strong>CRDTs Deep Dive</strong>Distributed · Deep Dive</span></a></li>
+<li class="toc-group-label">Q5 — LLM Serving</li>
+<li><a href="11-chatgpt-system-design.html" data-chapter="11"><span class="toc-num">11</span><span class="toc-title"><strong>ChatGPT System Design</strong>Systems · Q5 Centerpiece</span></a></li>
+<li><a href="12-continuous-batching.html" data-chapter="12"><span class="toc-num">12</span><span class="toc-title"><strong>Continuous Batching Internals</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="13-kv-cache-management.html" data-chapter="13"><span class="toc-num">13</span><span class="toc-title"><strong>KV Cache Management</strong>LLM Serving · Deep Dive</span></a></li>
+<li><a href="14-llm-serving-fairness.html" data-chapter="14"><span class="toc-num">14</span><span class="toc-title"><strong>LLM Serving Fairness &amp; Scheduling</strong>LLM Serving · Deep Dive</span></a></li>
+<li class="toc-group-label">Foundations</li>
+<li><a href="15-consistent-hashing.html" data-chapter="15"><span class="toc-num">15</span><span class="toc-title"><strong>Consistent Hashing</strong>Cross-Cutting · Foundations</span></a></li>
+<li><a href="16-backpressure-patterns.html" data-chapter="16"><span class="toc-num">16</span><span class="toc-title"><strong>Backpressure Patterns</strong>Cross-Cutting · Foundations</span></a></li>
+</ul>
+</aside>
+<div class="toc-backdrop" id="toc-backdrop"></div>
+<main>
+  <div class="article-shell">
+    <div class="article-meta">
+      <span class="chapter-num">02</span>
+      <span class="meta-rule"></span>
+      <span>Streaming · Deep Dive</span>
+    </div>
+    <h1 class="article-title">Watermarks &amp; Event-Time Processing</h1>
+    <p class="article-lede">Closing the window on time you can&#x27;t trust: watermarks, allowed lateness, triggers, and the Dataflow model.</p>
+
+    <div class="article-layout">
+      <aside class="article-toc" aria-label="On this page">
+<h4>On this page</h4>
+<ul>
+<li><a class="h2" href="#21-the-core-problem">2.1 The Core Problem</a></li>
+<li><a class="h2" href="#22-watermark-definition">2.2 Watermark Definition</a></li>
+<li><a class="h2" href="#23-watermark-generation-strategies">2.3 Watermark Generation Strategies</a></li>
+<li><a class="h3" href="#231-boundedoutoforderness">2.3.1 BoundedOutOfOrderness</a></li>
+<li><a class="h3" href="#232-punctuated-watermarks">2.3.2 Punctuated Watermarks</a></li>
+<li><a class="h3" href="#233-perfect-watermarks-when-possible">2.3.3 Perfect Watermarks (when possible)</a></li>
+<li><a class="h3" href="#234-adaptive-heuristic">2.3.4 Adaptive (Heuristic)</a></li>
+<li><a class="h2" href="#24-watermark-propagation-through-a-dag">2.4 Watermark Propagation Through a DAG</a></li>
+<li><a class="h2" href="#25-the-watermark-stall-problem">2.5 The Watermark Stall Problem</a></li>
+<li><a class="h2" href="#26-allowed-lateness-late-data-handling">2.6 Allowed Lateness &amp; Late-Data Handling</a></li>
+<li><a class="h2" href="#27-triggers-beam-model">2.7 Triggers (Beam Model)</a></li>
+<li><a class="h2" href="#28-system-comparison">2.8 System Comparison</a></li>
+<li><a class="h2" href="#29-implementation-in-flink-internals">2.9 Implementation in Flink (Internals)</a></li>
+<li><a class="h2" href="#210-common-interview-follow-ups">2.10 Common Interview Follow-ups</a></li>
+<li><a class="h2" href="#211-references">2.11 References</a></li>
+<li><a class="h2" href="#212-watermark-heuristics-in-practice">2.12 Watermark Heuristics in Practice</a></li>
+<li><a class="h3" href="#quantile-based-heuristic-beam">Quantile-Based Heuristic (Beam)</a></li>
+<li><a class="h3" href="#marker-based-kafkas-end-of-day-pattern">Marker-Based (Kafka&#x27;s &quot;End-of-Day&quot; Pattern)</a></li>
+<li><a class="h3" href="#per-source-vs-global">Per-Source vs Global</a></li>
+<li><a class="h2" href="#213-implementing-watermarks-in-a-custom-system">2.13 Implementing Watermarks in a Custom System</a></li>
+<li><a class="h2" href="#214-kafka-streams-stream-time">2.14 Kafka Streams Stream-Time</a></li>
+<li><a class="h2" href="#215-spark-structured-streaming">2.15 Spark Structured Streaming</a></li>
+<li><a class="h2" href="#216-beams-pubsub-watermark-heuristic">2.16 Beam&#x27;s Pub/Sub Watermark Heuristic</a></li>
+<li><a class="h2" href="#217-allowed-lateness-vs-grace-period">2.17 Allowed Lateness vs Grace Period</a></li>
+<li><a class="h2" href="#218-practical-sizing">2.18 Practical Sizing</a></li>
+<li><a class="h2" href="#219-watermark-holds-beam">2.19 Watermark Holds (Beam)</a></li>
+<li><a class="h2" href="#220-references-extended">2.20 References (extended)</a></li>
+</ul></aside>
+      <article class="article-body">
+<h2 id="21-the-core-problem">2.1 The Core Problem</h2>
+<p>Events flow through a distributed pipeline with multiple sources, partitions, and stages. Each event has two timestamps:
+- <strong>Event time</strong>: when the event happened in the real world (set at the producer).
+- <strong>Processing time</strong>: when the system observes the event.</p>
+<p>The skew <code>processing_time - event_time</code> is unbounded in theory and large in practice (mobile clients, batch uploads, network outages, queue buildup). To produce <em>correct</em> windowed results in event time, the system needs to know "when is it safe to close window <code>[T1, T2)</code>?" That's the watermark's job.</p>
+<h2 id="22-watermark-definition">2.2 Watermark Definition</h2>
+<blockquote>
+<p>A <strong>watermark</strong> <code>W(t)</code> is a monotonic estimate that <em>all events with event_time ≤ W will have arrived by processing_time t</em>.</p>
+</blockquote>
+<p>When the watermark passes the end of a window, the window is "complete" and may be emitted.</p>
+<p>There's an inherent <strong>completeness vs. latency tradeoff</strong>:
+- Generous watermark (large lag) → high completeness, high latency.
+- Aggressive watermark (small lag) → low latency, possible late events (incorrectness).</p>
+<p>The Dataflow paper formalizes this: there's no point estimator that's both perfectly complete and zero-latency in an unbounded out-of-order stream.</p>
+<h2 id="23-watermark-generation-strategies">2.3 Watermark Generation Strategies</h2>
+<h3 id="231-boundedoutoforderness">2.3.1 BoundedOutOfOrderness</h3>
+<pre><code class="language-java">WatermarkStrategy
+  .&lt;Event&gt;forBoundedOutOfOrderness(Duration.ofSeconds(5))
+  .withTimestampAssigner((e, ts) -&gt; e.eventTimeMs);
+</code></pre>
+<p>Implementation: track <code>max_seen_event_time</code>, emit <code>W = max_seen_event_time - 5s</code>. Simple, robust.</p>
+<h3 id="232-punctuated-watermarks">2.3.2 Punctuated Watermarks</h3>
+<p>Some events carry watermark info themselves (e.g., a periodic "marker" record from the source). Better when the system has knowledge of source completeness (e.g., Kafka <code>__transaction_state</code> markers).</p>
+<h3 id="233-perfect-watermarks-when-possible">2.3.3 Perfect Watermarks (when possible)</h3>
+<p>If your source can guarantee in-order events per partition (e.g., a single producer writing to a Kafka partition with <code>enable.idempotence=true</code>), the watermark per partition equals the latest event time. Multi-partition watermark = min over partitions.</p>
+<h3 id="234-adaptive-heuristic">2.3.4 Adaptive (Heuristic)</h3>
+<p>Track event-time lag distribution (p99) over a rolling window; set watermark = <code>max_event_time - p99(lag)</code>. Implemented in some Flink connectors and in Beam's heuristic source watermark.</p>
+<h2 id="24-watermark-propagation-through-a-dag">2.4 Watermark Propagation Through a DAG</h2>
+<pre><code>   Source A (partition 0, W=100)  ───┐
+   Source A (partition 1, W=120)  ───┤
+   Source A (partition 2, W= 95)  ───┼─▶ min ─▶ Operator (W = 95)
+                                     │
+   Source B            (W=110)    ───┘                │
+                                                      ▼
+                                              ┌──────────────┐
+                                              │  Window Op   │
+                                              │  closes any  │
+                                              │  win end ≤95 │
+                                              └──────────────┘
+</code></pre>
+<p><strong>The min rule</strong> is critical: an operator's output watermark is the minimum of its input watermarks. Without this, downstream may emit windows before all input partitions have caught up.</p>
+<h2 id="25-the-watermark-stall-problem">2.5 The Watermark Stall Problem</h2>
+<p>If one input partition stops sending data (idle source), <code>min</code> will not advance, and the entire downstream pipeline stalls.</p>
+<p><strong>Solution: idle source detection.</strong></p>
+<pre><code class="language-java">WatermarkStrategy
+  .&lt;Event&gt;forBoundedOutOfOrderness(Duration.ofSeconds(5))
+  .withIdleness(Duration.ofSeconds(30));
+</code></pre>
+<p>After 30s of no events on a partition, the operator marks it idle and excludes it from <code>min</code>. When data resumes, the partition rejoins. This is essential for Kafka topics with sparse partitions.</p>
+<h2 id="26-allowed-lateness-late-data-handling">2.6 Allowed Lateness &amp; Late-Data Handling</h2>
+<p>Allowed lateness extends the window's "open" period beyond watermark passing the end. Events arriving in <code>[window_end, window_end + allowed_lateness]</code> trigger re-firing.</p>
+<pre><code class="language-java">.window(TumblingEventTimeWindows.of(Time.minutes(1)))
+.allowedLateness(Time.minutes(10))
+.sideOutputLateData(lateOutputTag)
+.aggregate(new MyAgg());
+</code></pre>
+<p>Trade-off:
+- Larger <code>allowedLateness</code> → state is kept longer (memory cost).
+- Beyond <code>allowedLateness</code> → events are dropped or sent to a side output for later batch backfill.</p>
+<h2 id="27-triggers-beam-model">2.7 Triggers (Beam Model)</h2>
+<p>A <strong>trigger</strong> decides <em>when</em> a window's pane is emitted. Beam supports:</p>
+<ul>
+<li><code>AfterWatermark.pastEndOfWindow()</code> — fire when watermark crosses window end (the default).</li>
+<li><code>AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration)</code> — fire <code>D</code> after first element.</li>
+<li><code>AfterCount(N)</code> — fire every <code>N</code> elements.</li>
+<li>Compound triggers: <code>AfterWatermark.pastEndOfWindow().withEarlyFirings(...).withLateFirings(...)</code>.</li>
+</ul>
+<pre><code class="language-python"># Beam trigger combining early speculative + on-time + late updates
+trigger = (
+  AfterWatermark(
+      early=AfterProcessingTime(60),     # fire every 60s before watermark
+      late=AfterCount(1)                  # fire on each late event
+  )
+)
+</code></pre>
+<p><strong>Accumulation modes:</strong>
+- <code>DISCARDING</code>: each pane only contains new data since previous firing.
+- <code>ACCUMULATING</code>: each pane contains all data seen so far.
+- <code>ACCUMULATING_AND_RETRACTING</code>: each pane contains all data and emits retractions for prior values (essential for downstream incremental maintenance).</p>
+<h2 id="28-system-comparison">2.8 System Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Watermark</th>
+<th>Late events</th>
+<th>Triggers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Flink</strong></td>
+<td>Per-source generator; min through DAG; idle detection</td>
+<td>Allowed lateness + side output</td>
+<td>Per window; programmable</td>
+</tr>
+<tr>
+<td><strong>Beam / Dataflow</strong></td>
+<td>First-class generalized (W, T, R)</td>
+<td>Allowed lateness</td>
+<td>Full Beam trigger language</td>
+</tr>
+<tr>
+<td><strong>Kafka Streams</strong></td>
+<td>Stream-time = max event time per partition</td>
+<td>Grace period (drop after)</td>
+<td>Suppress operator (KIP-328)</td>
+</tr>
+<tr>
+<td><strong>Spark Structured Streaming</strong></td>
+<td><code>withWatermark("event_time", "10 minutes")</code></td>
+<td>Drop after watermark</td>
+<td>Append vs Update vs Complete output mode</td>
+</tr>
+</tbody>
+</table>
+<h2 id="29-implementation-in-flink-internals">2.9 Implementation in Flink (Internals)</h2>
+<pre><code>   Operator T1                Operator T2 (window)
+   ┌─────────────┐            ┌────────────────────┐
+   │ Receives    │            │  WatermarkOperator │
+   │ event(ts)   │ ─emit─▶   │  ───────────────  │
+   │             │            │  pendingWindows    │
+   │ periodic    │            │   [w1, w2, ...]    │
+   │ Watermark   │            │                    │
+   │ (every 200ms│            │  on Watermark(W):  │
+   │ by default) │            │    for w in pending│
+   │             │ ─emit─▶   │      if w.end ≤ W: │
+   │             │            │        fire(w)      │
+   └─────────────┘            └────────────────────┘
+</code></pre>
+<p>Key implementation details:
+- Watermarks travel as in-band records in the stream (not control messages on a sidecar).
+- Each operator tracks <code>currentInputWatermark[partition]</code> and emits <code>currentOutputWatermark = min(...)</code> only when it changes.
+- Window operator stores <code>(window, key) → state</code> in keyed state. When watermark crosses <code>window.end + allowed_lateness</code>, state is purged.</p>
+<h2 id="210-common-interview-follow-ups">2.10 Common Interview Follow-ups</h2>
+<p><strong>Q: What's the difference between event time and processing time?</strong>
+A: Event time is when the event happened. Processing time is when the system saw it. The skew is variable and unbounded; correct window semantics require event time + watermarks.</p>
+<p><strong>Q: When would you use processing time?</strong>
+A: Operational monitoring (counts of events as they arrive at the system), simple dashboards, when source clocks are untrusted. Always cheaper since no state for late events.</p>
+<p><strong>Q: How does Flink ensure exactly-once with watermarks and side outputs?</strong>
+A: Distributed snapshots (Chandy-Lamport with barriers). Barriers flow alongside data; each operator snapshots its state when it has received barriers from all inputs. On recovery, all operators rewind to the same snapshot. Sinks must be transactional or idempotent for end-to-end EOS.</p>
+<p><strong>Q: How do retractions work?</strong>
+A: Each output is paired with a <code>+</code> (insert) or <code>-</code> (delete) marker. Downstream maintains a running aggregate that subtracts on <code>-</code>. Materialize and Flink's RetractStream support this natively.</p>
+<h2 id="211-references">2.11 References</h2>
+<ul>
+<li>Akidau. "Streaming 101 / 102". https://www.oreilly.com/radar/the-world-beyond-batch-streaming-101/</li>
+<li>Streaming Systems book Ch. 1-4. https://www.oreilly.com/library/view/streaming-systems/9781491983867/</li>
+<li>Beam triggers: https://beam.apache.org/documentation/programming-guide/#triggers</li>
+<li>Flink watermark strategies: https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/event-time/generating_watermarks/</li>
+<li>Late Data in Flink: https://medium.com/@blakelassiter/late-data-will-break-your-pipeline-time-windowing-in-flink-a765b01ea37a</li>
+<li>The Morning Paper on Dataflow: https://blog.acolyer.org/2015/08/18/the-dataflow-model-a-practical-approach-to-balancing-correctness-latency-and-cost-in-massive-scale-unbounded-out-of-order-data-processing/</li>
+</ul>
+<hr />
+<h2 id="212-watermark-heuristics-in-practice">2.12 Watermark Heuristics in Practice</h2>
+<p>Real systems rarely use pure BoundedOutOfOrderness. Production approaches:</p>
+<h3 id="quantile-based-heuristic-beam">Quantile-Based Heuristic (Beam)</h3>
+<p>Track event-time-lag distribution over a moving window. Set watermark to <code>max_event_time - p99(lag)</code>. Adapts to changing skew patterns automatically. Used in Beam's Pub/Sub source.</p>
+<h3 id="marker-based-kafkas-end-of-day-pattern">Marker-Based (Kafka's "End-of-Day" Pattern)</h3>
+<p>Producer emits a special marker record at known intervals (e.g., end of every minute, day). Watermark = timestamp of last marker received. Strong correctness guarantee but requires producer cooperation.</p>
+<h3 id="per-source-vs-global">Per-Source vs Global</h3>
+<p>With multiple Kafka topics or partitions, each can advance independently. The operator's effective watermark is <code>min(per-source watermarks)</code>. With idleness detection, idle sources are excluded.</p>
+<h2 id="213-implementing-watermarks-in-a-custom-system">2.13 Implementing Watermarks in a Custom System</h2>
+<pre><code class="language-python">class WatermarkTracker:
+    def __init__(self, max_skew_ms=5000, idle_timeout_ms=30000):
+        self.max_seen_per_partition = {}  # partition → max event ts
+        self.last_event_at = {}            # partition → wall-clock of last event
+        self.max_skew_ms = max_skew_ms
+        self.idle_timeout_ms = idle_timeout_ms
+        self.current_watermark = 0
+
+    def on_event(self, partition, event_ts):
+        wall_now = time.time() * 1000
+        self.max_seen_per_partition[partition] = max(
+            self.max_seen_per_partition.get(partition, 0), event_ts)
+        self.last_event_at[partition] = wall_now
+        self._recompute()
+
+    def on_periodic_tick(self):
+        self._recompute()
+
+    def _recompute(self):
+        wall_now = time.time() * 1000
+        active_partitions = [
+            p for p, t in self.last_event_at.items()
+            if wall_now - t &lt; self.idle_timeout_ms]
+        if not active_partitions:
+            return
+        new_wm = min(self.max_seen_per_partition[p] for p in active_partitions) - self.max_skew_ms
+        # Watermarks must be monotonic
+        if new_wm &gt; self.current_watermark:
+            self.current_watermark = new_wm
+            self._fire_pending_windows()
+
+    def _fire_pending_windows(self):
+        # Emit any window whose end time ≤ current watermark
+        ...
+</code></pre>
+<h2 id="214-kafka-streams-stream-time">2.14 Kafka Streams Stream-Time</h2>
+<p>Kafka Streams uses "stream-time" — the maximum timestamp seen across all partitions of an input topic. Stream-time only advances; never goes back.</p>
+<p>KIP-328 added a <strong>grace period</strong>: events older than <code>window_close + grace</code> are dropped, but updates within the grace window cause re-emission.</p>
+<pre><code class="language-java">TimeWindows.ofSizeAndGrace(Duration.ofMinutes(5), Duration.ofMinutes(2))
+   // 5-min windows; allow late events for 2 more minutes
+</code></pre>
+<p><code>suppress</code> operator: hold window emissions until window closes (no updates), then emit final. Useful for downstream consumers that can't tolerate retractions.</p>
+<pre><code class="language-java">.windowedBy(TimeWindows.ofSizeAndGrace(...))
+.aggregate(...)
+.suppress(Suppressed.untilWindowCloses(BufferConfig.unbounded()))
+</code></pre>
+<h2 id="215-spark-structured-streaming">2.15 Spark Structured Streaming</h2>
+<p>Spark uses <code>withWatermark</code>:</p>
+<pre><code class="language-scala">df.withWatermark(&quot;eventTime&quot;, &quot;10 minutes&quot;)
+  .groupBy(window(col(&quot;eventTime&quot;), &quot;1 minute&quot;))
+  .count()
+</code></pre>
+<p>Late events past the watermark are dropped silently; no side output by default. Output modes:
+- <strong>Append</strong>: each window emits exactly once when watermark passes its end.
+- <strong>Update</strong>: emit each time the window's value changes.
+- <strong>Complete</strong>: emit full result table on every trigger (only for small aggregations).</p>
+<h2 id="216-beams-pubsub-watermark-heuristic">2.16 Beam's Pub/Sub Watermark Heuristic</h2>
+<p>Pub/Sub source in Beam uses a heuristic based on:
+- Backlog age (oldest unacked message).
+- Per-shard watermark estimation.
+- Adaptive lag detection.</p>
+<p>It's allowed to be "wrong" — events past the watermark go to the late panes via the trigger system. This is the "pragmatic" approach: estimate aggressively, handle late data correctly.</p>
+<h2 id="217-allowed-lateness-vs-grace-period">2.17 Allowed Lateness vs Grace Period</h2>
+<p>Different terminology, same concept:
+- <strong>Beam / Flink "allowed lateness"</strong>: time after watermark crosses window-end during which late events trigger re-firing.
+- <strong>Kafka Streams "grace period"</strong>: time after window-end to accept late events; specified at window definition.</p>
+<p>Both extend the window's "open" lifetime beyond watermark. After lateness/grace, state is purged.</p>
+<h2 id="218-practical-sizing">2.18 Practical Sizing</h2>
+<p>How wide to set the lateness budget?
+- 99% of events arrive within 5 minutes of their event time → set lateness to 5-10 minutes.
+- Bursty mobile clients with hours of buffering → 24h+ allowed lateness, but use side output to a separate batch backfill table.
+- Tradeoff: lateness × event rate = state memory.</p>
+<h2 id="219-watermark-holds-beam">2.19 Watermark Holds (Beam)</h2>
+<p>Beam allows "holds" — programmatic suppression of watermark advancement when a stateful operator has pending work. Used by stateful processing operators to delay downstream firings until output is ready.</p>
+<h2 id="220-references-extended">2.20 References (extended)</h2>
+<ul>
+<li>Akidau "Streaming 101": https://www.oreilly.com/radar/the-world-beyond-batch-streaming-101/</li>
+<li>Akidau "Streaming 102": https://www.oreilly.com/radar/the-world-beyond-batch-streaming-102/</li>
+<li>Streaming Systems book (Akidau, Chernyak, Lax): https://www.oreilly.com/library/view/streaming-systems/9781491983867/</li>
+<li>Dataflow paper (VLDB 2015): https://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf</li>
+<li>MillWheel (VLDB 2013): http://www.vldb.org/pvldb/vol6/p1033-akidau.pdf</li>
+<li>Flink watermark generators: https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/event-time/generating_watermarks/</li>
+<li>Kafka Streams KIP-328: https://cwiki.apache.org/confluence/display/KAFKA/KIP-328</li>
+<li>Beam triggers: https://beam.apache.org/documentation/programming-guide/#triggers</li>
+<li>Spark Structured Streaming: https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#handling-late-data-and-watermarking</li>
+</ul>
+      </article>
+      <div class="article-side">
+        <section class="side-card is-connections">
+<h3>Related Chapters</h3>
+<ul>
+<li><a href="01-event-aggregator.html"><span class="side-num">01</span><span class="side-title">Real-Time Event Aggregator with Rolling Windows</span></a></li>
+<li><a href="06-idempotency.html"><span class="side-num">06</span><span class="side-title">Idempotency in Distributed Systems</span></a></li>
+</ul></section>
+        <section class="side-card is-tooling">
+<h3>Tooling Universe</h3>
+<div class="tool-group"><h4>Watermark generators</h4>
+<div class="tool-chips">
+<span class="tool-chip">BoundedOutOfOrderness</span>
+<span class="tool-chip">Punctuated</span>
+<span class="tool-chip">Adaptive heuristic</span>
+<span class="tool-chip">Pub/Sub heuristic</span>
+</div></div>
+<div class="tool-group"><h4>Lateness handling</h4>
+<div class="tool-chips">
+<span class="tool-chip">Beam allowed lateness</span>
+<span class="tool-chip">Flink side outputs</span>
+<span class="tool-chip">Kafka Streams grace period (KIP-328)</span>
+<span class="tool-chip">Spark withWatermark</span>
+</div></div>
+<div class="tool-group"><h4>Trigger semantics</h4>
+<div class="tool-chips">
+<span class="tool-chip">AfterWatermark</span>
+<span class="tool-chip">AfterProcessingTime</span>
+<span class="tool-chip">AfterCount</span>
+<span class="tool-chip">Compound triggers</span>
+</div></div>
+<div class="tool-group"><h4>Accumulation modes</h4>
+<div class="tool-chips">
+<span class="tool-chip">DISCARDING</span>
+<span class="tool-chip">ACCUMULATING</span>
+<span class="tool-chip">ACCUMULATING_AND_RETRACTING</span>
+</div></div>
+</section>
+      </div>
+    </div>
+  </div>
+
+  <footer class="article-footer">
+    <a class="nav-prev nav-prev-link" href="01-event-aggregator.html"><span class="nav-label">← Chapter 01</span><span class="nav-title">Real-Time Event Aggregator with Rolling Windows</span></a>
+    <a class="nav-next nav-next-link" href="03-webhook-delivery.html"><span class="nav-label">Chapter 03 →</span><span class="nav-title">Webhook Delivery Platform</span></a>
+  </footer>
+</main>
+
+<footer class="site-footer">
+  <p><strong>OPUS</strong> · A Staff Engineering Compendium</p>
+  <p>Notes for staff-level system design interviews. Press <span class="kbd">G</span> to open contents, <span class="kbd">J</span>/<span class="kbd">K</span> to navigate chapters, <span class="kbd">I</span> for index.</p>
+</footer>
+
+<script src="assets/app.js" defer></script>
+</body>
+</html>
