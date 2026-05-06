@@ -1124,6 +1124,93 @@ nums.size();                <span class="comment">// length</span>
                 </div>
             </div>
 
+            <div class="tips-box">
+                <h4>⏪ Reverse Iteration Idioms — pick the right form</h4>
+                <p style="color: #888; margin-bottom: 10px;">
+                    Several Python forms iterate "backward" but they're not interchangeable. Choose by what you need: <strong>indices vs values</strong>, <strong>full vs sliced</strong>, <strong>custom step</strong>.
+                </p>
+                <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># 1) Walk indices last → first  (when you need i, not arr[i] alone)</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(arr) - <span class="number">1</span>, -<span class="number">1</span>, -<span class="number">1</span>):
+    ...   <span class="comment"># i = 5,4,3,2,1,0  for arr of length 6</span>
+
+<span class="comment"># 2) Walk values last → first  (when index doesn't matter)</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> <span class="function">reversed</span>(arr):
+    ...
+
+<span class="comment"># 3) Walk a slice in reverse  (skip arr[0], or any sub-range)</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> <span class="function">reversed</span>(arr[<span class="number">1</span>:]):
+    ...   <span class="comment"># yields arr[-1], arr[-2], ..., arr[1]</span>
+
+<span class="comment"># 4) Same as (1), more explicit about "reverse of forward range"</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">reversed</span>(<span class="function">range</span>(<span class="function">len</span>(arr))):
+    ...
+
+<span class="comment"># 5) New reversed list (allocates a copy — usually overkill)</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> arr[::-<span class="number">1</span>]:
+    ...
+
+<span class="comment"># 6) Backward with custom step (only range() supports this)</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(arr) - <span class="number">1</span>, -<span class="number">1</span>, -<span class="number">2</span>):
+    ...   <span class="comment"># every other index, last → first</span></pre>
+                <h4 style="margin-top: 14px;">📐 Why <code>range(len(arr)-1, -1, -1)</code> uses <code>-1</code> as stop</h4>
+                <ul>
+                    <li><strong>start</strong> = <code>len(arr) - 1</code> → last valid index</li>
+                    <li><strong>stop</strong> = <code>-1</code> → "one past 0 going backward" — because <code>stop</code> is <em>exclusive</em></li>
+                    <li><strong>step</strong> = <code>-1</code> → count downward</li>
+                    <li>⚠️ <code>range(len(arr)-1, 0, -1)</code> is the common bug — it stops at <code>1</code> and <strong>misses index 0</strong></li>
+                </ul>
+                <h4 style="margin-top: 14px;">🎯 When to use which</h4>
+                <ul>
+                    <li>Need the <strong>index</strong> (e.g. writing back to <code>arr[i]</code>, two-pointer math) → form (1) or (4)</li>
+                    <li>Need the <strong>value only</strong> → form (2); it's an iterator (no copy) and reads cleanest</li>
+                    <li>Need to <strong>skip a prefix/suffix</strong> in reverse → form (3): <code>reversed(arr[1:])</code>, <code>reversed(arr[:-1])</code>, etc. (slice allocates a small copy)</li>
+                    <li>Need a <strong>non-default step</strong> (every other, every third) → form (6); <code>reversed()</code> can't express this</li>
+                    <li>Avoid form (5) <code>arr[::-1]</code> in loops — it allocates a full reversed copy</li>
+                </ul>
+            </div>
+
+            <div class="tips-box">
+                <h4>🧮 Matrix & Index Tricks — <code>zip(*m)</code>, <code>divmod</code>, <code>~i</code></h4>
+                <p style="color: #888; margin-bottom: 10px;">
+                    Three idioms that compress matrix rotation, grid problems, and palindrome two-pointer code from many lines to one. Heavily used in <em>Rotate Image, Transpose Matrix, Word Search, Spiral Matrix, Valid Palindrome</em>.
+                </p>
+                <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── 1) zip(*matrix) — transpose / iterate columns ──</span>
+matrix = [[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>], [<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>], [<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>]]
+<span class="function">list</span>(<span class="function">zip</span>(*matrix))             <span class="comment"># [(1,4,7),(2,5,8),(3,6,9)]</span>
+<span class="comment"># Rotate 90° clockwise (LC 48): transpose then reverse each row</span>
+rotated = [<span class="function">list</span>(<span class="function">reversed</span>(row)) <span class="keyword">for</span> row <span class="keyword">in</span> <span class="function">zip</span>(*matrix)]
+
+<span class="comment"># Iterate column-by-column — no nested index gymnastics</span>
+<span class="keyword">for</span> col <span class="keyword">in</span> <span class="function">zip</span>(*matrix):
+    <span class="function">print</span>(<span class="function">sum</span>(col))             <span class="comment"># sum each column</span>
+
+<span class="comment"># ── 2) divmod(i, cols) — flat index ↔ (row, col) ──</span>
+<span class="comment"># Lets you use a single int set/dict for visited (faster hashing</span>
+<span class="comment"># than tuple keys) on rows × cols grids.</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(rows * cols):
+    r, c = <span class="function">divmod</span>(i, cols)         <span class="comment"># i=7, cols=3 → r=2, c=1</span>
+    <span class="comment"># grid[r][c] ...</span>
+
+<span class="comment"># Inverse: flat = r * cols + c</span>
+
+<span class="comment"># ── 3) arr[~i] — i-th from the end (~i == -i-1) ──</span>
+<span class="comment"># arr[~0] == arr[-1], arr[~1] == arr[-2], ...</span>
+<span class="comment"># Palindrome check without len() arithmetic:</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(s) // <span class="number">2</span>):
+    <span class="keyword">if</span> s[i] != s[~i]:                <span class="comment"># ← i and ~i meet in the middle</span>
+        <span class="keyword">return</span> <span class="keyword">False</span>
+
+<span class="comment"># Rotate-image inner swap (LC 48): cleaner than matrix[n-1-j][i]</span>
+matrix[i][j], matrix[~j][i], matrix[~i][~j], matrix[j][~i] = \
+    matrix[~j][i], matrix[~i][~j], matrix[j][~i], matrix[i][j]</pre>
+                <h4 style="margin-top: 14px;">💡 Why these matter</h4>
+                <ul>
+                    <li><code>zip(*matrix)</code> works because <code>*</code> unpacks the rows as positional args to <code>zip</code> — Python's transpose, no NumPy needed</li>
+                    <li><code>divmod</code> + flat indexing is the standard speedup for BFS/DFS on grids when you want a <code>set[int]</code> visited instead of <code>set[tuple]</code></li>
+                    <li><code>~i</code> reads as "complement of i" — for any non-negative <code>i</code>, <code>~i</code> equals <code>-i-1</code>, which Python interprets as "i-th from the end". Replaces every <code>n - 1 - i</code> in your code</li>
+                </ul>
+            </div>
+
             <h3>🗺️ Dict / HashMap Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
@@ -1656,8 +1743,62 @@ freq.entrySet().stream()
                     </div>
                 </div>
             </div>
+
+            <div class="tips-box">
+                <h4>🔤 Anagram & Multiset Keys — <code>ord</code>, <code>tuple(sorted(s))</code>, <code>Counter</code> arithmetic</h4>
+                <p style="color: #888; margin-bottom: 10px;">
+                    The toolkit for any "are these the same multiset?" problem: <em>Group Anagrams, Valid Anagram, Find All Anagrams in a String, Minimum Window Substring, Permutation in String, Ransom Note</em>.
+                </p>
+                <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── 1) ord(c) - ord('a') — letter → 0..25 bucket ──</span>
+<span class="comment"># Java's c - 'a' equivalent. Python has no implicit char→int.</span>
+count = [<span class="number">0</span>] * <span class="number">26</span>
+<span class="keyword">for</span> c <span class="keyword">in</span> word:
+    count[<span class="function">ord</span>(c) - <span class="function">ord</span>(<span class="string">'a'</span>)] += <span class="number">1</span>
+
+<span class="comment"># Inverse: chr(ord('a') + idx)  →  letter from bucket</span>
+
+<span class="comment"># ── 2) Two canonical multiset keys for grouping ──</span>
+<span class="comment"># (a) Sort the word — O(k log k) per word, simplest:</span>
+key = <span class="function">tuple</span>(<span class="function">sorted</span>(word))           <span class="comment"># ('a','e','t')  hashable!</span>
+
+<span class="comment"># (b) 26-int count vector — O(k) per word, faster on long inputs:</span>
+count = [<span class="number">0</span>] * <span class="number">26</span>
+<span class="keyword">for</span> c <span class="keyword">in</span> word: count[<span class="function">ord</span>(c) - <span class="function">ord</span>(<span class="string">'a'</span>)] += <span class="number">1</span>
+key = <span class="function">tuple</span>(count)                  <span class="comment"># tuples hash; lists don't</span>
+
+<span class="comment"># ── 3) Counter compare for "is anagram?" ──</span>
+Counter(s) == Counter(t)            <span class="comment"># True iff anagrams (LC 242)</span>
+
+<span class="comment"># ── 4) Counter.elements() — flatten back to a multiset stream ──</span>
+<span class="function">list</span>(Counter(<span class="string">"aab"</span>).elements())    <span class="comment"># ['a','a','b']</span>
+<span class="comment"># Useful: rebuild a sequence after Counter arithmetic, or feed</span>
+<span class="comment"># into sorted()/heap operations.</span>
+
+<span class="comment"># ── 5) Sliding-window anagram check (LC 438) ──</span>
+<span class="comment"># Compare two Counters in O(26) — Counter equality is set-based.</span>
+need = Counter(p)
+window = Counter(s[:<span class="function">len</span>(p)])
+<span class="keyword">if</span> window == need: ans.append(<span class="number">0</span>)
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(p), <span class="function">len</span>(s)):
+    window[s[i]] += <span class="number">1</span>
+    window[s[i - <span class="function">len</span>(p)]] -= <span class="number">1</span>
+    <span class="keyword">if</span> window[s[i - <span class="function">len</span>(p)]] == <span class="number">0</span>:
+        <span class="keyword">del</span> window[s[i - <span class="function">len</span>(p)]]   <span class="comment"># ← keep == comparison clean</span>
+    <span class="keyword">if</span> window == need: ans.append(i - <span class="function">len</span>(p) + <span class="number">1</span>)
+
+<span class="comment"># ── 6) dict.fromkeys(arr) — order-preserving dedup ──</span>
+<span class="comment"># Java's LinkedHashSet in three tokens (3.7+ dicts are ordered).</span>
+<span class="function">list</span>(<span class="function">dict</span>.fromkeys([<span class="number">3</span>,<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>,<span class="number">1</span>]))  <span class="comment"># [3, 1, 2]</span></pre>
+                <h4 style="margin-top: 14px;">⚠️ Gotchas</h4>
+                <ul>
+                    <li><code>list</code> is unhashable → can't use <code>list</code> as dict key. Always wrap a frequency vector in <code>tuple(...)</code> before using it as a key</li>
+                    <li>When comparing <code>Counter</code>s with <code>==</code>, <strong>delete zero-count keys</strong> (or use <code>+window</code> to drop them) — otherwise <code>Counter({'a':1, 'b':0}) != Counter({'a':1})</code></li>
+                    <li><code>ord('a') == 97</code>, <code>ord('A') == 65</code> — for mixed case, normalize with <code>.lower()</code> first or use a 52-slot vector</li>
+                    <li>Sorted-tuple key is O(k log k) per word but reads cleanest; count-vector key is O(k) — pick by input size, not aesthetics</li>
+                </ul>
+            </div>
         </div>
-        
+
         <!-- Section 4b: Classes, Node Definitions & OOP for Interviews -->
         <div class="section">
             <h2>🏛️ Classes, Node Definitions & OOP</h2>
@@ -2740,6 +2881,66 @@ found = i &lt; <span class="function">len</span>(arr) <span class="keyword">and<
                 </div>
             </div>
 
+            <div class="tips-box">
+                <h4>🌳 <code>SortedList</code> — Python's missing TreeMap</h4>
+                <p style="color: #888; margin-bottom: 10px;">
+                    Python's stdlib has no balanced BST / <code>TreeMap</code> / <code>TreeSet</code>. <code>sortedcontainers.SortedList</code> fills that hole — <strong>O(log n) insert + delete + indexed access</strong> in pure Python. It's pre-installed on LeetCode and most online judges, and is the standard answer for sliding-window-median, count-of-smaller, and order-statistic problems.
+                </p>
+                <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">from</span> sortedcontainers <span class="keyword">import</span> SortedList, SortedDict, SortedSet
+
+sl = SortedList([<span class="number">5</span>, <span class="number">1</span>, <span class="number">3</span>])
+sl.add(<span class="number">2</span>)                          <span class="comment"># O(log n)  → [1, 2, 3, 5]</span>
+sl.remove(<span class="number">3</span>)                       <span class="comment"># O(log n)  → [1, 2, 5]</span>
+sl[<span class="number">0</span>], sl[-<span class="number">1</span>]                     <span class="comment"># O(log n) indexed access — min &amp; max</span>
+sl.bisect_left(<span class="number">3</span>)                  <span class="comment"># index of first ≥ 3</span>
+sl.bisect_right(<span class="number">3</span>)                 <span class="comment"># index of first &gt; 3</span>
+sl.irange(<span class="number">2</span>, <span class="number">5</span>)                    <span class="comment"># iterate values in [2, 5] inclusive</span>
+
+<span class="comment"># ── Sliding Window Median (LC 480) ──</span>
+<span class="comment"># Plain list: O(k) insert per slide → TLE.</span>
+<span class="comment"># SortedList: O(log k) insert + O(1) median by index.</span>
+<span class="keyword">def</span> <span class="function">medianSlidingWindow</span>(nums, k):
+    window = SortedList(nums[:k])
+    res = []
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(k, <span class="function">len</span>(nums) + <span class="number">1</span>):
+        res.append((window[k//<span class="number">2</span>] + window[~(k//<span class="number">2</span>)]) / <span class="number">2</span>)  <span class="comment"># ← ~i trick!</span>
+        <span class="keyword">if</span> i &lt; <span class="function">len</span>(nums):
+            window.remove(nums[i - k])
+            window.add(nums[i])
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Patience-sort LIS (LC 300) — bisect on a SortedList alt ──</span>
+<span class="comment"># Plain bisect+list works here because we only overwrite, never insert middle:</span>
+<span class="keyword">from</span> bisect <span class="keyword">import</span> bisect_left
+<span class="keyword">def</span> <span class="function">lengthOfLIS</span>(nums):
+    tails = []                          <span class="comment"># tails[i] = smallest tail of any inc subseq of length i+1</span>
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+        i = bisect_left(tails, n)
+        <span class="keyword">if</span> i == <span class="function">len</span>(tails):
+            tails.append(n)             <span class="comment"># extend longest run</span>
+        <span class="keyword">else</span>:
+            tails[i] = n                <span class="comment"># replace — keeps tails sorted</span>
+    <span class="keyword">return</span> <span class="function">len</span>(tails)                 <span class="comment"># O(n log n)</span>
+
+<span class="comment"># ── Count of Smaller Numbers After Self (LC 315) ──</span>
+<span class="comment"># Walk right→left, ask "how many already-seen are &lt; current?"</span>
+<span class="keyword">def</span> <span class="function">countSmaller</span>(nums):
+    seen = SortedList()
+    res = []
+    <span class="keyword">for</span> n <span class="keyword">in</span> <span class="function">reversed</span>(nums):
+        res.append(seen.bisect_left(n))  <span class="comment"># O(log n)</span>
+        seen.add(n)
+    <span class="keyword">return</span> res[::-<span class="number">1</span>]</pre>
+                <h4 style="margin-top: 14px;">🎯 When to reach for it</h4>
+                <ul>
+                    <li>Need <strong>insert + delete + min/max</strong> all in O(log n) → <code>SortedList</code> (heap can't delete arbitrary)</li>
+                    <li>Need <strong>order statistics</strong> (the k-th smallest) → <code>SortedList</code> (heap can't index)</li>
+                    <li>Need <strong>range queries</strong> on a sorted multiset → <code>SortedList.irange()</code></li>
+                    <li><strong>Plain <code>bisect</code> + <code>list</code> is fine</strong> when you only append/replace at known indices (LIS) — the O(n) insert middle is what kills you, and that's exactly what <code>SortedList</code> avoids</li>
+                    <li><strong>Interview note</strong>: most interviewers accept <code>SortedList</code> at FAANG. If forbidden, the fallback is two heaps (median) or a manually-balanced BST / segment tree</li>
+                </ul>
+            </div>
+
             <!-- Pattern 6: Linked List -->
             <h3>6️⃣ Linked List Tricks</h3>
             <p style="color: #888; margin-bottom: 15px;">Dummy nodes, reversal, merge. Used in: <em>Reverse Linked List, Merge Two Sorted Lists, Remove Nth Node, Reorder List, LRU Cache</em></p>
@@ -3281,6 +3482,67 @@ n ^ (<span class="number">1</span> &lt;&lt; k)                           <span c
                 </div>
             </div>
 
+            <div class="tips-box">
+                <h4>⚙️ Bit Tricks for Tight Loops — applied patterns</h4>
+                <p style="color: #888; margin-bottom: 10px;">
+                    The one-liners above are the vocabulary. These are the <em>sentences</em> — three patterns that turn bit tricks into algorithms: Kernighan popcount, Fenwick lowbit, and bitmask-DP state.
+                </p>
+                <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── 1) Kernighan's algorithm — popcount in O(set bits) ──</span>
+<span class="comment"># Faster than bin(n).count('1') when bits are sparse, and the</span>
+<span class="comment"># interview-favorite "count 1 bits without bin()" answer.</span>
+<span class="keyword">def</span> <span class="function">popcount</span>(n):
+    count = <span class="number">0</span>
+    <span class="keyword">while</span> n:
+        n &amp;= n - <span class="number">1</span>                       <span class="comment"># ← drops the lowest set bit</span>
+        count += <span class="number">1</span>
+    <span class="keyword">return</span> count
+
+<span class="comment"># ── 2) Fenwick / Binary Indexed Tree — i &amp; -i is the engine ──</span>
+<span class="comment"># Used in: Range Sum Query Mutable, Count of Smaller Numbers After Self.</span>
+<span class="keyword">class</span> <span class="type">BIT</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, n):
+        self.tree = [<span class="number">0</span>] * (n + <span class="number">1</span>)
+    <span class="keyword">def</span> <span class="function">update</span>(self, i, delta):
+        <span class="keyword">while</span> i &lt; <span class="function">len</span>(self.tree):
+            self.tree[i] += delta
+            i += i &amp; -i                  <span class="comment"># ← jump to next responsible node</span>
+    <span class="keyword">def</span> <span class="function">query</span>(self, i):                  <span class="comment"># prefix sum [1..i]</span>
+        s = <span class="number">0</span>
+        <span class="keyword">while</span> i &gt; <span class="number">0</span>:
+            s += self.tree[i]
+            i -= i &amp; -i                  <span class="comment"># ← peel off lowest set bit</span>
+        <span class="keyword">return</span> s
+
+<span class="comment"># ── 3) Bitmask DP — encode a subset as an int ──</span>
+<span class="comment"># Used in: Travelling Salesman, Partition to K Equal Subsets,</span>
+<span class="comment"># Shortest Path Visiting All Nodes, Stickers to Spell Word.</span>
+full = (<span class="number">1</span> &lt;&lt; n) - <span class="number">1</span>                     <span class="comment"># mask with all n bits set</span>
+<span class="keyword">for</span> mask <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span> &lt;&lt; n):                <span class="comment"># every subset of {0..n-1}</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n):
+        <span class="keyword">if</span> mask &amp; (<span class="number">1</span> &lt;&lt; i):              <span class="comment"># is i in this subset?</span>
+            prev = mask ^ (<span class="number">1</span> &lt;&lt; i)        <span class="comment"># mask without i</span>
+            dp[mask] = <span class="function">min</span>(dp[mask], dp[prev] + cost[prev][i])
+
+<span class="comment"># Enumerate non-empty subsets of `mask` (used in TSP variants):</span>
+sub = mask
+<span class="keyword">while</span> sub:
+    <span class="comment"># ... use sub ...</span>
+    sub = (sub - <span class="number">1</span>) &amp; mask              <span class="comment"># ← classic subset trick</span>
+
+<span class="comment"># ── 4) Fixed-width binary strings ──</span>
+<span class="function">bin</span>(<span class="number">5</span>)[<span class="number">2</span>:]                              <span class="comment"># '101'  (strip the '0b' prefix)</span>
+<span class="function">bin</span>(<span class="number">5</span>)[<span class="number">2</span>:].zfill(<span class="number">8</span>)                     <span class="comment"># '00000101'  zero-padded</span>
+<span class="function">format</span>(<span class="number">5</span>, <span class="string">'08b'</span>)                        <span class="comment"># '00000101'  one-shot</span>
+<span class="function">int</span>(<span class="string">'00000101'</span>, <span class="number">2</span>)                     <span class="comment"># 5  parse binary string</span></pre>
+                <h4 style="margin-top: 14px;">🎯 When each pays off</h4>
+                <ul>
+                    <li><strong>Kernighan</strong> beats <code>bin(n).count('1')</code> only inside hot loops on sparse <code>n</code> — for one-shot popcount, just use <code>bin(...)</code></li>
+                    <li><strong>Fenwick</strong> lowbit pattern memorize: <code>i += i &amp; -i</code> climbs the tree (update), <code>i -= i &amp; -i</code> walks toward root (query)</li>
+                    <li><strong>Bitmask DP</strong> works when <code>n ≤ 20</code> — <code>2^20 = ~1M</code> states still fits memory; <code>2^22+</code> usually doesn't</li>
+                    <li><strong><code>format(n, '0{w}b')</code></strong> is cleaner than <code>bin(n)[2:].zfill(w)</code> for fixed-width — same result, no string math</li>
+                </ul>
+            </div>
+
             <!-- Pattern 18: Greedy / Kadane's -->
             <h3>1️⃣8️⃣ Greedy / Kadane's Algorithm</h3>
             <p style="color: #888; margin-bottom: 15px;">Locally optimal choices, max subarray. Used in: <em>Maximum Subarray, Jump Game, Gas Station, Hand of Straights, Partition Labels</em></p>
@@ -3432,8 +3694,62 @@ n ^ (<span class="number">1</span> &lt;&lt; k)                           <span c
                     <li><strong>Set operations</strong> for duplicates/intersection → <code>set1 & set2</code></li>
                 </ul>
             </div>
+
+            <div class="tips-box">
+                <h4>🎚️ Compact Sort &amp; Search Idioms</h4>
+                <p style="color: #888; margin-bottom: 10px;">
+                    Four small idioms that collapse 5–10 lines of Java logic into one Python expression. Show up constantly in <em>Reconstruct Queue, Largest Number, Russian Doll Envelopes, Find K Closest Elements, Top K Frequent</em>.
+                </p>
+                <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── 1) Multi-key sort with mixed direction ──</span>
+<span class="comment"># Tuple key sorts lexicographically. Use - on numerics to flip direction.</span>
+people.sort(key=<span class="keyword">lambda</span> p: (-p[<span class="number">0</span>], p[<span class="number">1</span>]))   <span class="comment"># height desc, k asc (LC 406)</span>
+envelopes.sort(key=<span class="keyword">lambda</span> e: (e[<span class="number">0</span>], -e[<span class="number">1</span>])) <span class="comment"># LC 354: width asc, height desc</span>
+<span class="comment"># For non-numeric reverse keys, use cmp_to_key (already covered above).</span>
+
+<span class="comment"># ── 2) next((x for x in arr if cond), default) — find-first ──</span>
+<span class="comment"># Replaces the for/return/else dance.</span>
+first_even = <span class="function">next</span>((x <span class="keyword">for</span> x <span class="keyword">in</span> nums <span class="keyword">if</span> x % <span class="number">2</span> == <span class="number">0</span>), -<span class="number">1</span>)
+
+<span class="comment"># With index — pair enumerate + next:</span>
+i = <span class="function">next</span>((i <span class="keyword">for</span> i, x <span class="keyword">in</span> <span class="function">enumerate</span>(nums) <span class="keyword">if</span> x &gt; target), <span class="function">len</span>(nums))
+
+<span class="comment"># ⚠️ Without the default, StopIteration leaks out — always supply one.</span>
+
+<span class="comment"># ── 3) max(d, key=d.get) — argmax of a dict ──</span>
+<span class="comment"># Returns the KEY whose VALUE is largest. (max(d) alone returns max key.)</span>
+freq = Counter(nums)
+mode = <span class="function">max</span>(freq, key=freq.get)        <span class="comment"># most-frequent element</span>
+
+<span class="comment"># Same with min, and arbitrary key fns:</span>
+furthest = <span class="function">max</span>(points, key=<span class="keyword">lambda</span> p: p[<span class="number">0</span>]**<span class="number">2</span> + p[<span class="number">1</span>]**<span class="number">2</span>)
+
+<span class="comment"># ── 4) heapq.heappushpop / heapreplace — atomic top-K ──</span>
+<span class="comment"># heappushpop(h, x): push then pop, ONE sift-down (faster than push + pop).</span>
+<span class="comment"># heapreplace(h, x): pop then push — same cost. Use when h is non-empty.</span>
+<span class="keyword">import</span> heapq
+<span class="keyword">def</span> <span class="function">topK</span>(nums, k):
+    h = nums[:k]
+    heapq.heapify(h)                    <span class="comment"># O(k) min-heap of first k</span>
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums[k:]:
+        <span class="keyword">if</span> n &gt; h[<span class="number">0</span>]:
+            heapq.heapreplace(h, n)     <span class="comment"># ← one sift, not two</span>
+    <span class="keyword">return</span> h                            <span class="comment"># the top k (unsorted)</span>
+
+<span class="comment"># ── Bonus: deque(maxlen=k) — auto-evicting fixed window ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> deque
+window = deque(maxlen=k)                <span class="comment"># appending past k auto-pops left</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> stream:
+    window.append(x)                    <span class="comment"># window holds at most last k</span></pre>
+                <h4 style="margin-top: 14px;">💡 Why each one</h4>
+                <ul>
+                    <li><strong>Multi-key sort</strong>: Java's <code>Comparator.comparing(...).thenComparing(...).reversed()</code> chains collapse to a 1-line tuple key. Negation only works on numerics — for strings, use two passes (Python's sort is stable) or <code>cmp_to_key</code></li>
+                    <li><strong><code>next(gen, default)</code></strong>: O(1) memory, short-circuits on first match. Forgetting the default is the #1 bug — always supply one</li>
+                    <li><strong><code>max(d, key=d.get)</code></strong>: argmax in 4 tokens. Ties broken by insertion order (3.7+) — call <code>sorted(d, key=...)</code> if you need a deterministic tiebreak</li>
+                    <li><strong><code>heapreplace</code></strong> vs <code>heappush + heappop</code>: same big-O but ~2× faster in practice — important inside top-K hot loops on large streams</li>
+                </ul>
+            </div>
         </div>
-        
+
         <!-- Section 6: Common Gotchas -->
         <div class="section">
             <h2>⚠️ Common Gotchas</h2>

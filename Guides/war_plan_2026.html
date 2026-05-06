@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 Principal/Staff IC War Plan — Combined Brief</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e1a;--card:#131a2e;--surface:#0d1224;--accent:#6366f1;--accentL:#818cf8;--pos:#60a5fa;--neg:#f97316;--green:#34d399;--red:#ef4444;--cyan:#22d3ee;--pink:#f472b6;--purple:#a78bfa;--yellow:#fbbf24;--text:#e2e8f0;--dim:#94a3b8;--muted:#64748b;--border:#1e293b;--radius:12px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.65;overflow-x:hidden}
+.layout{display:grid;grid-template-columns:260px 1fr;max-width:1400px;margin:0 auto}
+nav.toc{position:sticky;top:0;height:100vh;overflow-y:auto;padding:24px 16px;border-right:1px solid var(--border);background:var(--surface);font-size:12.5px}
+nav.toc h4{font-size:11px;letter-spacing:1px;color:var(--accentL);margin:18px 0 8px;text-transform:uppercase;font-weight:700}
+nav.toc h4:first-child{margin-top:0}
+nav.toc a{display:block;color:var(--dim);text-decoration:none;padding:4px 8px;border-radius:6px;margin-bottom:2px;line-height:1.4}
+nav.toc a:hover{color:var(--text);background:var(--card)}
+.container{padding:48px 40px 80px;max-width:980px}
+.hero{margin-bottom:56px;padding-bottom:32px;border-bottom:1px solid var(--border)}
+.hero .kicker{color:var(--cyan);font-size:12px;letter-spacing:2px;font-weight:700;margin-bottom:12px}
+.hero h1{font-size:34px;font-weight:800;background:linear-gradient(135deg,var(--accentL),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2;margin-bottom:14px}
+.hero p.lede{color:var(--dim);font-size:15px;max-width:720px;margin-bottom:18px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.hero .meta span{background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;color:var(--dim)}
+.section{margin-bottom:56px;scroll-margin-top:24px}
+.section h2{font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;padding-bottom:8px;border-bottom:2px solid var(--accent);display:inline-block}
+.section h3{font-size:18px;font-weight:700;color:var(--accentL);margin:28px 0 12px}
+.section h4{font-size:15px;font-weight:700;color:var(--cyan);margin:18px 0 8px}
+.section h5{font-size:13.5px;font-weight:700;color:var(--yellow);margin:14px 0 6px}
+.section p{margin-bottom:12px;color:var(--text);font-size:14.5px}
+.section ul, .section ol{margin:8px 0 14px 22px}
+.section li{margin-bottom:6px;font-size:14px;color:var(--text)}
+.section li::marker{color:var(--accent)}
+.section strong{color:var(--accentL);font-weight:700}
+.section em{color:var(--cyan);font-style:normal}
+code{background:var(--surface);color:var(--pink);padding:1px 6px;border-radius:4px;font-size:12.5px;font-family:'SF Mono',Menlo,monospace;border:1px solid var(--border)}
+.callout{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);padding:16px 20px;border-radius:var(--radius);margin:18px 0}
+.callout.warn{border-left-color:var(--red)}
+.callout.win{border-left-color:var(--green)}
+.callout.tip{border-left-color:var(--yellow)}
+.callout.info{border-left-color:var(--cyan)}
+.callout p:last-child{margin-bottom:0}
+.tier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0}
+.tier-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.tier-card h4{margin-top:0;color:var(--accentL)}
+.tier-card.s{border-top:3px solid var(--green)}
+.tier-card.a{border-top:3px solid var(--cyan)}
+.tier-card.b{border-top:3px solid var(--yellow)}
+.tier-card.cut{border-top:3px solid var(--red);opacity:.85}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+th{background:var(--surface);color:var(--accentL);text-align:left;padding:10px 12px;font-size:11.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(99,102,241,.05)}
+.company-block{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin:16px 0}
+.company-block h3{margin-top:0;color:var(--text);font-size:17px;display:flex;align-items:center;gap:10px}
+.company-block .lane{display:inline-block;font-size:10px;letter-spacing:1px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--surface);color:var(--cyan);text-transform:uppercase}
+.lane.l1{background:rgba(96,165,250,.15);color:var(--pos)}
+.lane.l2{background:rgba(167,139,250,.15);color:var(--purple)}
+.lane.l3{background:rgba(244,114,182,.15);color:var(--pink)}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:6px 14px;margin:8px 0;font-size:13px}
+.kv .k{color:var(--dim);font-weight:600}
+.month-card{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius);padding:18px;margin:12px 0}
+.month-card h4{margin-top:0}
+.divider{border:none;border-top:1px solid var(--border);margin:36px 0}
+.toc-mobile{display:none}
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr}
+  nav.toc{display:none}
+  .container{padding:24px 16px 60px}
+  .hero h1{font-size:26px}
+  .toc-mobile{display:block;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:32px}
+  .toc-mobile summary{cursor:pointer;font-weight:700;color:var(--accentL)}
+  .toc-mobile a{display:block;color:var(--dim);text-decoration:none;padding:4px 0;font-size:13px}
+}
+.back-link{display:inline-block;color:var(--dim);text-decoration:none;font-size:13px;margin-bottom:24px}
+.back-link:hover{color:var(--accentL)}
+.back-link::before{content:"\2190 ";margin-right:4px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc">
+<h4>Quick Nav</h4>
+<a href="../index.html" style="color:var(--accentL)">&larr; All Materials</a>
+<h4>Strategy</h4>
+<a href="#tldr">Executive TL;DR</a>
+<a href="#targets">Ranked Target List</a>
+<a href="#comp">2026 Compensation Data</a>
+<a href="#hiring">Who Is Hiring</a>
+<a href="#assets">Differentiation Assets</a>
+
+<h4>Interview Intel</h4>
+<a href="#big-tech">Lane 1 — Big Tech</a>
+<a href="#frontier">Lane 2 — Frontier AI Labs</a>
+<a href="#robotics">Lane 3 — Robotics / Physical AI</a>
+
+<h4>Prep Frameworks</h4>
+<a href="#leetcode">LeetCode at Staff+</a>
+<a href="#sysdesign">System Design</a>
+<a href="#ml-design">ML System Design</a>
+<a href="#behavioral">Behavioral / Leadership</a>
+<a href="#coding">Coding Fluency</a>
+<a href="#portfolio">Portfolio &amp; Pre-Read</a>
+<a href="#takehomes">Take-Home Patterns</a>
+<a href="#meta-shifts">2026 Interview Meta</a>
+
+<h4>Operations</h4>
+<a href="#mocks">Mock Strategy</a>
+<a href="#channels">Recruiter Channels</a>
+<a href="#referrals">Referrals &amp; Exec Search</a>
+<a href="#brand">Personal Brand</a>
+
+<h4>Calendar</h4>
+<a href="#plan-12mo">12-Month Sequenced Plan</a>
+<a href="#amazon-risk">Amazon Risk Management</a>
+<a href="#negotiation">Negotiation-Stage Prep</a>
+
+<h4>Resources</h4>
+<a href="#reading">Reading List</a>
+<a href="#actions">Action Items</a>
+<a href="#closing">Closing Principles</a>
+</nav>
+
+<div class="container">
+<a href="../index.html" class="back-link">All Learning Materials</a>
+
+<div class="hero">
+  <div class="kicker">12-MONTH PLAYBOOK &middot; MAY 2026 &rarr; MAY 2027</div>
+  <h1>The 2026 Principal / Staff IC War Plan</h1>
+  <p class="lede">Combined intelligence brief for an Amazon L6 with a productionized physical-AI flagship targeting Principal/Staff IC roles across Big Tech, frontier AI labs, and physical-AI/robotics. Comp benchmarks, interview leak compendium, prep frameworks, mock strategy, sequenced calendar, and Amazon-specific risk management — merged from three source dossiers without losing detail.</p>
+  <div class="meta">
+    <span>Audience: Senior IC, ~14 YOE</span>
+    <span>Domains: Manufacturing AI, FactoryAI, GUI Agents, VLA, Robotics, Distributed Systems</span>
+    <span>Floor: $700K&ndash;$900K Y1</span>
+    <span>Ceiling: $1.5M+ Y1 with execution</span>
+  </div>
+</div>
+
+<details class="toc-mobile">
+<summary>Table of Contents</summary>
+<a href="#tldr">Executive TL;DR</a>
+<a href="#targets">Ranked Target List</a>
+<a href="#comp">Compensation Data</a>
+<a href="#hiring">Who Is Hiring</a>
+<a href="#assets">Differentiation Assets</a>
+<a href="#big-tech">Big Tech Loops</a>
+<a href="#frontier">Frontier Labs</a>
+<a href="#robotics">Robotics</a>
+<a href="#leetcode">LeetCode</a>
+<a href="#sysdesign">System Design</a>
+<a href="#ml-design">ML Design</a>
+<a href="#behavioral">Behavioral</a>
+<a href="#meta-shifts">2026 Meta</a>
+<a href="#mocks">Mocks</a>
+<a href="#plan-12mo">12-Month Plan</a>
+<a href="#amazon-risk">Amazon Risk</a>
+<a href="#negotiation">Negotiation</a>
+<a href="#reading">Reading List</a>
+<a href="#actions">Action Items</a>
+</details>
+
+<!-- ===================== EXECUTIVE TL;DR ===================== -->
+<section class="section" id="tldr">
+<h2>Executive TL;DR</h2>
+<p>Three things changed in 2025&ndash;2026 that you must internalize before reading anything else:</p>
+<ol>
+<li><strong>Meta's loop changed more between Oct 2025 and Q1 2026 than in the previous five years.</strong> E7/M1 candidates now get <em>only one coding round</em> and it is the 60-minute AI-assisted CoderPad round (multi-file project with Claude Haiku 3.5 / Llama 4 Maverick / GPT-4o-mini sidebar). E6 gets one standard + one AI-assisted. Below E6 it's two standard + one optional AI-assisted. Treat this as the single highest-leverage prep delta &mdash; most prep docs people pass around are already obsolete.</li>
+<li><strong>Anthropic's bar is values-fit, not LeetCode.</strong> The CodeSignal 4-level practical (banking ledger, in-memory KV with TTL/persistence, web-crawler with concurrency) is widely leaked. Anthropic recruiters have told interviewing.io explicitly that <em>the values/culture round is where most candidates fail</em>.</li>
+<li><strong>Frontier labs and robotics shops weight a "statement of exceptional work" / project deep-dive presentation more than coding.</strong> xAI literally requires a written exceptional-work statement on the application; OpenAI and Pi do project deep-dives; Anthropic asks for a 5-hour take-home + reference calls. Your portfolio (manufacturing AI / FactoryAI / GUI agents / VLA / robotics distributed-systems work) is your single best asset. Polish it before you grind LeetCode.</li>
+</ol>
+<div class="callout win">
+<p><strong>Your starting position.</strong> Amazon L6 with a productionized physical-AI flagship: NVIDIA lighthouse, AWS blog case study, 99% defect detection, 95% pick-and-place, GUI-Owl-1.5 ADB agent on Fire. A credible Nimble offer in the recent past. Floor is $700K&ndash;$900K Y1. Ceiling, with execution, is $1.5M+ Y1 at xAI / Anthropic / Figure / Google L7.</p>
+</div>
+</section>
+
+<!-- ===================== RANKED TARGET LIST ===================== -->
+<section class="section" id="targets">
+<h2>Ranked Target List</h2>
+
+<div class="tier-grid">
+
+<div class="tier-card s">
+<h4>Tier S &mdash; Push Hardest</h4>
+<ol>
+<li><strong>Anthropic</strong> &mdash; Lead/Senior MTS, applied AI / agents / evals. Median Senior SWE $563&ndash;600K, Lead up to $756K, top reports $920K. Closest comp+mission fit for your GUI-Owl agent + ML infra background.</li>
+<li><strong>xAI</strong> &mdash; MTS/Senior MTS, model training / post-training / agents. Public bands $180K&ndash;$600K base; MLE median TC $690K, top $1.3M; SWE median $640K, top $975K.</li>
+<li><strong>Google L7</strong> &mdash; DeepMind robotics, Gemini Robotics, Cloud AI infra. Median $955K US, $983K Bay. Cleanest path to floor without startup risk.</li>
+<li><strong>Physical Intelligence (&pi;)</strong> &mdash; VLA + manufacturing depth uniquely defensible here. $1.1B raised, $5B+ implied valuation. Staff-level equity could be career-changing.</li>
+<li><strong>Figure AI</strong> &mdash; $39B post-money (Sept 2025), Helix VLA in-house, BotQ scaling. One Staff data point at $1.29M TC. Hardest interview, most upside.</li>
+</ol>
+</div>
+
+<div class="tier-card a">
+<h4>Tier A &mdash; Real Options</h4>
+<ol start="6">
+<li><strong>Meta E7</strong> &mdash; GenAI, Reality Labs, Ads ML infra. $1M+ TC common; AI premium real. New AI-assisted coding round rolled out 2026.</li>
+<li><strong>Amazon L7 internal</strong> &mdash; AGI SF Lab, Bedrock, Robotics. Median $631K US, $685K Bay; backstop / leverage. Skip-level promo path real but slow.</li>
+<li><strong>Skild AI</strong> &mdash; $14B (Jan 2026), Pittsburgh/SF, omni-bodied robotics brain. Pays aggressively for manufacturing-deployment expertise ($30M revenue 2025).</li>
+<li><strong>1X</strong> &mdash; Hayward CA, 200+ headcount post-factory, raising at $10B. Manufacturing/operations DNA matches yours.</li>
+<li><strong>Nimble Robotics</strong> &mdash; re-engage post-green-card. They already wanted you. Re-open at higher level/equity.</li>
+</ol>
+</div>
+
+<div class="tier-card b">
+<h4>Tier B &mdash; Leverage / Foils</h4>
+<ol start="11">
+<li><strong>Snowflake Principal (IC5)</strong> &mdash; top of band $927K. Strong distributed-systems fit.</li>
+<li><strong>Microsoft Principal (L65/66)</strong> &mdash; median Principal $368K, L66 $400K+, L67 $513K. Easiest loop to convert.</li>
+<li><strong>Databricks Staff</strong> &mdash; pays slightly above Snowflake at equivalent IC. Strong infra story.</li>
+<li><strong>OpenAI MTS</strong> &mdash; TC $550K&ndash;$900K+. Brutal pure-coding loop. Run it for the offer, not because you'd take it over Anthropic.</li>
+<li><strong>Anduril, Tesla Optimus, Apptronik, Agility, BD AI Institute, Sanctuary, Covariant</strong> &mdash; opportunistic. Apply, don't optimize.</li>
+<li><strong>Cohere, Mistral, Perplexity, Scale AI</strong> &mdash; lower leverage, weaker comp at Staff (Scale L6 ~$642K top). Skip unless mission fit.</li>
+</ol>
+</div>
+
+<div class="tier-card cut">
+<h4>Cut List &mdash; Do Not Cycle</h4>
+<p>TorqueAGI, FloQast, Kikoff. You've already proven you can clear them. They are below your floor and signal weakness if you keep cycling.</p>
+</div>
+
+</div>
+</section>
+
+<!-- ===================== COMPENSATION DATA ===================== -->
+<section class="section" id="comp">
+<h2>2026 Compensation Data</h2>
+<p>All figures Levels.fyi-verified through May 2026 unless noted.</p>
+
+<h3>Big Tech Principal/Staff IC</h3>
+<table>
+<thead><tr><th>Company / Level</th><th>Median TC (US)</th><th>Top of Band</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Amazon L7 Principal SDE</td><td>$631K</td><td>$910K (SF)</td><td>5-15-40-40 RSU vest in force; <strong>2026 RSU-to-cash pilot expanded to L4&ndash;L8: 25% of vesting RSUs convertible to cash at preset planning price ($173.12 in 2026)</strong>. AGI Lab / Bedrock teams stretching offers to $850K&ndash;$1.0M for external L7.</td></tr>
+<tr><td>Amazon L8 Sr Principal</td><td>$1.53M</td><td>$1.8M+</td><td>Aspirational; L7 is your realistic ask.</td></tr>
+<tr><td>Google L7 (Staff/Sr Staff)</td><td>$955K</td><td>$1.21M</td><td>GSU monthly vest at 160+ shares. "Performance cash" bonus structure. DeepMind Robotics + Gemini paying top of band.</td></tr>
+<tr><td>Meta E6 Staff</td><td>~$800K</td><td>$900K+</td><td>Front-loaded RSU. AI premium adds 10&ndash;25%.</td></tr>
+<tr><td>Meta E7 Sr Staff</td><td>~$1M+</td><td>$1.5M+</td><td>E7 levels up dramatically; AI orgs pay highest.</td></tr>
+<tr><td>Microsoft L65 Principal</td><td>$368K</td><td>$513K</td><td>L66 ~$450K median, $600K top. AI top-of-band bumps real but ceiling lower than peers. Probably below floor unless GitHub Copilot / AI Frontiers team.</td></tr>
+<tr><td>Snowflake IC5 Principal</td><td>~$500K</td><td>$927K</td><td>Steep equity component; Databricks pays ~10% more.</td></tr>
+</tbody>
+</table>
+
+<h3>Frontier AI Labs</h3>
+<table>
+<thead><tr><th>Company / Level</th><th>TC Range</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Anthropic Senior SWE</td><td>$563K&ndash;$600K median</td><td>Verified: top reported $920K. PPU/RSU at $61.5B+ valuation; huge upside. Comp score 4.8/5 on Glassdoor (highest in industry).</td></tr>
+<tr><td>Anthropic Lead SWE</td><td>up to $756K</td><td>Top end of public data; insider reports of $900K&ndash;$1.1M for senior MTS converts from Big Tech.</td></tr>
+<tr><td>OpenAI MTS</td><td>$550K&ndash;$900K</td><td>PPU structure (capped-profit). Brutal coding interviews; mostly hard LeetCode. Senior MTS / Lead reaches $1.2M+.</td></tr>
+<tr><td>xAI MTS / SWE</td><td>$640K median, $975K top</td><td>Public job postings $180K&ndash;$600K base. MLE median $690K, top $1.3M. Equity at frontier valuation.</td></tr>
+<tr><td>Cohere / Mistral / Perplexity Staff</td><td>$400K&ndash;$700K</td><td>Below Anthropic. Equity speculative.</td></tr>
+<tr><td>Scale AI L6 Staff</td><td>$355K median, $642K top</td><td>Reset post-Meta-investment; not competitive with frontier labs.</td></tr>
+</tbody>
+</table>
+
+<h3>Robotics / Physical AI</h3>
+<table>
+<thead><tr><th>Company</th><th>Stage / Valuation</th><th>Staff/Principal TC</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><strong>Figure AI</strong></td><td>$39B post-money (Sept 2025); $1.9B raised</td><td>One Staff data point: <strong>$1.29M TC</strong>. Median SWE $370K, top $520K (heavily IC-skewed).</td><td>Helix VLA in-house, BotQ targets 12K humanoids/year. Highest robotics ceiling.</td></tr>
+<tr><td><strong>Skild AI</strong></td><td>$14B (Jan 2026 Series C, $1.4B raise)</td><td>Limited public data; expect $500K&ndash;$900K Staff equivalent.</td><td>Pittsburgh+SF. Manufacturing/warehouse traction ($30M revenue claim 2025). Pathak/Gupta from Meta+CMU.</td></tr>
+<tr><td><strong>Physical Intelligence (&pi;)</strong></td><td>$1.1B raised, $5&ndash;10B implied</td><td>Estimate: $400K&ndash;$650K cash + meaningful equity. Senior research scientists likely $700K&ndash;$1.2M total.</td><td>Hausman/Levine/Finn; OpenAI/Bezos/Thrive backed. Best research credibility in robotics.</td></tr>
+<tr><td><strong>1X</strong></td><td>Raising at $10B (Sept 2025); $1B+ target</td><td>Estimate Staff: $350K&ndash;$600K cash + equity.</td><td>Hayward CA factory live; NEO consumer launch 2026.</td></tr>
+<tr><td><strong>Nimble Robotics</strong></td><td>$1B Series C (Sept 2024); $221M raised</td><td>They already offered you in April; re-engage at higher level.</td><td>Strong fit &mdash; manufacturing AI + fulfillment AI overlap is total.</td></tr>
+<tr><td>Apptronik / Agility / Sanctuary / BD AI Institute</td><td>Series B&ndash;D</td><td>Staff $300K&ndash;$550K cash; equity speculative.</td><td>Tier B.</td></tr>
+<tr><td>Tesla Optimus</td><td>Public</td><td>L6/L7 ~$400K&ndash;$700K. RSU upside but Musk premium.</td><td>Notorious culture risk.</td></tr>
+<tr><td>Anduril</td><td>$30B post (2025)</td><td>Staff $400K&ndash;$650K + meaningful equity.</td><td>If you want mission-driven defense work.</td></tr>
+<tr><td>Rivos</td><td>Series A</td><td>Engineering-heavy, RISC-V chips</td><td>Lower fit unless you go silicon.</td></tr>
+</tbody>
+</table>
+
+<h3>Negotiation Leverage Points (2026 Market)</h3>
+<ol>
+<li><strong>Cross-offer triangulation is the single biggest lever.</strong> One competing offer is worth ~$80&ndash;150K. Two competing offers is worth $200&ndash;400K. The $700K&ndash;$900K floor <em>is met</em> by Big Tech without competing offers; pushing into $1.0M&ndash;$1.5M <em>requires</em> them.</li>
+<li><strong>Your declined Nimble offer is a usable data point.</strong> Reference it as "I had an offer at [TC range] that I declined for unrelated immigration timing reasons." Recruiters at Anthropic, Google, xAI take this seriously.</li>
+<li><strong>Anthropic, OpenAI, xAI are "trade up" pitches.</strong> Recruiters expect you to want frontier mission + equity upside &mdash; they'll match Big Tech total comp to land you.</li>
+<li><strong>Robotics startups will custom-build offers.</strong> Pi/Skild/Figure don't have rigid bands. Push hard on equity %, refresh schedule (24-month, not 48), and RSA acceleration on change of control.</li>
+<li><strong>AMZN-specific quirks:</strong>
+<ul>
+<li>Sign-on Y1 + Y2 cash cushions the 5-15-40-40 backload. Always negotiate Y2 sign-on hard.</li>
+<li>The RSU-to-cash 2026 pilot lets you de-risk concentration; mention it during AMZN&rarr;AMZN-internal moves only.</li>
+<li>Stack rank ("URA" &mdash; Unregretted Attrition) targets 6% in 2025&ndash;2026; high-performers mostly safe but not bulletproof. Document everything.</li>
+</ul></li>
+<li><strong>Use Rora (teamrora.com) or Levels.fyi negotiation service</strong> for the actual negotiation. They consistently extract $50K&ndash;$300K+ at this level. Free consultation; ~10&ndash;15% of incremental gain.</li>
+</ol>
+
+<div class="callout tip">
+<p><strong>This week's actions (comp).</strong> Add your AMZN comp anonymously to Levels.fyi to unlock full premium data. Open conversations with Rora and the Levels.fyi negotiation team <em>now</em> so they're warm by month 8. Bookmark Levels.fyi pages for L7 AMZN, L7 Google, E7 Meta, MTS Anthropic, Lead Anthropic, MLE xAI.</p>
+</div>
+</section>
+
+<!-- ===================== WHO IS HIRING ===================== -->
+<section class="section" id="hiring">
+<h2>Who Is Hiring at This Level in 2026</h2>
+
+<h3>Big Tech AI Orgs &mdash; Principal Poaching Is Real</h3>
+<ul>
+<li><strong>AWS Bedrock + AWS AGI Lab (San Francisco)</strong> &mdash; Principal SDE, Principal AS. You can transfer here internally without resigning. The "external L7" route pays better.</li>
+<li><strong>Google DeepMind &mdash; Gemini Robotics, AlphaProof, Project Astra</strong> &mdash; actively hiring L7 IC for VLA + robotics. Carolina Parada's Robotics group is the cleanest match for your profile.</li>
+<li><strong>Meta GenAI / FAIR / Reality Labs Robotics</strong> &mdash; E6/E7 in physical intelligence and humanoid policy learning. Yann LeCun's FAIR robotics team. AI premiums explicit.</li>
+<li><strong>Microsoft AI (Mustafa Suleyman org), GitHub Copilot, Azure AI Foundry</strong> &mdash; Principal slots, but ceiling lower.</li>
+<li><strong>Apple Robotics &amp; Home (post-Vision Pro pivot)</strong> &mdash; quiet hiring, premium comp, LA/Sunnyvale.</li>
+<li><strong>Nvidia GEAR / Isaac / Metropolis</strong> &mdash; reapply for the Metropolis Vision AI Staff role with FactoryAI as the headline. Jim Fan's GEAR group is the dream landing.</li>
+</ul>
+
+<h3>Frontier AI Labs</h3>
+<ul>
+<li><strong>Anthropic</strong> &mdash; applied AI, agents, computer-use, Claude Code, evals teams. Your GUI-Owl POC is <em>literally</em> their computer-use roadmap. Target the Computer Use / Agents team specifically.</li>
+<li><strong>OpenAI</strong> &mdash; Apps, Agents, Codex teams.</li>
+<li><strong>xAI</strong> &mdash; Memphis training cluster, Colossus 2, Grok agents, robotics (Optimus partnership noise). They opened a robotics workstream in late 2025.</li>
+</ul>
+
+<h3>Recently Funded Robotics / Physical AI Startups (Likely Staff Hiring)</h3>
+<ul>
+<li>Physical Intelligence &mdash; Series B Nov 2025, $600M. Hiring Research/Eng Staff.</li>
+<li>Skild AI &mdash; Series C Jan 2026, $1.4B. Hiring across SF + Pittsburgh.</li>
+<li>1X &mdash; raising at $10B; aggressive Hayward expansion.</li>
+<li>Figure AI &mdash; Series C Sept 2025; hiring Helix AI Engineers, Data Infra Engineers, Hands Integration.</li>
+<li>Nimble Robotics &mdash; Series C Sept 2024; warehouse autonomy. They offered you once.</li>
+<li>Dyna Robotics &mdash; stealth-ish, ex-Covariant talent, manipulation foundation models.</li>
+<li>Flexion (Zurich) &mdash; $50M Nov 2025, foundation model for humanoids.</li>
+<li>Reliable Robotics &mdash; $160M April 2026 (Nimble Partners-led); aviation autonomy.</li>
+<li>Apptronik &mdash; Apollo humanoid; Mercedes/GXO partnerships.</li>
+<li>Field AI &mdash; outdoor robot foundation models; stealth-er but funded.</li>
+<li>World Labs (Fei-Fei Li) &mdash; spatial intelligence; $230M+ raised.</li>
+<li>Hark (Brett Adcock's new lab) &mdash; $100M founder-funded; very early, but you have the manufacturing+VLA depth they need.</li>
+<li>Cobot (Marc Raibert's BD-lineage company) &mdash; collaborative humanoid; quiet.</li>
+</ul>
+
+<h3>Stealth / Early-Stage Opportunities for Your Specific Profile</h3>
+<p>Anything labeled "factory autonomy," "data engine for manufacturing robots," "VLA for industrial," or "vertical foundation model for X" &mdash; your FactoryAI story is irresistible. These are typically Principal/Founding Engineer roles with 0.3&ndash;1.5% equity at $5&ndash;50M post-money. Source via Ricky Pati, Lachy Groom (Pi), and the Khosla/Lux Capital networks.</p>
+<p>AWS-blog visibility means AWS partnership/solutions teams at every robotics startup will take your meeting.</p>
+
+<h3>Channels for Quietly Hiring</h3>
+<ul>
+<li>The Pragmatic Engineer "Tech Companies Hiring" tracker (newsletter)</li>
+<li>Hello Interview's "Recent Questions" dashboard &mdash; leakage indicates active loops</li>
+<li>Levels.fyi Jobs page &mdash; vetted, bands disclosed</li>
+<li>Wellfound (formerly AngelList) &mdash; Founding Eng / Principal at Series A&ndash;C</li>
+<li>A.Team &mdash; fractional Principal IC engagements ($150&ndash;250/hr); useful as side-income while interviewing or as a no-FTE backdoor</li>
+<li>Pallet, Paraform, Otta &mdash; newer talent platforms; recruiters actually reply</li>
+<li>Daily.dev, Robotics Press, The Robot Report &mdash; fundraising signals = hiring signals</li>
+</ul>
+
+<div class="callout tip">
+<p><strong>This week's actions (hiring).</strong> Build a 30-company target spreadsheet: {role link, recruiter name, hiring manager guess, your unique pitch, status}. Update weekly. Reapply to NVIDIA Metropolis Staff with FactoryAI featured. DM Karol Hausman (Pi CEO) and Lachy Groom (Pi COO) on X with a one-paragraph FactoryAI pitch + lighthouse link.</p>
+</div>
+</section>
+
+<!-- ===================== DIFFERENTIATION ASSETS ===================== -->
+<section class="section" id="assets">
+<h2>Differentiation Assets That Move the Needle in 2026</h2>
+<p>You're already in the top decile. The differentiation work below converts "interesting profile" into "must-hire."</p>
+
+<h3>First-Author Papers &mdash; Required at Robotics Shops?</h3>
+<p><strong>No, not for IC Staff in 2026.</strong> The bar shifted. What matters at Pi / Skild / Figure / 1X for non-research-track Staff IC:</p>
+<ul>
+<li><strong>Production VLA deployment evidence</strong> &mdash; you have it (FactoryAI 99%/95%).</li>
+<li><strong>Public demo video</strong> &mdash; you do not have one yet. Build it.</li>
+<li><strong>Open-source artifact or workshop paper</strong> &mdash; net-neutral but a strong tiebreaker.</li>
+</ul>
+<p>For <em>Research Scientist</em> tracks at Pi/DeepMind/Anthropic: yes, papers still matter. You are not optimizing for that track. Your track is Staff IC for production physical AI / agents.</p>
+
+<h3>Public Technical Writing (HIGH ROI)</h3>
+<p>Recruiter inbound at Staff/Principal in 2026 is now driven by ~3 channels: GitHub, X, and personal blog/Substack. LinkedIn helps but is saturated.</p>
+<p><strong>Action plan:</strong></p>
+<ul>
+<li>Stand up <code>nirty.dev</code> on Vercel by end of Month 1. Use Astro or Next.js. Keep it minimal.</li>
+<li>Write <strong>6 long-form posts over 12 months</strong> (one every 2 months):
+<ol>
+<li>"Building FactoryAI: Zero-to-Production Manufacturing Autonomy" (publish AFTER deciding to leave or with manager blessing).</li>
+<li>"Why GUI Agents Beat Custom Automation: Lessons from Fire Tablet ADB + GUI-Owl-1.5"</li>
+<li>"Sim-to-Real for Industrial Manipulation: What Actually Transferred"</li>
+<li>"Defect Detection at 99%: A Case Study in ML Eval Discipline"</li>
+<li>"VLA Models in Production: Latency, Cost, and the 80/20 Of Real Reliability"</li>
+<li>"From Distributed Systems to Physical Intelligence: A Senior Engineer's Reframe"</li>
+</ol>
+</li>
+<li><strong>X strategy:</strong> Post 2&ndash;3 times per week. Threads on robotics / VLA / agents / production AI. Engage with: Karol Hausman, Sergey Levine, Chelsea Finn, Jim Fan, Pieter Abbeel, Lerrel Pinto, Russ Tedrake, Andrej Karpathy, Sasha Rush, Jeremy Howard, Brett Adcock, Bernt B&oslash;rnich, Deepak Pathak. Tag them on substantive critiques, never sycophancy.</li>
+<li><strong>LinkedIn:</strong> Cross-post Substack content. Use long-form posts (&gt;1500 chars). Don't waste cycles on engagement-bait.</li>
+</ul>
+
+<h3>Open-Source Contributions Credentialing for Staff IC</h3>
+<p>Ranked by signal:</p>
+<ol>
+<li><strong>LeRobot</strong> (huggingface/lerobot) &mdash; <em>the</em> community library; Hugging Face/NVIDIA/Pi all integrate. Land 2 substantive PRs. Pick something near your strength: dataset tooling, Isaac Lab integration, evaluation harnesses.</li>
+<li><strong>Isaac Lab / Isaac Lab-Arena</strong> (isaac-sim/IsaacLab) &mdash; Nvidia-maintained. A merged PR here is a direct hire signal at Nvidia GEAR + 1X + Pi.</li>
+<li><strong>vLLM</strong> (vllm-project/vllm) &mdash; PyTorch Foundation-hosted, 75K+ stars. Even a small but real PR (a quantization fix, a model loader) reads as serious ML infra credibility. Inferact (vLLM commercial spinoff) hiring at $150M seed.</li>
+<li><strong>openpi</strong> (Physical-Intelligence/openpi) &mdash; Pi's own OSS pi-zero stack. <em>A merged PR here is a near-direct hiring channel at Pi.</em> Highest leverage of any OSS work for your specific targets.</li>
+<li>Hugging Face transformers / diffusers &mdash; table stakes; only useful if it's a meaty PR.</li>
+<li>llama.cpp &mdash; fine but signal mostly to systems/inference shops, less to robotics.</li>
+</ol>
+<p><strong>Time budget:</strong> 4&ndash;8 hours/week &times; 12 weeks = one substantive PR each in months 2&ndash;4 to LeRobot + openpi + Isaac Lab. That's three credentialing OSS contributions before you go on the market in earnest.</p>
+
+<h3>Demo Videos (THE Single Highest-Leverage Artifact in 2026)</h3>
+<p>Two engineers in 2025&ndash;2026 got Staff/Principal offers off a single viral demo: the Helix-pre-trained kitchen demo (Pi), the WALL-E grasping clip (1X), Andon Labs' VLA arm. You can't count on viral, but you can build the artifact.</p>
+<p><strong>Build by end of Month 3:</strong></p>
+<ul>
+<li>A 60&ndash;90 second video showing your <strong>GUI-Owl-1.5 ADB agent on Fire tablet</strong> doing a multi-step task it was not specifically trained for. Sub-15-sec hook, clean voiceover, captions, "what's hard about this," "model + dataset + setup," GitHub link.</li>
+<li>Post simultaneously on X, LinkedIn, YouTube. Submit to /r/robotics, Hacker News.</li>
+<li>Build a <em>second</em> video by Month 6 showing a manufacturing-relevant manipulation task (use a SO-101 + LeRobot setup at home for ~$2K, or a simulated Isaac Lab task if hardware is impractical).</li>
+</ul>
+<p>You're not building these for vanity. You're building so a recruiter / founder can SEE the work in 90 seconds. Karol Hausman's reply rate to a strong demo DM is dramatically higher than to a resume.</p>
+
+<h3>Conferences / Meetups With Outsized Signal</h3>
+<ul>
+<li><strong>CoRL 2026</strong> (late autumn) &mdash; submit a workshop paper or poster. Mandatory if you want robotics offers.</li>
+<li><strong>NeurIPS 2026 workshops</strong> &mdash; same.</li>
+<li><strong>GTC 2027</strong> &mdash; submit a talk on FactoryAI as an Nvidia lighthouse. Nvidia's GEAR group recruits aggressively from GTC speakers.</li>
+<li><strong>AWS re:Invent 2026</strong> &mdash; your AWS blog gives you direct line to a re:Invent talk. Use it.</li>
+<li>PyTorch Conference, Ray Summit &mdash; for ML infra credibility.</li>
+<li>Robotics Summit &amp; Expo (Boston, May 2026) &mdash; networking goldmine.</li>
+<li>RAISE Summit, Embodied AI Workshop, ICRA workshops &mdash; all useful.</li>
+</ul>
+<p><strong>Goal:</strong> one talk + one workshop paper + one panel by Month 9.</p>
+
+<div class="callout tip">
+<p><strong>This week's actions (assets).</strong> Register <code>nirty.dev</code>. Write post #1 outline. Push a tiny PR (typo / docs / small bug) to LeRobot to get a contributor badge ASAP. Then start work on a substantive PR. Buy SO-101 + a Realsense camera if you don't already have hardware at home (~$1500&ndash;2500). Begin storyboarding the GUI-Owl Fire tablet demo video.</p>
+</div>
+</section>
+
+<!-- ===================== BIG TECH ===================== -->
+<section class="section" id="big-tech">
+<h2>Lane 1 &mdash; Big Tech: Company-Specific Interview Intelligence</h2>
+
+<div class="company-block">
+<h3><span class="lane l1">Lane 1</span> Amazon &mdash; L7 Principal SDE</h3>
+
+<h5>Loop Structure (verified 2025&ndash;2026)</h5>
+<ul>
+<li>Recruiter screen (30&ndash;45 min): role/level/location/comp/story.</li>
+<li>Hiring Manager call (1 hr): increasingly behavioral-heavy at L7 &mdash; flagged as "one of the most unique I ever experienced" by Pragmatic Engineer.</li>
+<li>Technical phone screen (1 round, coding + LP-laced).</li>
+<li>The Loop (5&ndash;6 rounds, ~1 hr each): <strong>2&times; system design</strong> (yes, L7 gets two; one is "deep architecture / write-up"), <strong>1&times; Bar Raiser</strong> (pure LP, has veto), <strong>1&times; hiring manager deep-dive</strong>, <strong>1&times; coding/technical</strong> (often a single high-bar problem with multiple extensions), <strong>1&times; peer/cross-functional / org-design</strong>.</li>
+<li>Many L7 loops include a <strong>written exercise</strong> (6-pager / design doc) submitted ahead of onsite &mdash; confirmed by Bar Raisers and Scarlet Ink's Dave Anderson posts. Format = Amazon narrative (no bullets, "press release / FAQ" or pure narrative). Read Bryar/Carr's <em>Working Backwards</em>; write 3 practice 6-pagers.</li>
+</ul>
+
+<h5>What the Bar Raiser Actually Scores at L7</h5>
+<ul>
+<li>"Is this person helping a manager solve the manager's problems? Are they helping the manager be out of the manager's job? Are they driving the team? Can they conduct meetings proactively? Can they solve problems in ambiguous areas?"</li>
+<li>Cross-functional reach + scope &mdash; how many cross-functional teams influenced and how big the influence was. The L7-specific question: "What's the level of leadership you've presented to?"</li>
+<li>Disagreements must be <strong>across or up the org chart, not down.</strong> "Only disagreeing across or down" is a documented L7 anti-pattern.</li>
+</ul>
+
+<h5>Rejection Modes (~25% of technically-passing SDEs hit these)</h5>
+<ul>
+<li>Negative on Earn Trust / Have Backbone &mdash; Disagree and Commit = blow-up even if everything else is positive.</li>
+<li>Mentioning revenue or cost savings under <strong>$1M is an automatic red flag</strong>; under $5M is suspect at L7.</li>
+<li>Speaking about a manual process without proactively saying why you didn't automate it.</li>
+<li>Over-reliance on STAR. STAR is a <em>filter</em>, not a <em>script</em>; memorized STAR responses are a fail signal.</li>
+<li>"We" instead of "I" &mdash; Bar Raiser drills until they find the hole.</li>
+<li>3-min monologues. Bar Raisers want 15&ndash;30 sec opening + drill-down.</li>
+<li>Trying to guess which LP is being tested. Just answer the question asked.</li>
+<li>Internal-promotion mindset to L7 &mdash; they want scope you don't yet have, not what you currently own.</li>
+</ul>
+
+<h5>LPs That Matter Most at L7 SDE</h5>
+<p>Ownership, Deliver Results, Invent and Simplify, Insist on the Highest Standards, Think Big, Hire and Develop the Best, Earn Trust. Your manufacturing-AI / FactoryAI / robotics scope maps cleanly to Think Big and Invent and Simplify &mdash; overweight those.</p>
+
+<h5>Recent Question Leaks</h5>
+<ul>
+<li>System design: "Design a multi-tenant LLM inference fleet for an AWS service customer with SLA tiers" (Blind, Mar 2026).</li>
+<li>"Design Amazon's next-gen warehouse robotics fleet orchestration" (FactoryAI/robotics relevant).</li>
+<li>Coding: design-heavy &mdash; LRU/TTL cache with snapshots, in-memory KV with versioned reads. L7 doesn't typically get raw LeetCode hards; "design + implement + extend three times."</li>
+<li>Behavioral: "Tell me about a technical decision you made that affected 3+ orgs and was reversed by a higher-up" (Disagree-and-Commit / Earn Trust trap).</li>
+</ul>
+
+<h5>Offer-Getter Specifics</h5>
+<ul>
+<li>Have <strong>2 stories per LP</strong>, all &gt;$10M revenue/cost or &gt;50-engineer reach. Total story bank: ~30. Don't memorize scripts.</li>
+<li>Bar Raiser quote: "Most LP questions can be answered in 15&ndash;30 seconds. The candidate's answer doesn't need to give the entire story they prepared."</li>
+<li>Ethan Evans (former VP, helped author the LPs) notes: candidates with no name-brand companies still made up ~25% of hires &mdash; emphasize complexity, not logo.</li>
+<li>Manufacturing AI at L6 &rarr; L7 demands one of: (a) cross-org platform impact (FactoryAI used outside your org), (b) external industry impact (papers, OSS, conference talks), or (c) &gt;$10M demonstrable savings. Pick which you'll lead with before writing a single LP story.</li>
+</ul>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l1">Lane 1</span> Meta &mdash; E7 Senior Staff (most-changed loop in 2026)</h3>
+
+<h5>2026 Loop Structure</h5>
+<ul>
+<li>Recruiter screen.</li>
+<li><strong>Leadership Assessment</strong> (replaces phone screen for E6+, half behavioral / half coding). Gating &mdash; hiring panel decides here whether you survive the rest.</li>
+<li>Onsite (E7+ / M1):
+<ul>
+<li><strong>1&times; AI-assisted coding round (60 min)</strong> &mdash; the only coding round in the loop.</li>
+<li><strong>2&times; system design</strong> (architecture + product/design split &mdash; the "core puzzle" deep-dive decides E6 vs E7).</li>
+<li><strong>1&times; technical retrospective</strong> (project deep-dive &mdash; where E7 vs E6 leveling is decided).</li>
+<li><strong>1&times; cross-functional partnership</strong>.</li>
+<li><strong>1&times; leadership/people</strong> (sometimes called "behavioral" &mdash; E7 weighting heavier than E6).</li>
+<li><strong>1&times; "judgment in ambiguity"</strong> round (new at E7 in 2026).</li>
+</ul>
+</li>
+<li>Team matching is <em>before</em> the loop for E7 (vs after for E6) &mdash; the #1 source of multi-month delays at Meta in 2025&ndash;2026.</li>
+</ul>
+
+<h5>The AI-Assisted Coding Round &mdash; Every Public Detail</h5>
+<ul>
+<li>60 minutes in CoderPad with three-panel layout (file explorer / code editor / AI chat + problem instructions).</li>
+<li>Models in pad: GPT-4o mini, Claude Haiku 3.5/4.5, Llama 4 Maverick (most often confirmed); GPT-5, Claude Sonnet 4/4.5, Gemini 2.5 Pro listed as supported but rarely confirmed in real interviews.</li>
+<li>AI cannot edit your files &mdash; chat-only. You paste/write code yourself.</li>
+<li>One thematic question with multiple checkpoints (3&ndash;4 stages): clearing 3 checkpoints is the minimum signal; aim for 4+. Substantial scope: ~120+ LOC.</li>
+<li>Three observed scenarios: (1) build feature into existing structure, (2) extend partial implementation, (3) debug broken implementation.</li>
+<li>Real leaked problems: <strong>BFS maze with directional gates</strong> (&gt;/&lt; controlling traversal), <strong>maximizing unique characters across word sets</strong>, <strong>fixing 2-of-4 broken unit tests in utils.py then implementing solve.py</strong>, Filesystem Snapshot Diff, Chatroom Sanitization (regex/string), Maze + Portals/Locked Doors, Wordle Solver (practice env).</li>
+<li><strong>The trap:</strong> "Claude Sonnet worked brilliantly in practice but gave wrong answers repeatedly during the interview" on a maze problem. Multiple candidates report the in-interview AI is significantly less helpful than the practice environment AI.</li>
+<li>Meta's official line: "AI use is optional." Reality: it's not entirely optional &mdash; using AI well is a productivity multiplier on the boilerplate but a footgun on logic.</li>
+<li>Always ask your recruiter for the practice CoderPad with the AI tab &mdash; the sample problem ("the puzzle") is invaluable. Candidates who skip it consistently underperform.</li>
+</ul>
+
+<h5>System Design at E7 (Stefan Mai, 1000+ interviews)</h5>
+<ul>
+<li><strong>Don't over-explain basics.</strong> "If it's part of the 101 curriculum, don't explain it unless prompted. Talk to your interviewer like a more experienced peer."</li>
+<li><strong>Talk like a peer; identify the hard parts and gravitate there.</strong> "Great staff-level engineers know intuitively which parts are straightforward and gravitate towards the most difficult parts."</li>
+<li><strong>Make decisions, don't list options.</strong> "Well, which one would <em>you</em> choose?"</li>
+<li><strong>Memorize non-functional requirements as a checklist:</strong> availability 99.99%, scalability up/down, security, durability 10 yrs, latency p95 200ms, HA-vs-strong-consistency. Just shoot them.</li>
+<li>Pacing benchmark for the 35-min E6/E7 design: clarify+nonfunctional in 10 min, high-level + API + schema + core puzzle in 20 min, deep dives in last 5 min.</li>
+</ul>
+
+<h5>E7 Leveling Rubric</h5>
+<p>"2 coding (LC medium/hard), 2 system design, 1 cross-functional partnership, 1 technical retrospective, 1 other" (Blind from confirmed E7 hire). For tech retrospective: "Do you have examples where your work changed the company direction? Did you invent an industry standard?"</p>
+
+<h5>Common E7 Rejection Reasons</h5>
+<ul>
+<li>Behavioral round downlevels you to E6 even if technical is solid.</li>
+<li>"Survive at E7" challenge: existing E7s are supposed to know very deep in the stack and lead people in a big way. Tech retrospective must show org-wide impact, not deep-stack-only.</li>
+<li>Pasting AI output unread; treating the round as a prompt-engineering interview; skipping running tests after each checkpoint; not explaining WHY you accepted/rejected an AI suggestion in real time.</li>
+</ul>
+
+<h5>Cross-Functional Partnership Round at E7</h5>
+<p>Interviewer is often an EM or PM-equivalent. Expect: "Tell me about a time a senior partner challenged your technical decision in a public forum" &mdash; show you didn't escalate emotionally and resolved through async data + 1:1 alignment ("nemawashi"-style). Lead through influence, not authority.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l1">Lane 1</span> Google &mdash; L7 Staff / Senior Staff</h3>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>Recruiter screen.</li>
+<li>2&times; phone-screen coding (medium/hard, 45 min each).</li>
+<li>Onsite: <strong>3&times; system design</strong> (at L6+, Google has shifted to a model where coding is mostly replaced by deeper system design); 1&times; coding (often replaced or reduced at L7); 1&times; Googleyness &amp; Leadership; 1&times; Tech Leadership/Strategy with senior EM/Director.</li>
+<li>In-person rounds reintroduced in 2025 for at least one round of SWE loops.</li>
+<li>Team match.</li>
+<li>Hiring Committee review (often re-debate "Was this question hard enough?" for L7).</li>
+</ul>
+
+<h5>L7 Signal &amp; Expectations</h5>
+<ul>
+<li>"Initiatives a very large team would work on for several years. How would that project get started? What questions need to be answered in design? What resources? How do you evaluate success?"</li>
+<li>Multi-year roadmap thinking. Migration strategies. Org-boundary decomposition.</li>
+<li>L5 = single-system depth. L6 = cross-team influence. L7 = multi-system architecture, platform strategy across orgs, sustained technical leadership creating standards.</li>
+<li>L7s must own decisions affecting business at scale &mdash; present mitigation, observability, rollout plan unprompted. Not optional.</li>
+<li><strong>Avoid naming proprietary cloud products</strong> (DynamoDB, Spanner, etc.) in design &mdash; Google interviewers want first-principles. Mention "a strongly consistent KV store" not "Spanner."</li>
+<li>Show comfort with ambiguity and intellectual honesty: "Here's what the data suggests, here's what it doesn't tell us, here's what I'd need to learn next, and here's the decision I'd make right now."</li>
+</ul>
+
+<h5>Leveling Inconsistency</h5>
+<p>"Google has no idea how to hire for L7." Plan for inconsistency. L7 leveling differs wildly by team. <strong>Ask your recruiter to put you in the L7 loop explicitly</strong> &mdash; don't trust default; an E6 Meta candidate forced into the Google L7 loop by asking got it.</p>
+
+<h5>Googleyness Round</h5>
+<p>Collaborative learning, intellectual humility, comfort with ambiguity, bias toward action <em>with data</em>, leading without managing. Frame around: (1) influenced senior leaders who disagreed, (2) right-vs-political-right tradeoffs, (3) leading through crisis with incomplete info. Specific story types: "made a peer better," "shipped despite organizational headwinds," "killed your own project on data." Avoid "I drove this alone" stories &mdash; always show partnership.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l1">Lane 1</span> Microsoft &mdash; Principal (L65 / L66)</h3>
+
+<h5>Sponsorship System &amp; Loop</h5>
+<ul>
+<li>L65 &rarr; L66 and L66 &rarr; L67 transitions require <strong>sponsorship letters from outside your org</strong> &mdash; implies hiring loops mimic this (interviewers from other orgs, "strategy" round confirms cross-org impact).</li>
+<li>L65 onwards is the formal "Principal" designation. L65 = principal, L66 = principal (no real role difference, just a sponsorship doc to move L67&rarr;L68).</li>
+<li>Microsoft will not tell you externally whether the offer is L65 or L66. Get this confirmed via Blind back-channel only.</li>
+</ul>
+<p>Recruiter &rarr; tech screen &rarr; onsite (5 rounds): 2&times; system design (heavy at L65/66 &mdash; architecture, vision, organizational impact), Coding with AI (Microsoft has its own AI-coding round), Standard coding, Behavioral (Connect-style: three circles &mdash; individual / team enablement / business), Strategy/cross-org round at L65+ with a Partner-level (L68) or VP. Final "As Appropriate" round = bar check (veto, equivalent to Amazon Bar Raiser).</p>
+
+<h5>Connect Framework (same as internal performance review)</h5>
+<p>Three circles: key individual accomplishments, contributions to team success, outcomes you supported in others. Any behavioral story you tell at L65+ should naturally hit all three.</p>
+
+<h5>Recent Glassdoor Leaks</h5>
+<p>Standard system design (URL shortener variants, distributed pub-sub, design Office Copilot), behavioral focused on "growth mindset" (their performance review language). L66+ Azure AI infra interviewers want Azure ecosystem references (Cosmos DB, Blob Storage, Service Bus) in your design.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l1">Lane 1</span> Snowflake &mdash; Principal IC5</h3>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>30-min recruiter + technical phone screen (DSA &mdash; graph/cycles is a recurring real Glassdoor 2025 post).</li>
+<li><strong>30-min Tech Talk Presentation</strong> (you present a past technical project; mandatory at IC5+ &mdash; unique to Snowflake).</li>
+<li>Coding 1 (algorithms, CoderPad, ~LeetCode med-hard, 1 hr).</li>
+<li>Coding 2 (1 hr, runnable code).</li>
+<li><strong>Expertise interview</strong> &mdash; deep dive into a specific framework or stack.</li>
+<li>System design (often <strong>Google Docs</strong> instead of whiteboarding &mdash; practice with this medium).</li>
+<li>Behavioral (PM-led).</li>
+<li><strong>Cross-functional interview</strong> (Principal+ only; multiple Snowflake teams send a representative each, asking dept-specific questions).</li>
+</ul>
+
+<h5>The Project Presentation Trap</h5>
+<ul>
+<li>"Presenting <em>what</em> you built fails. Presenting <em>the trade-offs</em> passes."</li>
+<li>Snowflake engineers want to <strong>fight</strong> about architecture. Have opinions: "I chose Kafka over Pulsar because we needed exactly-once semantics and our team had Zookeeper operational expertise, even though Pulsar offers better multi-tenancy."</li>
+<li>They'll grill on database internals: B-Tree vs LSM tree for write-heavy, row vs columnar storage, isolation levels (Read Committed vs SSI), MVCC.</li>
+</ul>
+
+<h5>IC5 vs Meta E6</h5>
+<p>Snowflake IC5 is "more coding/delivery-oriented," Meta E6 is "more about influence." IC5 &asymp; high-end E6, <strong>not E7</strong>. Over-index on past-project deep-dives + specific architecture work. Why ex-Google L5s fail: generalist FAANG prep doesn't cover database internals deeply enough. If you're not crisp on concurrency control, query planning, indexing &mdash; fail mode.</p>
+
+<h5>Recent Question Leaks</h5>
+<p>Real-Time Fraud Detection (Spark Structured Streaming + Kafka + MLflow + Delta Lake &mdash; flagship), Book Price Comparison (request distribution + circuit breakers), Multi-Tenant Data Platform (SLA tiers), Throttling for serving infra. References are heavily weighted.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l1">Lane 1</span> Databricks &mdash; Staff</h3>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>Recruiter screen (30 min).</li>
+<li><strong>Two-hour technical phone screen</strong> = DSA round + system design back-to-back (CoderPad + Zoom; both required to advance).</li>
+<li>Hiring manager (1 hr behavioral + technical, conflict / proudest project deep-dive).</li>
+<li>Virtual onsite: 2&times; coding (algorithms, often graph/optimization heavy &mdash; house robber variant, weighted-paths), 1&times; system design (Google Docs), 1&times; ML system design (for ML-adjacent teams) / cross-functional, 1&times; behavioral.</li>
+<li>Hiring committee + reference checks (1 manager + 2 senior team members &mdash; <strong>weighted heavily</strong>, the Databricks differentiator).</li>
+</ul>
+
+<h5>Recent Leaks</h5>
+<p>Weighted-paths graph optimization, house-robber-style DP, concurrency throttling system, design payment gateway with multiple card types, design Spark job processing TBs every 10 min, hot-query caching with rerankers, KV store with versioned iterator (LC 1146 pattern), book price comparator (multi-API aggregation with backpressure). Prefers Python.</p>
+
+<h5>Databricks-Specific Signal</h5>
+<p>"Founder-led culture; PMs/staff often present to Ali Ghodsi directly." High-bar at presentation rounds. ~25% of candidates pivot teams after onsite &mdash; flexibility helps. <strong>No-AI policy:</strong> multiple Glassdoor candidates report DBX explicitly bans AI/Google use during screens.</p>
+</div>
+</section>
+
+<!-- ===================== FRONTIER LABS ===================== -->
+<section class="section" id="frontier">
+<h2>Lane 2 &mdash; Frontier AI Labs</h2>
+
+<div class="company-block">
+<h3><span class="lane l2">Lane 2</span> Anthropic &mdash; Lead/Senior MTS, Computer Use / Agents / Applied AI</h3>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>Recruiter screen (30 min).</li>
+<li><strong>CodeSignal OA, 90 min, four progressive levels</strong> (must pass each to unlock next). Some roles get 60-min live equivalent. Spec interpretation requires running against black-box evaluator.</li>
+<li>Hiring manager call (1 hr; sometimes code review across multiple languages).</li>
+<li>Final loop (5 sessions, all in CodeSignal/Excalidraw):
+<ul>
+<li><strong>Coding</strong> (1 hr CodeSignal; problem area shared in advance for research-engineer track).</li>
+<li><strong>System design</strong> (1 hr Excalidraw).</li>
+<li><strong>Take-home + review</strong> (5 hours, can split across days &mdash; very recent addition for senior roles).</li>
+<li><strong>Research brainstorm</strong> (15 min, paper-style discussion).</li>
+<li><strong>Culture-fit / values round</strong> (1 hr) &mdash; <em>the round where most candidates fail per Anthropic recruiters</em>.</li>
+</ul>
+</li>
+<li>References called <em>during</em> the onsite.</li>
+</ul>
+
+<h5>Leaked CodeSignal Problems</h5>
+<ol>
+<li><strong>In-memory KV database</strong> (most common). Level 1: SET/GET/DELETE. Level 2: filtered scans. Level 3: TTL with timestamps. Level 4: persistence/file compression with crash recovery.</li>
+<li>Banking/transaction system &mdash; multi-level account ledger, transaction types, edge-case rollback. Interviewers may flag over-rehearsed solutions.</li>
+<li>Web crawler with concurrency (Python multithreading; follow-ups: thread vs process, async/await, GIL, distributed millions of URLs, dedup detection).</li>
+<li>Multi-tier banking app &mdash; process transactions, update balances in memory.</li>
+<li>Nested log parser &mdash; reconstruct execution flow + identify errors.</li>
+<li>Image processing with multithreading.</li>
+<li>In-memory cache extension &mdash; find a bug in the existing cache, then add durability with crash recovery.</li>
+</ol>
+
+<h5>Live System Design (Real, Recent, Sourced)</h5>
+<ul>
+<li>"Design a distributed search system for 1B documents at 1M QPS, covering sharding, caching, and LLM inference scaling" (most consistently reported question).</li>
+<li>"Design a batched inference system where 100 requests take the same time as 1" (GPU batching, queueing, backpressure).</li>
+<li>"Design APIs for developers to access Anthropic's AI models securely and efficiently."</li>
+<li>"Design a high-concurrency inference API / parallel processing pipeline."</li>
+<li>"Design a peer-to-peer file distribution system" (large file, bandwidth-constrained source, thousands of receivers).</li>
+<li>Coding follow-ups on web crawler: threads vs processes, politeness policy, distributed millions of URLs, dedup across different URLs.</li>
+</ul>
+
+<h5>Performance Engineer Track (Recent Variant)</h5>
+<p>2-hour timed take-home: GPU kernel optimization on a mocked system. Loop unrolling, memory coalescing, operation fusion. AI tools permitted. One candidate reported needing 8&times; performance improvement and &gt;600/1000 score to advance.</p>
+
+<h5>The Values Round &mdash; What Nobody Prepares For</h5>
+<p>Described as "closer to a therapy session than a job interview." Format: deeply personal, conversational, probing. They actively look for <strong>skepticism and pushback</strong>, not enthusiasm. Fanboys fail.</p>
+<ul>
+<li>Signature question: "What concerns you most about advanced AI development?" Answer with a <em>specific</em> concern (mech interp gap, deceptive alignment in evals, cybersecurity uplift, deployment under economic pressure) &mdash; never generic ("misuse," "regulation gap").</li>
+<li>"Walk me through a project you're most proud of &mdash; what tradeoffs did you navigate, what would you refuse to do?" They evaluate what you optimize for through past work. End with honest tension, not "and that's why Anthropic is amazing."</li>
+<li>"Where do you think the tension between AI adoption and AI safety surfaces hardest in the products you've used?" The right answer ends with acknowledged uncertainty.</li>
+<li>"Describe a time when you had to make a difficult ethical decision at work."</li>
+<li>"Brainstorm solutions in an open-ended AI problem space."</li>
+<li>Bring up where you <strong>disagree</strong> with Anthropic's published positions (RSP, Core Views on AI Safety). Honest dissent lands. Sycophancy fails.</li>
+<li>Real question (May 2026 Blind report): "If Anthropic's stock became worthless, would you still work here?"</li>
+</ul>
+
+<h5>Pre-Read / Required Reading Before Culture Round</h5>
+<ul>
+<li>Anthropic's Core Views on AI Safety.</li>
+<li>Responsible Scaling Policy v2.</li>
+<li>Recent research (Constitutional AI, Agentic Misalignment, Values in the Wild, Alignment Faking, Sleeper Agents).</li>
+<li>Use Claude itself to deepen understanding &mdash; debate it, ask it to test you, ask for counter-arguments. <em>This is the highest-leverage prep activity for the values round.</em></li>
+</ul>
+
+<h5>Rubric Notes</h5>
+<ul>
+<li>"High-trust, low-ego" &mdash; direct/honest communication, strong opinions held loosely, contribute beyond your title.</li>
+<li>"If something urgently needs to be done, the right person to do it is probably you."</li>
+<li>~50% of technical staff come from non-ML backgrounds &mdash; your manufacturing-AI / robotics distributed systems background is <em>advantage</em>, not handicap.</li>
+</ul>
+
+<h5>Failure Modes</h5>
+<ul>
+<li>Vague AI-safety answer = instant flag. "I want to work on cutting-edge AI" signals you haven't engaged with what makes Anthropic different.</li>
+<li>Coding question is leaked &mdash; they know &mdash; interviewers actively probe for over-rehearsed solutions. Solve correctly but explain your <em>thought process</em> as you would for a novel problem.</li>
+<li>Failing to use AI thoughtfully on take-home (Anthropic explicitly allows + encourages Claude on take-home but punishes blind copy-paste).</li>
+<li>Reference checks weighted heavily &mdash; line up 3 strong references <em>before</em> you start.</li>
+<li>Over-engineering: their value is "We don't invent a spaceship if all we need is a bicycle." Working simple &gt; clever complex.</li>
+</ul>
+
+<h5>For Computer Use / Agents Specifically</h5>
+<p>OS-level reasoning, browser automation, sandboxing/safety primitives, tool-use loops, eval-driven iteration. Have a public demo (forked Claude Computer Use repo with a real task) before applying. The Verification Audit shift (Q1 2026): they are moving toward formats where you <strong>review/audit AI-generated code with hidden bugs</strong> instead of writing from scratch. Practice this skill &mdash; read AI code, find the memory leak / scaling bug / wrong-API call.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l2">Lane 2</span> xAI &mdash; MTS / Senior MTS / MLE</h3>
+
+<h5>Loop Structure</h5>
+<ul>
+<li><strong>Application: required "statement of exceptional work."</strong> Per Toby Pohlen (xAI): "It's a much better skills predictor than a CV." Devin Kim: "Many applicants leave it blank or vaguely describe their last role. This is worth spending time on." &mdash; the highest-leverage application asset.</li>
+<li>15-min phone screen (basic background, why xAI, technical chat).</li>
+<li>1&ndash;2 tech screens, often a 45-min "Python + bash" round (coding/scripting/sysadmin-flavored, NOT LeetCode).</li>
+<li>Onsite of 4&ndash;7 rounds: coding with concurrency, research discussion + ML fundamentals, LeetCode-style coding, behavioral + cultural fit, often a system design (rate limiter with variable user quotas, RAG system, multi-threaded array sort, dynamic batch inference).</li>
+<li><strong>Project deep-dive presentation</strong> &mdash; present your "exceptional work" to a small audience (~30&ndash;45 min). Most candidates underprepare for this.</li>
+<li>Meet &amp; greet (culture, 30&ndash;45 min). Strong "only engineers, no researchers" philosophy. Compares culture to SpaceX.</li>
+<li>Final interviews <strong>in-person</strong> for senior roles.</li>
+</ul>
+
+<h5>Recent Question Themes</h5>
+<ul>
+<li>Find words in a 9-square-grid letter board (Trie + DFS); LRU cache; flatten/unflatten nested JSON; DoorDash dasher pay calculation.</li>
+<li>"Agentic Workflow for Video Generation" (ML Tech Phone Screen).</li>
+<li>"Maximum Number of Distinct Elements After Operations."</li>
+<li>"Group Test GPU Nodes" problem (system-y debugging).</li>
+<li>Design a Rate Limiter with Variable User Quotas; Design a RAG System (heavy on retrieval + reranking + caching, sharding by topic); Multi-threaded Array Sort; Dynamic Batch Inference (KV cache management, continuous batching); LRU cache variants, versioned database (snapshotted reads, time-travel queries).</li>
+</ul>
+
+<h5>xAI Tech Stack Signals</h5>
+<ul>
+<li>grok-code-fast-1 (released Aug 2025) &mdash; pre-trained for tools (grep, terminal, file editing). Expect questions on tool calling and modular agentic code.</li>
+<li>Model Context Protocol (MCP) &mdash; connects Grok to GitHub, Slack, files, DBs. Tool Search Tool reduces context by ~85%.</li>
+<li>World models / video generation (Grok Imagine, AI companions like Ani).</li>
+</ul>
+
+<h5>Cultural Warning &amp; Process Reality</h5>
+<p>Viral late-2025 post showed an xAI employee working 36 hours without sleep. "Coding &ge; x &forall; x" is the literal motto. Office locations: Palo Alto, SF, Seattle, Tennessee, London. Mostly in-person. <strong>If you're not prepared for that intensity, eliminate xAI.</strong></p>
+<p>Process is <em>chaotic</em>. Multiple Blind reports confirm xAI postpones, reschedules, no-shows at high rates. "Junior recruiting team... struggles to close candidates who also receive offers from OpenAI or Anthropic." Plan for a 2-week sprint and don't hold the calendar. One "tisk-tisk-tisk" interviewer reported &mdash; be prepared for combative styles. Don't bite back; let it pass.</p>
+
+<h5>Failure Modes</h5>
+<ul>
+<li>Generic statement of exceptional work = auto-rejection at the application stage.</li>
+<li>Pure LeetCode prep without systems experience = struggle.</li>
+<li>"Why xAI" answers must reference Grok / Imagine / SGLang / Colossus / coding agents specifically, not generic "Elon mission."</li>
+<li>When pushed back ("Why Kafka? What are the alternatives and why are they worse for this case?") &mdash; have specifics. They want what you'd actually build, not CAP-theorem textbook answers.</li>
+</ul>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l2">Lane 2</span> OpenAI &mdash; MTS / Senior MTS</h3>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>Recruiter call &rarr; introductory hiring-manager call &rarr; skills-based assessment (CoderPad/HackerRank live OR 4-hr take-home OR pair-coding) &rarr; possibly second technical screen &rarr; final loop of 4&ndash;6 hrs with 4&ndash;6 people over 1&ndash;2 days.</li>
+<li>Final loop: Coding (1 hr in your own IDE w/ screenshare or CoderPad), System Design (1 hr Excalidraw), Behavioral (30 min), often a domain-specific 2nd SD, plus a <strong>Technical Project Presentation (5-slide, mandatory at Senior+)</strong>.</li>
+</ul>
+
+<h5>2025&ndash;2026 Trend: Harder Live Coding</h5>
+<p>"Won't pass you if you have a 2/4 or low 3/4 on coding even if you ace everything else." Practical-engineering style:</p>
+<ul>
+<li>LRU cache (still asked) &mdash; including bug-finding in existing implementation.</li>
+<li>In-memory DB with serialization handling delimiter collisions; KV store with snapshots/transactions.</li>
+<li>Conway's Game of Life infinite board.</li>
+<li>Robot room cleaner; custom iterator with state.</li>
+<li>Web crawler with multi-threading + politeness + rate limit.</li>
+<li>Spreadsheet with formula evaluation + cycle detection (getCell/setCell with real-time computation extending to caching/dependencies).</li>
+<li>"CPU credit" problem.</li>
+<li>Refactor "bad code" presented in their codebase style.</li>
+<li>"They really want people who can be productive building / writing code, not just arch / design / org alignment."</li>
+</ul>
+
+<h5>System Design</h5>
+<p>Design a web crawler at scale (training data acquisition, dedup at billion-page scale, distributed queues), design a rate limiter (their API), design a vector database, design an inference API with priority queues + streaming (overlaps with Anthropic), "Build an LLM-powered enterprise search system" (full-text search + NL query), payment system, design a CI/CD system, in-memory database, webhook system. ML system design: prompt backpropagation, PyTorch tensor manipulation, autograd. Coding: data labeling task scheduler.</p>
+
+<h5>Project Presentation</h5>
+<p>4&ndash;5 slides. Format: problem/context &rarr; approach/decisions &rarr; tradeoffs &rarr; impact/results &rarr; lessons. <strong>Practice this out loud, video-recorded</strong>, until you can do it in 10 min and answer 20 min of probing.</p>
+
+<h5>Behavioral &amp; Mission Alignment</h5>
+<p>Read OpenAI Charter, Preparedness Framework, recent AI safety blog posts. Same trap as Anthropic: don't be a fanboy; have specific, opinionated takes. Two halves at staff: leadership &amp; collaboration. Senior MTS: architecture/system-design rounds carry enormous weight. Project presentation is mandatory at Staff. References called late.</p>
+
+<h5>Process Notes</h5>
+<p>"Recently asked &mdash; I had literally seen this exact problem on prachub.com a week earlier" (Glassdoor 2026). Hiring process averages 31 days but ranges 1 day &rarr; 360 days. Communication famously inconsistent. Have a backup pipeline.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l2">Lane 2</span> Cohere</h3>
+<p>HR call (background + Cohere fit). Live 90-min screening + 3-hr technical assessment covering language modeling, ML math, coding fundamentals. Domain assessment (e.g., create a dataset for sentence completion using BERT &mdash; real Glassdoor leak). Onsite: AI engineering / research / SWE depending on track. Mid-to-high difficulty; similar to OpenAI/Anthropic. Heavy emphasis on data streams and inference latency (vs tricky algos). 24-hr take-home assessment frequently used. ~4 weeks total. Levels follow Google &mdash; MTS = late L6 ($350K CAD base + ~$1.25M USD equity over 4 yr per Blind salary post).</p>
+<p><strong>Track distinctions:</strong> SWE = LLM infra/system. AI Engineer = applied LLM (text gen, semantic search). Research Scientist = NLP/multilingual/multimodal. Platform Engineer = training/deployment/inference services.</p>
+<p><strong>Process is volatile</strong> &mdash; APAC team realigned mid-process for one candidate. Interview-then-ghost is common. <em>Do not put Cohere first in your sequencing.</em></p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l2">Lane 2</span> Mistral</h3>
+<p>Recruiter call &rarr; coding (Python, <strong>practical not LeetCode</strong> &mdash; choose data structure for given problem, progressive optimization) &rarr; system design (LLM-related but <em>not</em> inference-focused; they care about scale/data systems around the model) &rarr; hiring manager project presentation (will fail if you can't speak to high-throughput systems, even if your r&eacute;sum&eacute; clearly skews scientific). Self-service scheduling. Fast pipeline.</p>
+<p><strong>Recurring leaked tasks:</strong> "Design and implement a minimal LLM-powered RAG agent (Python, Mistral API)" &mdash; production-minded, 60&ndash;90 min live. "Reproducible local Python environment for a Mistral agent" &mdash; devops-flavored. "Responsible Use of AI Coding Assistants in a Live Coding Interview" &mdash; meta-question.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l2">Lane 2</span> Perplexity</h3>
+<p>HR call (very fast &mdash; within 3 business days of resume submission). Live coding (Python required &mdash; <em>do not</em> use Java, Go, or Rust). ML knowledge round (beam search, embeddings, inference optimization for AI Engineer; system reliability, debugging, data structures for SWE Infra). Onsite (virtual). Open discussion encouraged &mdash; "freedom to explore solutions, not boxed into a single 'correct' approach." Process is fast and the question bank is small. Backed by Bezos + NVIDIA, valuation &gt;$18B as of 2025.</p>
+<p>Recent leak: "Cache that stores key + time-series data, with delete operations restored as events; for timestamps, return nearest value" (Glassdoor Feb 2026). Curated Q's: RAG inference path optimization, beam search, embeddings, LLM evaluator design.</p>
+</div>
+</section>
+
+<!-- ===================== ROBOTICS ===================== -->
+<section class="section" id="robotics">
+<h2>Lane 3 &mdash; Robotics / Physical AI</h2>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Physical Intelligence (&pi; / Pi)</h3>
+<p><strong>No public interview process.</strong> Job posts via jobs.ashbyhq.com/physicalintelligence. Roles: Robotics Software Engineer, Controls Engineer, Forward Deployed Robotics Engineer, Lab Manager, Mechanical Lead. Founders Chelsea Finn, Karol Hausman, Brian Ichter, Sergey Levine, Quan Vuong, Adnan Esmail, Lachy Groom &mdash; all from Google Brain/DeepMind, Berkeley, Stripe. Hiring is via direct network and "always on the lookout for the exceptional."</p>
+
+<h5>Inferred Process</h5>
+<ul>
+<li>Application + resume + (often) reference from someone in their network.</li>
+<li>Recruiter &rarr; tech screen (likely C++/Python practical + ML/robotics fundamentals, multithreading common; they ship real-time systems on real robots).</li>
+<li>Research/project discussion (deep dive into your published or open work, expect to discuss VLA papers like &pi;<sub>0</sub>, &pi;<sub>0</sub>-FAST, &pi;<sub>0.5</sub> and Real-Time Action Chunking).</li>
+<li>System/research design ("design a training/inference stack for a VLA on hardware X with constraint Y").</li>
+<li>Live demo / take-home (likely fine-tune on openpi or similar; brace for "build a working thing that demonstrates physical-world thinking").</li>
+<li>Final-stage chat with Karol Hausman and/or Sergey Levine: vision for VLAs, why-&pi; specifically, your honest take on Tesla Optimus / Figure / 1X technical approaches.</li>
+</ul>
+
+<h5>What They Actually Look For</h5>
+<p>&pi;<sub>0</sub> paper depth (vision-language-action flow matching, 50Hz action chunks, cross-embodiment data). If you can articulate <strong>why &pi;<sub>0</sub> chose flow matching over autoregressive discretization for action tokens</strong>, you've done the homework. Real-Time Action Chunking under inference latency, sim-to-real for flow matching policies, action tokenization (FAST), data pipelines for 10K+ hours of robot data, normalization stat reload across embodiments, Knowledge Insulation (per &pi;<sub>0.5</sub>), scaling laws under sparse robot data.</p>
+
+<h5>Pre-Application Build</h5>
+<ul>
+<li>Public LeRobot / openpi PRs &mdash; <strong>a fork with a non-trivial contribution before applying. This is the equivalent of an Anthropic computer-use take-home for &pi;.</strong></li>
+<li>A demo video of you running &pi;<sub>0</sub> on novel hardware or a sim env.</li>
+<li>A written analysis comparing &pi;<sub>0</sub> / &pi;<sub>0.5</sub> / &pi;<sub>0</sub>-FAST that surfaces a non-obvious tradeoff.</li>
+<li>Send to Quan Vuong or Karol Hausman directly with a one-paragraph "exceptional work" pitch.</li>
+</ul>
+<p><strong>For your manufacturing AI / FactoryAI / VLA / robotics distributed systems background:</strong> This is among your strongest fits in the entire list.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Skild AI</h3>
+<p>Pittsburgh-based, founded 2023 by Deepak Pathak (CMU). $14B valuation (Jan 2026 raise). "Omni-bodied" in-context learning model. $30M revenue 2025; Foxconn + NVIDIA Blackwell deployment partnership announced. ~25 open positions. Roles: Research Scientist, Reinforcement Learning, Deep Learning for Manipulation, Robotics Engineer, Software Engineer (AI inference), Simulation Engineer, Physics Simulation Scientist.</p>
+
+<h5>Inferred Interview Structure</h5>
+<ul>
+<li>Tight, founder-led, similar to &pi; but with more commercial emphasis.</li>
+<li><strong>Live demo round likely</strong> &mdash; probably "use our Skild Brain SDK to make a robot do X" or "read our paper, identify a failure mode, propose a fix."</li>
+<li>Multi-form-factor robotics knowledge required (humanoids, quadrupeds, manipulators).</li>
+<li>Strong emphasis on data flywheel + sim-to-real.</li>
+<li>Phone screen heavy on RL fundamentals + C++/Python + manipulation/locomotion theory.</li>
+<li>Take-home likely involves Isaac Lab / MuJoCo / their internal sim &mdash; fine-tune a policy on a benchmark.</li>
+<li>Live coding for inference engineers will skew toward CUDA/TensorRT/ONNX optimization.</li>
+<li>Physics Simulation Scientist role specifically calls out GPU-accelerated algorithms + sim-to-real.</li>
+</ul>
+
+<h5>Build Before Applying</h5>
+<p>A 2-page critique of "in-context learning for cross-embodiment control" vs &pi;<sub>0</sub>'s flow-matching approach. Pathak's interviews (Davos 2026 with Alex Heath / <em>Sources</em>) reveal his philosophy. <strong>Asset to bring:</strong> Open-source RL/manipulation contributions (LeRobot, IsaacLab repos, RLBench leaderboard standings).</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Figure AI</h3>
+
+<h5>Brett Adcock's Hiring Philosophy</h5>
+<ul>
+<li>"Best athlete" team &mdash; DeepMind veterans, Boston Dynamics, Tesla, Apple. ~60 &rarr; 300 people across 2024&ndash;2026.</li>
+<li>"Hardcore" / extreme intensity. Adcock burned $1M/month self-funding to assemble first 40-person team.</li>
+<li>Vertical integration philosophy &mdash; they design motors, batteries, sensors, AI in-house. "Without that, you're at the mercy of some vendor."</li>
+<li>Fired OpenAI partnership: "We were just way better at this." Helix VLA model is Figure's own.</li>
+</ul>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>Recruiter &rarr; 15-min hiring manager &rarr; <strong>2.5-hr panel onsite</strong> with team members (some can be hostile &mdash; Glassdoor Aug 2025 reports Apple-ex interviewer "if one person says no, it's a no").</li>
+<li>Or alternative path: phone screen &rarr; tech with engineer &rarr; 3 behavioral.</li>
+<li>Strong hardware+software fluency expected &mdash; actuator/motor knowledge for robotics roles, "swap an uncalibrated motor and recalibrate" type problems for integration roles.</li>
+<li><strong>Helix AI / Helix Engineer</strong> roles: design multimodal autonomous agents for humanoids, ML-research-flavored.</li>
+<li>~13 days median.</li>
+<li><strong>Live demo culture:</strong> for Helix/AI roles, expect a video portfolio request &mdash; past robot demos, manipulation tasks you've trained.</li>
+<li>Possibly final round with Adcock himself for senior roles.</li>
+</ul>
+
+<h5>Production Reality &amp; Failure Modes</h5>
+<p>Scaling to 1 robot/hour now, target 1M/year. Engineers shipping vs researching is the differentiator. Distributed systems for fleet telemetry, OTA, training-data pipelines is hugely valued. <strong>Failure modes:</strong> reportedly hostile interviewers; generic ML answers without reference to Helix/their stack.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> 1X Technologies</h3>
+<p>Founded 2014, NEO humanoid for home use. Just released <strong>1X World Model</strong> (physics-based, video + prompts &rarr; new task learning). Customers preordered NEO Oct 2025. Moss, Norway HQ; new SF (Sunnyvale) office. US roles increasing in 2026.</p>
+
+<h5>Loop (Explicitly Published)</h5>
+<ol>
+<li>Introduction Stage &mdash; initial conversations.</li>
+<li><strong>Take-Home / Technical Test Stage</strong> &mdash; likely C++/Python real-time systems exercise.</li>
+<li>Team Interview Stage &mdash; depth dive + meet team members.</li>
+<li>Final / Decision Stage.</li>
+</ol>
+
+<h5>Tech Stack Signal</h5>
+<ul>
+<li>C++ in Linux, real-time programming, multithreading, OOP fundamentals, linear algebra, OS-level concepts.</li>
+<li>For Controls: rigid body dynamics, nonlinear systems, MPC, state estimation, system identification, learning-for-control.</li>
+<li>For RL Research Engineer: full-stack from data eng &rarr; model arch &rarr; product deployment, sim-to-real bridge with Controls/QA/Data teams.</li>
+<li><strong>Live demo / portfolio expectation:</strong> EVE/NEO videos, autonomous policies &mdash; they publish "all neural networks, all autonomous, no teleop, no cuts" &mdash; hire candidates who can demonstrate the same level of rigor in their own portfolio reels.</li>
+</ul>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Nimble Robotics</h3>
+<p>~108 employees, recently $1B valuation, $106M Series C. They already offered you in April. Best-documented robotics startup interview process (Glassdoor 67+ reports).</p>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>Recruiter call.</li>
+<li><strong>72-hour coding challenge #1</strong> &mdash; problem-solving + technical depth.</li>
+<li>3 interviews: technical intro, behavioral, coding.</li>
+<li><strong>72-hour coding challenge #2</strong> &mdash; deeper, real-world warehouse/logistics scenarios.</li>
+<li>Final rounds with Head of Talent (Mike Whitaker &mdash; heavily praised for sub-24hr feedback), hiring manager, GM, VP Ops, CEO.</li>
+<li>2&ndash;4 weeks total. ~70% positive Glassdoor experience (high for robotics).</li>
+</ul>
+<p>Real candidate quote (Apr 2025): "The challenges were quite difficult but very engaging &mdash; you learn a lot through them."</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Apptronik</h3>
+<p>Apollo humanoid, partnership with Google DeepMind on Gemini Robotics. "Apollo provides the muscles, and Gemini provides the brains" (Jack Sabey, Apptronik robotics engineer). Austin-based. ~$767M raised, $5B valuation. Currently under Apple/Google partnerships. DARPA Robotics Challenge pedigree. Mostly hardware-heavy roles; software roles in autonomy stack.</p>
+<p><strong>Process:</strong> Standard robotics startup loop &mdash; recruiter &rarr; hiring manager &rarr; 3&ndash;4 panel rounds with engineers. Public process opacity high; apply via referrals when possible. Network through DARPA Robotics Challenge alumni circle.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Agility Robotics</h3>
+<p>Founder Jonathan Hurst / commercial partnerships visible (Amazon warehouses). Standard pattern: phone screen &rarr; engineer panel &rarr; final with VP/CTO. Heavily focused on legged locomotion and warehouse logistics deployment (Digit). Read their published locomotion papers + Damion Shelton's recent talks before any chat.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Sanctuary AI</h3>
+<p>Smaller team, dexterous manipulation focus. Carbon (humanoid). Vancouver-based. Standard loop = panel + project discussion, heavier emphasis on manipulation research papers in deep-dive. Smaller signal pool than competitors.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Boston Dynamics AI Institute (BDAII)</h3>
+
+<h5>Loop Structure (Glassdoor 8 reports &mdash; only 12.5% positive)</h5>
+<ul>
+<li>Phone screen with recruiting coordinator.</li>
+<li>30-min presentation (your past project) with audience Q&amp;A.</li>
+<li>Tech review 1: theory (statics, controls math, ROS, pathfinding algorithms &mdash; "expect on-the-fly stats questions which is hard for non-recent grads").</li>
+<li>Coding review (live, often C++ pathfinding/ROS).</li>
+<li>Lunch / social.</li>
+<li>Tech review 2: senior staff, focused on past projects.</li>
+<li>Some applicants report ghosting after onsite. Hiring process averages 71 days &mdash; slowest in robotics by far.</li>
+</ul>
+
+<h5>Real Recent Leaked Question</h5>
+<p>"How would you use an LLM / diffusion policy to solve [all problems in robotics]?"</p>
+
+<h5>Failure Modes</h5>
+<p>Interviewers heavily textbook-question-driven; one reviewer said "ingenuity and successful experience are seen as lesser than answering their textbook question." Brush up classical robotics fundamentals (forward/inverse kinematics, control theory, SLAM math) <strong>even if your background is ML-heavy</strong>. Cambridge MA + Zurich. Heavy on legged locomotion. Diffuse-CLoC framework, Toyota Research partnership for Large Behavior Models. Read Marc Raibert's recent interviews + the Theia vision-foundation-model paper before applying.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> Tesla Optimus / Autopilot</h3>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>Recruiter + HM (Tesla's HM call comes <em>first</em>, before any technical &mdash; unusual for Big Tech).</li>
+<li>2&times; online coding rounds in <strong>C++</strong> (LeetCode-style, DSA + optimization). 85&ndash;90 min Codility/HackerRank OA (3 LC easy/medium).</li>
+<li>Technical phone screen on CoderPad/CodeSignal (~60 min, practical problem-solving).</li>
+<li>Onsite: 3&ndash;5 rounds &times; 45&ndash;60 min each &mdash; resume review (deep on past projects), applied robotics problem (decompose + propose solution), robotics math (linear algebra, calculus), toy problems, system design + behavioral.</li>
+<li><strong>"Evidence of Excellence" submission</strong> (recent 2025&ndash;2026 addition): 1&ndash;2 page written summary of your most significant technical achievement.</li>
+<li>Possibly <strong>final round with Elon Musk</strong> for senior roles, focused on past projects where you solved a problem.</li>
+<li>Frequent 5-round panels. ~15-day median for robotics roles.</li>
+</ul>
+
+<h5>Sample Leaked Take-Home (Tesla Autopilot)</h5>
+<blockquote style="border-left:3px solid var(--accent);padding-left:14px;color:var(--dim);font-size:13.5px;margin:10px 0">"Find the smallest distance for a Tesla car to drive from charging station 's' to 't' in a Tesla charging station network. Max range 320km. Each station has charging speed (km/hr). Output: starting station name, intermediate station names + charge times, destination station name."</blockquote>
+
+<h5>Cultural Fit &amp; Senior Roles</h5>
+<p>First-principles thinking, urgency-over-perfection, vertical-integration mindset. Behavioral Q's lean toward "describe a time you moved extremely fast under pressure" and "took ownership outside your job." Long-hours culture is real &mdash; be honest. <strong>Open Optimus roles include:</strong> C++ Generalist, Optimus Connectivity (LTE/5G/Wi-Fi/BT firmware-flavored), Factory Automation / Fleet Optimization (cloud + AMR + ASRS + Optimus integration on Reno NV / Sparks). For senior roles: distributed systems for fleet management (millions of vehicles, telemetry, OTA), real-time monitoring of global charger fleet, Autopilot training data pipelines.</p>
+</div>
+
+<div class="company-block">
+<h3><span class="lane l3">Lane 3</span> NVIDIA GEAR / Metropolis / Isaac</h3>
+<p><strong>GEAR Lab</strong> (Generalist Embodied Agent Research) &mdash; Jim Fan, Yuke Zhu, Linxi Fan. Foundation models for embodied agents. Heavy Isaac Lab / Isaac GR00T integration.</p>
+
+<h5>Loop Structure</h5>
+<ul>
+<li>Recruiter (20&ndash;30 min).</li>
+<li>Skills assessment (varies wildly by team):
+<ul>
+<li>Software/Systems: C++/Python algorithms, concurrency, memory mgmt, profiling, system design lite.</li>
+<li>AI/ML: math fundamentals, training/inference tradeoffs, CUDA acceleration, distributed training, paper discussion.</li>
+<li>Graphics/Rendering: shaders, GPU pipelines.</li>
+</ul>
+</li>
+<li>Onsite: 4&ndash;5 rounds combining technical depth + system/architecture.</li>
+<li>Behavioral interlaced.</li>
+<li><strong>Domain-specific deep dive</strong> &mdash; robotics imitation/RL, Isaac Sim/Lab, Cosmos, generative video/world models depending on team.</li>
+</ul>
+
+<h5>Real Interview Prompts</h5>
+<ul>
+<li>"Propose a reference workflow in Isaac Lab for dexterous bimanual manipulation and describe success metrics."</li>
+<li>"Design an evaluation for video diffusion where visual fidelity and latency conflict."</li>
+</ul>
+
+<h5>For Your VLA / FactoryAI Background</h5>
+<p>Build Isaac Lab forks, GR00T-N benchmark contributions, Cosmos Transfer-based synthetic data demos. Reference NVIDIA Mega Omniverse Blueprint in system design. Read Jim Fan's research output. Project presentation likely required at staff level. <strong>Bring published papers or tooling contributions to GR00T/Isaac open source.</strong> Read GTC 2026 announcements (March 16, 2026 &mdash; Isaac Lab 3.0, Newton 1.0, GR00T N1.7/N2 with DreamZero, Cosmos Reason).</p>
+</div>
+</section>
+
+<!-- ===================== LEETCODE PREP ===================== -->
+<section class="section" id="leetcode">
+<h2>LeetCode Strategy at Staff / Principal</h2>
+<p>The bar is <strong>speed and clean code</strong>, not contest medals. Interviewers want medium fluency in 18&ndash;22 minutes with bug-free code and articulated tradeoffs. The 2026 consensus is that volume is dead at your level. Pattern fluency + speed under pressure wins.</p>
+
+<h3>Ranked by ROI</h3>
+<ol>
+<li><strong>NeetCode 150</strong> (free; neetcode.io/practice/practice/neetcode150) &mdash; best ROI. Strict superset of Blind 75 + 75 expansion that fills the actual gaps (tries get 3 problems vs Blind's 1; intervals 4 vs 2; bit manip 3 vs 1; new math/geometry; Cheapest Flights Within K Stops to cover Bellman-Ford). Free video walkthroughs by Navi (ex-Google).</li>
+<li><strong>Meta-tagged top-50 last 6 months</strong> (LeetCode Premium) &mdash; <em>mandatory final pass before each onsite</em>. ~70% hit rate at Meta/Google within 6 months.</li>
+<li><strong>Sean Prashad LeetCode Patterns</strong> &mdash; pattern-organized list, slightly broader coverage than NeetCode 150.</li>
+<li><strong>Blind 75</strong> &mdash; only if &lt;3 weeks out. Otherwise too narrow.</li>
+<li><strong>NeetCode 250 / 450</strong> &mdash; only if you have 4+ months. Diminishing returns at Staff+ unless targeting Google L7 Senior Staff or you bombed a recent loop.</li>
+<li><strong>Grind 169 / Grind 75</strong> &mdash; redundant with NeetCode 150 (40&ndash;50 problems overlap).</li>
+</ol>
+
+<h3>Speed Targets at Staff/Principal</h3>
+<ul>
+<li><strong>LC Medium:</strong> 20 minutes including dry-run + complexity. Anything slower fails Meta/Amazon onsite.</li>
+<li><strong>LC Hard:</strong> 35 minutes. Solve in your head before coding. Then narrate.</li>
+<li><strong>"Practical engineering"</strong> (Anthropic/OpenAI style): 45&ndash;60 min because they're multi-stage. Practice on the leaked stems (in-memory KV &rarr; TTL &rarr; file compression &rarr; snapshots).</li>
+<li>Mock standard: 3 mediums + 1 hard / week minimum, ramping to 5/week in months 6&ndash;8.</li>
+</ul>
+
+<h3>Chinese-Forum Approach (1point3acres / Nowcoder)</h3>
+<p>Grind 1000+ problems across 6+ months with <strong>company-specific tagged sets</strong> as primary unit (not random). 1point3acres maintains live "company question banks" updated weekly &mdash; for xAI, OpenAI, Anthropic these are the highest-fidelity leak sources publicly available. <strong>Translate findings, don't try to grind 1000 problems yourself</strong> &mdash; the ROI at 14 YOE is in <em>recognizing</em> patterns from leaks, not grinding new ones.</p>
+<p>Sample 1point3acres aggregate for OpenAI: 766 &#38754;&#32463; (interview reports) / 38 &#24037;&#36164; (compensation) &mdash; most concentrated archive on the planet for OpenAI live questions. Anthropic 412 threads, OpenAI 866 threads, xAI 160 threads, all updated daily. Translate via DeepL or Claude.</p>
+
+<h3>Recommended Stack for Staff+</h3>
+<ul>
+<li>60% of time on <strong>company-tagged recent problems</strong> (LeetCode premium + 1point3acres + Nowcoder).</li>
+<li>25% on NeetCode 150 patterns you're rusty on.</li>
+<li>15% on practical-engineering style multi-stage problems (build-a-bank, build-a-spreadsheet, build-an-in-memory-DB).</li>
+</ul>
+
+<h3>Meta AI-Assisted Coding Round Practice Protocol</h3>
+<ol>
+<li>Get the practice CoderPad from your recruiter ("the puzzle"). Run it dry once with no AI. Run it once with AI. Diff.</li>
+<li>Practice multi-file refactoring with Cursor/Windsurf using Claude Haiku 3.5 as the model (matches in-pad).</li>
+<li>Build one prompt template you trust: "Generate just the core logic for a single function. I'll review before we extend."</li>
+<li><strong>Meta won't score you on prompt engineering. They will score you on time/space complexity awareness.</strong> Always state complexity, even when AI wrote the code.</li>
+<li>Practice the <strong>pipelining strategy</strong>: while AI generates, narrate to interviewer or review prior outputs. Don't sit idle.</li>
+</ol>
+<p>Volume target: 200&ndash;300 problems with deliberate practice; not 800 mindless ones. By month 4 you should be solving an unseen LC-Medium in 20 minutes consistently. If not, the rest of the plan is cosmetic.</p>
+</section>
+
+<!-- ===================== SYSTEM DESIGN ===================== -->
+<section class="section" id="sysdesign">
+<h2>System Design &mdash; Your Dominant Lever</h2>
+
+<h3>Hello Interview Delivery Framework (Stefan Mai / Evan King)</h3>
+<ol>
+<li><strong>Requirements</strong> (5 min) &mdash; functional + non-functional. Hard cap top 3 features. NF as a checklist (availability, scalability, security, durability, latency, consistency).</li>
+<li><strong>Skip estimations upfront</strong> &mdash; "I'll do math when it influences a design decision."</li>
+<li><strong>Core entities + APIs</strong> (5 min).</li>
+<li><strong>High-level diagram + data flow</strong> (10 min).</li>
+<li><strong>Schema + data store</strong> (5 min).</li>
+<li><strong>Deep dives</strong> &mdash; this is where Staff vs Senior is decided. 15&ndash;20 min.</li>
+</ol>
+
+<h3>Stefan Mai's 5 Keys for Staff-Level System Design</h3>
+<ol>
+<li>Don't over-explain basics. Talk to the interviewer like a more experienced peer.</li>
+<li>Solve simple flavors of problems simply. ("10,000 places, updated infrequently. Staff candidate: I'll just keep them in memory; geo-index isn't needed at this scale.")</li>
+<li>Identify the hard parts and gravitate there.</li>
+<li>Make decisions, don't list options. "Which one would <em>you</em> choose?"</li>
+<li>Bring real experience as evidence.</li>
+</ol>
+<p><strong>Stefan Mai's deep-dive method:</strong> Earmark, then return. "Maintaining fault-tolerance over these hour-long transactions is a bit tricky, I'll come back to this in a bit." Shortcut simple parts: "This is a pretty straightforward CRUD service, let's move on to the more interesting parts."</p>
+
+<h3>Ranked Resources</h3>
+<ol>
+<li><strong>Hello Interview Premium</strong> (hellointerview.com) &mdash; non-negotiable. Buy lifetime ($499 last sale). Stefan Mai's "Staff-Level System Design" blog post is the single most accurate description of what L7/E7 interviewers actually grade on in 2026. Premium gives company-specific question lists (Meta E6/E7, Amazon L7, OpenAI L5/L6, Google L7). Guided Practice with AI feedback is the closest thing to a real interviewer.</li>
+<li><strong>ByteByteGo</strong> (Alex Xu) &mdash; System Design Vol 1, Vol 2, and the new ML System Design book. Treat Vol 2 as drill material. Vol 1 = canonical patterns. Vol 2 = leaderboards, reservation systems, proximity services, payment systems, hotel booking &mdash; higher leverage at Staff because these resemble real onsite Q's.</li>
+<li><strong>Educative &mdash; Grokking the Advanced System Design Interview</strong> + <strong>Grokking the Generative AI System Design Interview</strong>. The GenAI one is mandatory for Anthropic / xAI / OpenAI loops.</li>
+<li><strong>"Designing Data-Intensive Applications" (Kleppmann)</strong> &mdash; re-read chapters 5 (replication), 6 (partitioning), 7 (transactions), 9 (consistency + consensus), 11 (stream processing). This is what bar raisers expect at L7. Skim Ch 1&ndash;4 and Ch 12.</li>
+<li><strong>Hello Interview's ML System Design course</strong> &mdash; newer, tighter than Educative's.</li>
+<li><strong>"System Design Interview &mdash; ML Systems"</strong> (Aminian / Xu) &mdash; for ML-design rounds at Meta, Google, Anthropic, xAI.</li>
+<li><strong>Jordan Has No Life</strong> (YouTube) and <strong>Gaurav Sen</strong> &mdash; for distributed systems intuition refreshes.</li>
+<li><strong>System Design Primer</strong> (donnemartin/system-design-primer) &mdash; still maintained as of 2025&ndash;2026. Free.</li>
+</ol>
+
+<h3>The 2026 Pattern Library to Drill</h3>
+<ul>
+<li><strong>Vector DBs:</strong> Pinecone, Weaviate, Milvus, pgvector. ANN indexes (HNSW vs IVF-PQ vs ScaNN); FAISS vs Pinecone vs Milvus vs Weaviate; sharding strategies; reranker tiers (BM25 &rarr; embeddings &rarr; cross-encoder).</li>
+<li><strong>LLM serving:</strong> continuous batching (vLLM, TGI), prefix caching, paged attention, speculative decoding, KV-cache offloading, request priority queues, streaming SSE, GPU memory partitioning, multi-LoRA serving.</li>
+<li><strong>Agentic systems:</strong> orchestrator patterns, tool-call stateful loops, deterministic vs nondeterministic execution, replay/audit logs, sandbox environments, computer-use-style screen-state diffing, MCP, ReAct.</li>
+<li><strong>Real-time ML feature stores:</strong> Feast, Tecton, online/offline parity, point-in-time correctness, fresh-feature ingestion latency, embedding refresh pipelines.</li>
+<li><strong>GPU resource management:</strong> dynamic batching, autoscaling cold-starts, region-aware GPU routing, model-parallel vs data-parallel vs pipeline-parallel.</li>
+<li><strong>RAG:</strong> chunking strategies (semantic vs fixed), hybrid retrieval (sparse + dense), inverse-propensity weighting on click logs, re-ranking, freshness windows, multi-tenancy, eval pipelines (Ragas, TruLens, faithfulness vs answer relevance).</li>
+<li><strong>Robotics-flavored systems:</strong> synthetic-data pipelines, sim-to-real eval frameworks, fleet orchestration (NVIDIA Mega/Isaac), Edge inference (Jetson Thor on-device), VLA training stacks.</li>
+</ul>
+</section>
+
+<!-- ===================== ML SYSTEM DESIGN ===================== -->
+<section class="section" id="ml-design">
+<h2>ML System Design</h2>
+
+<h3>Hello Interview ML System Design Framework</h3>
+<ol>
+<li>Clarify problem (5 min) &mdash; ambiguity is intentional.</li>
+<li><strong>Establish business objective</strong> &mdash; usually NOT the loss function. ("Detecting sensitive content" might be "minimize legal risk" OR "minimize unwanted exposures" &mdash; these are different systems.)</li>
+<li>ML objective from business objective.</li>
+<li>Data sources, labeling strategy.</li>
+<li>Architecture (model, embeddings, retrieval).</li>
+<li>Training pipeline (data &rarr; features &rarr; train &rarr; eval &rarr; deploy).</li>
+<li>Inference pipeline (online/offline, batching, caching).</li>
+<li>Eval metrics + A/B testing strategy.</li>
+<li>Online monitoring + drift detection.</li>
+</ol>
+
+<h3>Books, Ranked</h3>
+<ol>
+<li><strong>Aminian + Xu &mdash; Machine Learning System Design Interview.</strong> The book FAANG ML interviewers reference. ~10 detailed problem walkthroughs.</li>
+<li><strong>Aminian + Xu &mdash; Generative AI System Design Interview</strong> (newer companion). LLM serving, RAG, fine-tuning systems, agentic systems. <em>Highest ROI for Anthropic / OpenAI / xAI / Pi prep.</em></li>
+<li><strong>Chip Huyen &mdash; Designing Machine Learning Systems</strong> + her newer <strong>AI Engineering</strong>. Read DML systems Ch 4 (training data), Ch 5 (feature engineering), Ch 7 (model deployment), Ch 8 (data distribution shifts), Ch 9 (continual learning).</li>
+<li><strong>Stanford CS 25 / CS 224N</strong> lecture notes &mdash; for genuine depth on transformer internals and RLHF.</li>
+<li><strong>Eugene Yan's blog</strong> (eugeneyan.com) &mdash; practical ML system writeups that mirror real onsite questions.</li>
+<li><strong>applyingml.com</strong> &mdash; interviewing-aware case studies.</li>
+</ol>
+
+<h3>ML SD Patterns to Drill (Rank-Ordered by Hit-Rate at Frontier Labs)</h3>
+<ul>
+<li>LLM-powered enterprise search (NL &rarr; planner &rarr; vector retrieval &rarr; rerank &rarr; LLM with citations + hallucination eval) &mdash; OpenAI canonical.</li>
+<li>Fraud detection real-time pipeline (Kafka &rarr; feature store &rarr; model &rarr; feedback loop) &mdash; Databricks/Snowflake.</li>
+<li>Recommendation system at scale (two-tower, candidate gen + ranking, online eval, cold-start) &mdash; Meta/Google.</li>
+<li>Content moderation / safety classifier (label noise, multi-label, fairness eval, calibration) &mdash; Anthropic/OpenAI.</li>
+<li>Inference API for serving 1B+ docs with LLM in the loop &mdash; Anthropic verbatim asks this.</li>
+<li>Multi-tenant LLM serving with priority and isolation &mdash; frontier labs.</li>
+<li>A/B testing platform with sequential testing, CUPED &mdash; Google/Snowflake.</li>
+<li>Vector DB design from scratch &mdash; OpenAI documented Q.</li>
+<li>ML feature store with point-in-time correctness &mdash; Databricks/Snowflake.</li>
+<li>Robotics / VLA training infra at scale &mdash; &pi;, NVIDIA GEAR, Skild.</li>
+</ul>
+
+<h3>Anthropic / OpenAI / xAI ML Design Patterns to Drill Specifically</h3>
+<ul>
+<li>LLM inference batching (continuous batching, dynamic batching, request prioritization).</li>
+<li>GPU memory management + model loading state for routing.</li>
+<li>Multi-tenant inference: rate limiting per user, fairness scheduling.</li>
+<li>Streaming inference + partial token caching.</li>
+<li>Safety layer integration: pre-prompt moderation, post-generation filtering, Constitutional AI principles.</li>
+<li>RAG: hybrid sparse+dense retrieval, reranking, query rewriting, evaluation harness.</li>
+<li>Agent eval: trajectory grading, reward models, tool-call success rate, hallucination detection.</li>
+</ul>
+</section>
+
+<!-- ===================== BEHAVIORAL ===================== -->
+<section class="section" id="behavioral">
+<h2>Behavioral / Leadership at Staff+</h2>
+
+<h3>The 2026 Bar</h3>
+<ul>
+<li><strong>STAR is dead as a script, alive as a filter.</strong> Bar Raisers explicitly call this out. Build 12&ndash;15 stories using the <strong>"Narrative Arc" approach</strong>: situation, stakes (quantified, &ge;$1M or org-wide impact), your <em>specific</em> decisions, what you'd do differently. Practice answering in 90&ndash;120 seconds and waiting for follow-up probes.</li>
+<li><strong>L7 LP signal:</strong> "Are you helping the manager solve their problems?" "Are you operating in ambiguous areas?" "Are you disagreeing UP, not down/across?" "Have you mentioned &ge;$1M impact?"</li>
+<li><strong>Meta E7 cross-functional partnership round:</strong> Tested explicitly on conflict, influence without authority, multi-org alignment. Prepare three deep stories on partnership friction (FactoryAI &harr; ops, FactoryAI &harr; Amazon Robotics, you &harr; skip-level on prioritization).</li>
+<li><strong>Written portfolio / pre-read:</strong> Anthropic, OpenAI, and several robotics shops now ask for a 4&ndash;5 slide / 2-page pre-read of "your most significant project." <em>Build this artifact in May.</em> FactoryAI is your hero deck. Include the NVIDIA lighthouse callout, AWS blog link, 99%/95% metrics, sim-to-real architecture, GUI-Owl POC. One slide on tradeoffs you regret.</li>
+</ul>
+
+<h3>The Narrative Arc Method (Preferred Over STAR at Principal Level)</h3>
+<ol>
+<li><strong>Stakes</strong> &mdash; what was at risk? (Money, customer, org credibility.) Quantify in $M or engineer-years.</li>
+<li><strong>Tension</strong> &mdash; what made it hard? Multiple stakeholders, tech ambiguity, time, political.</li>
+<li><strong>Decision</strong> &mdash; <em>yours, specifically</em> (not the team's). What did you decide and why was it non-obvious?</li>
+<li><strong>Action</strong> &mdash; what you did, ruthlessly first-person.</li>
+<li><strong>Outcome</strong> &mdash; quantified.</li>
+<li><strong>Insight</strong> &mdash; what you'd do differently.</li>
+</ol>
+
+<h3>Story Bank (25 Stories Indexed by Theme)</h3>
+<p>Conflict (3), failure (3), influence-up (3), influence-cross (3), invent/simplify (3), customer obsession (3), think-big (3), hire/develop (2), data-driven (2), autonomy/judgment (2). Map to all 4 lanes' rubrics. Each story should be reusable across 4+ behavioral questions.</p>
+
+<h3>Amazon LP at L7 &mdash; Specific Overlays</h3>
+<ul>
+<li>Stories must show <strong>manager-of-managers-level scope</strong>. "Helping a manager solve the manager's problems."</li>
+<li>Disagreement must be <strong>across or up the chart</strong>, never down.</li>
+<li>Revenue/cost mentions must be &gt;$10M (under $1M is an instant negative).</li>
+<li>Have stories with explicit "I escalated to VP X because..." or "I proposed killing this project."</li>
+<li>Map every story to <strong>Earn Trust + Are Right A Lot + Have Backbone Disagree and Commit + Deliver Results</strong> as the "core four" L7 principles. Leverage Hire and Develop the Best heavily (Hello Interview's L7 guide explicitly emphasizes "helping the manager be out of the manager's job").</li>
+</ul>
+
+<h3>Meta Cross-Functional Partnership Round at E7</h3>
+<ul>
+<li>Past examples of partnering with PMs, Designers, Data Scientists, external orgs.</li>
+<li>Conflict resolution stories where you bridged different incentive structures.</li>
+<li>Show ability to bring data + customer-empathy + business savvy in the same answer.</li>
+<li>Two failure modes Meta E7 specifically grades against: (a) "I influenced my team" stories with no cross-org component; (b) "I told them what to do" stories with no nemawashi / consensus building. Lead through influence, not authority.</li>
+</ul>
+
+<h3>Google Googliness / L7 Leadership</h3>
+<ul>
+<li>Comfort with ambiguity (intellectual honesty: "Here's what I don't know").</li>
+<li>Influencing senior leaders who disagreed.</li>
+<li>Sequencing work across 5 teams with conflicting roadmaps.</li>
+<li>Speed-vs-quality tradeoffs at scale.</li>
+<li>Per L7 Blind threads: deliberately ambiguous prompts ("Google enters X market, decompose").</li>
+</ul>
+
+<h3>Anthropic Mission Fit</h3>
+<ul>
+<li>Read Anthropic's Core Views on AI Safety, Responsible Scaling Policy v2, recent Values in the Wild + Agentic Misalignment work, Constitutional AI paper, Alignment Faking + Sleeper Agents papers.</li>
+<li>Use Claude itself to <strong>debate</strong> these. Tell it your honest take and ask for the strongest counterargument.</li>
+<li>Have a <strong>specific, narrow</strong> AI-safety opinion you can defend ("the tension I find hardest is X &mdash; and I don't have a clean answer, but..."). End with acknowledged uncertainty.</li>
+<li>Have stories about <strong>prioritizing safety / quality over speed at real cost</strong>. "Times you made the slow but right call when the fast call was tempting."</li>
+<li>Have a story about <strong>escalating concerns up the chain</strong>.</li>
+<li>Have <strong>one specific disagreement</strong> with Anthropic ready (commercial-deployment-first tension with safety mission; closed weights vs open science; RSP threshold uncertainty). Honest dissent lands. Sycophancy fails.</li>
+<li>Be ready for "If Anthropic's stock became worthless, would you still work here?" (real question, May 2026 Blind).</li>
+</ul>
+
+<h3>xAI Culture-Fit</h3>
+<ul>
+<li>High-ownership, no-permission stories. "I noticed X was broken; I fixed it without being asked" &gt;&gt; "My manager assigned me X."</li>
+<li>Wear-many-hats stories.</li>
+<li>Specific projects you'd build at xAI and <em>why</em>. ("Why xAI" cannot be answered with "AGI is exciting." Must be specific to Grok / world models / SGLang / Colossus / coding agents.)</li>
+</ul>
+
+<h3>Books to Actually Read (Cover-to-Cover)</h3>
+<ol>
+<li><strong>Will Larson, "Staff Engineer: Leadership Beyond the Management Track"</strong> (staffeng.com). Short, dense, fixes how you talk about scope.</li>
+<li><strong>Tanya Reilly, "The Staff Engineer's Path"</strong> &mdash; complement to Larson; better on cross-org influence. The "be the glue" essay is the exact mindset Meta E7/Google L7 cross-functional rounds test.</li>
+<li><strong>Gergely Orosz, "The Software Engineer's Guidebook"</strong> &mdash; chapters on Staff/Principal expectations are the cleanest written.</li>
+<li><strong>"Crafting Engineering Strategy"</strong> (Larson, 2024) &mdash; useful for Anthropic / Google L7 strategy questions.</li>
+<li>Skim: <strong>"The Pragmatic Engineer Newsletter"</strong> archive on Staff/Principal hiring.</li>
+</ol>
+</section>
+
+<!-- ===================== CODING FLUENCY ===================== -->
+<section class="section" id="coding">
+<h2>Coding Fluency at Staff &mdash; Drills</h2>
+<ul>
+<li><strong>Meta-tagged top 50 last-6-months on LeetCode</strong> &mdash; primary. Drill until you can solve median in 18 min.</li>
+<li><strong>OpenAI/Anthropic practical-engineering bank:</strong> in-memory DB family, KV-with-snapshots family, banking/transactions family, web crawler with concurrency, spreadsheet-with-formulas. Build all of these from scratch end-to-end <strong>on a timer</strong>, multi-stage. The Anthropic CodeSignal 4-level format is now templated across the industry.</li>
+<li><strong>AI-assisted coding round drills:</strong> Set up CoderPad sandbox or local VSCode + Copilot. Practice the <strong>3 scenarios</strong>: (a) build a feature into existing structure, (b) extend partial implementation, (c) debug broken implementation. Use 60-min timer. <strong>Run tests after each stage</strong> and <strong>review every line the AI emits</strong>. Deliberately try the same prompt 3 times and compare outputs to internalize the model's failure modes.</li>
+<li><strong>The Pipelining Pattern (Meta's AI round):</strong> prompt AI for one chunk, then while it runs, narrate to interviewer / review prior code. Practice this synchronization out loud with a peer or mock.</li>
+<li><strong>The Verification Audit reframe (Q1 2026):</strong> instead of writing code from scratch, candidates increasingly receive AI-generated code with hidden flaws (memory leaks, wrong-API calls, security bugs) and must identify + fix them. Anthropic, Meta, and Google are all experimenting with this. <strong>Drill this skill</strong> &mdash; generate code with Claude/GPT, then deliberately introduce or find the bugs.</li>
+</ul>
+
+<h3>AI-Assisted Prep &mdash; The 2026 Unlock</h3>
+<ul>
+<li><strong>Claude (Opus 4.5 / Sonnet 4.5) in voice mode</strong> &mdash; practice ML system design out loud. Have it role-play an Anthropic Lead MTS interviewer. Prompt: "You are a senior staff engineer at Anthropic conducting a 60-minute system design interview. Ask me to design [X], probe my tradeoffs, push back on weak claims. Do not give me hints unless I explicitly ask."</li>
+<li><strong>ChatGPT Voice / Advanced Voice Mode</strong> &mdash; same drill, different style. OpenAI's interviewer bias is very coding-fluency-heavy; train against that.</li>
+<li><strong>Cursor + Claude Code agents</strong> &mdash; for the Anthropic/xAI take-home patterns where you build a small RAG/agent system in 4&ndash;8 hours.</li>
+<li><strong>Grok 4 + xAI Code</strong> &mdash; if interviewing at xAI, use their tooling so you speak the dialect.</li>
+<li><strong>Hello Interview AI Coding</strong> &mdash; built into Premium; mimics Meta's AI-assisted round.</li>
+</ul>
+</section>
+
+<!-- ===================== PORTFOLIO / PRE-READ ===================== -->
+<section class="section" id="portfolio">
+<h2>Portfolio / Pre-Read Prep (Frontier Labs &amp; Robotics)</h2>
+
+<h3>Real Examples That Work</h3>
+<ul>
+<li>For <strong>Anthropic</strong>: a public blog post + small open-source project demonstrating you've used the API for something non-trivial (not a chat wrapper). Best examples: agent eval harnesses, Constitutional AI variants on small open models, mech-interp probes. ~50% of technical staff come from non-ML backgrounds &mdash; <strong>project depth &gt; pedigree</strong>.</li>
+<li>For <strong>xAI</strong>: Grok-related work, fine-tunes of open-weight models, contributions to inference frameworks (vLLM, SGLang). Demonstrate you can ship on aggressive timelines.</li>
+<li>For <strong>OpenAI</strong>: 4&ndash;5 slide technical project presentation. Format is canonical: problem &rarr; approach &rarr; tradeoffs &rarr; impact (with numbers) &rarr; lessons. Practice it 5+ times on video.</li>
+<li>For <strong>Physical Intelligence</strong>: published paper or open-source contribution to openpi or LeRobot. Bring a fork with a non-trivial commit history. Discuss &pi;<sub>0</sub> / &pi;<sub>0</sub>-FAST / &pi;<sub>0.5</sub> / RTC technical decisions.</li>
+<li>For <strong>Figure / 1X / Tesla Optimus</strong>: video reel of robotics demos you've personally built or led. Even sim demos count. Demonstrate the "all neural, all autonomous, no teleop, no cuts" rigor in your own work.</li>
+<li>For <strong>NVIDIA GEAR</strong>: Isaac Lab / Newton physics / GR00T contributions.</li>
+</ul>
+
+<h3>Pre-Build Time Budget by Company</h3>
+<table>
+<thead><tr><th>Company</th><th>Build Before Applying</th><th>Time</th></tr></thead>
+<tbody>
+<tr><td><strong>Anthropic (Computer Use)</strong></td><td>Forked Claude Computer Use repo + 1 real task. 60&ndash;90s demo video. Writeup with safety considerations.</td><td>~20 hrs</td></tr>
+<tr><td><strong>Anthropic (Applied AI)</strong></td><td>RAG demo with hybrid search, eval harness, blog post on a non-obvious tradeoff.</td><td>~15 hrs</td></tr>
+<tr><td><strong>Anthropic Performance Eng</strong></td><td>GPU kernel mini-project (e.g., flash-attention variant). PR to vLLM or SGLang.</td><td>~25 hrs</td></tr>
+<tr><td><strong>xAI</strong></td><td>"Statement of exceptional work" doc (300 words). Tool-use agent demo using Grok API. SGLang OSS contribution.</td><td>~15 hrs</td></tr>
+<tr><td><strong>OpenAI</strong></td><td>4&ndash;5 slide presentation on past significant work. One project or paper deep-link.</td><td>~10 hrs</td></tr>
+<tr><td><strong>&pi; (Physical Intelligence)</strong></td><td>LeRobot or openpi PR. Demo video extending &pi;<sub>0</sub> to a new task or hardware. 2-page critique comparing &pi;<sub>0</sub> / &pi;<sub>0.5</sub> / &pi;<sub>0</sub>-FAST.</td><td>~30 hrs</td></tr>
+<tr><td><strong>Figure / 1X / Skild</strong></td><td>Demo video on real or sim hardware showing dexterity or sim-to-real. Writeup on data flywheel design.</td><td>~25 hrs</td></tr>
+<tr><td><strong>Nimble Robotics</strong></td><td>(No prebuild needed &mdash; they give 2&times; 72-hr challenges.) Polish manufacturing-AI portfolio.</td><td>&mdash;</td></tr>
+<tr><td><strong>Tesla Optimus</strong></td><td>"Evidence of Excellence" 1&ndash;2 pager. C++/embedded systems sample if Autopilot.</td><td>~5 hrs</td></tr>
+<tr><td><strong>NVIDIA GEAR</strong></td><td>Isaac Lab demo + GR00T-N benchmark contribution. Cosmos Transfer synthetic-data demo.</td><td>~25 hrs</td></tr>
+</tbody>
+</table>
+<p><strong>Total prebuild investment: ~150&ndash;200 hours, spread across months 4&ndash;5. This is the highest-leverage 4 weeks of the entire 12-month plan.</strong></p>
+
+<h3>The xAI "Statement of Exceptional Work"</h3>
+<p>200&ndash;300 words. Pattern: "I [solved a problem widely considered unfeasible / debugged a mission-critical issue under impossible deadline / turned around a failing project]." Lead with the problem, not the role. Iterate 5+ times.</p>
+</section>
+
+<!-- ===================== TAKE-HOME PATTERNS ===================== -->
+<section class="section" id="takehomes">
+<h2>Take-Home Patterns (Recent 2025&ndash;2026)</h2>
+<ul>
+<li><strong>Anthropic Computer Use take-home (5 hours):</strong> "Here's API access, build something interesting." Pattern: a small agentic loop, browser-tool use, eval harness. Submit a runnable repo + 2-page writeup. Wide scoring distribution; depth matters more than completion. Strong candidates don't finish everything. Their published philosophy (anthropic.com/engineering/AI-resistant-technical-evaluations, Nov 2025): designed so even strong candidates don't finish, AI explicitly allowed only when stated.</li>
+<li><strong>Anthropic Performance Engineer:</strong> 2-hour timed GPU kernel optimization with AI tools allowed. ~8&times; perf improvement target.</li>
+<li><strong>xAI project deep-dive:</strong> Bring one of your <em>own</em> exceptional projects, prep a 25-min walkthrough.</li>
+<li><strong>xAI research-style take-homes:</strong> short timebox (2&ndash;4 hr), one experiment with curves + writeup. Treat like a mini-paper. Bring a hypothesis, not just an implementation. Recent leaked tasks: tokenizer variant + benchmark, simple inference engine implementation, custom CUDA kernel for attention variant.</li>
+<li><strong>OpenAI:</strong> 4-hr HackerRank-style. Open-ended; assumptions matter as much as code. Recent patterns: small in-memory DB with serialization, multi-threaded web crawler, refactor-bad-code task.</li>
+<li><strong>Robotics demo videos (&pi;, Figure, Skild):</strong> Short (60&ndash;90s) videos of you running a baseline policy on real or sim hardware, with commentary on a non-obvious failure mode.</li>
+<li><strong>Tesla "Evidence of Excellence":</strong> 1&ndash;2 pages, written, on most significant technical achievement.</li>
+<li><strong>Mistral RAG agent:</strong> Build a minimal LLM-powered RAG agent in Python with the Mistral API. Reproducibility is graded.</li>
+<li><strong>Nimble Robotics:</strong> Two 72-hr coding challenges in process. Real-world warehouse/logistics scenarios.</li>
+</ul>
+</section>
+
+<!-- ===================== 2026 INTERVIEW META ===================== -->
+<section class="section" id="meta-shifts">
+<h2>2026 Interview Meta &mdash; What Changed (Drill Specifically)</h2>
+<ol>
+<li><strong>Meta AI-assisted coding round</strong> &mdash; single biggest structural shift. At E7, you will only get one coding round and it WILL be the AI-assisted format. Practice in CoderPad + Cursor with Claude Haiku 3.5 + multi-file projects. Master the pipelining strategy. Drill the 3 scenarios (build feature / extend partial / debug broken).</li>
+<li><strong>Anthropic Computer Use take-home</strong> &mdash; 5-hour async task. Build a Computer Use demo <em>before</em> applying.</li>
+<li><strong>Anthropic CodeSignal 4-level practical</strong> &mdash; banking / KV-DB / web-crawler / cache extension are public. Drill all 4 patterns.</li>
+<li><strong>xAI "statement of exceptional work"</strong> &mdash; application gate. Spend more time on this than your CV.</li>
+<li><strong>xAI / OpenAI / &pi; project deep-dive presentation</strong> &mdash; separate prep track. 25-min walkthrough.</li>
+<li><strong>Robotics live demos (&pi;, Figure, Skild, 1X)</strong> &mdash; record and host short demo videos as portfolio.</li>
+<li><strong>Tesla "Evidence of Excellence"</strong> submission for senior roles.</li>
+<li><strong>Personal portfolio / pre-read documents at frontier labs</strong> &mdash; ~50% of the signal at Anthropic / xAI.</li>
+<li><strong>Reference checks earlier in the loop</strong> at Anthropic and Databricks. Pre-brief 5 references.</li>
+<li><strong>Down-leveling pressure.</strong> Companies aggressively offer Senior to Staff candidates. <strong>You must be 1 level above target.</strong> Aim for Senior Staff signal to land Staff/Principal. Distinguished signal to land Principal.</li>
+<li><strong>The "verification audit" reframe.</strong> Instead of writing code from scratch, candidates increasingly receive AI-generated code with hidden flaws and must identify + fix them. Anthropic, Meta, and Google all experimenting with this.</li>
+<li><strong>OpenAI move toward harder live coding.</strong> 2/4 or low-3/4 on coding fails the loop even if everything else is strong. The system design and project presentation cannot save you anymore. Don't allocate 50/50 SD/coding at this level &mdash; go 60% coding given the bar.</li>
+</ol>
+</section>
+
+<!-- ===================== MOCK STRATEGY ===================== -->
+<section class="section" id="mocks">
+<h2>Ranked Mock Interview Strategy</h2>
+<p><strong>Total mock budget recommendation: 30&ndash;40 mocks across 12 months. Concentrate in months 6&ndash;8.</strong></p>
+
+<h3>Cadence</h3>
+<ul>
+<li><strong>Foundational phase</strong> (pattern fluency / framework learning): No mocks. Just drills.</li>
+<li><strong>Mid-prep:</strong> 1 mock/week with peer (Pramp, free) + 1 paid mock every 2 weeks.</li>
+<li><strong>Active onsite phase</strong> (within 4 weeks of an onsite): 2&ndash;3 mocks/week, every type the loop will include. Always company-specific coach when possible.</li>
+</ul>
+
+<h3>Tier 1 &mdash; System Design (Hello Interview Premium)</h3>
+<ul>
+<li>Best system-design mock platform as of 2026. Co-founders <strong>Stefan Mai</strong> (ex-senior eng manager Meta + ex-Amazon SDM, 1000+ interviews) and <strong>Evan King</strong> (former Meta Staff). Their Delivery Framework + Staff-level guide are now industry default.</li>
+<li><strong>Coaches to specifically book:</strong> ex-Meta Staff Engineers / Tech Leads for E7 prep; OpenAI MTS coach (focus: infrastructure, large-scale distributed systems, frontier model training); Google Senior Staff with Hiring Committee experience; Amazon Sr Engineer infra core systems with Bar Raiser track record; Meta ML hiring committee lead.</li>
+<li>Recommended: <strong>6&ndash;8 sessions</strong> spread across months 5&ndash;8. ~$200&ndash;400/session for premium coaches.</li>
+<li>Premium subscription unlocks the Deep Dives (Redis, Kafka, vector DBs, DynamoDB, Postgres internals) &mdash; read these before booking.</li>
+</ul>
+
+<h3>Tier 2 &mdash; Behavioral / Bar Raiser (IGotAnOffer)</h3>
+<ul>
+<li>FAANG Coaches with Amazon Bar Raisers specifically (50+ candidates coached, dozens of LP interviews analyzed; consulted Ethan Evans, ex-Amazon VP).</li>
+<li>Generally cheaper than Hello Interview for the same coaches.</li>
+<li>Recommended: <strong>3&ndash;4 sessions</strong> for Amazon LP prep, <strong>2 sessions</strong> for Meta cross-functional/leadership prep.</li>
+</ul>
+
+<h3>Tier 3 &mdash; Coding (interviewing.io)</h3>
+<ul>
+<li>Anonymous mocks with real FAANG interviewers. Aline Lerner's platform, 100K+ mocks hosted.</li>
+<li>Especially good for Meta-tagged coding pace, AI-assisted coding round prep.</li>
+<li>Their company-specific guides (Anthropic, OpenAI, Databricks, Snowflake, Meta, Amazon) are research-quality and updated quarterly. Read each one for your target companies cover-to-cover.</li>
+<li>Use them for <strong>Amazon LP mock interviews specifically</strong> &mdash; ~500+ Amazon behavioral mocks corpus.</li>
+<li>Recommended: <strong>5&ndash;6 sessions</strong> during months 6&ndash;8.</li>
+</ul>
+
+<h3>Tier 4 &mdash; Exponent</h3>
+<ul>
+<li>Strong FAANG-coach hourly sessions + Amazon LP guide updated 2026 (verified by 6 Bar Raisers).</li>
+<li>Pricing similar to Hello Interview; weaker bench at Staff+ vs Hello Interview but broader role coverage.</li>
+<li>Best for: behavioral mocks, Amazon LP, EM mocks if considering hybrid IC/EM roles.</li>
+<li>Recommended: <strong>2 sessions</strong> for Google L7 / Microsoft L65.</li>
+</ul>
+
+<h3>Tier 5 &mdash; Prepfully (Back-Channel Access)</h3>
+<ul>
+<li>Lets you book current employees of target companies. Snowflake current engineers, Anthropic/OpenAI engineers, Meta engineers actively conducting real interviews.</li>
+<li>Best use case: <strong>buy 1&ndash;2 sessions with current target-company engineers immediately before onsite</strong> for the latest internal rubric updates.</li>
+<li>Their Meta AI-assisted coding guide is excellent. Snowflake and Databricks guides are excellent.</li>
+<li>Recommended: <strong>2&ndash;3 sessions</strong> specifically for back-channel / company-specific intel.</li>
+</ul>
+
+<h3>Tier 6 &mdash; Pramp (Free Peer Practice)</h3>
+<ul>
+<li>Use exclusively for <strong>DSA pattern reinforcement and verbal narration practice</strong>. Quality varies wildly. Don't use for system design at Staff level &mdash; peers can't calibrate you.</li>
+<li>Recommended: <strong>8&ndash;10 sessions</strong> in months 1&ndash;3 to build base muscle without spending.</li>
+</ul>
+
+<h3>Sequence (Recommended Cadence)</h3>
+<table>
+<thead><tr><th>Month</th><th>Pramp</th><th>interviewing.io</th><th>Hello Interview</th><th>IGotAnOffer</th><th>Prepfully</th></tr></thead>
+<tbody>
+<tr><td>1&ndash;3</td><td>6 (free)</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>4</td><td>2</td><td>2</td><td>1</td><td>1</td><td>&mdash;</td></tr>
+<tr><td>5</td><td>&mdash;</td><td>2</td><td>2</td><td>1</td><td>&mdash;</td></tr>
+<tr><td>6</td><td>&mdash;</td><td>2</td><td>2</td><td>2</td><td>1</td></tr>
+<tr><td>7</td><td>&mdash;</td><td>2</td><td>2</td><td>2</td><td>1</td></tr>
+<tr><td>8</td><td>&mdash;</td><td>2</td><td>1</td><td>1</td><td>1</td></tr>
+</tbody>
+</table>
+<p>Total: ~36 sessions. Budget roughly $4&ndash;6K all-in (variable by coach pricing).</p>
+
+<h3>Strategy Summary</h3>
+<ul>
+<li><strong>Behavioral / LP:</strong> book interviewing.io or Exponent 3 weeks before onsite, then again 1 week before.</li>
+<li><strong>System design:</strong> book Hello Interview Premium (Stefan Mai or filter for Staff+ Meta/Amazon coaches) starting 6 weeks out, every 1&ndash;2 weeks until onsite.</li>
+<li><strong>ML system design:</strong> book Hello Interview ML coaches (Evan King + ML coaches) &mdash; ML SD coverage is sparser elsewhere.</li>
+<li><strong>Coding (esp. Meta AI-assisted):</strong> book a Meta-current engineer via Prepfully back-channel within 1 week of onsite. They'll have the freshest CoderPad practice link details.</li>
+<li><strong>Frontier-lab specific:</strong> Anthropic / OpenAI / xAI mocks are sparse. Best leverage: write your own version of the leaked Anthropic CodeSignal multi-stage problem and time yourself.</li>
+</ul>
+</section>
+
+<!-- ===================== RECRUITER CHANNELS ===================== -->
+<section class="section" id="channels">
+<h2>Recruiter Outreach Channels (2026 Reply Rate Ranked)</h2>
+<ol>
+<li><strong>Direct LinkedIn DM to internal recruiters at target companies</strong> &mdash; best-in-class reply rate for your profile. Search "[Company] technical recruiter" or "[Company] sourcer" + "AI" or "robotics." Personalize: 3 sentences max, lead with the FactoryAI metrics + lighthouse callout.</li>
+<li><strong>X/Twitter DMs to founders / hiring managers</strong> &mdash; extremely high signal for robotics startups (Pi, 1X, Skild). Founders read DMs. Recruiters at startups don't always.</li>
+<li><strong>Cold email to founders / VPEs</strong> &mdash; second-tier; works at Anthropic and at smaller labs. Use hunter.io / clearbit to find addresses.</li>
+<li><strong>Internal referrals</strong> &mdash; strongest possible signal at OpenAI, Anthropic, Google, Meta. <em>Map your network now.</em> Ex-VMware &rarr; Anthropic/OpenAI ex-VMware engineers; Ex-Altera &rarr; Google/Nvidia silicon people; Amazon network &rarr; Bedrock, AGI Lab.</li>
+</ol>
+
+<h3>Recruiter Platforms (2026 Status)</h3>
+<ul>
+<li><strong>Triplebyte is dead.</strong> Defunct since 2023.</li>
+<li><strong>Karat</strong> &mdash; proxy interview platform; some companies (Indeed, Wayfair, Roblox) use them for screens. Avoid asking for one; not at your level.</li>
+<li><strong>CoderPad / HackerRank screens</strong> &mdash; common at every Big Tech now; at L7 it's usually skipped or replaced with a hiring-manager chat.</li>
+<li><strong>Pallet, Paraform, Hatchpad</strong> &mdash; newer talent marketplaces. Worth profiles; reply rate moderate.</li>
+<li><strong>A.Team</strong> &mdash; fractional Principal engagements; useful for startup discovery.</li>
+<li><strong>Otta / Welcome to the Jungle</strong> &mdash; actually decent for AI startups in 2026.</li>
+<li><strong>Hired.com, Built In, Remote.com</strong> &mdash; skip; below your level.</li>
+</ul>
+</section>
+
+<!-- ===================== REFERRALS / EXEC SEARCH ===================== -->
+<section class="section" id="referrals">
+<h2>Internal Referral Programs &amp; Exec Recruiters</h2>
+
+<h3>Referral Bonuses Paying $20K+ at Staff IC</h3>
+<ul>
+<li><strong>Anthropic</strong> &mdash; reportedly <strong>$25K&ndash;$30K</strong> for senior eng hires. Explicitly leverage your network.</li>
+<li><strong>OpenAI</strong> &mdash; $20K&ndash;$25K range.</li>
+<li><strong>Google</strong> &mdash; $4K standard, but L7+ external referral bonuses run $10&ndash;20K via "Director Discretionary" programs.</li>
+<li><strong>Meta</strong> &mdash; $8K base; senior referrals via specific programs go to $15&ndash;20K.</li>
+<li><strong>Stripe</strong> &mdash; $10K+ for senior eng (relevant if you ever pivot to fintech-AI).</li>
+<li><strong>Robotics startups</strong> &mdash; usually $15&ndash;25K for Staff hires; some founders pay $50K+ informally for top-tier roles.</li>
+</ul>
+<p><strong>The Nirty-specific play:</strong> identify 1&ndash;2 people inside each target company before applying cold. Offer them the referral bonus split if it helps grease the wheels (ethical at most companies; check terms).</p>
+
+<h3>Exec Recruiters Working Principal IC Searches</h3>
+<p>Most place at the VP/CTO level, but they DO have Principal IC mandates, especially at well-funded robotics/AI startups:</p>
+<ol>
+<li><strong>Riviera Partners</strong> (rivierapartners.com) &mdash; largest tech-focused exec search firm. SF-based. Recently restructured with a "Paragon" division focused on individual contributor at scale. Specifically reach: <strong>E&oacute;in O'Toole</strong> (Managing Partner, venture-backed practice), <strong>Austin Douglas</strong> (Partner, growth-stage VPE/CTO), <strong>Lindsay Baker-Meline</strong> (Principal). Email is firstname.lastname@rivierapartners.com.</li>
+<li><strong>True Search</strong> (truesearch.com) &mdash; broad tech exec search.</li>
+<li><strong>Daversa Partners</strong> &mdash; strong in NYC + early-stage; less Bay Area.</li>
+<li><strong>Quantum Search Partners</strong> &mdash; niche AI/ML focus; place at Anthropic, &pi;, others.</li>
+<li><strong>ON Partners</strong> &mdash; mid-tier.</li>
+<li><strong>Heidrick &amp; Struggles (Tech Officers Practice)</strong> &mdash; only useful at VPE+ level.</li>
+<li><strong>Caldwell Partners, Spencer Stuart</strong> &mdash; late-stage / public co-only.</li>
+</ol>
+<div class="callout warn">
+<p><strong>The honest truth:</strong> at Principal IC, exec recruiters are <em>not</em> your highest-yield channel. Use them as a side bet. The yield comes from internal recruiters + founder DMs + warm referrals.</p>
+</div>
+</section>
+
+<!-- ===================== PERSONAL BRAND ===================== -->
+<section class="section" id="brand">
+<h2>Personal Brand for Inbound</h2>
+<p>Inbound at Staff/Principal in 2026 is meaningfully driven by:</p>
+<ul>
+<li>A pinned X post showing a demo or strong technical thread (e.g., "How we got 99% defect detection at Amazon: a thread")</li>
+<li>A personal site with 3&ndash;5 substantive technical posts and your speaking history</li>
+<li>A GitHub profile with the merged OSS PRs visible</li>
+<li>A LinkedIn headline that says something other than "Senior SDE at Amazon" &mdash; try "Lead, FactoryAI @ Amazon | Manufacturing autonomy, VLA models, ML infra"</li>
+</ul>
+<div class="callout tip">
+<p><strong>Update your LinkedIn this weekend.</strong> Add NVIDIA lighthouse callout, AWS blog link, the 99% / 95% metrics. Switch on "Open to work" privately (recruiters-only).</p>
+</div>
+<div class="callout tip">
+<p><strong>This week's actions (channels).</strong> Identify 5 internal contacts each at: Anthropic, Google DeepMind, &pi;, Figure, xAI, Skild. Reach out to 2 this week with a casual ping ("interested in your team, can we chat?"). Update LinkedIn + resume with the FactoryAI hero bullets. DM 1 founder (Karol Hausman or Brett Adcock or Bernt B&oslash;rnich) on X this week. Email E&oacute;in O'Toole at Riviera with a one-page summary.</p>
+</div>
+</section>
+
+<!-- ===================== 12-MONTH PLAN ===================== -->
+<section class="section" id="plan-12mo">
+<h2>The 12-Month Sequenced Plan</h2>
+
+<h3>Default Operating Cadence</h3>
+<ul>
+<li><strong>Mornings (6&ndash;8am):</strong> prep work (LeetCode, system design, mocks). Non-negotiable; before kids/work.</li>
+<li><strong>Lunch (12&ndash;1pm):</strong> writing / OSS / demo work (3 days/week).</li>
+<li><strong>Evenings (8&ndash;9:30pm):</strong> networking, applications, recruiter calls.</li>
+<li><strong>Weekends:</strong> 4 hours Saturday on long-form content / OSS / demos.</li>
+</ul>
+<p>Total external-search load: ~12&ndash;18 hrs/week through Month 6, ramping to ~25 hrs/week through Months 7&ndash;10 when interview loops are live.</p>
+
+<div class="month-card">
+<h4>MONTH 1 (May 2026) &mdash; FOUNDATION. NO APPLICATIONS YET.</h4>
+<p><strong>Prep:</strong> NeetCode 250 &mdash; finish Arrays, Hashing, Two Pointers, Sliding Window, Stack (~50 problems). Hello Interview "System Design In a Hurry" cover-to-cover. Read Stefan Mai's Staff-level blog post 3&times;. DDIA reread Ch 1&ndash;5. Behavioral: build the "FactoryAI hero deck" pre-read (5 slides). Read Anthropic Core Views, OpenAI Charter, &pi;<sub>0</sub> paper, Helix paper, Skild Brain announcement. Take notes. Write 5 LP/behavioral stories using Narrative Arc.</p>
+<p><strong>Networking:</strong> Update LinkedIn + resume. Identify 30 target companies &times; roles spreadsheet. Reach out to 10 weak-tie ex-Amazon/VMware/Altera contacts.</p>
+<p><strong>Asset-building:</strong> Stand up <code>nirty.dev</code>. Begin GUI-Owl Fire-tablet demo video. Push trivial PR to LeRobot for contributor badge.</p>
+<p><strong>Mocks:</strong> 0. You are not ready.</p>
+<p><strong>Amazon hygiene:</strong> Continue executing on FactoryAI. Volunteer for one high-visibility horizontal effort to bank a "Deliver Results at scale" story for Y2 promo packet &mdash; covers you whether you stay or leave.</p>
+</div>
+
+<div class="month-card">
+<h4>MONTH 2 (June 2026) &mdash; DEEP PREP</h4>
+<p><strong>Prep:</strong> NeetCode 250 &mdash; Binary Search, Linked Lists, Trees (~50 more). 5 Hello Interview problem breakdowns end-to-end (URL shortener, Twitter feed, distributed cache, leaderboard, vector DB serving). Practice writing diagrams on whiteboard at home. Educative Grokking GenAI System Design first half. Aminian/Xu ML book ch 1&ndash;4. Write 8 Narrative Arc stories. Use Claude to interview-stress-test them.</p>
+<p><strong>Networking:</strong> 15 outreach DMs/emails. Aim: 3 informational chats. Set up a call with E&oacute;in O'Toole (Riviera).</p>
+<p><strong>Asset-building:</strong> Substack post #1 published (something safe and non-controversial like "lessons from manufacturing AI" &mdash; manager-safe). GUI-Owl demo video shot, edited. First substantive LeRobot PR opened.</p>
+<p><strong>Mocks:</strong> 1 system design mock with Hello Interview ex-Meta E7 coach. Mid-month. Calibration only.</p>
+</div>
+
+<div class="month-card">
+<h4>MONTH 3 (July 2026) &mdash; RAMP</h4>
+<p><strong>Prep:</strong> NeetCode 250 &mdash; Tries, Heaps, Backtracking, Graphs Part 1 (~50 problems). 8 more system design problems (Uber, Netflix, S3-like, Kafka, Bedrock-like inference platform, RAG system, agent orchestrator, real-time ML feature store). Educative GenAI second half. Aminian/Xu Generative AI System Design Interview &mdash; full read. DDIA chapters 5, 6, 7, 9, 11.</p>
+<p><strong>Networking:</strong> DM Karol Hausman (&pi;) and 2 other founders on X. 4 informational chats with people inside Anthropic, &pi;, DeepMind, xAI.</p>
+<p><strong>Asset-building:</strong> <strong>Publish GUI-Owl demo video.</strong> Coordinated push: X thread, LinkedIn long-post, YouTube, /r/robotics, Hacker News. Substack post #2. LeRobot PR merged. Begin openpi PR.</p>
+<p><strong>Mocks:</strong> 2 system design + 1 behavioral mock.</p>
+<p><strong>Amazon hygiene:</strong> Lock in Y2 promo packet content. Get manager 1:1 commitment to support an L7 promo discussion (even if you have no intent to take it &mdash; keeps you protected).</p>
+</div>
+
+<div class="month-card">
+<h4>MONTH 4 (August 2026) &mdash; FIRST APPLICATIONS / ASSET BUILDING</h4>
+<p><strong>Prep:</strong> NeetCode 250 &mdash; finish Graphs, DP (~50 problems). Coding speed: Medium in 20 min, Hard in 35 min. If not, spend an extra week here. 5 robotics/ML-specific designs (training pipeline, model serving, eval infra, data engine for VLA, agent system w/ tools). Meta-tagged top-50 LC last 6 months &mdash; 1st pass.</p>
+<p><strong>OSS:</strong> Build OSS contribution. Pick ONE of: LeRobot fork w/ a real task, openpi extension, vLLM perf improvement, Isaac Lab demo, SGLang feature. Ship a PR.</p>
+<p><strong>Applications open &mdash; TIER B / WARM-UP loops only:</strong> Microsoft Principal (lower stakes, conversion is easy, generates real-time data on your bar). Snowflake / Databricks Principal. Skild AI (warm-up against a top robotics co; offer here is great leverage). One unfunded curiosity loop like Cohere or Perplexity.</p>
+<p><strong>Networking:</strong> Recruiter intros at all Tier S targets but politely defer interview scheduling to October: "I'd love to engage; can we line up loops for late September / early October?"</p>
+<p><strong>Mocks:</strong> 3 system design + 1 behavioral.</p>
+<p><strong>Amazon hygiene:</strong> Stay completely heads-down on FactoryAI deliverables for the quarter. Don't touch Amazon laptop with any external prep. Use personal devices, personal Wi-Fi.</p>
+</div>
+
+<div class="month-card">
+<h4>MONTH 5 (September 2026) &mdash; FIRST OFFERS / ASSET #2</h4>
+<p><strong>Prep:</strong> Maintenance LeetCode (1&ndash;2/day). Run 3&ndash;4 system design mocks per week. Behavioral story bank: refine to 12 stories with quantified $ impact &ge;$1M. Meta-tagged top-50 LC &mdash; 2nd pass under timer. AI-assisted coding round drill &mdash; Cursor / multi-file projects with Claude Haiku 3.5.</p>
+<p><strong>Asset-building:</strong> <strong>Demo video #1.</strong> Record yourself running your OSS project end-to-end. Edit to 90s. Post on YouTube + GitHub README. Substack post #3 (the "VLA in production" piece &mdash; by now you can publish it as your most authoritative work). Submit a CoRL workshop paper or industry talk. openpi PR merged. Write your "statement of exceptional work" for xAI. ~300 words. Iterate 5&times;.</p>
+<p><strong>Loops live:</strong> Microsoft Principal loop (expect 4&ndash;6 weeks total). Snowflake/Databricks loop. Skild loop.</p>
+<p><strong>Applications: TIER S (open everything in parallel):</strong> Anthropic (Lead/Senior MTS, Computer Use / Agents). xAI (MTS Model / Agent). Google L7 (DeepMind Robotics, Gemini Robotics, AGI infra). Meta E7 (GenAI / FAIR / Reality Labs). &pi; (Staff Engineer, deployment / data engine). Figure (Helix AI / Robot Integration Staff). 1X (Senior Staff). Nimble (re-engage). Nvidia GEAR or Metropolis Staff (re-apply).</p>
+<p><strong>Networking:</strong> One coffee/Zoom per week with someone at a Tier S target.</p>
+<p><strong>Amazon hygiene:</strong> Do <em>not</em> take PTO for interview clusters in burst &mdash; it's a tell. Take normal PTO patterns. Block "personal appointments" on your work calendar; use 7am or 6pm interviews where possible.</p>
+</div>
+
+<div class="month-card">
+<h4>MONTH 6 (October 2026) &mdash; PEAK INTERVIEW INTENSITY</h4>
+<p><em>This is the burn month.</em> Cluster Tier S onsites within a 2&ndash;3 week window so offers expire near each other.</p>
+<p><strong>Prep:</strong> maintenance only. You're fluent now. Begin interviewing at <strong>Tier B (calibration) companies first</strong> if not already, so your loop muscle is sharp before Tier S: Snowflake, Databricks, Cohere, Perplexity, Apptronik, Agility Robotics, Nimble. Apply to 8 in parallel. Aim for 3 active loops simultaneously.</p>
+<p><strong>Loops live (typical concurrent state):</strong></p>
+<ul>
+<li>Anthropic onsite: 3 technical + 1 behavioral + 1 hiring manager (often 2 days).</li>
+<li>xAI onsite: heavy coding, 1 system design, 1 behavioral. Expect a take-home or research project.</li>
+<li>Google L7: HM chat, coding, system design, behavioral, leadership/Googliness, then hiring committee + Larry/Sundar SVP review.</li>
+<li>Meta E7: phone screen &rarr; 5&ndash;6 onsite (1 coding traditional + 1 AI-assisted coding + architecture + product architecture / cross-functional partnership + execution + behavioral).</li>
+<li>&pi;/Figure/1X: variable; expect take-home + multi-day onsite.</li>
+<li>Nimble: short-circuit since they wanted you; aim for 1 conversation &rarr; offer.</li>
+</ul>
+<p><strong>Negotiation:</strong> Engage Rora and Levels.fyi negotiation team in parallel by mid-month. <strong>Do not</strong> verbally accept anything. <strong>Do not</strong> share competing offer numbers prematurely; share ranges only. Sequence offer expiry dates so you have &ge;3 alive concurrently in week 4 of October / week 1 of November.</p>
+<p><strong>Asset-building:</strong> none. Pause writing/OSS. Stay focused.</p>
+<p><strong>Amazon hygiene:</strong> Schedule personal vacation Oct 18&ndash;25 for the "biggest interview cluster" without raising flags.</p>
+</div>
+
+<div class="month-card">
+<h4>MONTH 7 (November 2026) &mdash; DECISION + NEGOTIATION</h4>
+<ul>
+<li>Bring all Tier S offers to closing form.</li>
+<li>Run Rora/Levels.fyi negotiation in parallel for top 2 offers.</li>
+<li><strong>Decision criteria, in order of weight:</strong>
+<ol>
+<li><strong>Equity quality</strong> &mdash; Anthropic/xAI/&pi; private RSU/PPU vs Big Tech public RSU. Calculate dollar-weighted upside.</li>
+<li><strong>Mission fit + technical interest</strong> &mdash; physical AI &gt; pure LLM agents for your skill leverage.</li>
+<li><strong>Total cash + 4-yr equity NPV</strong> &mdash; the headline number.</li>
+<li><strong>Manager / team quality</strong> &mdash; meet your manager twice before signing.</li>
+<li><strong>Green-card timing implications</strong> &mdash; re-confirm with immigration counsel for any new sponsor. (This was the Nimble blocker; do not let it bite again.)</li>
+<li><strong>Optionality</strong> &mdash; Google L7 keeps you most optional. Anthropic/&pi; maximize upside.</li>
+</ol>
+</li>
+</ul>
+<p><strong>Ranked recommendation if multiple offers materialize at floor+:</strong></p>
+<ol>
+<li>If Anthropic Lead MTS materializes at $900K+: take it.</li>
+<li>Else if &pi; Staff materializes at $700K cash + meaningful equity (&ge;0.4%): take it.</li>
+<li>Else if Google L7 DeepMind Robotics at $1M+: take it.</li>
+<li>Else if xAI MTS at $900K+: take it.</li>
+<li>Else negotiate Microsoft / Snowflake / Skild up against each other and land at $750K+.</li>
+</ol>
+<p><strong>Resign at Amazon professionally.</strong> Two weeks notice. Do not burn bridges with your skip &mdash; Amazon AGI Lab might be your future re-entry.</p>
+</div>
+
+<div class="month-card">
+<h4>MONTHS 8&ndash;9 (Dec 2026 &mdash; Jan 2027) &mdash; TRANSITION + RAMP</h4>
+<ul>
+<li>Onboard at new company.</li>
+<li>Negotiate sign-on bonus payout schedule and any "buyer-takes-all" RSU acceleration.</li>
+<li>Resume Substack at lower cadence (1 post/quarter).</li>
+<li>Attend NeurIPS December workshops as new-company rep.</li>
+</ul>
+</div>
+
+<div class="month-card">
+<h4>MONTHS 10&ndash;12 (Feb &mdash; May 2027) &mdash; INSURANCE / OPTIONALITY</h4>
+<ul>
+<li>6 months at the new role; you've vested first cliff or ramped.</li>
+<li>Quietly maintain a 1 problem/week LeetCode habit and one mock interview/quarter as career hygiene.</li>
+<li>Re-evaluate at one-year mark if comp is on track or sub-band.</li>
+<li>If no offer materialized last cycle: diagnose with mock interviewer where you actually failed (almost always: behavioral, not technical, at Staff+). Rerun a sharper second wave. Build asset #2 &mdash; second OSS project, second demo video, conference talk submission. Book final round of mocks with Bar Raiser-specific coaches.</li>
+</ul>
+</div>
+</section>
+
+<!-- ===================== AMAZON RISK MANAGEMENT ===================== -->
+<section class="section" id="amazon-risk">
+<h2>Amazon-Specific Risk Management (Entire 12 Months)</h2>
+<div class="callout warn">
+<p>This is where most senior Amazonians blow up their search. Discipline here matters.</p>
+</div>
+<ol>
+<li><strong>Never use Amazon equipment, network, calendar, email, or Chime for any external search activity.</strong> Personal phone, personal laptop, personal Wi-Fi only.</li>
+<li><strong>Do not store any external prep / company list in Quip, Amazon Drive, or work email</strong>, including in personal folders. Amazon legal can pull these.</li>
+<li><strong>Do not put "Looking" status on internal LinkedIn-equivalent tools.</strong> Recruiters and managers see this.</li>
+<li><strong>Stack rank protection:</strong> continue to deliver visible FactoryAI wins through Q3 2026. Avoid getting too close to "URA risk" by maintaining manager 1:1 cadence and quarterly written deliverables.</li>
+<li><strong>PIP risk:</strong> if FactoryAI is recognized as a lighthouse + AWS case study + your delivery numbers are strong, you are not on a PIP path. Do not give your manager a reason to start one. Avoid public conflicts with peers, do not slow down externally-visible commits.</li>
+<li><strong>PTO usage:</strong> spread it. Do not bank all PTO for an October burn week &mdash; instead take long weekends in May, July, September, and a longer block in late October. Looks normal.</li>
+<li><strong>Internal manager relationship:</strong> keep your manager <em>just informed enough</em> that they aren't blindsided if you leave. Closer to month 10, signal "exploring options" so the eventual departure is not a shock &mdash; but never before month 9.</li>
+<li><strong>Public writing during employment:</strong> anything about FactoryAI's <em>architecture, metrics, or internal processes</em> must be cleared via the AWS PR / Amazon comms process &mdash; same process that produced the AWS blog. Stick to general industry content (VLA trends, GUI agents, sim-to-real lessons that aren't Amazon-specific) until you've left. <strong>Risk-rank every Substack post with this filter.</strong></li>
+<li><strong>GitHub policy:</strong> all OSS contributions on personal account, on personal time, on personal hardware, with no Amazon-confidential code. Document "this work was done on my own time and on my own hardware" in commit messages if questioned.</li>
+<li><strong>Do not contact known Amazon-internal recruiters for L7 transfers</strong> while running an external search &mdash; they'll talk. If you want internal L7 (AGI Lab, Bedrock) as a backstop, do that conversation only in Months 8&ndash;9 with a specific principal you trust.</li>
+</ol>
+</section>
+
+<!-- ===================== NEGOTIATION-STAGE PREP ===================== -->
+<section class="section" id="negotiation">
+<h2>Negotiation-Stage Interview Talk Prep</h2>
+<p>Comp negotiation tactics are covered separately; this section covers the <em>conversational interview moments</em> at the negotiation stage.</p>
+
+<h3>The "Manager Intent" Call After the Loop</h3>
+<ul>
+<li>Standard at Meta (post-loop "team match"), Snowflake (specific team selection at Principal), Databricks, Anthropic (sometimes the hiring manager joins references stage). At Google, this can come as part of team matching after hiring committee approval.</li>
+<li><strong>What it tests:</strong> whether you have specific opinions about what you want to work on; whether you'll take ownership immediately; whether you're picking the company or the team.</li>
+<li><strong>Prep:</strong> arrive with 2&ndash;3 specific projects/teams you've researched at the company. Reference recent published work (Anthropic Constitutional AI, OpenAI Preparedness, NVIDIA GR00T N2, Snowflake Cortex AI, Databricks Mosaic, Meta Llama 4). Have 1 strong opinion about what the right next bet is in your domain.</li>
+<li><strong>Trap:</strong> passivity ("I'd be open to anything") &mdash; at Staff+ this is read as low-conviction. Take a stand.</li>
+</ul>
+
+<h3>Reference Check Prep</h3>
+<ul>
+<li>Standard at Anthropic, OpenAI, Snowflake (heavily), Databricks (heavily), &pi;. Your references will be called and asked structured questions mapped to the company's leveling rubric.</li>
+<li><strong>Prep:</strong> warm 5 references in advance (former managers, peers, direct reports). Send each a 1-page brief with: your target role, the company's level expectations, the 2&ndash;3 stories you've been telling in interviews, the specific traits you want them to validate.</li>
+<li><strong>Anthropic specifically:</strong> written reference feedback + sometimes calls. Request your references write 4&ndash;6 sentences in advance covering values fit + intellectual honesty + how you handle ambiguity + a specific concrete example.</li>
+<li><strong>Trap:</strong> a reference who paints a generic glowing picture is worse than one who acknowledges a real growth area + names how you addressed it. Calibrate references to be honest.</li>
+</ul>
+
+<h3>Final-Stage Skip-Level / Executive Chats</h3>
+<ul>
+<li><strong>Anthropic:</strong> final chat sometimes with director or in rare cases Dario Amodei. Context: cultural fit at the <strong>mission level</strong>. Have a thesis on AI safety priorities, an honest disagreement with their public position, and a personal story of why this matters to you. <em>Do not pitch yourself.</em> It's a values conversation; pitching reads as misaligned.</li>
+<li><strong>xAI:</strong> chats with Igor Babuschkin / similar. Topic: where Grok / Imagine should go technically. Have a take on data-flywheel strategy, post-training quality, multi-modal tradeoffs. Be ready for combative styles &mdash; answer with conviction, don't placate.</li>
+<li><strong>Physical Intelligence:</strong> final chat with Karol Hausman or Sergey Levine. Topic: VLA technical strategy. Have a thesis on why &pi;'s flow-matching policy approach is right (or where you'd push back). Discuss data scarcity, embodiment transfer, real-time inference tradeoffs.</li>
+<li><strong>Figure:</strong> chat with Brett Adcock common. Topic: humanoid commercialization velocity. Cultural fit signal: ship-fast urgency + manufacturing-aware engineering. Your manufacturing AI background is on-thesis.</li>
+<li><strong>Snowflake / Databricks:</strong> VP Engineering or Director final. Topic: scope, scale, what you'd own in year 1.</li>
+</ul>
+
+<h3>The "Why Are You Leaving Amazon" Question &mdash; Universal Handling</h3>
+<p>You will get this in <strong>every</strong> loop. The mistake is bashing Amazon (reads as low EQ, low Earn-Trust signal even if the company isn't Amazon). The other mistake is being vague.</p>
+<p><strong>Template (adjust per audience):</strong></p>
+<ul>
+<li><strong>Frame the move forward, not backward.</strong> "I've spent 14 years at Amazon shipping manufacturing AI / robotics / GUI-agents &mdash; the next problem I want to solve is [specific thing this company does]. Amazon's manufacturing AI scope is incredible but the [VLA / agentic / frontier] frontier is happening at [target company] and I want to be in the room where that's decided."</li>
+<li><strong>At Anthropic:</strong> add the safety/mission angle honestly. "The same things that drew me to scaled-systems work at Amazon &mdash; risk management, reliability under uncertainty &mdash; are what I think safety engineering at the frontier needs."</li>
+<li><strong>At &pi; / Figure / 1X:</strong> emphasize the physical-AI / embodied transition. "Manufacturing AI taught me that the gap between simulation and real-world deployment is where the actual problems live. That's the entire game in humanoid/VLA right now."</li>
+<li><strong>At Meta / Google:</strong> emphasize the scale and influence delta. "L7-level scope at the company inventing the next generation of [Llama / Gemini / agentic systems] is where I want my next 5 years."</li>
+<li><strong>At Microsoft:</strong> emphasize platform leverage. Avoid the trap of comparing M$ vs Amazon culture; talk about Azure AI / Copilot platform reach.</li>
+<li><strong>At xAI:</strong> emphasize speed and frontier ambition. "The compounding rate of capability per engineer at xAI is unmatched."</li>
+</ul>
+<p><strong>The meta-rule:</strong> every "why leaving Amazon" answer must end with a forward-looking specific (a team, a product, a research direction). Never end on a complaint.</p>
+
+<h3>The "What Would You Do in Your First 90 Days" Question</h3>
+<ul>
+<li>Almost universal at Staff+/Principal final rounds.</li>
+<li><strong>Structure:</strong> (a) ramp-up plan (paired with an existing engineer, read X codebases, talk to Y stakeholders) &mdash; week 1&ndash;4. (b) first quick-win you can identify from the JD &mdash; week 4&ndash;8. (c) propose a 6&ndash;12 month strategic bet you'd validate &mdash; week 8&ndash;12.</li>
+<li><strong>Trap:</strong> proposing big rewrites or org changes day 1. This reads as missing humility. Frame the strategic bet as "I'd want to validate by talking to X, Y, Z first."</li>
+</ul>
+
+<h3>The "What Questions Do You Have for Me" Close</h3>
+<p>At Staff+, having specific, well-researched questions is part of the rubric. Have 3 ready per interviewer type:</p>
+<ul>
+<li><strong>For peer engineer:</strong> "What's the most painful operational issue your team hit in the last 6 months and how was it resolved?" / "Where does the team disagree internally on technical direction?"</li>
+<li><strong>For hiring manager:</strong> "What does someone need to do in their first year to be considered to have raised the bar at this level?" / "What's the role's biggest risk of failure in your view?"</li>
+<li><strong>For exec / skip-level:</strong> "What's the bet this company is making that you're not yet sure will pay off?" / "What's the most contrarian belief held internally?"</li>
+<li><strong>Trap:</strong> asking questions you could have Googled (comp, benefits, basic process). Burns credibility.</li>
+</ul>
+
+<h3>The "Honest Concerns" Moment</h3>
+<ul>
+<li>Frontier labs (Anthropic specifically; sometimes OpenAI) explicitly create space for you to express what concerns you about working there. They're testing whether you'll be honest under hiring incentive pressure.</li>
+<li>Have <strong>2 real concerns ready:</strong> e.g., "the deployment cadence vs safety mission tension," "compensation cliff if equity doesn't pan out," "the intensity of the work culture given my life situation," "scope ambiguity at a fast-growing company."</li>
+<li>Answer honestly. Then explain why you're moving forward despite the concerns.</li>
+<li><strong>Trap:</strong> "I have no concerns" &mdash; this is automatically a fail at Anthropic.</li>
+</ul>
+</section>
+
+<!-- ===================== READING LIST ===================== -->
+<section class="section" id="reading">
+<h2>Reading List &mdash; Forums / Blogs / Newsletters / Podcasts</h2>
+
+<h3>Tier S &mdash; Daily / Weekly Read</h3>
+<ol>
+<li><strong>Hello Interview blog</strong> (hellointerview.com/blog) &mdash; Stefan Mai's "5 Keys to Staff-Level System Design"; Evan King's "What is Expected at Each Level"; Meta AI-Enabled Coding deep-dive; OpenAI Coding Questions; Google Interview Process Insider's Guide. Bi-weekly. Plus System Design in a Hurry, ML System Design in a Hurry, Low Level Design in a Hurry.</li>
+<li><strong>interviewing.io</strong> blog + company guides (Anthropic, OpenAI, Databricks, Snowflake, Meta, Amazon LP). Updated quarterly with field data from real onsites.</li>
+<li><strong>The Pragmatic Engineer Newsletter</strong> (Gergely Orosz) &mdash; "The Reality of Tech Interviews 2025," Comparing Interviews at 8 Large Tech Companies. Macro view.</li>
+<li><strong>DG Learning / Cracking the Tech Interview substack</strong> (Rafay Abbasi, dglearning.substack.com) &mdash; "Inside the Meta 2026 Loop." Highest-fidelity Meta E6/E7 breakdown public.</li>
+<li><strong>1point3acres.com</strong> (&#19968;&#20137;&#19977;&#20998;&#22320;) &mdash; both /interview/company/[anthropic|openai|xai|meta|google|amazon|snowflake|databricks] and the bbs forum. <strong>Mandatory weekly check</strong> for the 4 weeks before any onsite. Anthropic 412 threads, OpenAI 866 threads, xAI 160 threads, all updated daily. Translate via DeepL or Claude. <em>Treat as a primary leak source.</em></li>
+<li><strong>Nowcoder (&#29275;&#23458;&#32593;)</strong> &mdash; same role for FAANG. Heavy on big-tech. Search "[company] &#38754;&#32463; staff principal." Cross-reference with 1point3acres.</li>
+<li><strong>Anthropic blog + research</strong> &mdash; Core Views on AI Safety, Constitutional AI, Values in the Wild, Agentic Misalignment. Required reading.</li>
+</ol>
+
+<h3>Tier A &mdash; Weekly</h3>
+<ol start="8">
+<li><strong>IGotAnOffer engineering archives</strong> &mdash; Amazon Bar Raiser content, Meta E6/E7, Anthropic, OpenAI guides. Practical and frequently updated.</li>
+<li><strong>ByteByteGo + Alex Xu newsletter</strong> &mdash; system design fundamentals.</li>
+<li><strong>Latent Space Podcast</strong> (swyx) &mdash; AI hiring + frontier-lab discussions, interviews with engineers from OpenAI, Anthropic, etc.</li>
+<li><strong>Will Larson</strong> &mdash; lethain.com + Staff Engineer + staffeng.com. "Stay aligned with authority," "Work on what matters," promotion packets guide.</li>
+<li><strong>Tanya Reilly</strong> &mdash; noidea.dog + The Staff Engineer's Path. The "Being Glue" essay is required reading for Meta E7 cross-functional prep.</li>
+<li><strong>Eugene Yan</strong> (eugeneyan.com) + applyingml.com &mdash; practical ML system design.</li>
+<li><strong>Chip Huyen blog</strong> (huyenchip.com) &mdash; AI engineering / RAG / eval.</li>
+<li><strong>Inside Anthropic's Culture Interview</strong> (Ridhima Khurana, ridhimakhurana.substack.com) &mdash; best public coverage of Anthropic culture round.</li>
+<li><strong>Mastering the Behavioral Interview substack</strong> (Austen, ex-Meta Eng Mgr / Hiring Committee Chair, thebehavioral.substack.com) &mdash; Meta-specific.</li>
+<li><strong>Scarlet Ink (Dave Anderson, ex-Amazon Principal)</strong> scarletink.com &mdash; Amazon LP deep-dive at L6/L7 perspective.</li>
+<li><strong>Tryexponent blog</strong> &mdash; Amazon LP guide updated 2026 with 6 Bar Raiser inputs.</li>
+<li><strong>Andrey Goncharov's blog</strong> (blog.goncharov.page) &mdash; "I failed my Anthropic interview and came to tell you about it" (post-mortem you should read once).</li>
+<li><strong>Anthropic engineering blog</strong> &mdash; AI-resistant-technical-evaluations post is a must-read.</li>
+</ol>
+
+<h3>Tier B &mdash; Episodic / When Needed</h3>
+<ul>
+<li><strong>Aiofferly / LinkJob.ai / PracHub / Dataford</strong> &mdash; aggregator sites with recent leaks (variable quality, cross-check). LinkJob is an undetectable-AI-cheating tool advertiser; treat the leaked questions as real, ignore the AI-cheating advice.</li>
+<li><strong>NeetCode blog/YouTube</strong> &mdash; pattern reinforcement.</li>
+<li><strong>Jordan Has No Life</strong> + System Design Fight Club &mdash; YouTube system design walkthroughs.</li>
+<li><strong>Tech Dummies / Narendra L</strong> &mdash; older but pattern-clean SD.</li>
+<li><strong>Gaurav Sen</strong> &mdash; older SD, still useful for fundamentals.</li>
+<li><strong>Designgurus.io (Grokking)</strong> &mdash; useful for breadth but not enough depth for L7/E7.</li>
+<li><strong>OpenAI blog + Charter</strong> &mdash; required pre-onsite reading.</li>
+<li><strong>Sources (Alex Heath, sources.news)</strong> &mdash; Skild, &pi;, Figure interviews.</li>
+</ul>
+
+<h3>X / Twitter Follows</h3>
+<ul>
+<li><strong>AI labs:</strong> Karpathy, Jeremy Howard, Sebastian Raschka, Eugene Yan, Chip Huyen, Aleksa Gordic, Jim Fan (NVIDIA GEAR), Sholto Douglas (Anthropic), Trenton Bricken (Anthropic), Igor Babuschkin (xAI), Jason Wei (now Meta), Lukasz Kaiser.</li>
+<li><strong>Robotics:</strong> Sergey Levine, Karol Hausman, Chelsea Finn, Russ Tedrake (TRI/MIT), Brett Adcock (Figure), Bernt B&oslash;rnich (1X), Marc Raibert (BD AI Institute), Lerrel Pinto, Pieter Abbeel, Deepak Pathak.</li>
+<li><strong>Hiring philosophy:</strong> Aline Lerner (interviewing.io), Will Larson, Tanya Reilly, Gergely Orosz, Stefan Mai, Evan King, Toby Pohlen, Devin Kim, Jackson Gabbard.</li>
+</ul>
+
+<h3>GitHub Repos to Track</h3>
+<ul>
+<li>donnemartin/system-design-primer (canonical, dated but solid)</li>
+<li>ashishps1/awesome-system-design-resources</li>
+<li>Physical-Intelligence/openpi (must-read if targeting &pi;)</li>
+<li>harry-the-nerd/interview-notes-questions (Anthropic/OpenAI/xAI Q's, Q4 2025; verify currency)</li>
+<li>karpathy/nanoGPT and karpathy/llm.c (build credibility before xAI/OpenAI)</li>
+<li>vllm-project/vllm (PRs build inference-engineer credibility)</li>
+</ul>
+
+<h3>Discord / Slack Communities</h3>
+<ul>
+<li>Hello Interview Discord &mdash; ask their team for invite when you become a Premium user.</li>
+<li>Pragmatic Engineer Slack &mdash; gated to paying subscribers; high-signal hiring discussions.</li>
+<li>LeetCode Discord &mdash; pattern grind community.</li>
+<li>Robotics-AI Discord (research-focused).</li>
+<li>ML Collective Discord.</li>
+</ul>
+
+<h3>Podcasts</h3>
+<ul>
+<li>The Pragmatic Engineer Podcast &mdash; Evan King + Stefan Mai episode is must-listen.</li>
+<li>Latent Space Podcast (Anthropic/OpenAI episodes).</li>
+<li>The Robot Brains Podcast (Pieter Abbeel) &mdash; robotics frontier.</li>
+<li>No Priors (Sarah Guo + Elad Gil) &mdash; frontier-lab founder interviews.</li>
+<li>Software Engineering Daily &mdash; interview-prep episodes archive.</li>
+<li>ML Powered Podcast.</li>
+<li>80,000 Hours podcast &mdash; deep AI safety conceptual prep for Anthropic / OpenAI.</li>
+</ul>
+</section>
+
+<!-- ===================== ACTION ITEMS ===================== -->
+<section class="section" id="actions">
+<h2>Action Items</h2>
+
+<h3>This Week (May 4&ndash;10, 2026)</h3>
+<ol>
+<li>Buy Hello Interview Premium lifetime ($499 last sale), LeetCode Premium annual, NeetCode lifetime.</li>
+<li>Order: DDIA, Larson "Staff Engineer," Reilly "The Staff Engineer's Path," Orosz "Software Engineer's Guidebook."</li>
+<li>Update LinkedIn headline + featured: NVIDIA lighthouse, AWS blog link, FactoryAI metrics. Switch on "Open to work" privately (recruiters-only).</li>
+<li>Register <code>nirty.dev</code>.</li>
+<li>Build 30-company &times; role spreadsheet: {role link, recruiter name, hiring manager guess, your unique pitch, status}. Update weekly.</li>
+<li>Push trivial typo PR to LeRobot for contributor badge. Then start work on a substantive PR.</li>
+<li>DM Karol Hausman on X with 3-line FactoryAI pitch.</li>
+<li>Schedule one Hello Interview mock with an ex-Meta E7 coach for Week 3 of May.</li>
+<li>Reach out to E&oacute;in O'Toole at Riviera with a one-page summary.</li>
+<li>Open spreadsheet tracker for daily LeetCode count, weekly mocks count, weekly outreach count.</li>
+<li><strong>Build your master story doc</strong> &mdash; pull every meaningful project from your 14 YOE into one doc. For each: stakes, your decision, action, outcome (quantified), insight. Tag each story with: Amazon LP / Meta CFP / Google Googliness / Anthropic mission / xAI ownership.</li>
+<li><strong>Write the xAI "statement of exceptional work"</strong> (1 hr) &mdash; even if not applying yet. Forces you to identify your single most exceptional achievement.</li>
+<li>Subscribe to the 6 Tier-S sources above.</li>
+<li>Read <em>Inside the Meta 2026 Loop</em> (Rafay Abbasi), Hello Interview's Staff-Level System Design post (Stefan Mai), and the IGotAnOffer Anthropic interview-process guide (~3 hrs total).</li>
+<li>Get the practice CoderPad with the AI sidebar by reaching out to a Meta recruiter (informational chat is fine).</li>
+<li>Add your AMZN comp anonymously to Levels.fyi to unlock full premium data.</li>
+<li>Open conversations with Rora and the Levels.fyi negotiation team <em>now</em> so they're warm by month 8.</li>
+<li>Buy SO-101 + a Realsense camera if you don't already have hardware at home (~$1500&ndash;2500). Begin storyboarding the GUI-Owl Fire tablet demo video.</li>
+</ol>
+
+<h3>This Month (May 2026)</h3>
+<ol>
+<li>Finish 50 NeetCode problems (arrays, strings, two-pointer, sliding window, hashmap, stack).</li>
+<li>Read DDIA Ch 1&ndash;5, Larson cover-to-cover, Alex Xu Vol 1 ch 1&ndash;6.</li>
+<li>Identify your top 3 stories ($10M+ scope or 50+ engineer reach).</li>
+<li>Read Anthropic Core Views on AI Safety + Responsible Scaling Policy + 1 Constitutional AI paper. Form a <em>narrow</em> AI-safety opinion.</li>
+<li>Read &pi;<sub>0</sub> paper. Take notes on flow matching vs autoregressive action discretization.</li>
+<li>Pick your OSS project (LeRobot / openpi / vLLM / Isaac Lab / SGLang). Open the repo, find a "good first issue."</li>
+<li>Publish Substack post #1.</li>
+<li>Start GUI-Owl demo video shoot.</li>
+<li>Lock down 3 informational chats at target companies.</li>
+<li>Reapply NVIDIA Metropolis Staff with FactoryAI featured.</li>
+<li>Story bank target: 10. Schedule first 2 Pramp peer mocks for system design.</li>
+</ol>
+
+<h3>This Quarter (May&ndash;July 2026)</h3>
+<ol>
+<li>NeetCode 150 / 250 &mdash; completed (or close). 150 NeetCode problems done.</li>
+<li>Alex Xu Vol 1 + DDIA ch 5/6/7/9/11 &mdash; read.</li>
+<li>Aminian/Xu Generative AI System Design Interview book &mdash; read.</li>
+<li>Story bank to 25, 4 of which are Anthropic-mission-aligned.</li>
+<li>1 substantive LeRobot PR merged + 1 openpi PR open.</li>
+<li>GUI-Owl demo video published, distributed across X / LinkedIn / YouTube / HN / Reddit.</li>
+<li>3 Substack posts published.</li>
+<li>1 talk submission (CoRL workshop, GTC, or AWS re:Invent).</li>
+<li>Active recruiter relationships at Anthropic, xAI, Google, &pi;, Figure, Skild, 1X, Microsoft, Snowflake, Nimble.</li>
+<li>Tier B / warm-up loops opened in late July.</li>
+<li>First 2 Hello Interview Premium mocks completed (1 system design, 1 behavioral).</li>
+<li>xAI "statement of exceptional work" at v3 (5+ iterations).</li>
+<li>Identify specific ICs at each Tier S target for warm intros (LinkedIn / Twitter / mutual contacts). Aim for 1 warm intro per company.</li>
+</ol>
+</section>
+
+<!-- ===================== CLOSING PRINCIPLES ===================== -->
+<section class="section" id="closing">
+<h2>Closing Principles, Blunt</h2>
+<ul>
+<li>Your FactoryAI track record is rare &mdash; possibly top-50 in the world for production manufacturing physical AI. Do not undersell it. NVIDIA-lighthouse + AWS blog + 99%/95% production metrics + GUI-Owl agent is the resume of a Principal hire.</li>
+<li>The market is paying $1M+ for <em>less</em> than what you have. Anthropic Senior MTS, xAI MLE, Google L7 robotics &mdash; all credibly $1M+ with the right loop and one competing offer.</li>
+<li>The number that matters in 12 months is <strong>vested-equity NPV at year 4</strong>, not the headline TC. Anthropic/&pi; PPU/RSU at the right price could double your numerical TC.</li>
+<li>The thing that kills senior searches is <strong>not having competing offers in the same 2-week window.</strong> Sequence ruthlessly.</li>
+<li>The thing that kills senior interview <em>performance</em> is rust on Medium-LeetCode coding and inability to pivot system design when an interviewer reframes mid-round. Practice both daily.</li>
+<li>The single highest-leverage 90-minute investment you can make this week: shoot a clean version of your GUI-Owl demo video.</li>
+<li>The single highest-leverage relationship investment this month: Karol Hausman or Lachy Groom at &pi;, plus one Anthropic Computer Use lead.</li>
+<li>Do not over-engineer the plan. Execute. Mocks &gt; books. Shipping demos &gt; polishing slides. One competing offer &gt; five "exploratory chats."</li>
+</ul>
+
+<h3>Lane-Specific Reminders</h3>
+<ul>
+<li><strong>Your background is uniquely strong for Lane 3 (Robotics / Physical AI)</strong> &mdash; manufacturing AI / FactoryAI / VLA / GUI agents / distributed systems is exactly the intersection &pi;, Skild, Figure, 1X, NVIDIA GEAR are hiring at Staff/Principal. Don't over-index on Lane 1 just because the loops are more known. Lane 3 is your highest-probability landing zone.</li>
+<li><strong>Lane 1 is the <em>insurance</em> lane.</strong> Amazon L7 + Meta E7 are tractable with disciplined prep but the rate-limit is behavioral (LP scope at Amazon, cross-functional + tech retrospective at Meta), not technical. Don't waste prep cycles grinding to LC-Hard mastery &mdash; you don't need it.</li>
+<li><strong>Lane 2 (frontier labs) is the <em>high-variance</em> lane.</strong> Anthropic culture round and xAI exceptional-work statement are the actual gates. Spend more time on these than on coding. Anthropic-specific: read everything, form a narrow opinion, end with uncertainty.</li>
+</ul>
+
+<h3>Each Frontier Lab's Single Achilles Heel</h3>
+<ul>
+<li><strong>Anthropic:</strong> values round (looks for skepticism, not enthusiasm).</li>
+<li><strong>OpenAI:</strong> coding bar (won't pass low-3/4 even if SD is great).</li>
+<li><strong>xAI:</strong> combative/chaotic process (don't let the chaos rattle you).</li>
+<li><strong>&pi;:</strong> open-source contribution / paper required (no other path).</li>
+<li><strong>Figure / Tesla:</strong> video portfolio mandatory + intensity-culture acceptance signal.</li>
+</ul>
+
+<h3>Final Ranked Takeaways</h3>
+<ol>
+<li><strong>The Chinese-language forums are non-negotiable.</strong> 1point3acres has ~5,000+ threads across your target frontier labs alone. Translate via Claude. The single highest-leverage research surface most Western candidates skip.</li>
+<li><strong>The 2026 meta is verification, not generation.</strong> Anthropic's AI-resistant evaluation philosophy, Meta's AI-assisted coding round, the broader "audit AI-generated code" shift &mdash; the Staff+ skill being tested is judgment under AI pair-programming, not raw typing speed.</li>
+<li><strong>Behavioral fails more Staff+ candidates than technical does.</strong> Anthropic values round, Meta cross-functional, Amazon Bar Raiser at L7 &mdash; 60%+ of failures concentrate here. Over-prep these.</li>
+<li><strong>Your background is the right shape for &pi;, Skild, NVIDIA GEAR, and Anthropic Computer Use specifically.</strong> Manufacturing AI + GUI agents + VLA + distributed systems is the rarest combination on the market in 2026. Lead with the convergence narrative.</li>
+<li><strong>The Bar Raiser at L7 will fail you for sub-$1M impact stories.</strong> This is a binary filter. Audit your story bank before any Amazon onsite.</li>
+<li><strong>Always request the practice CoderPad from Meta recruiters.</strong> Candidates who skip it underperform consistently.</li>
+<li><strong>Pre-read documents</strong> (project presentations, 6-pagers, OpenAI 4&ndash;5 slide decks) are weighted heavily at Staff+ and rarely practiced. Record yourself doing yours 5+ times. Watch the recordings. Cut filler.</li>
+<li><strong>References are the under-prepped final filter.</strong> Snowflake and Databricks weight them heavily; Anthropic uses written feedback. Brief your references.</li>
+<li><strong>Sequence your loops smart:</strong> use lower-stakes companies (Cohere, Mistral, Perplexity, smaller robotics) as paid practice for the actual targets. The chaos of xAI's process means don't put it first if you have anything else live.</li>
+<li><strong>Down-leveling is the silent killer in 2025&ndash;2026.</strong> Aim for 1 level above target. Senior Staff signal to land Staff. Distinguished signal to land Principal.</li>
+</ol>
+
+<div class="callout win">
+<p><strong>You're 14 years in, you've already declined a real offer once, and the market is bidding aggressively. 12 months is more than enough. Go.</strong></p>
+<p>Every week you don't execute is a week the AI-assisted coding round, the xAI statement, the Anthropic CodeSignal pattern, and the &pi; portfolio gap compound against you.</p>
+<p>Good hunting.</p>
+</div>
+</section>
+
+</div>
+</div>
+</body>
+</html>
