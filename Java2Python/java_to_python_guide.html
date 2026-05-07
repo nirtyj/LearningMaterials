@@ -525,15 +525,296 @@
             font-style: italic;
             margin-top: 5px;
         }
+
+        /* Two-pane layout */
+        body {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            background: rgba(15, 18, 35, 0.85);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 24px 0;
+            backdrop-filter: blur(8px);
+            z-index: 50;
+        }
+
+        .sidebar-header {
+            padding: 0 22px 18px 22px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 14px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            text-align: left;
+            margin: 0;
+            background: linear-gradient(90deg, #4fc3f7, #81c784);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .sidebar nav {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar nav .nav-link {
+            display: block;
+            position: relative;
+            padding: 10px 22px 10px 26px;
+            color: #b8c1d1;
+            text-decoration: none;
+            font-size: 0.92rem;
+            border-left: 3px solid transparent;
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .sidebar nav .nav-link:hover {
+            background: rgba(79, 195, 247, 0.08);
+            color: #e4e4e4;
+        }
+
+        .sidebar nav .nav-link.active {
+            background: rgba(79, 195, 247, 0.12);
+            color: #4fc3f7;
+            border-left-color: #4fc3f7;
+            font-weight: 600;
+        }
+
+        .nav-item.expanded > .nav-link {
+            color: #4fc3f7;
+        }
+
+        .subnav {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: rgba(0, 0, 0, 0.18);
+        }
+
+        .nav-item.expanded > .subnav {
+            max-height: 900px;
+        }
+
+        .sub-link {
+            display: block;
+            padding: 7px 18px 7px 40px;
+            color: #8a92a3;
+            text-decoration: none;
+            font-size: 0.82rem;
+            border-left: 3px solid transparent;
+            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .sub-link:hover {
+            color: #e4e4e4;
+            background: rgba(79, 195, 247, 0.06);
+        }
+
+        .sub-link.active {
+            color: #81c784;
+            background: rgba(129, 199, 132, 0.10);
+            border-left-color: #81c784;
+            font-weight: 600;
+        }
+
+        .content {
+            flex: 1;
+            min-width: 0;
+            height: 100vh;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .section[id],
+        h3[id] {
+            scroll-margin-top: 20px;
+        }
+
+        .nav-toggle {
+            display: none;
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 100;
+            background: rgba(26, 26, 46, 0.92);
+            color: #4fc3f7;
+            border: 1px solid rgba(79, 195, 247, 0.4);
+            border-radius: 8px;
+            width: 44px;
+            height: 44px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+        }
+
+        body.nav-open .sidebar-backdrop {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                display: block;
+            }
+
+            .nav-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                height: 100vh;
+                transition: left 0.3s ease;
+            }
+
+            body.nav-open .sidebar {
+                left: 0;
+            }
+
+            .content {
+                height: auto;
+                min-height: 100vh;
+                overflow-y: visible;
+                padding-top: 60px;
+            }
+
+            html {
+                scroll-behavior: smooth;
+            }
+        }
     </style>
 </head>
 <body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1>🐍 vs ☕</h1>
+            <div class="sidebar-subtitle">Interview Guide</div>
+        </div>
+        <nav>
+            <ul class="nav-list">
+                <li class="nav-item" data-section="compilation">
+                    <a href="#compilation" class="nav-link">Compilation &amp; Execution</a>
+                </li>
+                <li class="nav-item" data-section="variables">
+                    <a href="#variables" class="nav-link">Variables &amp; Memory</a>
+                </li>
+                <li class="nav-item" data-section="data-structures">
+                    <a href="#data-structures" class="nav-link">Data Structures</a>
+                    <ul class="subnav">
+                        <li><a href="#data-structures-complexity" class="sub-link">Time Complexity Quick Reference</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item" data-section="collections">
+                    <a href="#collections" class="nav-link">Collection Initialization</a>
+                </li>
+                <li class="nav-item" data-section="operations">
+                    <a href="#operations" class="nav-link">Interview Operations</a>
+                    <ul class="subnav">
+                        <li><a href="#operations-list" class="sub-link">List / ArrayList</a></li>
+                        <li><a href="#operations-dict" class="sub-link">Dict / HashMap</a></li>
+                        <li><a href="#operations-set" class="sub-link">Set / HashSet</a></li>
+                        <li><a href="#operations-stack" class="sub-link">Stack</a></li>
+                        <li><a href="#operations-queue" class="sub-link">Queue / Deque</a></li>
+                        <li><a href="#operations-heap" class="sub-link">Heap / PriorityQueue</a></li>
+                        <li><a href="#operations-string" class="sub-link">String</a></li>
+                        <li><a href="#operations-defaultdict" class="sub-link">DefaultDict / Counter</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item" data-section="classes">
+                    <a href="#classes" class="nav-link">Classes, Nodes &amp; OOP</a>
+                    <ul class="subnav">
+                        <li><a href="#classes-nodes" class="sub-link">LeetCode Node Definitions</a></li>
+                        <li><a href="#classes-construct" class="sub-link">Constructing Nodes Inline</a></li>
+                        <li><a href="#classes-python-vs-java" class="sub-link">Python Classes vs Java</a></li>
+                        <li><a href="#classes-dunder" class="sub-link">Dunder Method Translation</a></li>
+                        <li><a href="#classes-dataclass" class="sub-link">@dataclass</a></li>
+                        <li><a href="#classes-namedtuple" class="sub-link">NamedTuple</a></li>
+                        <li><a href="#classes-enum" class="sub-link">Enum</a></li>
+                        <li><a href="#classes-sorting" class="sub-link">Custom Sorting &amp; Comparators</a></li>
+                        <li><a href="#classes-abstract" class="sub-link">Abstract Classes &amp; Interfaces</a></li>
+                        <li><a href="#classes-ood" class="sub-link">OOD Building Blocks</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item" data-section="leetcode">
+                    <a href="#leetcode" class="nav-link">LeetCode Patterns</a>
+                    <ul class="subnav">
+                        <li><a href="#leetcode-prefix-sum" class="sub-link">Prefix Sum</a></li>
+                        <li><a href="#leetcode-two-pointers" class="sub-link">Two Pointers</a></li>
+                        <li><a href="#leetcode-sliding-window" class="sub-link">Sliding Window</a></li>
+                        <li><a href="#leetcode-fast-slow" class="sub-link">Fast &amp; Slow Pointers</a></li>
+                        <li><a href="#leetcode-binary-search" class="sub-link">Binary Search</a></li>
+                        <li><a href="#leetcode-linked-list" class="sub-link">Linked List Tricks</a></li>
+                        <li><a href="#leetcode-monotonic-stack" class="sub-link">Stack / Monotonic Stack</a></li>
+                        <li><a href="#leetcode-bfs" class="sub-link">BFS</a></li>
+                        <li><a href="#leetcode-dfs" class="sub-link">DFS / Tree Traversal</a></li>
+                        <li><a href="#leetcode-backtracking" class="sub-link">Backtracking</a></li>
+                        <li><a href="#leetcode-heap" class="sub-link">Heap / Top-K</a></li>
+                        <li><a href="#leetcode-intervals" class="sub-link">Intervals</a></li>
+                        <li><a href="#leetcode-dp" class="sub-link">Dynamic Programming</a></li>
+                        <li><a href="#leetcode-graph" class="sub-link">Graph / Topological Sort</a></li>
+                        <li><a href="#leetcode-trie" class="sub-link">Trie</a></li>
+                        <li><a href="#leetcode-union-find" class="sub-link">Union Find</a></li>
+                        <li><a href="#leetcode-bit-manip" class="sub-link">Bit Manipulation</a></li>
+                        <li><a href="#leetcode-greedy" class="sub-link">Greedy / Kadane's</a></li>
+                        <li><a href="#leetcode-shortcuts" class="sub-link">Python Shortcuts Index</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item" data-section="power-features">
+                    <a href="#power-features" class="nav-link">Python Power Features</a>
+                </li>
+                <li class="nav-item" data-section="gotchas">
+                    <a href="#gotchas" class="nav-link">Common Gotchas</a>
+                </li>
+                <li class="nav-item" data-section="cheatsheet">
+                    <a href="#cheatsheet" class="nav-link">Quick Cheat Sheet</a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+    <main class="content">
     <div class="container">
         <h1>🐍 Python vs ☕ Java</h1>
         <p class="subtitle">A Visual Guide for Coding Interviews</p>
         
         <!-- Section 1: Compilation & Execution -->
-        <div class="section">
+        <div class="section" id="compilation">
             <h2>Compilation & Execution Flow</h2>
             
             <div class="flow-diagram">
@@ -652,7 +933,7 @@
         </div>
         
         <!-- Section 2: Variable & Memory Model -->
-        <div class="section">
+        <div class="section" id="variables">
             <h2>Variables & Memory Model</h2>
             
             <div class="code-comparison">
@@ -749,7 +1030,7 @@ x = <span class="number">100</span>;          <span class="comment">// only x ch
         </div>
         
         <!-- Section 3: Data Structures Comparison -->
-        <div class="section">
+        <div class="section" id="data-structures">
             <h2>Data Structures Comparison</h2>
             
             <div class="ds-grid">
@@ -864,7 +1145,7 @@ x = <span class="number">100</span>;          <span class="comment">// only x ch
                 </div>
             </div>
             
-            <h3>Time Complexity Quick Reference</h3>
+            <h3 id="data-structures-complexity">Time Complexity Quick Reference</h3>
             <div class="complexity-chart">
                 <div class="complexity-item">
                     <div class="op">List/Array Access</div>
@@ -894,7 +1175,7 @@ x = <span class="number">100</span>;          <span class="comment">// only x ch
         </div>
         
         <!-- Section 3.5: Collection Initialization -->
-        <div class="section">
+        <div class="section" id="collections">
             <h2>🏗️ Collection Initialization Patterns</h2>
             <p style="color: #888; margin-bottom: 25px;">The most common ways to create and initialize each collection — side by side.</p>
             
@@ -1028,10 +1309,10 @@ Map&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt;
         </div>
         
         <!-- Section 4: Common Operations -->
-        <div class="section">
+        <div class="section" id="operations">
             <h2>Common Interview Operations</h2>
             
-            <h3>📋 List / ArrayList Operations</h3>
+            <h3 id="operations-list">📋 List / ArrayList Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python</div>
@@ -1211,7 +1492,7 @@ matrix[i][j], matrix[~j][i], matrix[~i][~j], matrix[j][~i] = \
                 </ul>
             </div>
 
-            <h3>🗺️ Dict / HashMap Operations</h3>
+            <h3 id="operations-dict">🗺️ Dict / HashMap Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python</div>
@@ -1305,7 +1586,7 @@ freq.entrySet().stream()
                 </div>
             </div>
 
-            <h3>🎯 Set / HashSet Operations</h3>
+            <h3 id="operations-set">🎯 Set / HashSet Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python</div>
@@ -1375,7 +1656,7 @@ a.size();                    <span class="comment">// 4</span></pre>
                 </div>
             </div>
 
-            <h3>📚 Stack Operations</h3>
+            <h3 id="operations-stack">📚 Stack Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python</div>
@@ -1429,7 +1710,7 @@ Deque&lt;<span class="type">Integer</span>&gt; stack = <span class="keyword">new
                 </div>
             </div>
 
-            <h3>🚶 Queue / Deque Operations</h3>
+            <h3 id="operations-queue">🚶 Queue / Deque Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python</div>
@@ -1493,7 +1774,7 @@ visited.add(start);
                 </div>
             </div>
 
-            <h3>⛰️ Heap / PriorityQueue Operations</h3>
+            <h3 id="operations-heap">⛰️ Heap / PriorityQueue Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python</div>
@@ -1567,7 +1848,7 @@ pq.poll();                   <span class="comment">// [1, 1]</span></pre>
                 </div>
             </div>
 
-            <h3>📝 String Operations</h3>
+            <h3 id="operations-string">📝 String Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python</div>
@@ -1657,7 +1938,7 @@ String.format(<span class="string">"Hello %s, 2+2=%d"</span>, name, <span class=
                 </div>
             </div>
 
-            <h3>📊 DefaultDict / Counter Operations</h3>
+            <h3 id="operations-defaultdict">📊 DefaultDict / Counter Operations</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python</div>
@@ -1800,12 +2081,12 @@ window = Counter(s[:<span class="function">len</span>(p)])
         </div>
 
         <!-- Section 4b: Classes, Node Definitions & OOP for Interviews -->
-        <div class="section">
+        <div class="section" id="classes">
             <h2>🏛️ Classes, Node Definitions & OOP</h2>
             <p style="color: #888; margin-bottom: 10px;">How to define the common node types, use Python OOP features, and the Java-to-Python OOP translation for interviews.</p>
 
             <!-- Node Definitions -->
-            <h3>📦 LeetCode Node Definitions</h3>
+            <h3 id="classes-nodes">📦 LeetCode Node Definitions</h3>
             <p style="color: #888; margin-bottom: 15px;">These are pre-defined on LeetCode — you don't write them, but you <strong>must</strong> know their shape.</p>
 
             <div class="code-comparison">
@@ -1928,7 +2209,7 @@ trie = {}
             </div>
 
             <!-- Constructing Trees / Lists Inline -->
-            <h3>🔨 Constructing Nodes Inline</h3>
+            <h3 id="classes-construct">🔨 Constructing Nodes Inline</h3>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python — Inline Construction</div>
                 <div class="code-content">
@@ -1989,7 +2270,7 @@ edges = [[<span class="number">0</span>,<span class="number">1</span>], [<span c
             </div>
 
             <!-- Python Classes & Dunder Methods -->
-            <h3>🐍 Python Classes vs Java Classes</h3>
+            <h3 id="classes-python-vs-java">🐍 Python Classes vs Java Classes</h3>
             <p style="color: #888; margin-bottom: 15px;">The OOP translation guide — what you need for design questions.</p>
 
             <div class="code-comparison">
@@ -2095,7 +2376,7 @@ edges = [[<span class="number">0</span>,<span class="number">1</span>], [<span c
             </div>
 
             <!-- Dunder Method Reference Table -->
-            <h3>🔧 Dunder Method Translation Table</h3>
+            <h3 id="classes-dunder">🔧 Dunder Method Translation Table</h3>
             <table class="comparison-table" style="margin-bottom: 25px;">
                 <thead>
                     <tr>
@@ -2121,7 +2402,7 @@ edges = [[<span class="number">0</span>,<span class="number">1</span>], [<span c
             </table>
 
             <!-- @dataclass -->
-            <h3>📋 @dataclass — Auto-Generate Boilerplate</h3>
+            <h3 id="classes-dataclass">📋 @dataclass — Auto-Generate Boilerplate</h3>
             <p style="color: #888; margin-bottom: 15px;">Python 3.7+. Replaces Java records, Lombok, or manual constructors. Perfect for OOD interviews.</p>
 
             <div class="code-comparison">
@@ -2222,7 +2503,7 @@ PriorityQueue&lt;Task&gt; pq = <span class="keyword">new</span> PriorityQueue&lt
             </div>
 
             <!-- NamedTuple -->
-            <h3>📎 NamedTuple — Lightweight Immutable Records</h3>
+            <h3 id="classes-namedtuple">📎 NamedTuple — Lightweight Immutable Records</h3>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python NamedTuple</div>
                 <div class="code-content">
@@ -2257,7 +2538,7 @@ visited.add(State(<span class="number">0</span>, <span class="number">0</span>, 
             </div>
 
             <!-- Enum -->
-            <h3>🏷️ Enum — Named Constants</h3>
+            <h3 id="classes-enum">🏷️ Enum — Named Constants</h3>
             <p style="color: #888; margin-bottom: 15px;">Replace magic numbers/strings. Common in OOD interview problems (states, directions, types).</p>
 
             <div class="code-comparison">
@@ -2361,7 +2642,7 @@ Direction.values();               <span class="comment">// all values</span>
             </div>
 
             <!-- @total_ordering + Comparators -->
-            <h3>⚖️ Custom Sorting & Comparators</h3>
+            <h3 id="classes-sorting">⚖️ Custom Sorting & Comparators</h3>
             <p style="color: #888; margin-bottom: 15px;">Sorting objects, heap ordering, custom comparators — the Java <code>Comparable</code>/<code>Comparator</code> translation.</p>
 
             <div class="code-comparison">
@@ -2455,7 +2736,7 @@ Arrays.sort(strs, (a, b) -&gt;
             </div>
 
             <!-- Abstract Base Class -->
-            <h3>🏗️ Abstract Classes & Interfaces</h3>
+            <h3 id="classes-abstract">🏗️ Abstract Classes & Interfaces</h3>
             <div class="code-comparison">
                 <div class="code-block">
                     <div class="code-header python">🐍 Python ABC</div>
@@ -2521,7 +2802,7 @@ Arrays.sort(strs, (a, b) -&gt;
             </div>
 
             <!-- OOD Building Blocks Summary -->
-            <h3>🧱 OOD Interview Building Blocks</h3>
+            <h3 id="classes-ood">🧱 OOD Interview Building Blocks</h3>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python — Common Patterns for Design Questions</div>
                 <div class="code-content">
@@ -2634,7 +2915,7 @@ c.area                                 <span class="comment"># 78.54 (computed, 
         </div>
         
         <!-- Section 5: LeetCode Patterns & Python Shortcuts -->
-        <div class="section">
+        <div class="section" id="leetcode">
             <h2>🧩 LeetCode Patterns & Python Shortcuts</h2>
             <p style="color: #888; margin-bottom: 10px;">All major patterns from Neetcode 150 / Blind 75 with the Python tricks that make each one concise. Use this as a quick pattern-recognition cheat sheet.</p>
             
@@ -2657,7 +2938,7 @@ c.area                                 <span class="comment"># 78.54 (computed, 
             </div>
 
             <!-- Pattern 1: Prefix Sum -->
-            <h3>1️⃣ Prefix Sum</h3>
+            <h3 id="leetcode-prefix-sum">1️⃣ Prefix Sum</h3>
             <p style="color: #888; margin-bottom: 15px;">Precompute cumulative sums for O(1) range-sum queries. Used in: <em>Subarray Sum Equals K, Range Sum Query, Product of Array Except Self</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -2701,7 +2982,7 @@ prefix = [<span class="number">0</span>] * (<span class="function">len</span>(nu
             </div>
 
             <!-- Pattern 2: Two Pointers -->
-            <h3>2️⃣ Two Pointers</h3>
+            <h3 id="leetcode-two-pointers">2️⃣ Two Pointers</h3>
             <p style="color: #888; margin-bottom: 15px;">Opposite ends converging or same-direction pointers on sorted arrays. Used in: <em>Two Sum II, 3Sum, Container With Most Water, Trapping Rain Water, Valid Palindrome</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -2748,7 +3029,7 @@ l, r = <span class="number">0</span>, <span class="function">len</span>(nums) - 
             </div>
 
             <!-- Pattern 3: Sliding Window -->
-            <h3>3️⃣ Sliding Window</h3>
+            <h3 id="leetcode-sliding-window">3️⃣ Sliding Window</h3>
             <p style="color: #888; margin-bottom: 15px;">Expand/shrink a window over contiguous elements. Used in: <em>Best Time to Buy/Sell Stock, Longest Substring Without Repeating Chars, Minimum Window Substring, Permutation in String</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -2802,7 +3083,7 @@ l, r = <span class="number">0</span>, <span class="function">len</span>(nums) - 
             </div>
 
             <!-- Pattern 4: Fast & Slow Pointers -->
-            <h3>4️⃣ Fast & Slow Pointers</h3>
+            <h3 id="leetcode-fast-slow">4️⃣ Fast & Slow Pointers</h3>
             <p style="color: #888; margin-bottom: 15px;">Detect cycles, find middle of linked list. Used in: <em>Linked List Cycle, Middle of Linked List, Happy Number, Find Duplicate Number</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -2837,7 +3118,7 @@ l, r = <span class="number">0</span>, <span class="function">len</span>(nums) - 
             </div>
 
             <!-- Pattern 5: Binary Search -->
-            <h3>5️⃣ Binary Search</h3>
+            <h3 id="leetcode-binary-search">5️⃣ Binary Search</h3>
             <p style="color: #888; margin-bottom: 15px;">Halve search space each step. Used in: <em>Binary Search, Search in Rotated Array, Find Min in Rotated Array, Koko Eating Bananas, Search 2D Matrix</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -2942,7 +3223,7 @@ sl.irange(<span class="number">2</span>, <span class="number">5</span>)         
             </div>
 
             <!-- Pattern 6: Linked List -->
-            <h3>6️⃣ Linked List Tricks</h3>
+            <h3 id="leetcode-linked-list">6️⃣ Linked List Tricks</h3>
             <p style="color: #888; margin-bottom: 15px;">Dummy nodes, reversal, merge. Used in: <em>Reverse Linked List, Merge Two Sorted Lists, Remove Nth Node, Reorder List, LRU Cache</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -2975,7 +3256,7 @@ dummy.next = head
             </div>
 
             <!-- Pattern 7: Stack / Monotonic Stack -->
-            <h3>7️⃣ Stack / Monotonic Stack</h3>
+            <h3 id="leetcode-monotonic-stack">7️⃣ Stack / Monotonic Stack</h3>
             <p style="color: #888; margin-bottom: 15px;">LIFO for matching, next greater/smaller. Used in: <em>Valid Parentheses, Daily Temperatures, Largest Rectangle in Histogram, Car Fleet</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3012,7 +3293,7 @@ dummy.next = head
             </div>
 
             <!-- Pattern 8: BFS (Breadth-First Search) -->
-            <h3>8️⃣ BFS (Level-Order / Shortest Path)</h3>
+            <h3 id="leetcode-bfs">8️⃣ BFS (Level-Order / Shortest Path)</h3>
             <p style="color: #888; margin-bottom: 15px;">Queue-based level traversal for trees/graphs. Used in: <em>Level Order Traversal, Rotting Oranges, Word Ladder, Walls and Gates, Number of Islands</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3058,7 +3339,7 @@ dummy.next = head
             </div>
 
             <!-- Pattern 9: DFS / Tree Traversal -->
-            <h3>9️⃣ DFS / Tree Traversal</h3>
+            <h3 id="leetcode-dfs">9️⃣ DFS / Tree Traversal</h3>
             <p style="color: #888; margin-bottom: 15px;">Recursive depth-first exploration. Used in: <em>Max Depth, Same Tree, Invert Tree, Diameter, Lowest Common Ancestor, Serialize/Deserialize, Number of Islands</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3108,7 +3389,7 @@ dummy.next = head
             </div>
 
             <!-- Pattern 10: Backtracking -->
-            <h3>🔟 Backtracking</h3>
+            <h3 id="leetcode-backtracking">🔟 Backtracking</h3>
             <p style="color: #888; margin-bottom: 15px;">Explore all combinations/permutations, undo choices. Used in: <em>Subsets, Permutations, Combination Sum, Word Search, N-Queens, Generate Parentheses</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3166,7 +3447,7 @@ dummy.next = head
             </div>
 
             <!-- Pattern 11: Heap / Top-K -->
-            <h3>1️⃣1️⃣ Heap / Top-K / Two Heaps</h3>
+            <h3 id="leetcode-heap">1️⃣1️⃣ Heap / Top-K / Two Heaps</h3>
             <p style="color: #888; margin-bottom: 15px;">Priority queue for K-th element, streaming median. Used in: <em>Kth Largest Element, Top K Frequent, Merge K Sorted Lists, Find Median from Data Stream, Task Scheduler</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3213,7 +3494,7 @@ heapq.heappush(large, -heapq.heappop(small))
             </div>
 
             <!-- Pattern 12: Intervals -->
-            <h3>1️⃣2️⃣ Intervals</h3>
+            <h3 id="leetcode-intervals">1️⃣2️⃣ Intervals</h3>
             <p style="color: #888; margin-bottom: 15px;">Sort + merge/compare overlapping ranges. Used in: <em>Merge Intervals, Insert Interval, Non-Overlapping Intervals, Meeting Rooms</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3249,7 +3530,7 @@ max_rooms = cur = <span class="number">0</span>
             </div>
 
             <!-- Pattern 13: Dynamic Programming -->
-            <h3>1️⃣3️⃣ Dynamic Programming</h3>
+            <h3 id="leetcode-dp">1️⃣3️⃣ Dynamic Programming</h3>
             <p style="color: #888; margin-bottom: 15px;">Optimal substructure + overlapping subproblems. Used in: <em>Climbing Stairs, House Robber, Coin Change, LIS, Longest Common Subsequence, Knapsack, Edit Distance, Word Break</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3318,7 +3599,7 @@ max_rooms = cur = <span class="number">0</span>
             </div>
 
             <!-- Pattern 14: Graph / Topological Sort -->
-            <h3>1️⃣4️⃣ Graph / Topological Sort</h3>
+            <h3 id="leetcode-graph">1️⃣4️⃣ Graph / Topological Sort</h3>
             <p style="color: #888; margin-bottom: 15px;">Adjacency list traversal, dependency ordering. Used in: <em>Course Schedule, Clone Graph, Pacific Atlantic Water Flow, Alien Dictionary</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3371,7 +3652,7 @@ graph = defaultdict(<span class="function">list</span>)              <span class
             </div>
 
             <!-- Pattern 15: Trie -->
-            <h3>1️⃣5️⃣ Trie (Prefix Tree)</h3>
+            <h3 id="leetcode-trie">1️⃣5️⃣ Trie (Prefix Tree)</h3>
             <p style="color: #888; margin-bottom: 15px;">Efficient prefix/word lookup. Used in: <em>Implement Trie, Word Search II, Design Add and Search Words</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3409,7 +3690,7 @@ graph = defaultdict(<span class="function">list</span>)              <span class
             </div>
 
             <!-- Pattern 16: Union Find -->
-            <h3>1️⃣6️⃣ Union Find (Disjoint Set)</h3>
+            <h3 id="leetcode-union-find">1️⃣6️⃣ Union Find (Disjoint Set)</h3>
             <p style="color: #888; margin-bottom: 15px;">Track connected components efficiently. Used in: <em>Number of Connected Components, Redundant Connection, Accounts Merge, Number of Provinces</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3449,7 +3730,7 @@ components = <span class="function">len</span>(<span class="function">set</span>
             </div>
 
             <!-- Pattern 17: Bit Manipulation -->
-            <h3>1️⃣7️⃣ Bit Manipulation</h3>
+            <h3 id="leetcode-bit-manip">1️⃣7️⃣ Bit Manipulation</h3>
             <p style="color: #888; margin-bottom: 15px;">XOR, AND, shift tricks. Used in: <em>Single Number, Counting Bits, Reverse Bits, Missing Number, Sum of Two Integers</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3544,7 +3825,7 @@ sub = mask
             </div>
 
             <!-- Pattern 18: Greedy / Kadane's -->
-            <h3>1️⃣8️⃣ Greedy / Kadane's Algorithm</h3>
+            <h3 id="leetcode-greedy">1️⃣8️⃣ Greedy / Kadane's Algorithm</h3>
             <p style="color: #888; margin-bottom: 15px;">Locally optimal choices, max subarray. Used in: <em>Maximum Subarray, Jump Game, Gas Station, Hand of Straights, Partition Labels</em></p>
             <div class="code-block" style="margin-bottom: 25px;">
                 <div class="code-header python">🐍 Python Shortcuts</div>
@@ -3584,7 +3865,7 @@ sub = mask
             </div>
 
             <!-- Summary: All Python Shortcuts Index -->
-            <h3>📚 Python Shortcuts Master Index</h3>
+            <h3 id="leetcode-shortcuts">📚 Python Shortcuts Master Index</h3>
             <table class="comparison-table" style="margin-bottom: 10px;">
                 <thead>
                     <tr>
@@ -3620,7 +3901,7 @@ sub = mask
         </div>
         
         <!-- Section 5b: Python-Specific Power Features -->
-        <div class="section">
+        <div class="section" id="power-features">
             <h2>Python Power Features for Interviews</h2>
             
             <div class="quick-ref">
@@ -3751,7 +4032,7 @@ window = deque(maxlen=k)                <span class="comment"># appending past k
         </div>
 
         <!-- Section 6: Common Gotchas -->
-        <div class="section">
+        <div class="section" id="gotchas">
             <h2>⚠️ Common Gotchas</h2>
             
             <div class="ds-grid">
@@ -3825,7 +4106,7 @@ s = <span class="string">""</span>.join(chars)</pre>
         </div>
         
         <!-- Section 7: Quick Cheat Sheet -->
-        <div class="section">
+        <div class="section" id="cheatsheet">
             <h2>📝 Quick Cheat Sheet</h2>
             
             <table class="comparison-table">
@@ -3920,5 +4201,97 @@ s = <span class="string">""</span>.join(chars)</pre>
             Good luck with your interviews! 🚀
         </div>
     </div>
+    </main>
+
+    <script>
+        (function () {
+            const body = document.body;
+            const toggle = document.querySelector('.nav-toggle');
+            const backdrop = document.querySelector('.sidebar-backdrop');
+            const content = document.querySelector('.content');
+            const navItems = Array.from(document.querySelectorAll('.nav-item'));
+            const navLinks = Array.from(document.querySelectorAll('.sidebar .nav-link'));
+            const subLinks = Array.from(document.querySelectorAll('.sidebar .sub-link'));
+            const sections = Array.from(document.querySelectorAll('.section[id]'));
+            const subSections = Array.from(document.querySelectorAll('.section[id] h3[id]'));
+
+            const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+            const closeNav = () => {
+                body.classList.remove('nav-open');
+                toggle.setAttribute('aria-expanded', 'false');
+            };
+
+            toggle.addEventListener('click', () => {
+                const open = body.classList.toggle('nav-open');
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+
+            backdrop.addEventListener('click', closeNav);
+
+            [...navLinks, ...subLinks].forEach(link => {
+                link.addEventListener('click', () => {
+                    if (isMobile()) closeNav();
+                });
+            });
+
+            const sectionForH3 = (h3) => h3.closest('.section[id]');
+
+            const visibleSections = new Set();
+            const visibleSubs = new Set();
+
+            const updateActive = () => {
+                let activeSection = null;
+                if (visibleSections.size) {
+                    activeSection = [...visibleSections].sort(
+                        (a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top
+                    )[0];
+                }
+
+                navItems.forEach(item => {
+                    const isActive = activeSection && item.dataset.section === activeSection.id;
+                    item.classList.toggle('expanded', !!isActive);
+                });
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', activeSection && link.getAttribute('href') === '#' + activeSection.id);
+                });
+
+                let activeSub = null;
+                if (activeSection && visibleSubs.size) {
+                    const inSection = [...visibleSubs].filter(h => sectionForH3(h) === activeSection);
+                    if (inSection.length) {
+                        activeSub = inSection.sort(
+                            (a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top
+                        )[0];
+                    }
+                }
+                subLinks.forEach(link => {
+                    link.classList.toggle('active', activeSub && link.getAttribute('href') === '#' + activeSub.id);
+                });
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const target = entry.target;
+                    const set = target.tagName === 'H3' ? visibleSubs : visibleSections;
+                    if (entry.isIntersecting) set.add(target);
+                    else set.delete(target);
+                });
+                updateActive();
+            }, {
+                root: isMobile() ? null : content,
+                rootMargin: '-15% 0px -70% 0px',
+                threshold: 0
+            });
+
+            sections.forEach(s => observer.observe(s));
+            subSections.forEach(h => observer.observe(h));
+
+            if (sections.length) {
+                visibleSections.add(sections[0]);
+                updateActive();
+            }
+        })();
+    </script>
 </body>
 </html>
