@@ -139,6 +139,108 @@ arr.sort()                                <span class="comment"># in place, retu
 [x*x <span class="keyword">for</span> x <span class="keyword">in</span> arr]                        <span class="comment"># comprehension — list (materialized)</span>
 (x*x <span class="keyword">for</span> x <span class="keyword">in</span> arr)                        <span class="comment"># generator — lazy, one value at a time</span>
 <span class="function">list</span>(<span class="function">map</span>(<span class="function">str</span>, arr)), <span class="function">list</span>(<span class="function">filter</span>(<span class="keyword">None</span>, arr))</pre>
+
+                    <h4 style="margin-top: 14px;">🔍 Decoding <code>next((i for i, v in enumerate(arr) if v &gt; k), -1)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">"Index of the first element greater than <code>k</code>, or <code>-1</code> if none." Three layers stacked:</p>
+                    <ol style="padding-left: 22px; line-height: 1.8;">
+                        <li><code>enumerate(arr)</code> yields <code>(index, value)</code> pairs as you iterate.</li>
+                        <li><code>(i for i, v in enumerate(arr) if v &gt; k)</code> is a <strong>generator expression</strong> — it yields just the <code>i</code> (index) whenever <code>v &gt; k</code>. Lazy: nothing runs until something asks for the next value.</li>
+                        <li><code>next(generator, default)</code> pulls the <strong>first</strong> item the generator produces. If the generator is empty (no match), it returns the <code>default</code> instead of raising <code>StopIteration</code>.</li>
+                    </ol>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">arr = [<span class="number">3</span>, <span class="number">1</span>, <span class="number">7</span>, <span class="number">2</span>, <span class="number">9</span>]; k = <span class="number">5</span>
+<span class="function">next</span>((i <span class="keyword">for</span> i, v <span class="keyword">in</span> <span class="function">enumerate</span>(arr) <span class="keyword">if</span> v &gt; k), -<span class="number">1</span>)   <span class="comment"># → 2  (arr[2]=7 is first &gt; 5)</span>
+
+arr = [<span class="number">3</span>, <span class="number">1</span>, <span class="number">2</span>]; k = <span class="number">5</span>
+<span class="function">next</span>((i <span class="keyword">for</span> i, v <span class="keyword">in</span> <span class="function">enumerate</span>(arr) <span class="keyword">if</span> v &gt; k), -<span class="number">1</span>)   <span class="comment"># → -1 (no match)</span>
+
+<span class="comment"># Equivalent loop:</span>
+<span class="keyword">def</span> <span class="function">find_first</span>(arr, k):
+    <span class="keyword">for</span> i, v <span class="keyword">in</span> <span class="function">enumerate</span>(arr):
+        <span class="keyword">if</span> v &gt; k: <span class="keyword">return</span> i
+    <span class="keyword">return</span> -<span class="number">1</span></pre>
+                    <ul>
+                        <li><strong>Short-circuits</strong> — stops at the first match, doesn't scan the rest of <code>arr</code></li>
+                        <li><strong>No <code>StopIteration</code> leak</strong> — the <code>-1</code> default makes it safe on empty matches</li>
+                        <li>⚠️ The two paren layers are mandatory: inner <code>(...)</code> is the generator expression, outer <code>(...)</code> is <code>next()</code>'s argument list. Forgetting the default (<code>next(gen)</code> alone) is the #1 bug</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">📝 First, what's a <code>lambda</code>?</h4>
+                    <p style="color: #888; margin-bottom: 8px;">
+                        A <code>lambda</code> is a tiny anonymous function — one expression, no <code>def</code>, no name. It's used wherever a callable is expected for a single line.
+                    </p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># Syntax:  lambda &lt;params&gt;: &lt;expression&gt;</span>
+<span class="comment">#          ↑ keyword     ↑ what the function returns (no `return` keyword)</span>
+
+<span class="keyword">lambda</span> x: x * <span class="number">2</span>           <span class="comment"># a function that returns 2x</span>
+<span class="keyword">lambda</span> x, y: x + y       <span class="comment"># two args</span>
+<span class="keyword">lambda</span>: <span class="number">42</span>               <span class="comment"># no args, returns 42</span>
+
+<span class="comment"># Equivalent named version:</span>
+<span class="keyword">def</span> <span class="function">double</span>(x):
+    <span class="keyword">return</span> x * <span class="number">2</span>
+
+<span class="comment"># Why use it: pass a function inline without ceremony.</span>
+<span class="function">sorted</span>(arr, key=<span class="keyword">lambda</span> x: -x)            <span class="comment"># inline — clean</span>
+
+<span class="keyword">def</span> <span class="function">neg</span>(x): <span class="keyword">return</span> -x                      <span class="comment"># named — works but verbose</span>
+<span class="function">sorted</span>(arr, key=neg)</pre>
+                    <ul>
+                        <li><strong>Body is a single expression</strong> — no statements, no multi-line logic. If you need that, write a regular <code>def</code></li>
+                        <li><strong>Result is the value of that expression</strong> — there's no <code>return</code></li>
+                        <li><strong>Common partners:</strong> <code>sorted(... key=)</code>, <code>min/max(... key=)</code>, <code>map</code>, <code>filter</code>, <code>functools.reduce</code>, <code>heapq.nlargest(... key=)</code></li>
+                        <li>Don't <em>assign</em> a lambda to a name (<code>double = lambda x: x*2</code>) — just use <code>def</code>. Style guides flag this</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🔀 Decoding <code>sorted(arr, key=lambda x: -x)</code> and multi-key sorts</h4>
+                    <p style="color: #888; margin-bottom: 8px;">
+                        <code>key=</code> takes a function. <code>sorted</code> calls it on every element and uses the <em>returned</em> value as the sort key — but returns the <strong>original</strong> elements in that order.
+                    </p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">arr = [<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">5</span>]
+
+<span class="function">sorted</span>(arr)                       <span class="comment"># [1, 1, 3, 4, 5]   ascending (default)</span>
+<span class="function">sorted</span>(arr, key=<span class="keyword">lambda</span> x: -x)     <span class="comment"># [5, 4, 3, 1, 1]   descending — negation flips the order</span>
+
+<span class="comment"># How the negation trick works:</span>
+<span class="comment"># • transformed keys: [-3, -1, -4, -1, -5]</span>
+<span class="comment"># • sorted asc by key: [-5, -4, -3, -1, -1]</span>
+<span class="comment"># • original elements in that order: [5, 4, 3, 1, 1]   ← the result</span>
+
+<span class="comment"># For numbers, this equals sorted(arr, reverse=True). The trick matters in MULTI-KEY sorts.</span></pre>
+
+                    <p style="color: #888; margin-top: 8px; margin-bottom: 8px;">
+                        <strong>Multi-key:</strong> when the key returns a <em>tuple</em>, Python compares tuples lexicographically — first item, then second on ties, etc.
+                    </p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">people = [(<span class="number">25</span>, <span class="string">"Bob"</span>), (<span class="number">30</span>, <span class="string">"Alice"</span>), (<span class="number">25</span>, <span class="string">"Eve"</span>), (<span class="number">30</span>, <span class="string">"Tom"</span>)]
+
+<span class="function">sorted</span>(people, key=<span class="keyword">lambda</span> x: (-x[<span class="number">0</span>], x[<span class="number">1</span>]))
+<span class="comment"># → [(30, 'Alice'), (30, 'Tom'), (25, 'Bob'), (25, 'Eve')]
+#
+# • -x[0]:  30 → -30, 25 → -25;  -30 &lt; -25, so 30s come first   (age DESC)
+# • Within ties, x[1] sorts ascending alphabetically               (name ASC)</span></pre>
+
+                    <h4 style="margin-top: 14px;">🎯 Why the negation trick (and when it breaks)</h4>
+                    <p style="color: #888; margin-bottom: 8px;">
+                        <code>reverse=True</code> flips the <em>whole</em> ordering. For <strong>mixed</strong> directions — one key asc, another desc — you can't use it. Negating numerics inside the tuple is the standard workaround:
+                    </p>
+                    <table class="comparison-table" style="margin: 8px 0;">
+                        <thead>
+                            <tr><th>Goal</th><th>Key</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>age asc, name asc</td><td><code>lambda x: (x[0], x[1])</code></td></tr>
+                            <tr><td>age desc, name asc</td><td><code>lambda x: (-x[0], x[1])</code></td></tr>
+                            <tr><td>age asc, name desc</td><td>two-pass sort (see below) — strings have no <code>-</code></td></tr>
+                            <tr><td>age desc, name desc</td><td><code>lambda x: (x[0], x[1])</code> with <code>reverse=True</code></td></tr>
+                        </tbody>
+                    </table>
+                    <p style="color: #888; margin-top: 8px; margin-bottom: 8px;">
+                        ⚠️ Negation only works on <strong>numerics</strong>. Strings have no <code>-</code> operator. For string columns, sort twice in reverse priority order — Python's sort is <strong>stable</strong>, so the second pass preserves the first key's order within ties:
+                    </p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># "age asc, name desc":</span>
+data = <span class="function">sorted</span>(people, key=<span class="keyword">lambda</span> x: x[<span class="number">1</span>], reverse=<span class="keyword">True</span>)   <span class="comment"># name desc first</span>
+data = <span class="function">sorted</span>(data,   key=<span class="keyword">lambda</span> x: x[<span class="number">0</span>])                  <span class="comment"># then age asc — wins on ties</span></pre>
+                    <p class="note">The <code>key=</code> argument also works on <code>min()</code>, <code>max()</code>, <code>heapq.nlargest()</code>, and <code>heapq.nsmallest()</code> — same trick.</p>
+
                     <p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
                 </div>
             </div>
