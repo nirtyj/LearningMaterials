@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Complexity | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>Time Complexity Quick Reference</h1>
+            <p class="subtitle">Big-O for the operations you'll write most often</p>
+
+            <div class="section">
+                <div class="complexity-chart">
+                    <div class="complexity-item">
+                        <div class="op">List/Array Access</div>
+                        <div class="big-o">O(1)</div>
+                    </div>
+                    <div class="complexity-item">
+                        <div class="op">List Append</div>
+                        <div class="big-o">O(1)*</div>
+                    </div>
+                    <div class="complexity-item">
+                        <div class="op">List Insert (middle)</div>
+                        <div class="big-o">O(n)</div>
+                    </div>
+                    <div class="complexity-item">
+                        <div class="op">Dict/Map Get/Set</div>
+                        <div class="big-o">O(1)</div>
+                    </div>
+                    <div class="complexity-item">
+                        <div class="op">Set Add/Contains</div>
+                        <div class="big-o">O(1)</div>
+                    </div>
+                    <div class="complexity-item">
+                        <div class="op">Heap Push/Pop</div>
+                        <div class="big-o">O(log n)</div>
+                    </div>
+                </div>
+                <p class="note">* List append is amortized O(1); occasional resize is O(n).</p>
+            </div>
+
+            <nav class="page-nav">
+                <a href="variables.html" class="prev">← Variables &amp; Memory</a>
+                <a href="list.html" class="next">List / Array →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

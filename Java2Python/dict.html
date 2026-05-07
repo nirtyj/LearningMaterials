@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dict / HashMap | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>🗺️ Dict / HashMap</h1>
+            <p class="subtitle">Python <code>dict</code> vs Java <code>HashMap</code> &amp; <code>TreeMap</code></p>
+
+            <div class="section">
+                <h2 id="dict-compare">Comparison</h2>
+                <div class="ds-grid">
+                    <div class="ds-card">
+                        <h4>🗺️ Hash Map</h4>
+                        <div class="ds-row">
+                            <span class="ds-lang python">Python</span>
+                            <span class="ds-code">d = {"key": "value"}</span>
+                        </div>
+                        <div class="ds-row">
+                            <span class="ds-lang java">Java</span>
+                            <span class="ds-code">Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+                        </div>
+                        <p class="note">Python dict maintains insertion order (3.7+)</p>
+                    </div>
+                    <div class="ds-card">
+                        <h4>🌳 Sorted Map (TreeMap)</h4>
+                        <div class="ds-row">
+                            <span class="ds-lang python">Python</span>
+                            <span class="ds-code">from sortedcontainers import SortedDict</span>
+                        </div>
+                        <div class="ds-row">
+                            <span class="ds-lang java">Java</span>
+                            <span class="ds-code">TreeMap&lt;K, V&gt; map = new TreeMap&lt;&gt;();</span>
+                        </div>
+                        <p class="note">Python needs external library; Java has built-in</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="dict-init">Initialization</h2>
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre>d = {}                             <span class="comment"># empty dict</span>
+d = {<span class="string">"a"</span>: <span class="number">1</span>, <span class="string">"b"</span>: <span class="number">2</span>}             <span class="comment"># literal</span>
+d = <span class="function">dict</span>(a=<span class="number">1</span>, b=<span class="number">2</span>)               <span class="comment"># keyword args</span>
+d = {x: x**<span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">5</span>)}  <span class="comment"># comprehension</span>
+d = <span class="function">dict</span>.fromkeys([<span class="string">"a"</span>,<span class="string">"b"</span>], <span class="number">0</span>)   <span class="comment"># {"a":0,"b":0}</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre>Map&lt;<span class="type">String</span>,<span class="type">Integer</span>&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();
+Map&lt;<span class="type">String</span>,<span class="type">Integer</span>&gt; map = Map.of(<span class="string">"a"</span>,<span class="number">1</span>,<span class="string">"b"</span>,<span class="number">2</span>); <span class="comment">// immutable</span>
+map.put(<span class="string">"a"</span>, <span class="number">1</span>); map.put(<span class="string">"b"</span>, <span class="number">2</span>);
+<span class="comment">// No dict comprehension equivalent</span>
+<span class="comment">// No built-in fromkeys</span></pre>
+                        </div>
+                    </div>
+                </div>
+                <p class="note"><code>{}</code> creates an empty <strong>dict</strong>, NOT a set. Use <code>set()</code> for empty sets.</p>
+            </div>
+
+            <div class="section">
+                <h2 id="dict-operations">Operations</h2>
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre>d = {<span class="string">"apple"</span>: <span class="number">3</span>, <span class="string">"banana"</span>: <span class="number">5</span>}
+
+<span class="comment"># ── Add / Update ──</span>
+d[<span class="string">"cherry"</span>] = <span class="number">7</span>             <span class="comment"># add new key</span>
+d[<span class="string">"apple"</span>] = <span class="number">10</span>              <span class="comment"># update existing</span>
+d.update({<span class="string">"fig"</span>: <span class="number">2</span>})        <span class="comment"># merge another dict</span>
+
+<span class="comment"># ── Access ──</span>
+d[<span class="string">"apple"</span>]                   <span class="comment"># 10 (KeyError if missing!)</span>
+d.get(<span class="string">"grape"</span>, <span class="number">0</span>)            <span class="comment"># 0 (safe with default)</span>
+
+<span class="comment"># ── Remove ──</span>
+<span class="keyword">del</span> d[<span class="string">"banana"</span>]              <span class="comment"># remove key</span>
+d.pop(<span class="string">"cherry"</span>)              <span class="comment"># remove &amp; return value → 7</span>
+d.pop(<span class="string">"missing"</span>, <span class="keyword">None</span>)       <span class="comment"># safe pop → None</span>
+
+<span class="comment"># ── Check ──</span>
+<span class="string">"apple"</span> <span class="keyword">in</span> d                <span class="comment"># True (checks keys, O(1))</span>
+<span class="number">10</span> <span class="keyword">in</span> d.values()            <span class="comment"># check value exists</span>
+
+<span class="comment"># ── Iterate ──</span>
+<span class="keyword">for</span> k <span class="keyword">in</span> d:                 <span class="comment"># keys only</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> d.values():        <span class="comment"># values only</span>
+<span class="keyword">for</span> k, v <span class="keyword">in</span> d.items():      <span class="comment"># key-value pairs</span>
+
+<span class="comment"># ── Size ──</span>
+<span class="function">len</span>(d)                      <span class="comment"># number of keys</span>
+
+<span class="comment"># ── Frequency pattern ──</span>
+freq = {}
+<span class="keyword">for</span> ch <span class="keyword">in</span> <span class="string">"hello"</span>:
+    freq[ch] = freq.get(ch, <span class="number">0</span>) + <span class="number">1</span>
+<span class="comment"># → {'h':1, 'e':1, 'l':2, 'o':1}
+
+# Or just use Counter — see DefaultDict / Counter page</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre>Map&lt;<span class="type">String</span>,<span class="type">Integer</span>&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();
+map.put(<span class="string">"apple"</span>, <span class="number">3</span>); map.put(<span class="string">"banana"</span>, <span class="number">5</span>);
+
+<span class="comment">// ── Add / Update ──</span>
+map.put(<span class="string">"cherry"</span>, <span class="number">7</span>);        <span class="comment">// add new key</span>
+map.put(<span class="string">"apple"</span>, <span class="number">10</span>);        <span class="comment">// update existing</span>
+map.putAll(otherMap);        <span class="comment">// merge another map</span>
+
+<span class="comment">// ── Access ──</span>
+map.get(<span class="string">"apple"</span>);            <span class="comment">// 10 (null if missing)</span>
+map.getOrDefault(<span class="string">"grape"</span>,<span class="number">0</span>); <span class="comment">// 0 (safe with default)</span>
+
+<span class="comment">// ── Remove ──</span>
+map.remove(<span class="string">"banana"</span>);        <span class="comment">// remove key</span>
+map.remove(<span class="string">"cherry"</span>);        <span class="comment">// returns value → 7</span>
+<span class="comment">// No safe-pop; just check null</span>
+
+<span class="comment">// ── Check ──</span>
+map.containsKey(<span class="string">"apple"</span>);   <span class="comment">// true (O(1))</span>
+map.containsValue(<span class="number">10</span>);      <span class="comment">// check value exists</span>
+
+<span class="comment">// ── Iterate ──</span>
+<span class="keyword">for</span> (<span class="type">String</span> k : map.keySet())       <span class="comment">// keys</span>
+<span class="keyword">for</span> (<span class="type">int</span> v : map.values())          <span class="comment">// values</span>
+<span class="keyword">for</span> (var e : map.entrySet())        <span class="comment">// entries</span>
+    e.getKey(); e.getValue();
+
+<span class="comment">// ── Size ──</span>
+map.size();                  <span class="comment">// number of keys</span>
+
+<span class="comment">// ── Frequency pattern ──</span>
+Map&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt; freq = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">char</span> c : <span class="string">"hello"</span>.toCharArray()) {
+    freq.merge(c, <span class="number">1</span>, Integer::sum);
+}
+<span class="comment">// → {h=1, e=1, l=2, o=1}
+
+// No built-in Counter — sort by value:</span>
+freq.entrySet().stream()
+    .sorted(Map.Entry.comparingByValue(
+        Comparator.reverseOrder()));</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tips-box">
+                    <h4>🗝️ More dict methods worth knowing</h4>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── setdefault — get-or-create in one call ──</span>
+d.setdefault(k, default)             <span class="comment"># if k not in d: d[k] = default; returns d[k]</span>
+<span class="comment"># Used for nested-dict trie: see Algorithms → Trie</span>
+trie.setdefault(c, {})
+
+<span class="comment"># ── pop with default — safe pop, no KeyError ──</span>
+d.pop(<span class="string">"missing"</span>, <span class="keyword">None</span>)               <span class="comment"># returns None instead of raising</span>
+removed = d.pop(<span class="string">"k"</span>, sentinel)        <span class="comment"># swap-and-detect-existed pattern</span>
+
+<span class="comment"># ── popitem — pops LAST-INSERTED pair (LIFO since 3.7) ──</span>
+d.popitem()                          <span class="comment"># returns (key, value); raises if empty</span>
+<span class="comment"># LRU-style cache eviction trick — see Classes → OOD Building Blocks</span>
+
+<span class="comment"># ── Dict merge (3.9+) ──</span>
+d1 | d2                              <span class="comment"># NEW dict; d2 wins on key conflicts</span>
+d1 |= d2                             <span class="comment"># mutate d1 in place (same as d1.update(d2))</span>
+{**d1, **d2}                         <span class="comment"># pre-3.9 form (also works for inline overrides)</span>
+
+<span class="comment"># ── update — merge into existing dict ──</span>
+d.update({<span class="string">"a"</span>: <span class="number">1</span>, <span class="string">"b"</span>: <span class="number">2</span>})           <span class="comment"># bulk insert/overwrite</span>
+d.update(c=<span class="number">3</span>, d=<span class="number">4</span>)                   <span class="comment"># keyword form</span>
+
+<span class="comment"># ── Iteration views (live — reflect later mutations) ──</span>
+d.keys()                             <span class="comment"># view of keys — supports set ops!</span>
+d1.keys() &amp; d2.keys()                <span class="comment"># keys present in both dicts (intersection)</span>
+d1.keys() - d2.keys()                <span class="comment"># keys in d1 but not d2</span>
+
+<span class="comment"># ── dict.fromkeys — bulk init with same value ──</span>
+<span class="function">dict</span>.fromkeys([<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>], <span class="number">0</span>)   <span class="comment"># {"a":0, "b":0, "c":0}</span>
+<span class="comment"># ⚠️ Don't pass a mutable default — all keys would alias the same object</span></pre>
+                </div>
+
+                <div class="tips-box">
+                    <h4>🛠️ Built-ins commonly paired with dicts</h4>
+                    <p style="color: #888; margin-bottom: 10px;">When you write dict code in interviews, these are the built-ins you reach for most.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── Iterating ──</span>
+<span class="keyword">for</span> k <span class="keyword">in</span> d: ...                           <span class="comment"># keys (default)</span>
+<span class="keyword">for</span> k, v <span class="keyword">in</span> d.items(): ...                <span class="comment"># pairs — most common</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> d.values(): ...
+
+<span class="comment"># ── argmax/argmin via key= ──</span>
+<span class="function">max</span>(d, key=d.get)                         <span class="comment"># KEY whose VALUE is largest</span>
+<span class="function">min</span>(d, key=d.get)                         <span class="comment"># smallest-value key</span>
+<span class="function">max</span>(d.items(), key=<span class="keyword">lambda</span> kv: kv[<span class="number">1</span>])      <span class="comment"># full (key, value) pair</span>
+
+<span class="comment"># ── Sorting items ──</span>
+<span class="function">sorted</span>(d.items(), key=<span class="keyword">lambda</span> kv: kv[<span class="number">1</span>])   <span class="comment"># by value asc</span>
+<span class="function">sorted</span>(d, key=d.get, reverse=<span class="keyword">True</span>)        <span class="comment"># keys ordered by value desc</span>
+
+<span class="comment"># ── Building from iterables ──</span>
+{k: v <span class="keyword">for</span> k, v <span class="keyword">in</span> <span class="function">zip</span>(keys, vals)}        <span class="comment"># dict comprehension</span>
+<span class="function">dict</span>(<span class="function">enumerate</span>(arr))                      <span class="comment"># {0: arr[0], 1: arr[1], ...}</span>
+<span class="function">dict</span>.fromkeys(arr, <span class="number">0</span>)                     <span class="comment"># unique keys with shared init value</span>
+
+<span class="comment"># ── Aggregating ──</span>
+<span class="function">sum</span>(d.values())
+<span class="function">any</span>(v == <span class="number">0</span> <span class="keyword">for</span> v <span class="keyword">in</span> d.values())
+<span class="function">len</span>(d)                                    <span class="comment"># number of keys</span></pre>
+                    <p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
+                </div>
+            </div>
+
+            <nav class="page-nav">
+                <a href="list.html" class="prev">← List / Array</a>
+                <a href="set.html" class="next">Set / HashSet →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

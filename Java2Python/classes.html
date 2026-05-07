@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classes, Nodes &amp; OOP | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>🏛️ Classes, Nodes &amp; OOP</h1>
+            <p class="subtitle">Node definitions, dataclass, dunder, sorting, abstract, OOD building blocks</p>
+
+            <div class="section">
+                <p style="color: #888; margin-bottom: 10px;">How to define the common node types, use Python OOP features, and the Java-to-Python OOP translation for interviews.</p>
+
+                <h3 id="classes-nodes">📦 LeetCode Node Definitions</h3>
+                <p style="color: #888; margin-bottom: 15px;">These are pre-defined on LeetCode — you don't write them, but you <strong>must</strong> know their shape.</p>
+
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre><span class="comment"># ── Binary Tree Node ──</span>
+<span class="keyword">class</span> <span class="type">TreeNode</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, val=<span class="number">0</span>, left=<span class="keyword">None</span>, right=<span class="keyword">None</span>):
+        self.val = val
+        self.left = left
+        self.right = right
+
+<span class="comment"># ── Singly Linked List Node ──</span>
+<span class="keyword">class</span> <span class="type">ListNode</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, val=<span class="number">0</span>, next=<span class="keyword">None</span>):
+        self.val = val
+        self.next = next
+
+<span class="comment"># ── N-ary Tree Node ──</span>
+<span class="keyword">class</span> <span class="type">Node</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, val=<span class="keyword">None</span>, children=<span class="keyword">None</span>):
+        self.val = val
+        self.children = children <span class="keyword">or</span> []  <span class="comment"># ← avoid mutable default!</span>
+
+<span class="comment"># ── Doubly Linked List Node (LRU Cache) ──</span>
+<span class="keyword">class</span> <span class="type">DLLNode</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, key=<span class="number">0</span>, val=<span class="number">0</span>):
+        self.key = key
+        self.val = val
+        self.prev = <span class="keyword">None</span>
+        self.next = <span class="keyword">None</span>
+
+<span class="comment"># ── Graph Node (Clone Graph) ──</span>
+<span class="keyword">class</span> <span class="type">Node</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, val=<span class="number">0</span>, neighbors=<span class="keyword">None</span>):
+        self.val = val
+        self.neighbors = neighbors <span class="keyword">or</span> []
+
+<span class="comment"># ── Trie Node ──</span>
+<span class="keyword">class</span> <span class="type">TrieNode</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self):
+        self.children = {}             <span class="comment"># char → TrieNode</span>
+        self.is_end = <span class="keyword">False</span>
+
+<span class="comment"># ⚡ Shortcut: Trie as nested dicts (no class!)</span>
+trie = {}
+<span class="keyword">for</span> c <span class="keyword">in</span> word:
+    trie = trie.setdefault(c, {})</pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre><span class="comment">// ── Binary Tree Node ──</span>
+<span class="keyword">public class</span> <span class="type">TreeNode</span> {
+    <span class="type">int</span> val;
+    <span class="type">TreeNode</span> left;
+    <span class="type">TreeNode</span> right;
+    <span class="type">TreeNode</span>(<span class="type">int</span> val) { <span class="keyword">this</span>.val = val; }
+}
+
+<span class="comment">// ── Singly Linked List Node ──</span>
+<span class="keyword">public class</span> <span class="type">ListNode</span> {
+    <span class="type">int</span> val;
+    <span class="type">ListNode</span> next;
+    <span class="type">ListNode</span>(<span class="type">int</span> val) { <span class="keyword">this</span>.val = val; }
+}
+
+<span class="comment">// ── N-ary Tree Node ──</span>
+<span class="keyword">public class</span> <span class="type">Node</span> {
+    <span class="type">int</span> val;
+    List&lt;<span class="type">Node</span>&gt; children;
+    <span class="type">Node</span>(<span class="type">int</span> val) {
+        <span class="keyword">this</span>.val = val;
+        <span class="keyword">this</span>.children = <span class="keyword">new</span> ArrayList&lt;&gt;();
+    }
+}
+
+<span class="comment">// ── Doubly Linked List Node ──</span>
+<span class="keyword">class</span> <span class="type">DLLNode</span> {
+    <span class="type">int</span> key, val;
+    <span class="type">DLLNode</span> prev, next;
+    <span class="type">DLLNode</span>(<span class="type">int</span> key, <span class="type">int</span> val) {
+        <span class="keyword">this</span>.key = key;
+        <span class="keyword">this</span>.val = val;
+    }
+}
+
+<span class="comment">// ── Graph Node ──</span>
+<span class="keyword">public class</span> <span class="type">Node</span> {
+    <span class="type">int</span> val;
+    List&lt;<span class="type">Node</span>&gt; neighbors;
+    <span class="type">Node</span>(<span class="type">int</span> val) {
+        <span class="keyword">this</span>.val = val;
+        <span class="keyword">this</span>.neighbors = <span class="keyword">new</span> ArrayList&lt;&gt;();
+    }
+}
+
+<span class="comment">// ── Trie Node ──</span>
+<span class="keyword">class</span> <span class="type">TrieNode</span> {
+    <span class="type">TrieNode</span>[] children = <span class="keyword">new</span> <span class="type">TrieNode</span>[<span class="number">26</span>];
+    <span class="type">boolean</span> isEnd = <span class="keyword">false</span>;
+}
+
+<span class="comment">// No shortcut — must use class</span></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tips-box" style="margin: 20px 0;">
+                    <h4>🔑 Key Python Differences for Nodes</h4>
+                    <ul>
+                        <li>No type declarations on fields — just assign in <code>__init__</code></li>
+                        <li>Default args: <code>val=0, left=None</code> — creates node in one call: <code>TreeNode(5)</code></li>
+                        <li><strong>Mutable default trap:</strong> Use <code>children=None</code> + <code>or []</code>, never <code>children=[]</code></li>
+                        <li>Python nodes are <strong>not typed</strong> — <code>node.val</code> can be anything (int, str, tuple)</li>
+                        <li>No access modifiers (no <code>private</code> / <code>public</code>) — everything is accessible</li>
+                    </ul>
+                </div>
+
+                <h3 id="classes-construct">🔨 Constructing Nodes Inline</h3>
+                <div class="code-block" style="margin-bottom: 25px;">
+                    <div class="code-header python">🐍 Python — Inline Construction</div>
+                    <div class="code-content">
+<pre><span class="comment"># ── Build a linked list: 1 → 2 → 3 → 4 → 5 ──</span>
+head = ListNode(<span class="number">1</span>, ListNode(<span class="number">2</span>, ListNode(<span class="number">3</span>, ListNode(<span class="number">4</span>, ListNode(<span class="number">5</span>)))))
+
+<span class="comment"># ── Build from a list ──</span>
+<span class="keyword">def</span> <span class="function">build_list</span>(arr):
+    dummy = ListNode(<span class="number">0</span>)
+    cur = dummy
+    <span class="keyword">for</span> val <span class="keyword">in</span> arr:
+        cur.next = ListNode(val)
+        cur = cur.next
+    <span class="keyword">return</span> dummy.next
+
+head = build_list([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>])
+
+<span class="comment"># ── Build a binary tree inline ──</span>
+<span class="comment">#       1</span>
+<span class="comment">#      / \</span>
+<span class="comment">#     2   3</span>
+<span class="comment">#    / \</span>
+<span class="comment">#   4   5</span>
+root = TreeNode(<span class="number">1</span>,
+    TreeNode(<span class="number">2</span>, TreeNode(<span class="number">4</span>), TreeNode(<span class="number">5</span>)),
+    TreeNode(<span class="number">3</span>)
+)
+
+<span class="comment"># ── Build a binary tree from list (LeetCode-style) ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> deque
+<span class="keyword">def</span> <span class="function">build_tree</span>(vals):
+    <span class="keyword">if</span> <span class="keyword">not</span> vals: <span class="keyword">return</span> <span class="keyword">None</span>
+    root = TreeNode(vals[<span class="number">0</span>])
+    q = deque([root])
+    i = <span class="number">1</span>
+    <span class="keyword">while</span> q <span class="keyword">and</span> i &lt; <span class="function">len</span>(vals):
+        node = q.popleft()
+        <span class="keyword">if</span> i &lt; <span class="function">len</span>(vals) <span class="keyword">and</span> vals[i] <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>:
+            node.left = TreeNode(vals[i])
+            q.append(node.left)
+        i += <span class="number">1</span>
+        <span class="keyword">if</span> i &lt; <span class="function">len</span>(vals) <span class="keyword">and</span> vals[i] <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>:
+            node.right = TreeNode(vals[i])
+            q.append(node.right)
+        i += <span class="number">1</span>
+    <span class="keyword">return</span> root
+
+root = build_tree([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="keyword">None</span>, <span class="keyword">None</span>, <span class="number">4</span>, <span class="number">5</span>])
+
+<span class="comment"># ── Build graph adjacency list ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict
+graph = defaultdict(<span class="function">list</span>)
+edges = [[<span class="number">0</span>,<span class="number">1</span>], [<span class="number">0</span>,<span class="number">2</span>], [<span class="number">1</span>,<span class="number">3</span>]]
+<span class="keyword">for</span> u, v <span class="keyword">in</span> edges:
+    graph[u].append(v)
+    graph[v].append(u)                  <span class="comment"># ← undirected</span></pre>
+                    </div>
+                </div>
+
+                <h3 id="classes-python-vs-java">🐍 Python Classes vs Java Classes</h3>
+                <p style="color: #888; margin-bottom: 15px;">The OOP translation guide — what you need for design questions.</p>
+
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre><span class="comment"># ── Basic Class ──</span>
+<span class="keyword">class</span> <span class="type">Animal</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, name, sound):
+        self.name = name               <span class="comment"># public (no modifier)</span>
+        self._sound = sound             <span class="comment"># "private" by convention</span>
+
+    <span class="keyword">def</span> <span class="function">speak</span>(self):
+        <span class="keyword">return</span> <span class="keyword">f</span><span class="string">"{self.name} says {self._sound}"</span>
+
+    <span class="keyword">def</span> <span class="function">__repr__</span>(self):                <span class="comment"># like toString()</span>
+        <span class="keyword">return</span> <span class="keyword">f</span><span class="string">"Animal('{self.name}')"</span>
+
+    <span class="keyword">def</span> <span class="function">__eq__</span>(self, other):           <span class="comment"># like equals()</span>
+        <span class="keyword">return</span> self.name == other.name
+
+    <span class="keyword">def</span> <span class="function">__hash__</span>(self):               <span class="comment"># like hashCode()</span>
+        <span class="keyword">return</span> <span class="function">hash</span>(self.name)
+
+    <span class="keyword">def</span> <span class="function">__lt__</span>(self, other):           <span class="comment"># like compareTo()</span>
+        <span class="keyword">return</span> self.name &lt; other.name
+
+<span class="comment"># ── Inheritance ──</span>
+<span class="keyword">class</span> <span class="type">Dog</span>(<span class="type">Animal</span>):
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, name, breed):
+        <span class="function">super</span>().__init__(name, <span class="string">"Woof"</span>)
+        self.breed = breed
+
+    <span class="keyword">def</span> <span class="function">speak</span>(self):                   <span class="comment"># override</span>
+        <span class="keyword">return</span> <span class="keyword">f</span><span class="string">"{self.name} barks!"</span>
+
+<span class="comment"># ── Multiple Inheritance (no interface!) ──</span>
+<span class="keyword">class</span> <span class="type">Flyable</span>:
+    <span class="keyword">def</span> <span class="function">fly</span>(self): <span class="keyword">return</span> <span class="string">"flying"</span>
+
+<span class="keyword">class</span> <span class="type">Swimmable</span>:
+    <span class="keyword">def</span> <span class="function">swim</span>(self): <span class="keyword">return</span> <span class="string">"swimming"</span>
+
+<span class="keyword">class</span> <span class="type">Duck</span>(<span class="type">Animal</span>, <span class="type">Flyable</span>, <span class="type">Swimmable</span>):
+    <span class="keyword">pass</span>                              <span class="comment"># gets all methods!</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre><span class="comment">// ── Basic Class ──</span>
+<span class="keyword">public class</span> <span class="type">Animal</span> {
+    <span class="keyword">public</span> String name;
+    <span class="keyword">private</span> String sound;
+
+    <span class="keyword">public</span> <span class="type">Animal</span>(String name, String sound) {
+        <span class="keyword">this</span>.name = name;
+        <span class="keyword">this</span>.sound = sound;
+    }
+
+    <span class="keyword">public</span> String speak() {
+        <span class="keyword">return</span> name + <span class="string">" says "</span> + sound;
+    }
+
+    @Override
+    <span class="keyword">public</span> String toString() {
+        <span class="keyword">return</span> <span class="string">"Animal('"</span> + name + <span class="string">"')"</span>;
+    }
+
+    @Override
+    <span class="keyword">public boolean</span> equals(Object o) {
+        <span class="keyword">return</span> name.equals(((Animal)o).name);
+    }
+
+    @Override
+    <span class="keyword">public int</span> hashCode() {
+        <span class="keyword">return</span> name.hashCode();
+    }
+}
+
+<span class="comment">// ── Inheritance ──</span>
+<span class="keyword">public class</span> <span class="type">Dog</span> <span class="keyword">extends</span> <span class="type">Animal</span> {
+    String breed;
+    <span class="keyword">public</span> <span class="type">Dog</span>(String name, String breed) {
+        <span class="keyword">super</span>(name, <span class="string">"Woof"</span>);
+        <span class="keyword">this</span>.breed = breed;
+    }
+    @Override
+    <span class="keyword">public</span> String speak() {
+        <span class="keyword">return</span> name + <span class="string">" barks!"</span>;
+    }
+}
+
+<span class="comment">// ── Interface (Python uses multiple inherit)</span>
+<span class="keyword">interface</span> <span class="type">Flyable</span> { String fly(); }
+<span class="keyword">interface</span> <span class="type">Swimmable</span> { String swim(); }
+<span class="keyword">class</span> <span class="type">Duck</span> <span class="keyword">extends</span> <span class="type">Animal</span>
+    <span class="keyword">implements</span> <span class="type">Flyable</span>, <span class="type">Swimmable</span> {
+    <span class="comment">// must implement fly() and swim()</span>
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="classes-dunder">🔧 Dunder Method Translation Table</h3>
+                <table class="comparison-table" style="margin-bottom: 25px;">
+                    <thead>
+                        <tr>
+                            <th>Purpose</th>
+                            <th>🐍 Python</th>
+                            <th>☕ Java</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Constructor</td><td><code>__init__(self, ...)</code></td><td><code>ClassName(...)</code></td><td>Python always has <code>self</code> as first arg</td></tr>
+                        <tr><td>String repr</td><td><code>__repr__(self)</code></td><td><code>toString()</code></td><td>Use <code>__str__</code> for user-facing, <code>__repr__</code> for debug</td></tr>
+                        <tr><td>Equality</td><td><code>__eq__(self, other)</code></td><td><code>equals(Object)</code></td><td>Python: <code>==</code> calls <code>__eq__</code>; <code>is</code> checks identity</td></tr>
+                        <tr><td>Hash</td><td><code>__hash__(self)</code></td><td><code>hashCode()</code></td><td>Must define if <code>__eq__</code> is defined (for sets/dicts)</td></tr>
+                        <tr><td>Compare</td><td><code>__lt__(self, other)</code></td><td><code>compareTo(T)</code> / <code>Comparable</code></td><td><code>__lt__</code> enables <code>sorted()</code> and <code>heapq</code></td></tr>
+                        <tr><td>Length</td><td><code>__len__(self)</code></td><td><code>size()</code></td><td>Enables <code>len(obj)</code></td></tr>
+                        <tr><td>Iteration</td><td><code>__iter__(self)</code></td><td><code>Iterator&lt;T&gt;</code></td><td>Enables <code>for x in obj:</code></td></tr>
+                        <tr><td>Indexing</td><td><code>__getitem__(self, key)</code></td><td><code>get(int)</code></td><td>Enables <code>obj[key]</code></td></tr>
+                        <tr><td>Contains</td><td><code>__contains__(self, item)</code></td><td><code>contains(Object)</code></td><td>Enables <code>x in obj</code></td></tr>
+                        <tr><td>Context mgr</td><td><code>__enter__ / __exit__</code></td><td><code>try-with-resources</code></td><td>Enables <code>with obj as x:</code></td></tr>
+                        <tr><td>Callable</td><td><code>__call__(self, ...)</code></td><td><em>No equivalent</em></td><td>Enables <code>obj(args)</code> like a function</td></tr>
+                    </tbody>
+                </table>
+
+                <h3 id="classes-dataclass">📋 @dataclass — Auto-Generate Boilerplate</h3>
+                <p style="color: #888; margin-bottom: 15px;">Python 3.7+. Replaces Java records, Lombok, or manual constructors. Perfect for OOD interviews.</p>
+
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python @dataclass</div>
+                        <div class="code-content">
+<pre><span class="keyword">from</span> dataclasses <span class="keyword">import</span> dataclass, field
+
+<span class="comment"># ── Basic: auto-generates __init__, __repr__, __eq__ ──</span>
+@dataclass
+<span class="keyword">class</span> <span class="type">Point</span>:
+    x: <span class="type">int</span>
+    y: <span class="type">int</span>
+
+p = Point(<span class="number">3</span>, <span class="number">4</span>)                       <span class="comment"># __init__ is free!</span>
+<span class="function">print</span>(p)                               <span class="comment"># Point(x=3, y=4)</span>
+Point(<span class="number">3</span>, <span class="number">4</span>) == Point(<span class="number">3</span>, <span class="number">4</span>)             <span class="comment"># True (__eq__ is free!)</span>
+
+<span class="comment"># ── With ordering (enables sorted / heapq!) ──</span>
+@dataclass(order=<span class="keyword">True</span>)
+<span class="keyword">class</span> <span class="type">Task</span>:
+    priority: <span class="type">int</span>                       <span class="comment"># ← sorted by first field!</span>
+    name: <span class="type">str</span>
+
+tasks = [Task(<span class="number">3</span>, <span class="string">"low"</span>), Task(<span class="number">1</span>, <span class="string">"high"</span>), Task(<span class="number">2</span>, <span class="string">"mid"</span>)]
+<span class="function">sorted</span>(tasks)                           <span class="comment"># [Task(1,'high'), Task(2,'mid'), Task(3,'low')]</span>
+<span class="comment"># Also works with heapq!</span>
+<span class="keyword">import</span> heapq
+heapq.heappush(heap, Task(<span class="number">1</span>, <span class="string">"urgent"</span>))  <span class="comment"># ← compares by priority</span>
+
+<span class="comment"># ── Frozen (immutable + hashable → usable as dict key/set) ──</span>
+@dataclass(frozen=<span class="keyword">True</span>)
+<span class="keyword">class</span> <span class="type">Coordinate</span>:
+    x: <span class="type">int</span>
+    y: <span class="type">int</span>
+
+visited = <span class="function">set</span>()
+visited.add(Coordinate(<span class="number">1</span>, <span class="number">2</span>))         <span class="comment"># ← hashable! works in sets</span>
+
+<span class="comment"># ── Mutable default fields (use field!) ──</span>
+@dataclass
+<span class="keyword">class</span> <span class="type">Graph</span>:
+    name: <span class="type">str</span>
+    edges: <span class="type">list</span> = field(default_factory=<span class="function">list</span>)  <span class="comment"># ← NOT edges=[] !</span>
+
+<span class="comment"># ── Post-init validation ──</span>
+@dataclass
+<span class="keyword">class</span> <span class="type">Employee</span>:
+    name: <span class="type">str</span>
+    age: <span class="type">int</span>
+    <span class="keyword">def</span> <span class="function">__post_init__</span>(self):
+        <span class="keyword">if</span> self.age &lt; <span class="number">0</span>:
+            <span class="keyword">raise</span> ValueError(<span class="string">"Age can't be negative"</span>)</pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java Equivalent</div>
+                        <div class="code-content">
+<pre><span class="comment">// ── Java 16+ record (similar to frozen dataclass) ──</span>
+<span class="keyword">public record</span> <span class="type">Point</span>(<span class="type">int</span> x, <span class="type">int</span> y) {}
+
+Point p = <span class="keyword">new</span> Point(<span class="number">3</span>, <span class="number">4</span>);
+p.toString();                     <span class="comment">// Point[x=3, y=4]</span>
+p.equals(<span class="keyword">new</span> Point(<span class="number">3</span>, <span class="number">4</span>));       <span class="comment">// true</span>
+<span class="comment">// records are immutable by default</span>
+
+<span class="comment">// ── With ordering: implement Comparable ──</span>
+<span class="keyword">public class</span> <span class="type">Task</span> <span class="keyword">implements</span> Comparable&lt;Task&gt; {
+    <span class="type">int</span> priority;
+    String name;
+    <span class="keyword">public</span> <span class="type">Task</span>(<span class="type">int</span> priority, String name) {
+        <span class="keyword">this</span>.priority = priority;
+        <span class="keyword">this</span>.name = name;
+    }
+    @Override
+    <span class="keyword">public int</span> compareTo(Task o) {
+        <span class="keyword">return</span> Integer.compare(priority, o.priority);
+    }
+    <span class="comment">// also need equals(), hashCode(), toString()!</span>
+}
+Collections.sort(tasks);
+PriorityQueue&lt;Task&gt; pq = <span class="keyword">new</span> PriorityQueue&lt;&gt;();
+
+<span class="comment">// ── With Lombok (annotation-based like @dataclass) ──</span>
+<span class="comment">// @Data gives getter/setter/equals/hash/toString</span>
+<span class="comment">// @Value makes immutable (like frozen)</span>
+@Data
+<span class="keyword">public class</span> <span class="type">Employee</span> {
+    String name;
+    <span class="type">int</span> age;
+}
+
+<span class="comment">// ── Without records or Lombok: ~30 lines per class</span>
+<span class="comment">// constructor + getters + equals + hashCode + toString</span>
+<span class="comment">// Python @dataclass does ALL of this in 3 lines</span></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="classes-namedtuple">📎 NamedTuple — Lightweight Immutable Records</h3>
+                <div class="code-block" style="margin-bottom: 25px;">
+                    <div class="code-header python">🐍 Python NamedTuple</div>
+                    <div class="code-content">
+<pre><span class="keyword">from</span> typing <span class="keyword">import</span> NamedTuple
+
+<span class="comment"># ── Clean syntax (Python 3.6+) ──</span>
+<span class="keyword">class</span> <span class="type">Point</span>(NamedTuple):
+    x: <span class="type">int</span>
+    y: <span class="type">int</span>
+
+p = Point(<span class="number">3</span>, <span class="number">4</span>)
+p.x                                    <span class="comment"># 3 (dot access)</span>
+x, y = p                               <span class="comment"># unpacking!</span>
+p[<span class="number">0</span>]                                   <span class="comment"># 3 (index access)</span>
+<span class="function">hash</span>(p)                                <span class="comment"># hashable (works in sets/dicts!)</span>
+
+<span class="comment"># ── Great for: multi-value returns, dict keys, BFS states ──</span>
+<span class="keyword">class</span> <span class="type">State</span>(NamedTuple):
+    row: <span class="type">int</span>
+    col: <span class="type">int</span>
+    keys: <span class="type">frozenset</span>                    <span class="comment"># ← immutable set for hashing</span>
+
+visited = <span class="function">set</span>()
+visited.add(State(<span class="number">0</span>, <span class="number">0</span>, <span class="function">frozenset</span>())) <span class="comment"># ← works as set element!</span>
+
+<span class="comment"># ── When to use which? ──</span>
+<span class="comment"># NamedTuple → immutable, hashable, can be dict key</span>
+<span class="comment"># @dataclass  → mutable by default, more features</span>
+<span class="comment"># @dataclass(frozen=True) → immutable like NamedTuple but slower</span>
+<span class="comment"># Plain tuple → quick and dirty, no named fields</span></pre>
+                    </div>
+                </div>
+
+                <h3 id="classes-enum">🏷️ Enum — Named Constants</h3>
+                <p style="color: #888; margin-bottom: 15px;">Replace magic numbers/strings. Common in OOD interview problems (states, directions, types).</p>
+
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python Enum</div>
+                        <div class="code-content">
+<pre><span class="keyword">from</span> enum <span class="keyword">import</span> Enum, auto, IntEnum
+
+<span class="comment"># ── Basic Enum ──</span>
+<span class="keyword">class</span> <span class="type">Direction</span>(Enum):
+    UP = <span class="number">0</span>
+    RIGHT = <span class="number">1</span>
+    DOWN = <span class="number">2</span>
+    LEFT = <span class="number">3</span>
+
+d = Direction.UP
+d.name                                 <span class="comment"># 'UP'</span>
+d.value                                <span class="comment"># 0</span>
+Direction(<span class="number">2</span>)                           <span class="comment"># Direction.DOWN (from value)</span>
+Direction[<span class="string">'LEFT'</span>]                      <span class="comment"># Direction.LEFT (from name)</span>
+
+<span class="comment"># ── auto() for auto-numbering ──</span>
+<span class="keyword">class</span> <span class="type">Color</span>(Enum):
+    RED = auto()                        <span class="comment"># 1</span>
+    GREEN = auto()                      <span class="comment"># 2</span>
+    BLUE = auto()                       <span class="comment"># 3</span>
+
+<span class="comment"># ── IntEnum (can compare with int) ──</span>
+<span class="keyword">class</span> <span class="type">Priority</span>(IntEnum):
+    LOW = <span class="number">1</span>
+    MEDIUM = <span class="number">2</span>
+    HIGH = <span class="number">3</span>
+
+Priority.HIGH &gt; Priority.LOW           <span class="comment"># True (IntEnum is comparable!)</span>
+Priority.HIGH &gt; <span class="number">2</span>                     <span class="comment"># True (compares with ints!)</span>
+
+<span class="comment"># ── Enum with methods ──</span>
+<span class="keyword">class</span> <span class="type">Direction</span>(Enum):
+    UP = (<span class="number">0</span>, -<span class="number">1</span>, <span class="number">0</span>)
+    RIGHT = (<span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>)
+    DOWN = (<span class="number">2</span>, <span class="number">1</span>, <span class="number">0</span>)
+    LEFT = (<span class="number">3</span>, <span class="number">0</span>, -<span class="number">1</span>)
+
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, idx, dr, dc):
+        self.idx = idx
+        self.dr = dr
+        self.dc = dc
+
+<span class="comment"># Use in grid traversal:</span>
+<span class="keyword">for</span> d <span class="keyword">in</span> Direction:
+    nr, nc = r + d.dr, c + d.dc
+
+<span class="comment"># ── Iterate all values ──</span>
+<span class="keyword">for</span> d <span class="keyword">in</span> Direction:
+    <span class="function">print</span>(d.name, d.value)
+
+<span class="function">list</span>(Direction)                         <span class="comment"># all members as list</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java Enum</div>
+                        <div class="code-content">
+<pre><span class="comment">// ── Basic Enum ──</span>
+<span class="keyword">public enum</span> <span class="type">Direction</span> {
+    UP, RIGHT, DOWN, LEFT;
+}
+
+Direction d = Direction.UP;
+d.name();                         <span class="comment">// "UP"</span>
+d.ordinal();                      <span class="comment">// 0</span>
+Direction.valueOf(<span class="string">"LEFT"</span>);         <span class="comment">// Direction.LEFT</span>
+Direction.values();               <span class="comment">// all values</span>
+
+<span class="comment">// ── Enum with fields ──</span>
+<span class="keyword">public enum</span> <span class="type">Direction</span> {
+    UP(<span class="number">0</span>, -<span class="number">1</span>, <span class="number">0</span>),
+    RIGHT(<span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>),
+    DOWN(<span class="number">2</span>, <span class="number">1</span>, <span class="number">0</span>),
+    LEFT(<span class="number">3</span>, <span class="number">0</span>, -<span class="number">1</span>);
+
+    <span class="keyword">final int</span> idx, dr, dc;
+    Direction(<span class="type">int</span> idx, <span class="type">int</span> dr, <span class="type">int</span> dc) {
+        <span class="keyword">this</span>.idx = idx;
+        <span class="keyword">this</span>.dr = dr;
+        <span class="keyword">this</span>.dc = dc;
+    }
+}
+
+<span class="comment">// Use in grid traversal:</span>
+<span class="keyword">for</span> (Direction d : Direction.values()) {
+    <span class="type">int</span> nr = r + d.dr, nc = c + d.dc;
+}
+
+
+
+<span class="comment">// ── Java enum already comparable by ordinal ──</span>
+<span class="comment">// Direction.UP.compareTo(Direction.DOWN)</span>
+<span class="comment">// returns negative (UP before DOWN)</span></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="classes-sorting">⚖️ Custom Sorting &amp; Comparators</h3>
+                <p style="color: #888; margin-bottom: 15px;">Sorting objects, heap ordering, custom comparators — the Java <code>Comparable</code>/<code>Comparator</code> translation.</p>
+
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre><span class="comment"># ── Sort with key function (most common) ──</span>
+intervals.sort(key=<span class="keyword">lambda</span> x: x[<span class="number">0</span>])    <span class="comment"># by first elem</span>
+intervals.sort(key=<span class="keyword">lambda</span> x: (x[<span class="number">0</span>], -x[<span class="number">1</span>]))  <span class="comment"># multi-key!</span>
+words.sort(key=<span class="function">len</span>)                    <span class="comment"># by length</span>
+words.sort(key=<span class="function">str</span>.lower)              <span class="comment"># case-insensitive</span>
+
+<span class="comment"># ── Sort objects ──</span>
+people.sort(key=<span class="keyword">lambda</span> p: p.age)
+people.sort(key=<span class="keyword">lambda</span> p: (-p.score, p.name))  <span class="comment"># desc score, asc name</span>
+
+<span class="comment"># ── @total_ordering: define __eq__ + __lt__, get all 6 ──</span>
+<span class="keyword">from</span> functools <span class="keyword">import</span> total_ordering
+
+@total_ordering
+<span class="keyword">class</span> <span class="type">Student</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, name, grade):
+        self.name = name
+        self.grade = grade
+
+    <span class="keyword">def</span> <span class="function">__eq__</span>(self, other):
+        <span class="keyword">return</span> self.grade == other.grade
+
+    <span class="keyword">def</span> <span class="function">__lt__</span>(self, other):
+        <span class="keyword">return</span> self.grade &lt; other.grade
+    <span class="comment"># __le__, __gt__, __ge__ auto-generated!</span>
+
+<span class="function">sorted</span>(students)                        <span class="comment"># works!</span>
+<span class="function">min</span>(students)                           <span class="comment"># works!</span>
+heapq.heappush(heap, student)           <span class="comment"># works!</span>
+
+<span class="comment"># ── functools.cmp_to_key (rare, for complex comparators) ──</span>
+<span class="keyword">from</span> functools <span class="keyword">import</span> cmp_to_key
+<span class="keyword">def</span> <span class="function">compare</span>(a, b):
+    <span class="comment"># return negative if a &lt; b, 0 if equal, positive if a &gt; b</span>
+    <span class="keyword">return</span> <span class="function">int</span>(a + b) - <span class="function">int</span>(b + a)     <span class="comment"># LC 179: Largest Number</span>
+
+nums_str = <span class="function">sorted</span>(<span class="function">map</span>(<span class="function">str</span>, nums), key=cmp_to_key(compare), reverse=<span class="keyword">True</span>)</pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre><span class="comment">// ── Sort with Comparator (lambda) ──</span>
+intervals.sort((a, b) -&gt; a[<span class="number">0</span>] - b[<span class="number">0</span>]);
+intervals.sort((a, b) -&gt;
+    a[<span class="number">0</span>] != b[<span class="number">0</span>] ? a[<span class="number">0</span>] - b[<span class="number">0</span>] : b[<span class="number">1</span>] - a[<span class="number">1</span>]);
+words.sort(Comparator.comparingInt(String::length));
+words.sort(String.CASE_INSENSITIVE_ORDER);
+
+<span class="comment">// ── Sort objects ──</span>
+people.sort(Comparator.comparingInt(p -&gt; p.age));
+people.sort(Comparator
+    .comparingInt((Person p) -&gt; p.score).reversed()
+    .thenComparing(p -&gt; p.name));
+
+<span class="comment">// ── Comparable interface ──</span>
+<span class="keyword">class</span> <span class="type">Student</span> <span class="keyword">implements</span> Comparable&lt;Student&gt; {
+    String name;
+    <span class="type">int</span> grade;
+
+    @Override
+    <span class="keyword">public int</span> compareTo(Student o) {
+        <span class="keyword">return</span> Integer.compare(
+            <span class="keyword">this</span>.grade, o.grade);
+    }
+
+    @Override
+    <span class="keyword">public boolean</span> equals(Object o) { ... }
+
+    @Override
+    <span class="keyword">public int</span> hashCode() { ... }
+}
+Collections.sort(students);
+<span class="keyword">new</span> PriorityQueue&lt;&gt;(students);
+
+<span class="comment">// ── Custom Comparator (Largest Number) ──</span>
+String[] strs = ...;
+Arrays.sort(strs, (a, b) -&gt;
+    (b + a).compareTo(a + b));
+
+
+</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="classes-abstract">🏗️ Abstract Classes &amp; Interfaces</h3>
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python ABC</div>
+                        <div class="code-content">
+<pre><span class="keyword">from</span> abc <span class="keyword">import</span> ABC, abstractmethod
+
+<span class="comment"># ── Abstract class (like Java abstract class) ──</span>
+<span class="keyword">class</span> <span class="type">Cache</span>(ABC):
+    @abstractmethod
+    <span class="keyword">def</span> <span class="function">get</span>(self, key: <span class="type">int</span>) -&gt; <span class="type">int</span>:
+        <span class="keyword">pass</span>
+
+    @abstractmethod
+    <span class="keyword">def</span> <span class="function">put</span>(self, key: <span class="type">int</span>, val: <span class="type">int</span>) -&gt; <span class="keyword">None</span>:
+        <span class="keyword">pass</span>
+
+<span class="comment"># Must implement all abstract methods</span>
+<span class="keyword">class</span> <span class="type">LRUCache</span>(<span class="type">Cache</span>):
+    <span class="keyword">def</span> <span class="function">get</span>(self, key): ...
+    <span class="keyword">def</span> <span class="function">put</span>(self, key, val): ...
+
+<span class="comment"># Cache() → TypeError (can't instantiate!)</span>
+
+<span class="comment"># ── "Interface" via Protocol (Python 3.8+) ──</span>
+<span class="keyword">from</span> typing <span class="keyword">import</span> Protocol
+
+<span class="keyword">class</span> <span class="type">Serializable</span>(Protocol):
+    <span class="keyword">def</span> <span class="function">serialize</span>(self) -&gt; <span class="type">str</span>: ...
+    <span class="keyword">def</span> <span class="function">deserialize</span>(self, s: <span class="type">str</span>): ...
+<span class="comment"># No explicit inheritance needed — duck typing!</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre><span class="comment">// ── Abstract class ──</span>
+<span class="keyword">public abstract class</span> <span class="type">Cache</span> {
+    <span class="keyword">abstract int</span> get(<span class="type">int</span> key);
+    <span class="keyword">abstract void</span> put(<span class="type">int</span> key, <span class="type">int</span> val);
+}
+
+<span class="keyword">public class</span> <span class="type">LRUCache</span> <span class="keyword">extends</span> <span class="type">Cache</span> {
+    @Override
+    <span class="keyword">int</span> get(<span class="type">int</span> key) { ... }
+    @Override
+    <span class="keyword">void</span> put(<span class="type">int</span> key, <span class="type">int</span> val) { ... }
+}
+
+<span class="comment">// ── Interface ──</span>
+<span class="keyword">public interface</span> <span class="type">Serializable</span> {
+    String serialize();
+    <span class="keyword">void</span> deserialize(String s);
+}
+
+<span class="keyword">class</span> <span class="type">MyCodec</span> <span class="keyword">implements</span> <span class="type">Serializable</span> {
+    @Override
+    <span class="keyword">public</span> String serialize() { ... }
+    @Override
+    <span class="keyword">public void</span> deserialize(String s) { ... }
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="classes-ood">🧱 OOD Interview Building Blocks</h3>
+                <div class="code-block" style="margin-bottom: 25px;">
+                    <div class="code-header python">🐍 Python — Common Patterns for Design Questions</div>
+                    <div class="code-content">
+<pre><span class="comment"># ── Singleton ──</span>
+<span class="keyword">class</span> <span class="type">Singleton</span>:
+    _instance = <span class="keyword">None</span>
+    <span class="keyword">def</span> <span class="function">__new__</span>(cls):
+        <span class="keyword">if</span> cls._instance <span class="keyword">is</span> <span class="keyword">None</span>:
+            cls._instance = <span class="function">super</span>().__new__(cls)
+        <span class="keyword">return</span> cls._instance
+
+<span class="comment"># ── Iterator ──</span>
+<span class="keyword">class</span> <span class="type">BSTIterator</span>:                      <span class="comment"># LC 173</span>
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, root):
+        self.stack = []
+        self._push_left(root)
+
+    <span class="keyword">def</span> <span class="function">_push_left</span>(self, node):
+        <span class="keyword">while</span> node:
+            self.stack.append(node)
+            node = node.left
+
+    <span class="keyword">def</span> <span class="function">__next__</span>(self):                <span class="comment"># ← makes it a Python iterator</span>
+        node = self.stack.pop()
+        self._push_left(node.right)
+        <span class="keyword">return</span> node.val
+
+    <span class="keyword">def</span> <span class="function">__iter__</span>(self):
+        <span class="keyword">return</span> self
+
+<span class="comment"># Usage: for val in BSTIterator(root): print(val)</span>
+
+<span class="comment"># ── Property (getters/setters the Python way) ──</span>
+<span class="keyword">class</span> <span class="type">Circle</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, radius):
+        self._radius = radius
+
+    @property
+    <span class="keyword">def</span> <span class="function">radius</span>(self):
+        <span class="keyword">return</span> self._radius
+
+    @radius.setter
+    <span class="keyword">def</span> <span class="function">radius</span>(self, value):
+        <span class="keyword">if</span> value &lt; <span class="number">0</span>: <span class="keyword">raise</span> ValueError
+        self._radius = value
+
+    @property
+    <span class="keyword">def</span> <span class="function">area</span>(self):                    <span class="comment"># ← computed property</span>
+        <span class="keyword">return</span> <span class="number">3.14159</span> * self._radius ** <span class="number">2</span>
+
+c = Circle(<span class="number">5</span>)
+c.radius                               <span class="comment"># 5 (no () needed!)</span>
+c.area                                 <span class="comment"># 78.54 (computed, no ()!)</span>
+
+<span class="comment"># ── Static / Class Methods ──</span>
+<span class="keyword">class</span> <span class="type">MathUtils</span>:
+    @staticmethod
+    <span class="keyword">def</span> <span class="function">gcd</span>(a, b):                     <span class="comment"># no self — like Java static</span>
+        <span class="keyword">while</span> b: a, b = b, a % b
+        <span class="keyword">return</span> a
+
+    @classmethod
+    <span class="keyword">def</span> <span class="function">from_string</span>(cls, s):           <span class="comment"># factory method</span>
+        <span class="keyword">return</span> cls(<span class="function">int</span>(s))
+
+<span class="comment"># ── OrderedDict (LRU Cache — LC 146) ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> OrderedDict
+
+<span class="keyword">class</span> <span class="type">LRUCache</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, capacity):
+        self.cache = OrderedDict()
+        self.cap = capacity
+
+    <span class="keyword">def</span> <span class="function">get</span>(self, key):
+        <span class="keyword">if</span> key <span class="keyword">not</span> <span class="keyword">in</span> self.cache: <span class="keyword">return</span> -<span class="number">1</span>
+        self.cache.move_to_end(key)     <span class="comment"># ← built-in method!</span>
+        <span class="keyword">return</span> self.cache[key]
+
+    <span class="keyword">def</span> <span class="function">put</span>(self, key, val):
+        self.cache[key] = val
+        self.cache.move_to_end(key)
+        <span class="keyword">if</span> <span class="function">len</span>(self.cache) &gt; self.cap:
+            self.cache.popitem(last=<span class="keyword">False</span>)  <span class="comment"># ← remove oldest!</span>
+
+<span class="comment"># ── Type Hints (for readability in interviews) ──</span>
+<span class="keyword">from</span> typing <span class="keyword">import</span> List, Optional, Dict, Set, Tuple
+
+<span class="keyword">def</span> <span class="function">twoSum</span>(nums: List[<span class="type">int</span>], target: <span class="type">int</span>) -&gt; List[<span class="type">int</span>]:
+    ...
+
+<span class="keyword">def</span> <span class="function">inorder</span>(root: Optional[<span class="type">TreeNode</span>]) -&gt; List[<span class="type">int</span>]:
+    ...</pre>
+                    </div>
+                </div>
+
+                <div class="tips-box">
+                    <h4>🎯 When to Use What — OOP Quick Decision Guide</h4>
+                    <ul>
+                        <li><strong>Plain class</strong> — when you need custom methods, mutable state, complex logic (LRU Cache, Trie, etc.)</li>
+                        <li><strong>@dataclass</strong> — structured data with auto __init__/__eq__/__repr__. Add <code>order=True</code> for sortable, <code>frozen=True</code> for immutable</li>
+                        <li><strong>NamedTuple</strong> — immutable records, great as dict keys or BFS states with complex keys</li>
+                        <li><strong>Enum / IntEnum</strong> — named constants, directions, states. <code>IntEnum</code> when you need comparisons</li>
+                        <li><strong>@total_ordering</strong> — when your object needs to go in a heap or sorted list, define only <code>__eq__</code> + <code>__lt__</code></li>
+                        <li><strong>ABC</strong> — design interview scaffolding, enforcing interfaces</li>
+                        <li><strong>@property</strong> — computed fields, validation on set (Java's getter/setter)</li>
+                        <li><strong>Nested dicts</strong> — quick Trie or adjacency list without class boilerplate</li>
+                    </ul>
+                </div>
+            </div>
+
+            <nav class="page-nav">
+                <a href="counter.html" class="prev">← DefaultDict / Counter</a>
+                <a href="algorithms.html" class="next">Algorithm Patterns →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

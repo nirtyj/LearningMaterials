@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Cheat Sheet | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>📝 Quick Cheat Sheet</h1>
+            <p class="subtitle">Side-by-side syntax reference</p>
+
+            <div class="section">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Operation</th>
+                            <th>Python</th>
+                            <th>Java Equivalent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Print</td>
+                            <td><code>print(x)</code></td>
+                            <td><code>System.out.println(x)</code></td>
+                        </tr>
+                        <tr>
+                            <td>String length</td>
+                            <td><code>len(s)</code></td>
+                            <td><code>s.length()</code></td>
+                        </tr>
+                        <tr>
+                            <td>Array/List length</td>
+                            <td><code>len(arr)</code></td>
+                            <td><code>arr.length / list.size()</code></td>
+                        </tr>
+                        <tr>
+                            <td>Char at index</td>
+                            <td><code>s[i]</code></td>
+                            <td><code>s.charAt(i)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Substring</td>
+                            <td><code>s[i:j]</code></td>
+                            <td><code>s.substring(i, j)</code></td>
+                        </tr>
+                        <tr>
+                            <td>String → Int</td>
+                            <td><code>int(s)</code></td>
+                            <td><code>Integer.parseInt(s)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Int → String</td>
+                            <td><code>str(n)</code></td>
+                            <td><code>String.valueOf(n)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Max/Min</td>
+                            <td><code>max(a, b)</code></td>
+                            <td><code>Math.max(a, b)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Absolute value</td>
+                            <td><code>abs(x)</code></td>
+                            <td><code>Math.abs(x)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Power</td>
+                            <td><code>x ** y</code></td>
+                            <td><code>Math.pow(x, y)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Floor division</td>
+                            <td><code>a // b</code></td>
+                            <td><code>Math.floorDiv(a, b)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Check type</td>
+                            <td><code>isinstance(x, int)</code></td>
+                            <td><code>x instanceof Integer</code></td>
+                        </tr>
+                        <tr>
+                            <td>Null/None check</td>
+                            <td><code>x is None</code></td>
+                            <td><code>x == null</code></td>
+                        </tr>
+                        <tr>
+                            <td>Boolean AND/OR</td>
+                            <td><code>and / or</code></td>
+                            <td><code>&amp;&amp; / ||</code></td>
+                        </tr>
+                        <tr>
+                            <td>Not equal</td>
+                            <td><code>!=</code></td>
+                            <td><code>!=</code> (primitives) / <code>!equals()</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="text-align: center; padding: 30px; color: #666; font-size: 0.9rem;">
+                Good luck with your interviews! 🚀
+            </div>
+
+            <nav class="page-nav">
+                <a href="gotchas.html" class="prev">← Common Gotchas</a>
+                <a href="index.html" class="next">Home →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List / Array | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>📋 List / Array</h1>
+            <p class="subtitle">Python <code>list</code> vs Java <code>ArrayList</code> &amp; primitive arrays</p>
+
+            <div class="section">
+                <h2 id="list-compare">Comparison</h2>
+                <div class="ds-grid">
+                    <div class="ds-card">
+                        <h4>📋 Dynamic Array</h4>
+                        <div class="ds-row">
+                            <span class="ds-lang python">Python</span>
+                            <span class="ds-code">list = [1, 2, 3]</span>
+                        </div>
+                        <div class="ds-row">
+                            <span class="ds-lang java">Java</span>
+                            <span class="ds-code">ArrayList&lt;Integer&gt; list = new ArrayList&lt;&gt;();</span>
+                        </div>
+                        <p class="note">Python lists can hold mixed types; Java requires generics</p>
+                    </div>
+
+                    <div class="ds-card">
+                        <h4>📊 Fixed Array</h4>
+                        <div class="ds-row">
+                            <span class="ds-lang python">Python</span>
+                            <span class="ds-code">arr = [0] * 10  # or use array module</span>
+                        </div>
+                        <div class="ds-row">
+                            <span class="ds-lang java">Java</span>
+                            <span class="ds-code">int[] arr = new int[10];</span>
+                        </div>
+                        <p class="note">Java primitive arrays are more memory efficient</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="list-init">Initialization</h2>
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre>nums = []                          <span class="comment"># empty list</span>
+nums = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]                  <span class="comment"># literal</span>
+nums = [<span class="number">0</span>] * <span class="number">10</span>                   <span class="comment"># 10 zeros</span>
+nums = <span class="function">list</span>(<span class="function">range</span>(<span class="number">5</span>))            <span class="comment"># [0,1,2,3,4]</span>
+nums = [x**<span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">5</span>)]  <span class="comment"># [0,1,4,9,16]</span>
+
+<span class="comment"># ── 2D List (Matrix) ──</span>
+grid = [[<span class="number">0</span>] * cols <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(rows)]
+<span class="comment"># ⚠️ WRONG: [[0]*cols]*rows (shared refs!)</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre>List&lt;<span class="type">Integer</span>&gt; nums = <span class="keyword">new</span> ArrayList&lt;&gt;();
+List&lt;<span class="type">Integer</span>&gt; nums = <span class="keyword">new</span> ArrayList&lt;&gt;(Arrays.asList(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>));
+List&lt;<span class="type">Integer</span>&gt; nums = List.of(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>); <span class="comment">// immutable!</span>
+<span class="type">int</span>[] arr = <span class="keyword">new</span> <span class="type">int</span>[<span class="number">10</span>];           <span class="comment">// 10 zeros</span>
+<span class="comment">// No built-in range → use IntStream</span>
+
+<span class="comment">// ── 2D Array ──</span>
+<span class="type">int</span>[][] grid = <span class="keyword">new</span> <span class="type">int</span>[rows][cols];
+<span class="comment">// Or with ArrayList:</span>
+<span class="comment">// List&lt;List&lt;Integer&gt;&gt; grid = new ArrayList&lt;&gt;();</span></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="tips-box">
+                    <h4>⚠️ 2D Grid Gotcha</h4>
+                    <ul>
+                        <li><code>[[0]*cols]*rows</code> creates <code>rows</code> references to the SAME inner list — mutating one row mutates them all</li>
+                        <li>Always use a comprehension: <code>[[0]*cols for _ in range(rows)]</code></li>
+                    </ul>
+                </div>
+
+                <div class="tips-box">
+                    <h4>📋 Copy &amp; extend nuances</h4>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── Append vs allocate-new ──</span>
+a.extend(b)                      <span class="comment"># mutate in place (same as: a += b)</span>
+a += b                           <span class="comment"># same as extend on a list</span>
+c = a + b                        <span class="comment"># NEW list; a, b unchanged — use when you must preserve a</span>
+
+<span class="comment"># ── Three shallow-copy idioms (all equivalent) ──</span>
+b = a[:]                         <span class="comment"># slice copy — terse, very common</span>
+b = a.copy()                     <span class="comment"># method form (3.3+) — most readable</span>
+b = <span class="function">list</span>(a)                      <span class="comment"># works for any iterable, not just lists</span>
+
+<span class="comment"># ── Deep copy for nested structures ──</span>
+<span class="keyword">import</span> copy
+b = copy.deepcopy(a)             <span class="comment"># required when a contains lists/dicts/objects</span>
+
+<span class="comment"># ── Reverse: in-place vs new ──</span>
+a.reverse()                      <span class="comment"># mutates a (returns None — don't chain!)</span>
+b = a[::-<span class="number">1</span>]                      <span class="comment"># NEW reversed list — leaves a alone</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">reversed</span>(a): ...        <span class="comment"># iterator only, no copy — fastest if you only iterate</span></pre>
+                    <p>For why <code>a = b</code> isn't a copy at all (and bites you in interviews), see <a href="gotchas.html" style="color:#4fc3f7;">Common Gotchas → List Copy vs Reference</a>.</p>
+                </div>
+
+                <div class="tips-box">
+                    <h4>🛠️ Built-ins commonly paired with lists</h4>
+                    <p style="color: #888; margin-bottom: 10px;">When you write list code in interviews, these are the built-ins you reach for most.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── Iterating ──</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> arr: ...
+<span class="keyword">for</span> i, v <span class="keyword">in</span> <span class="function">enumerate</span>(arr): ...           <span class="comment"># index + value</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> <span class="function">reversed</span>(arr): ...               <span class="comment"># iterator, no copy</span>
+<span class="keyword">for</span> a, b <span class="keyword">in</span> <span class="function">zip</span>(arr, arr[<span class="number">1</span>:]): ...        <span class="comment"># adjacent pairs</span>
+
+<span class="comment"># ── Searching ──</span>
+target <span class="keyword">in</span> arr                              <span class="comment"># O(n) membership</span>
+arr.index(x)                              <span class="comment"># first index of x (raises if missing)</span>
+<span class="function">next</span>((i <span class="keyword">for</span> i, v <span class="keyword">in</span> <span class="function">enumerate</span>(arr) <span class="keyword">if</span> v &gt; k), -<span class="number">1</span>)  <span class="comment"># find-first index, safe default</span>
+
+<span class="comment"># ── Sorting ──</span>
+<span class="function">sorted</span>(arr, key=<span class="keyword">lambda</span> x: -x)              <span class="comment"># custom key, NEW list</span>
+<span class="function">sorted</span>(arr, key=<span class="keyword">lambda</span> x: (-x[<span class="number">0</span>], x[<span class="number">1</span>]))   <span class="comment"># multi-key</span>
+arr.sort()                                <span class="comment"># in place, returns None — don't chain!</span>
+
+<span class="comment"># ── Aggregating ──</span>
+<span class="function">sum</span>(arr), <span class="function">min</span>(arr), <span class="function">max</span>(arr)
+<span class="function">sum</span>(arr, start=<span class="number">10</span>)                        <span class="comment"># offset</span>
+<span class="function">any</span>(x &gt; <span class="number">0</span> <span class="keyword">for</span> x <span class="keyword">in</span> arr)
+<span class="function">all</span>(x &gt; <span class="number">0</span> <span class="keyword">for</span> x <span class="keyword">in</span> arr)
+
+<span class="comment"># ── Transforming ──</span>
+[x*x <span class="keyword">for</span> x <span class="keyword">in</span> arr]                        <span class="comment"># comprehension — list (materialized)</span>
+(x*x <span class="keyword">for</span> x <span class="keyword">in</span> arr)                        <span class="comment"># generator — lazy, one value at a time</span>
+<span class="function">list</span>(<span class="function">map</span>(<span class="function">str</span>, arr)), <span class="function">list</span>(<span class="function">filter</span>(<span class="keyword">None</span>, arr))</pre>
+                    <p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="list-operations">Operations</h2>
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre>nums = [<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">5</span>]
+
+<span class="comment"># ── Add ──</span>
+nums.append(<span class="number">9</span>)              <span class="comment"># [3,1,4,1,5,9]</span>
+nums.insert(<span class="number">0</span>, <span class="number">7</span>)           <span class="comment"># [7,3,1,4,1,5,9]</span>
+nums.extend([<span class="number">2</span>, <span class="number">6</span>])         <span class="comment"># append multiple</span>
+
+<span class="comment"># ── Access ──</span>
+nums[<span class="number">0</span>]                     <span class="comment"># first → 7</span>
+nums[-<span class="number">1</span>]                    <span class="comment"># last → 6</span>
+nums[<span class="number">1</span>:<span class="number">4</span>]                   <span class="comment"># slice → [3,1,4]</span>
+
+<span class="comment"># ── Remove ──</span>
+nums.pop()                  <span class="comment"># remove last → 6</span>
+nums.pop(<span class="number">0</span>)                 <span class="comment"># remove first → 7</span>
+nums.remove(<span class="number">4</span>)              <span class="comment"># remove first occurrence of 4</span>
+
+<span class="comment"># ── Search ──</span>
+<span class="number">1</span> <span class="keyword">in</span> nums                  <span class="comment"># True (O(n))</span>
+nums.index(<span class="number">1</span>)               <span class="comment"># first index of 1</span>
+nums.count(<span class="number">1</span>)               <span class="comment"># how many 1s</span>
+
+<span class="comment"># ── Sort ──</span>
+nums.sort()                 <span class="comment"># in-place ascending</span>
+nums.sort(reverse=<span class="keyword">True</span>)     <span class="comment"># in-place descending</span>
+sorted(nums)                <span class="comment"># new sorted list</span>
+sorted(nums, key=<span class="keyword">lambda</span> x: -x)  <span class="comment"># custom sort</span>
+
+<span class="comment"># ── Reverse ──</span>
+nums.reverse()              <span class="comment"># in-place</span>
+nums[::-<span class="number">1</span>]                  <span class="comment"># new reversed list</span>
+
+<span class="comment"># ── Size ──</span>
+<span class="function">len</span>(nums)                   <span class="comment"># length</span>
+
+<span class="comment"># ── Comprehension (Python superpower!) ──</span>
+squares = [x**<span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">10</span>)]
+evens = [x <span class="keyword">for</span> x <span class="keyword">in</span> nums <span class="keyword">if</span> x % <span class="number">2</span> == <span class="number">0</span>]
+flat = [x <span class="keyword">for</span> row <span class="keyword">in</span> grid <span class="keyword">for</span> x <span class="keyword">in</span> row]</pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre>List&lt;<span class="type">Integer</span>&gt; nums = <span class="keyword">new</span> ArrayList&lt;&gt;(
+    Arrays.asList(<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">5</span>));
+
+<span class="comment">// ── Add ──</span>
+nums.add(<span class="number">9</span>);                <span class="comment">// [3,1,4,1,5,9]</span>
+nums.add(<span class="number">0</span>, <span class="number">7</span>);             <span class="comment">// [7,3,1,4,1,5,9]</span>
+nums.addAll(Arrays.asList(<span class="number">2</span>, <span class="number">6</span>)); <span class="comment">// append multiple</span>
+
+<span class="comment">// ── Access ──</span>
+nums.get(<span class="number">0</span>);                <span class="comment">// first → 7</span>
+nums.get(nums.size()-<span class="number">1</span>);    <span class="comment">// last → 6</span>
+nums.subList(<span class="number">1</span>, <span class="number">4</span>);         <span class="comment">// slice → [3,1,4]</span>
+
+<span class="comment">// ── Remove ──</span>
+nums.remove(nums.size()-<span class="number">1</span>); <span class="comment">// remove last</span>
+nums.remove(<span class="number">0</span>);             <span class="comment">// remove at index 0</span>
+nums.remove(Integer.valueOf(<span class="number">4</span>)); <span class="comment">// remove value 4</span>
+
+<span class="comment">// ── Search ──</span>
+nums.contains(<span class="number">1</span>);           <span class="comment">// true (O(n))</span>
+nums.indexOf(<span class="number">1</span>);            <span class="comment">// first index of 1</span>
+Collections.frequency(nums, <span class="number">1</span>); <span class="comment">// count of 1</span>
+
+<span class="comment">// ── Sort ──</span>
+Collections.sort(nums);     <span class="comment">// in-place ascending</span>
+Collections.sort(nums, Collections.reverseOrder());
+nums.stream().sorted().collect(Collectors.toList());
+nums.sort((a,b) -> b - a);  <span class="comment">// custom sort</span>
+
+<span class="comment">// ── Reverse ──</span>
+Collections.reverse(nums);  <span class="comment">// in-place</span>
+<span class="comment">// No one-liner for new reversed list</span>
+
+<span class="comment">// ── Size ──</span>
+nums.size();                <span class="comment">// length</span>
+
+<span class="comment">// ── Stream API (closest to comprehension) ──</span>
+<span class="type">int</span>[] squares = IntStream.range(<span class="number">0</span>,<span class="number">10</span>)
+    .map(x -> x*x).toArray();
+<span class="comment">// nums.stream().filter(x -> x%2==0).toList();</span></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tips-box">
+                    <h4>⏪ Reverse Iteration Idioms — pick the right form</h4>
+                    <p style="color: #888; margin-bottom: 10px;">
+                        Several Python forms iterate "backward" but they're not interchangeable. Choose by what you need: <strong>indices vs values</strong>, <strong>full vs sliced</strong>, <strong>custom step</strong>.
+                    </p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># 1) Walk indices last → first  (when you need i, not arr[i] alone)</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(arr) - <span class="number">1</span>, -<span class="number">1</span>, -<span class="number">1</span>):
+    ...   <span class="comment"># i = 5,4,3,2,1,0  for arr of length 6</span>
+
+<span class="comment"># 2) Walk values last → first  (when index doesn't matter)</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> <span class="function">reversed</span>(arr):
+    ...
+
+<span class="comment"># 3) Walk a slice in reverse  (skip arr[0], or any sub-range)</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> <span class="function">reversed</span>(arr[<span class="number">1</span>:]):
+    ...   <span class="comment"># yields arr[-1], arr[-2], ..., arr[1]</span>
+
+<span class="comment"># 4) Same as (1), more explicit about "reverse of forward range"</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">reversed</span>(<span class="function">range</span>(<span class="function">len</span>(arr))):
+    ...
+
+<span class="comment"># 5) New reversed list (allocates a copy — usually overkill)</span>
+<span class="keyword">for</span> v <span class="keyword">in</span> arr[::-<span class="number">1</span>]:
+    ...
+
+<span class="comment"># 6) Backward with custom step (only range() supports this)</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(arr) - <span class="number">1</span>, -<span class="number">1</span>, -<span class="number">2</span>):
+    ...   <span class="comment"># every other index, last → first</span></pre>
+                    <h4 style="margin-top: 14px;">📐 Why <code>range(len(arr)-1, -1, -1)</code> uses <code>-1</code> as stop</h4>
+                    <ul>
+                        <li><strong>start</strong> = <code>len(arr) - 1</code> → last valid index</li>
+                        <li><strong>stop</strong> = <code>-1</code> → "one past 0 going backward" — because <code>stop</code> is <em>exclusive</em></li>
+                        <li><strong>step</strong> = <code>-1</code> → count downward</li>
+                        <li>⚠️ <code>range(len(arr)-1, 0, -1)</code> is the common bug — it stops at <code>1</code> and <strong>misses index 0</strong></li>
+                    </ul>
+                    <h4 style="margin-top: 14px;">🎯 When to use which</h4>
+                    <ul>
+                        <li>Need the <strong>index</strong> (e.g. writing back to <code>arr[i]</code>, two-pointer math) → form (1) or (4)</li>
+                        <li>Need the <strong>value only</strong> → form (2); it's an iterator (no copy) and reads cleanest</li>
+                        <li>Need to <strong>skip a prefix/suffix</strong> in reverse → form (3): <code>reversed(arr[1:])</code>, <code>reversed(arr[:-1])</code>, etc. (slice allocates a small copy)</li>
+                        <li>Need a <strong>non-default step</strong> (every other, every third) → form (6); <code>reversed()</code> can't express this</li>
+                        <li>Avoid form (5) <code>arr[::-1]</code> in loops — it allocates a full reversed copy</li>
+                    </ul>
+                </div>
+
+                <div class="tips-box">
+                    <h4>🧮 Matrix &amp; Index Tricks — <code>zip(*m)</code>, <code>divmod</code>, <code>~i</code></h4>
+                    <p style="color: #888; margin-bottom: 10px;">
+                        Three idioms that compress matrix rotation, grid problems, and palindrome two-pointer code from many lines to one. Heavily used in <em>Rotate Image, Transpose Matrix, Word Search, Spiral Matrix, Valid Palindrome</em>.
+                    </p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── 1) zip(*matrix) — transpose / iterate columns ──</span>
+matrix = [[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>], [<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>], [<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>]]
+<span class="function">list</span>(<span class="function">zip</span>(*matrix))             <span class="comment"># [(1,4,7),(2,5,8),(3,6,9)]</span>
+<span class="comment"># Rotate 90° clockwise (LC 48): transpose then reverse each row</span>
+rotated = [<span class="function">list</span>(<span class="function">reversed</span>(row)) <span class="keyword">for</span> row <span class="keyword">in</span> <span class="function">zip</span>(*matrix)]
+
+<span class="comment"># Iterate column-by-column — no nested index gymnastics</span>
+<span class="keyword">for</span> col <span class="keyword">in</span> <span class="function">zip</span>(*matrix):
+    <span class="function">print</span>(<span class="function">sum</span>(col))             <span class="comment"># sum each column</span>
+
+<span class="comment"># ── 2) divmod(i, cols) — flat index ↔ (row, col) ──</span>
+<span class="comment"># Lets you use a single int set/dict for visited (faster hashing</span>
+<span class="comment"># than tuple keys) on rows × cols grids.</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(rows * cols):
+    r, c = <span class="function">divmod</span>(i, cols)         <span class="comment"># i=7, cols=3 → r=2, c=1</span>
+    <span class="comment"># grid[r][c] ...</span>
+
+<span class="comment"># Inverse: flat = r * cols + c</span>
+
+<span class="comment"># ── 3) arr[~i] — i-th from the end (~i == -i-1) ──</span>
+<span class="comment"># arr[~0] == arr[-1], arr[~1] == arr[-2], ...</span>
+<span class="comment"># Palindrome check without len() arithmetic:</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(s) // <span class="number">2</span>):
+    <span class="keyword">if</span> s[i] != s[~i]:                <span class="comment"># ← i and ~i meet in the middle</span>
+        <span class="keyword">return</span> <span class="keyword">False</span>
+
+<span class="comment"># Rotate-image inner swap (LC 48): cleaner than matrix[n-1-j][i]</span>
+matrix[i][j], matrix[~j][i], matrix[~i][~j], matrix[j][~i] = \
+    matrix[~j][i], matrix[~i][~j], matrix[j][~i], matrix[i][j]</pre>
+                    <h4 style="margin-top: 14px;">💡 Why these matter</h4>
+                    <ul>
+                        <li><code>zip(*matrix)</code> works because <code>*</code> unpacks the rows as positional args to <code>zip</code> — Python's transpose, no NumPy needed</li>
+                        <li><code>divmod</code> + flat indexing is the standard speedup for BFS/DFS on grids when you want a <code>set[int]</code> visited instead of <code>set[tuple]</code></li>
+                        <li><code>~i</code> reads as "complement of i" — for any non-negative <code>i</code>, <code>~i</code> equals <code>-i-1</code>, which Python interprets as "i-th from the end". Replaces every <code>n - 1 - i</code> in your code</li>
+                    </ul>
+                </div>
+            </div>
+
+            <nav class="page-nav">
+                <a href="complexity.html" class="prev">← Time Complexity</a>
+                <a href="dict.html" class="next">Dict / HashMap →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

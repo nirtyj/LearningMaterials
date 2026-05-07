@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Builtins | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>🛠️ Python Builtins</h1>
+            <p class="subtitle">Built-in functions, char checks, itertools, math, slicing, unpacking, walrus</p>
+
+            <div class="section">
+                <h2 id="builtins-functions">Built-in Functions</h2>
+                <p style="color: #888; margin-bottom: 15px;">The functions you reach for in almost every interview problem — no imports needed.</p>
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python — Reference</div>
+                    <div class="code-content">
+<pre><span class="comment"># ── Iteration helpers ──</span>
+<span class="function">enumerate</span>(arr)                  <span class="comment"># yields (i, val) pairs</span>
+<span class="function">enumerate</span>(arr, start=<span class="number">1</span>)         <span class="comment"># 1-based indexing</span>
+<span class="function">range</span>(stop)                     <span class="comment"># 0..stop-1</span>
+<span class="function">range</span>(start, stop, step)         <span class="comment"># negative step → reverse</span>
+<span class="function">zip</span>(a, b)                       <span class="comment"># parallel iteration; truncates to shortest</span>
+<span class="function">zip</span>(a, b, strict=<span class="keyword">True</span>)          <span class="comment"># 3.10+: errors if lengths differ</span>
+<span class="function">reversed</span>(arr)                   <span class="comment"># iterator, no copy (vs arr[::-1] which copies)</span>
+
+<span class="comment"># ── Functional ──</span>
+<span class="function">map</span>(<span class="function">str</span>, nums)                  <span class="comment"># lazy iterator; wrap in list() to materialize</span>
+<span class="function">filter</span>(<span class="keyword">lambda</span> x: x &gt; <span class="number">0</span>, nums)   <span class="comment"># lazy; comprehension is usually clearer</span>
+
+<span class="comment"># ── Sorting / extremes (key= is the workhorse) ──</span>
+<span class="function">sorted</span>(arr)                     <span class="comment"># new list; stable</span>
+<span class="function">sorted</span>(arr, key=<span class="keyword">lambda</span> x: -x)
+<span class="function">sorted</span>(arr, reverse=<span class="keyword">True</span>)
+<span class="function">min</span>(arr)                        <span class="comment"># raises ValueError on empty!</span>
+<span class="function">min</span>(arr, default=<span class="keyword">None</span>)          <span class="comment"># safe</span>
+<span class="function">min</span>(d, key=d.get)               <span class="comment"># argmin of a dict (key with smallest value)</span>
+<span class="function">max</span>(points, key=<span class="keyword">lambda</span> p: p[<span class="number">0</span>]**<span class="number">2</span> + p[<span class="number">1</span>]**<span class="number">2</span>)
+
+<span class="comment"># ── Boolean reductions (short-circuit) ──</span>
+<span class="function">any</span>(x &gt; <span class="number">0</span> <span class="keyword">for</span> x <span class="keyword">in</span> nums)        <span class="comment"># True if at least one</span>
+<span class="function">all</span>(x &gt; <span class="number">0</span> <span class="keyword">for</span> x <span class="keyword">in</span> nums)        <span class="comment"># True if every (any/all of empty: any=False, all=True)</span>
+
+<span class="comment"># ── Arithmetic ──</span>
+<span class="function">sum</span>(nums)                       <span class="comment"># 0 on empty; sum(nums, start=10) for offset</span>
+<span class="function">sum</span>(x*x <span class="keyword">for</span> x <span class="keyword">in</span> nums)          <span class="comment"># generator → no intermediate list (memory!)</span>
+<span class="function">divmod</span>(<span class="number">10</span>, <span class="number">3</span>)                    <span class="comment"># (3, 1)  — quotient + remainder in one call</span>
+<span class="function">pow</span>(<span class="number">2</span>, <span class="number">10</span>)                       <span class="comment"># 1024  (same as 2 ** 10)</span>
+<span class="function">pow</span>(<span class="number">2</span>, <span class="number">10</span>, <span class="number">1000</span>)                 <span class="comment"># 24    — modular exponentiation, fast</span>
+<span class="function">abs</span>(-<span class="number">7</span>)                         <span class="comment"># 7</span>
+
+<span class="comment"># ── Char ↔ int ──</span>
+<span class="function">ord</span>(<span class="string">'a'</span>)                        <span class="comment"># 97</span>
+<span class="function">chr</span>(<span class="number">97</span>)                         <span class="comment"># 'a'</span>
+<span class="comment"># Java's c - 'a' bucket trick:</span>
+count[<span class="function">ord</span>(c) - <span class="function">ord</span>(<span class="string">'a'</span>)] += <span class="number">1</span>
+
+<span class="comment"># ── Generator vs list comp ──</span>
+[x*x <span class="keyword">for</span> x <span class="keyword">in</span> nums]              <span class="comment"># list — materialized in memory</span>
+(x*x <span class="keyword">for</span> x <span class="keyword">in</span> nums)              <span class="comment"># generator — lazy, one value at a time</span>
+<span class="comment"># Inside aggregating builtins, drop the brackets:</span>
+<span class="function">sum</span>(x*x <span class="keyword">for</span> x <span class="keyword">in</span> nums)          <span class="comment"># sum(generator) — no intermediate list</span>
+<span class="function">max</span>(<span class="function">len</span>(s) <span class="keyword">for</span> s <span class="keyword">in</span> words)      <span class="comment"># max(generator) — same</span></pre>
+                    </div>
+                </div>
+                <p class="note"><code>key=</code> on <code>sorted</code>/<code>min</code>/<code>max</code> is the single most useful Python idiom for interviews — see <a href="classes.html#classes-sorting" style="color:#4fc3f7;">Custom Sorting &amp; Comparators</a> for the deep dive.</p>
+            </div>
+
+            <div class="section">
+                <h2 id="builtins-char">String Char Checks</h2>
+                <p style="color: #888; margin-bottom: 15px;">Methods on a single character (or a whole string — they require <strong>every</strong> char to qualify) that replace Java's <code>Character.isXxx(c)</code>.</p>
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python — Reference</div>
+                    <div class="code-content">
+<pre>c = <span class="string">'A'</span>
+
+c.isalnum()                      <span class="comment"># True iff letter or digit</span>
+c.isalpha()                      <span class="comment"># True iff letter</span>
+c.isdigit()                      <span class="comment"># True iff '0'..'9' (also some Unicode digits)</span>
+c.isnumeric()                    <span class="comment"># broader than isdigit (fractions, roman, etc.)</span>
+c.islower()                      <span class="comment"># True iff lowercase letter (cased chars only)</span>
+c.isupper()                      <span class="comment"># True iff uppercase letter</span>
+c.isspace()                      <span class="comment"># True iff ' ', '\t', '\n', etc.</span>
+c.isascii()                      <span class="comment"># 3.7+: all chars in ASCII range</span>
+
+<span class="comment"># Same methods work on multi-char strings (every char must pass):</span>
+<span class="string">"hello"</span>.isalpha()              <span class="comment"># True</span>
+<span class="string">"hello world"</span>.isalpha()        <span class="comment"># False — has space</span>
+<span class="string">"  "</span>.isspace()                 <span class="comment"># True</span>
+<span class="string">""</span>.isalpha()                   <span class="comment"># False — empty string is False for all is*()</span>
+
+<span class="comment"># ── Case conversion (also methods, return new string) ──</span>
+c.lower()                        <span class="comment"># 'a'</span>
+c.upper()                        <span class="comment"># 'A'</span>
+c.swapcase()                     <span class="comment"># swap each char's case</span>
+c.casefold()                     <span class="comment"># aggressive lower (handles ß → ss, etc.) — best for compares</span></pre>
+                    </div>
+                </div>
+                <div class="tips-box">
+                    <h4>🎯 The classic two-pointer + char-filter pattern</h4>
+                    <p style="color: #888; margin-bottom: 10px;">
+                        Show this idiom and the interviewer instantly knows you've done <em>Valid Palindrome (LC 125)</em>:
+                    </p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">while</span> l &lt; r <span class="keyword">and</span> <span class="keyword">not</span> s[l].isalnum(): l += <span class="number">1</span>
+<span class="keyword">while</span> l &lt; r <span class="keyword">and</span> <span class="keyword">not</span> s[r].isalnum(): r -= <span class="number">1</span>
+<span class="keyword">if</span> s[l].lower() != s[r].lower(): <span class="keyword">return</span> <span class="keyword">False</span></pre>
+                    <p>See <a href="string.html#string-operations" style="color:#4fc3f7;">String → Operations</a> for these idioms in context, alongside the rest of the string toolkit.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="builtins-itertools">itertools</h2>
+                <p style="color: #888; margin-bottom: 15px;">Combinatorics and iteration helpers that replace 5–10 lines of manual code.</p>
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python — Reference</div>
+                    <div class="code-content">
+<pre><span class="keyword">from</span> itertools <span class="keyword">import</span> (combinations, permutations, product,
+                       combinations_with_replacement,
+                       groupby, pairwise, accumulate,
+                       chain, starmap, count, cycle, islice)
+
+<span class="comment"># ── Combinatorics — generates iterators (wrap in list() to print) ──</span>
+<span class="function">list</span>(combinations([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>], <span class="number">2</span>))         <span class="comment"># [(1,2),(1,3),(2,3)]   nC k</span>
+<span class="function">list</span>(permutations([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>], <span class="number">2</span>))         <span class="comment"># [(1,2),(1,3),(2,1),...] nP k</span>
+<span class="function">list</span>(product([<span class="number">0</span>,<span class="number">1</span>], repeat=<span class="number">3</span>))           <span class="comment"># all 8 binary strings of length 3</span>
+<span class="function">list</span>(combinations_with_replacement(<span class="string">"AB"</span>, <span class="number">2</span>)) <span class="comment"># [('A','A'),('A','B'),('B','B')]</span>
+
+<span class="comment"># All subsets in one expression (replaces backtracking template):</span>
+<span class="keyword">from</span> itertools <span class="keyword">import</span> chain, combinations
+<span class="keyword">def</span> <span class="function">all_subsets</span>(arr):
+    <span class="keyword">return</span> <span class="function">list</span>(chain.from_iterable(
+        combinations(arr, r) <span class="keyword">for</span> r <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(arr) + <span class="number">1</span>)))
+
+<span class="comment"># ── Pairwise / sliding window of 2 (3.10+) ──</span>
+<span class="function">list</span>(pairwise([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>]))             <span class="comment"># [(1,2),(2,3),(3,4)]</span>
+<span class="comment"># Pre-3.10: list(zip(arr, arr[1:]))</span>
+
+<span class="comment"># ── Group runs (input MUST be sorted by key first!) ──</span>
+words = <span class="function">sorted</span>([<span class="string">"eat"</span>,<span class="string">"tea"</span>,<span class="string">"tan"</span>,<span class="string">"ate"</span>], key=<span class="function">sorted</span>)
+<span class="keyword">for</span> key, group <span class="keyword">in</span> groupby(words, key=<span class="function">sorted</span>):
+    <span class="function">print</span>(key, <span class="function">list</span>(group))         <span class="comment"># anagram groups</span>
+
+<span class="comment"># ── Cumulative ops ──</span>
+<span class="function">list</span>(accumulate([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>]))           <span class="comment"># [1,3,6,10]   prefix sums</span>
+<span class="function">list</span>(accumulate([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>], initial=<span class="number">0</span>)) <span class="comment"># [0,1,3,6,10] — handy for range queries</span>
+<span class="function">list</span>(accumulate(nums, <span class="function">max</span>))            <span class="comment"># running max</span>
+
+<span class="comment"># ── Concat iterables ──</span>
+<span class="function">list</span>(chain([<span class="number">1</span>,<span class="number">2</span>], [<span class="number">3</span>,<span class="number">4</span>], [<span class="number">5</span>]))      <span class="comment"># [1,2,3,4,5]</span>
+<span class="function">list</span>(chain.from_iterable(matrix))    <span class="comment"># flatten one level</span>
+
+<span class="comment"># ── Infinite / sliced iterators ──</span>
+<span class="function">list</span>(islice(count(<span class="number">10</span>, <span class="number">2</span>), <span class="number">5</span>))         <span class="comment"># [10,12,14,16,18] — counts up forever; islice trims</span>
+<span class="comment"># cycle(['a','b']) — round-robin, also infinite</span></pre>
+                    </div>
+                </div>
+                <p class="note">Cross-reference: <a href="algorithms.html#algo-backtracking" style="color:#4fc3f7;">Algorithm Patterns → Backtracking</a> shows when to write the manual template instead.</p>
+            </div>
+
+            <div class="section">
+                <h2 id="builtins-math">math module</h2>
+                <p style="color: #888; margin-bottom: 15px;">Pure-Python alternatives to Java's <code>Math</code>, plus combinatorics that don't exist there.</p>
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python — Reference</div>
+                    <div class="code-content">
+<pre><span class="keyword">import</span> math
+
+<span class="comment"># ── Combinatorics (skip writing factorials!) ──</span>
+math.factorial(<span class="number">5</span>)                  <span class="comment"># 120</span>
+math.comb(<span class="number">5</span>, <span class="number">2</span>)                    <span class="comment"># 10   (3.8+)  → "5 choose 2"</span>
+math.perm(<span class="number">5</span>, <span class="number">2</span>)                    <span class="comment"># 20   (3.8+)  → 5P2</span>
+
+<span class="comment"># ── Number theory ──</span>
+math.gcd(<span class="number">12</span>, <span class="number">18</span>)                   <span class="comment"># 6;   accepts >2 args (3.9+)</span>
+math.lcm(<span class="number">4</span>, <span class="number">6</span>)                     <span class="comment"># 12   (3.9+)</span>
+math.isqrt(<span class="number">17</span>)                     <span class="comment"># 4    integer sqrt — no float roundoff</span>
+
+<span class="comment"># ── Logs &amp; powers ──</span>
+math.log2(<span class="number">8</span>)                       <span class="comment"># 3.0</span>
+math.log10(<span class="number">1000</span>)                   <span class="comment"># 3.0</span>
+math.log(<span class="number">8</span>, <span class="number">2</span>)                     <span class="comment"># 3.0   arbitrary base</span>
+math.ceil(<span class="number">7</span>/<span class="number">3</span>)                     <span class="comment"># 3     (alt: -(-7//3) — pure-int ceiling division)</span>
+math.floor(-<span class="number">2.5</span>)                   <span class="comment"># -3    (matches // for ints)</span>
+
+<span class="comment"># ── Constants ──</span>
+math.inf                         <span class="comment"># positive infinity (alt: float('inf'))</span>
+math.pi                          <span class="comment"># 3.14159...</span>
+math.e                           <span class="comment"># 2.71828...</span>
+
+<span class="comment"># ── Float-mode arithmetic (Java-like behavior) ──</span>
+math.fmod(-<span class="number">7</span>, <span class="number">3</span>)                  <span class="comment"># -1.0  (truncate toward 0, like Java)</span>
+<span class="comment">#                                vs Python's  -7 % 3 → 2  (floor mod) — see Gotchas</span></pre>
+                    </div>
+                </div>
+                <p class="note">For the <code>//</code> vs <code>int()</code> and <code>%</code>-with-negatives traps, see <a href="gotchas.html" style="color:#4fc3f7;">Common Gotchas</a>.</p>
+            </div>
+
+            <div class="section">
+                <h2 id="builtins-slicing">Slicing Reference</h2>
+                <p style="color: #888; margin-bottom: 15px;">The full <code>arr[start:stop:step]</code> grammar — works on lists, strings, tuples, bytes.</p>
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python — Reference</div>
+                    <div class="code-content">
+<pre>arr = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]
+
+<span class="comment"># ── Basics ──</span>
+arr[<span class="number">2</span>:<span class="number">5</span>]                       <span class="comment"># [2, 3, 4]   stop is exclusive</span>
+arr[:<span class="number">3</span>]                        <span class="comment"># [0, 1, 2]   from start</span>
+arr[<span class="number">3</span>:]                        <span class="comment"># [3, 4, 5]   to end</span>
+arr[:]                         <span class="comment"># [0..5]      shallow copy (often used over .copy())</span>
+
+<span class="comment"># ── Negative indices count from the end ──</span>
+arr[-<span class="number">1</span>]                       <span class="comment"># 5    last element</span>
+arr[-<span class="number">2</span>:]                       <span class="comment"># [4, 5]</span>
+arr[:-<span class="number">1</span>]                       <span class="comment"># [0, 1, 2, 3, 4]   all but last</span>
+arr[~<span class="number">0</span>]                        <span class="comment"># 5    (~i == -i-1; see "Matrix &amp; Index Tricks" on List page)</span>
+
+<span class="comment"># ── Step — positive ──</span>
+arr[::<span class="number">2</span>]                       <span class="comment"># [0, 2, 4]   every other element</span>
+arr[<span class="number">1</span>::<span class="number">2</span>]                      <span class="comment"># [1, 3, 5]</span>
+
+<span class="comment"># ── Step — negative (REVERSE!) ──</span>
+arr[::-<span class="number">1</span>]                      <span class="comment"># [5, 4, 3, 2, 1, 0]   new reversed list (allocates!)</span>
+arr[::-<span class="number">2</span>]                      <span class="comment"># [5, 3, 1]   reverse, every other</span>
+<span class="comment"># Prefer reversed(arr) when you only need to iterate — no copy.</span>
+
+<span class="comment"># ── Slice assignment (lists only — strings are immutable!) ──</span>
+arr[<span class="number">1</span>:<span class="number">3</span>] = [<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>]       <span class="comment"># can be different length! → [0, 10, 20, 30, 3, 4, 5]</span>
+arr[::<span class="number">2</span>] = [<span class="number">99</span>] * <span class="number">4</span>            <span class="comment"># strided assign → must match the slice's length</span>
+arr[:] = [<span class="number">9</span>, <span class="number">9</span>]               <span class="comment"># replace contents in place (different from arr = [9,9])</span>
+
+<span class="comment"># ── Slice deletion ──</span>
+<span class="keyword">del</span> arr[<span class="number">1</span>:<span class="number">3</span>]                   <span class="comment"># remove a range</span>
+<span class="keyword">del</span> arr[::<span class="number">2</span>]                    <span class="comment"># remove every other</span>
+
+<span class="comment"># ── On strings (immutable → returns new str) ──</span>
+s = <span class="string">"hello"</span>
+s[<span class="number">1</span>:<span class="number">4</span>]                         <span class="comment"># "ell"</span>
+s[::-<span class="number">1</span>]                         <span class="comment"># "olleh"   palindrome trick</span></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="builtins-unpacking">Unpacking Patterns</h2>
+                <p style="color: #888; margin-bottom: 15px;">The <code>*</code> and <code>**</code> operators — assignment, function calls, container construction.</p>
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python — Reference</div>
+                    <div class="code-content">
+<pre><span class="comment"># ── Tuple-style unpacking (also works on lists, strings, generators) ──</span>
+a, b = <span class="number">1</span>, <span class="number">2</span>                     <span class="comment"># pack into 2 vars</span>
+a, b = b, a                    <span class="comment"># swap, no temp</span>
+a, b, c = <span class="string">"abc"</span>                <span class="comment"># 'a','b','c'  works on any iterable</span>
+
+<span class="comment"># ── Star-unpacking — captures the rest as a list ──</span>
+first, *rest = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>]   <span class="comment"># first=1, rest=[2,3,4]</span>
+*head, last = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>]    <span class="comment"># head=[1,2,3], last=4</span>
+first, *middle, last = <span class="function">range</span>(<span class="number">5</span>) <span class="comment"># first=0, middle=[1,2,3], last=4</span>
+
+<span class="comment"># ── Nested ──</span>
+(a, b), c = (<span class="number">1</span>, <span class="number">2</span>), <span class="number">3</span>          <span class="comment"># a=1, b=2, c=3</span>
+<span class="keyword">for</span> i, (k, v) <span class="keyword">in</span> <span class="function">enumerate</span>(d.items()):
+    ...                        <span class="comment"># enumerate over dict items, unpack as you go</span>
+
+<span class="comment"># ── Container construction ──</span>
+[*a, *b]                       <span class="comment"># concat two lists into a new list</span>
+[*a, <span class="number">99</span>, *b]                   <span class="comment"># concat with extra elements inline</span>
+{*a, *b}                       <span class="comment"># union into a new set</span>
+(*a, *b)                       <span class="comment"># tuple concat</span>
+
+<span class="comment"># ── Dict merge ──</span>
+{**d1, **d2}                   <span class="comment"># shallow merge; d2 wins on conflicts</span>
+{**d1, <span class="string">"k"</span>: <span class="number">99</span>, **d2}          <span class="comment"># inline overrides allowed</span>
+d1 | d2                        <span class="comment"># 3.9+ — same idea, operator form (see Dict page)</span>
+
+<span class="comment"># ── In function calls ──</span>
+<span class="function">max</span>(*nums)                     <span class="comment"># spread list as positional args</span>
+<span class="function">dict</span>(**defaults, name=<span class="string">"Bob"</span>)   <span class="comment"># spread dict as keyword args</span>
+<span class="function">print</span>(*[<span class="string">"a"</span>, <span class="string">"b"</span>], sep=<span class="string">"-"</span>)      <span class="comment"># a-b</span>
+
+<span class="comment"># ── In function defs ──</span>
+<span class="keyword">def</span> <span class="function">f</span>(*args, **kwargs):        <span class="comment"># args is a tuple, kwargs is a dict</span>
+    <span class="function">print</span>(args, kwargs)
+f(<span class="number">1</span>, <span class="number">2</span>, x=<span class="number">10</span>)                  <span class="comment"># args=(1,2), kwargs={'x':10}</span>
+
+<span class="comment"># ── Discard with _ ──</span>
+_, value = item                <span class="comment"># ignore the key</span>
+<span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="number">10</span>):              <span class="comment"># conventional "loop var I won't use"</span>
+    ...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="builtins-walrus">Walrus Operator (<code>:=</code>)</h2>
+                <p style="color: #888; margin-bottom: 15px;">Python 3.8+. Assigns and returns in one step — eliminates duplicated work in loop conditions and comprehensions.</p>
+                <div class="code-block">
+                    <div class="code-header python">🐍 Python — Reference</div>
+                    <div class="code-content">
+<pre><span class="comment"># ── Read-and-test in a while loop ──</span>
+<span class="keyword">while</span> (line := <span class="function">input</span>()):              <span class="comment"># reads, captures, tests truthiness — exits on empty line</span>
+    process(line)
+<span class="comment"># Pre-walrus equivalent:</span>
+<span class="comment">#   line = input()</span>
+<span class="comment">#   while line:</span>
+<span class="comment">#       process(line)</span>
+<span class="comment">#       line = input()    # ← duplicated read, easy to forget</span>
+
+<span class="comment"># ── Capture-and-test in if ──</span>
+<span class="keyword">if</span> (n := <span class="function">len</span>(arr)) &gt; <span class="number">5</span>:           <span class="comment"># compute len once, reuse n in body</span>
+    <span class="function">print</span>(<span class="keyword">f</span><span class="string">"Have {n} items"</span>)
+    <span class="keyword">return</span> arr[n - <span class="number">1</span>]
+
+<span class="comment"># ── Inside a comprehension — filter + transform with shared computation ──</span>
+<span class="comment"># Without walrus you compute transform() twice:</span>
+<span class="comment">#   [transform(x) for x in data if transform(x) is not None]   ← BAD: 2x calls</span>
+[y <span class="keyword">for</span> x <span class="keyword">in</span> data <span class="keyword">if</span> (y := transform(x)) <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>]   <span class="comment"># ✅ one call</span>
+
+<span class="comment"># ── Reading regex match once ──</span>
+<span class="keyword">import</span> re
+<span class="keyword">if</span> (m := re.search(pattern, s)):
+    <span class="function">print</span>(m.group(<span class="number">1</span>))                     <span class="comment"># reuse the match object</span>
+
+<span class="comment"># ── LeetCode usage: capture stack-top in a while ──</span>
+<span class="keyword">while</span> stack <span class="keyword">and</span> (top := stack[-<span class="number">1</span>]) &lt; x:
+    process(top)
+    stack.pop()</pre>
+                    </div>
+                </div>
+                <div class="tips-box">
+                    <h4>⚠️ Walrus gotchas</h4>
+                    <ul>
+                        <li><strong>Always parenthesize</strong> in <code>if</code>/<code>while</code> conditions: <code>if (n := len(arr)) > 5</code> — the parens make scope/precedence unambiguous</li>
+                        <li><strong>Inside comprehensions, walrus leaks into the enclosing scope</strong> — <code>[y for x in data if (y := f(x))]</code> binds <code>y</code> outside the comprehension. Rare but surprising</li>
+                        <li><strong>Don't reach for it just because it's clever</strong> — only use when it removes a real duplicated computation. Reviewers will quietly thank you</li>
+                    </ul>
+                </div>
+            </div>
+
+            <nav class="page-nav">
+                <a href="power-features.html" class="prev">← Python Power Features</a>
+                <a href="gotchas.html" class="next">Common Gotchas →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

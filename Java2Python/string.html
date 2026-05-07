@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>String | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>📝 String</h1>
+            <p class="subtitle">Immutable in both languages — and the building patterns that follow</p>
+
+            <div class="section">
+                <h2 id="string-operations">Operations</h2>
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre>s = <span class="string">"hello world"</span>
+
+<span class="comment"># ── Access ──</span>
+s[<span class="number">0</span>]                         <span class="comment"># 'h'</span>
+s[-<span class="number">1</span>]                        <span class="comment"># 'd'</span>
+s[<span class="number">1</span>:<span class="number">5</span>]                       <span class="comment"># 'ello' (slicing)</span>
+
+<span class="comment"># ── Modify (strings are immutable!) ──</span>
+s.upper()                    <span class="comment"># 'HELLO WORLD'</span>
+s.lower()                    <span class="comment"># 'hello world'</span>
+s.strip()                    <span class="comment"># trim whitespace</span>
+s.replace(<span class="string">"hello"</span>, <span class="string">"hi"</span>)    <span class="comment"># 'hi world'</span>
+
+<span class="comment"># ── Split / Join ──</span>
+s.split()                    <span class="comment"># ['hello','world']</span>
+s.split(<span class="string">","</span>)                 <span class="comment"># split on comma</span>
+<span class="string">" "</span>.join([<span class="string">"a"</span>, <span class="string">"b"</span>])        <span class="comment"># "a b"</span>
+
+<span class="comment"># ── Check ──</span>
+s.startswith(<span class="string">"he"</span>)          <span class="comment"># True</span>
+s.endswith(<span class="string">"ld"</span>)             <span class="comment"># True</span>
+s.isdigit()                  <span class="comment"># False</span>
+s.isalpha()                  <span class="comment"># False (has space)</span>
+<span class="string">"ell"</span> <span class="keyword">in</span> s                  <span class="comment"># True (substring check)</span>
+s.find(<span class="string">"lo"</span>)                <span class="comment"># 3 (-1 if not found)</span>
+
+<span class="comment"># ── Reverse ──</span>
+s[::-<span class="number">1</span>]                      <span class="comment"># 'dlrow olleh'</span>
+
+<span class="comment"># ── Build string efficiently ──</span>
+chars = []
+chars.append(<span class="string">"h"</span>)
+chars.append(<span class="string">"i"</span>)
+result = <span class="string">""</span>.join(chars)      <span class="comment"># "hi"</span>
+
+<span class="comment"># ── f-strings ──</span>
+name = <span class="string">"Bob"</span>
+<span class="keyword">f</span><span class="string">"Hello {name}, 2+2={2+2}"</span>  <span class="comment"># "Hello Bob, 2+2=4"</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre><span class="type">String</span> s = <span class="string">"hello world"</span>;
+
+<span class="comment">// ── Access ──</span>
+s.charAt(<span class="number">0</span>);                 <span class="comment">// 'h'</span>
+s.charAt(s.length()-<span class="number">1</span>);      <span class="comment">// 'd'</span>
+s.substring(<span class="number">1</span>, <span class="number">5</span>);           <span class="comment">// "ello"</span>
+
+<span class="comment">// ── Modify (strings are immutable!) ──</span>
+s.toUpperCase();             <span class="comment">// "HELLO WORLD"</span>
+s.toLowerCase();             <span class="comment">// "hello world"</span>
+s.trim();                    <span class="comment">// trim whitespace</span>
+s.replace(<span class="string">"hello"</span>, <span class="string">"hi"</span>);   <span class="comment">// "hi world"</span>
+
+<span class="comment">// ── Split / Join ──</span>
+s.split(<span class="string">"\\s+"</span>);              <span class="comment">// ["hello","world"]</span>
+s.split(<span class="string">","</span>);                <span class="comment">// split on comma</span>
+String.join(<span class="string">" "</span>, <span class="string">"a"</span>, <span class="string">"b"</span>); <span class="comment">// "a b"</span>
+
+<span class="comment">// ── Check ──</span>
+s.startsWith(<span class="string">"he"</span>);          <span class="comment">// true</span>
+s.endsWith(<span class="string">"ld"</span>);             <span class="comment">// true</span>
+Character.isDigit(c);        <span class="comment">// per char</span>
+Character.isLetter(c);       <span class="comment">// per char</span>
+s.contains(<span class="string">"ell"</span>);           <span class="comment">// true</span>
+s.indexOf(<span class="string">"lo"</span>);             <span class="comment">// 3 (-1 if not found)</span>
+
+<span class="comment">// ── Reverse ──</span>
+<span class="keyword">new</span> StringBuilder(s).reverse().toString();
+
+<span class="comment">// ── Build string efficiently ──</span>
+StringBuilder sb = <span class="keyword">new</span> StringBuilder();
+sb.append(<span class="string">"h"</span>);
+sb.append(<span class="string">"i"</span>);
+<span class="type">String</span> result = sb.toString(); <span class="comment">// "hi"</span>
+
+<span class="comment">// ── String formatting ──</span>
+<span class="type">String</span> name = <span class="string">"Bob"</span>;
+String.format(<span class="string">"Hello %s, 2+2=%d"</span>, name, <span class="number">4</span>);</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tips-box">
+                    <h4>🛠️ Built-ins commonly paired with strings</h4>
+                    <p style="color: #888; margin-bottom: 10px;">When you write string code in interviews, these are the built-ins you reach for most.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── Char access ──</span>
+s[<span class="number">0</span>], s[-<span class="number">1</span>], s[i:j]              <span class="comment"># indexing, slicing — no charAt() ceremony</span>
+<span class="function">ord</span>(c), <span class="function">chr</span>(<span class="number">97</span>)                  <span class="comment"># char ↔ int  (Java's c - 'a' bucket: ord(c) - ord('a'))</span>
+
+<span class="comment"># ── Char checks (per-char or whole-string) ──</span>
+c.isalnum(), c.isalpha()         <span class="comment"># letter or digit / letter</span>
+c.isdigit(), c.isspace()         <span class="comment"># digit / whitespace</span>
+c.islower(), c.isupper()         <span class="comment"># case</span>
+c.lower(), c.upper(), c.casefold()  <span class="comment"># case-fold for compares</span>
+
+<span class="comment"># ── Iterating ──</span>
+<span class="keyword">for</span> c <span class="keyword">in</span> s: ...                  <span class="comment"># direct char iteration</span>
+<span class="keyword">for</span> i, c <span class="keyword">in</span> <span class="function">enumerate</span>(s): ...    <span class="comment"># index + char</span>
+<span class="keyword">for</span> a, b <span class="keyword">in</span> <span class="function">zip</span>(s, s[<span class="number">1</span>:]): ...   <span class="comment"># adjacent pairs (palindrome scans, runs)</span>
+<span class="keyword">for</span> a, b <span class="keyword">in</span> pairwise(s): ...     <span class="comment"># 3.10+ — same idea via itertools</span>
+
+<span class="comment"># ── Transforming ──</span>
+<span class="string">""</span>.join(<span class="function">reversed</span>(s))             <span class="comment"># reverse without slicing</span>
+<span class="string">""</span>.join(c <span class="keyword">for</span> c <span class="keyword">in</span> s <span class="keyword">if</span> c.isalnum())  <span class="comment"># filter chars in one shot</span>
+[c.lower() <span class="keyword">for</span> c <span class="keyword">in</span> s <span class="keyword">if</span> c.isalnum()] <span class="comment"># cleaned list of chars</span>
+
+<span class="comment"># ── Searching / aggregating ──</span>
+s.count(<span class="string">"ab"</span>)                    <span class="comment"># non-overlapping count</span>
+<span class="function">sum</span>(<span class="number">1</span> <span class="keyword">for</span> c <span class="keyword">in</span> s <span class="keyword">if</span> c.isdigit()) <span class="comment"># count by predicate</span>
+<span class="function">max</span>(s.split(), key=<span class="function">len</span>)          <span class="comment"># longest word</span></pre>
+                    <p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="string-immutability">Immutability — Why Building With <code>list</code> Matters</h2>
+                <div class="ds-grid">
+                    <div class="ds-card" style="border-color: #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">String Immutability</h4>
+                        <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># Strings are immutable in BOTH languages</span>
+s = <span class="string">"hello"</span>
+<span class="comment"># s[0] = "H"  # ERROR!</span>
+
+<span class="comment"># ✅ Create new string</span>
+s = <span class="string">"H"</span> + s[<span class="number">1</span>:]
+
+<span class="comment"># For many modifications, use list</span>
+chars = <span class="function">list</span>(s)
+chars[<span class="number">0</span>] = <span class="string">"H"</span>
+s = <span class="string">""</span>.join(chars)</pre>
+                        </div>
+                    </div>
+                </div>
+                <p class="note">Repeated <code>s += "x"</code> in a loop is O(n²) in Python — every <code>+=</code> allocates a fresh string. Build a <code>list</code> and <code>"".join()</code> at the end for O(n).</p>
+            </div>
+
+            <nav class="page-nav">
+                <a href="heap.html" class="prev">← Heap / Priority Queue</a>
+                <a href="counter.html" class="next">DefaultDict / Counter →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

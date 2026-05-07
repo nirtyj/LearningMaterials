@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DefaultDict / Counter | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>📊 DefaultDict / Counter</h1>
+            <p class="subtitle">Python's frequency &amp; grouping superpowers</p>
+
+            <div class="section">
+                <h2 id="counter-init">Initialization</h2>
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre><span class="comment"># ── DefaultDict ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict
+dd = defaultdict(<span class="function">int</span>)              <span class="comment"># default 0</span>
+dd = defaultdict(<span class="function">list</span>)             <span class="comment"># default []</span>
+dd = defaultdict(<span class="keyword">lambda</span>: <span class="number">-1</span>)       <span class="comment"># default -1</span>
+
+<span class="comment"># ── Counter ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> Counter
+c = Counter([<span class="number">1</span>,<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])            <span class="comment"># from list</span>
+c = Counter(<span class="string">"hello"</span>)              <span class="comment"># from string</span>
+c = Counter({<span class="string">"a"</span>:<span class="number">2</span>, <span class="string">"b"</span>:<span class="number">1</span>})       <span class="comment"># from dict</span>
+
+<span class="comment"># ── Tuple (immutable, hashable, multiset-key) ──</span>
+t = ()                             <span class="comment"># empty</span>
+t = (<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>)                     <span class="comment"># literal</span>
+t = (<span class="number">1</span>,)                          <span class="comment"># single elem (need comma!)</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre><span class="comment">// ── No DefaultDict → use getOrDefault ──</span>
+map.getOrDefault(key, <span class="number">0</span>);
+map.computeIfAbsent(key, k -> <span class="keyword">new</span> ArrayList&lt;&gt;());
+<span class="comment">// or merge: map.merge(key, 1, Integer::sum);</span>
+
+<span class="comment">// ── No Counter → manual frequency map ──</span>
+Map&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt; freq = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">char</span> c : s.toCharArray())
+    freq.merge(c, <span class="number">1</span>, Integer::sum);
+
+<span class="comment">// ── No tuples → use int[] or custom class ──</span>
+<span class="type">int</span>[] pair = {<span class="number">1</span>, <span class="number">2</span>};
+<span class="comment">// Or: Map.Entry&lt;K,V&gt;, record Pair(int a, int b)</span></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="counter-operations">Operations</h2>
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict, Counter
+
+<span class="comment"># ── DefaultDict (auto-creates missing keys) ──</span>
+
+<span class="comment"># Group anagrams pattern</span>
+groups = defaultdict(<span class="function">list</span>)
+<span class="keyword">for</span> word <span class="keyword">in</span> [<span class="string">"eat"</span>,<span class="string">"tea"</span>,<span class="string">"tan"</span>,<span class="string">"ate"</span>,<span class="string">"nat"</span>]:
+    key = <span class="function">tuple</span>(<span class="function">sorted</span>(word))
+    groups[key].append(word)
+<span class="comment"># {('a','e','t'): ['eat','tea','ate'],</span>
+<span class="comment">#  ('a','n','t'): ['tan','nat']}</span>
+
+<span class="comment"># Graph adjacency list</span>
+graph = defaultdict(<span class="function">list</span>)
+<span class="keyword">for</span> u, v <span class="keyword">in</span> edges:
+    graph[u].append(v)
+    graph[v].append(u)         <span class="comment"># undirected</span>
+
+<span class="comment"># Counting with defaultdict</span>
+counts = defaultdict(<span class="function">int</span>)
+<span class="keyword">for</span> x <span class="keyword">in</span> data:
+    counts[x] += <span class="number">1</span>             <span class="comment"># no KeyError!</span>
+
+<span class="comment"># ── Counter ──</span>
+c = Counter(<span class="string">"abracadabra"</span>)
+c.most_common(<span class="number">3</span>)             <span class="comment"># [('a',5),('b',2),('r',2)]</span>
+c[<span class="string">"a"</span>]                       <span class="comment"># 5</span>
+c[<span class="string">"z"</span>]                       <span class="comment"># 0 (no KeyError!)</span>
+
+<span class="comment"># Counter arithmetic</span>
+c1 = Counter(<span class="string">"aab"</span>)
+c2 = Counter(<span class="string">"ab"</span>)
+c1 - c2                      <span class="comment"># Counter({'a': 1})</span>
+c1 &amp; c2                      <span class="comment"># intersection: min of each</span>
+c1 | c2                      <span class="comment"># union: max of each</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java Equivalent</div>
+                        <div class="code-content">
+<pre><span class="comment">// ── No DefaultDict → computeIfAbsent ──</span>
+
+<span class="comment">// Group anagrams pattern</span>
+Map&lt;<span class="type">String</span>, List&lt;<span class="type">String</span>&gt;&gt; groups = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">String</span> word : words) {
+    <span class="type">char</span>[] chars = word.toCharArray();
+    Arrays.sort(chars);
+    <span class="type">String</span> key = <span class="keyword">new</span> String(chars);
+    groups.computeIfAbsent(key,
+        k -> <span class="keyword">new</span> ArrayList&lt;&gt;()).add(word);
+}
+
+<span class="comment">// Graph adjacency list</span>
+Map&lt;<span class="type">Integer</span>, List&lt;<span class="type">Integer</span>&gt;&gt; graph = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">int</span>[] edge : edges) {
+    graph.computeIfAbsent(edge[<span class="number">0</span>],
+        k -> <span class="keyword">new</span> ArrayList&lt;&gt;()).add(edge[<span class="number">1</span>]);
+    graph.computeIfAbsent(edge[<span class="number">1</span>],
+        k -> <span class="keyword">new</span> ArrayList&lt;&gt;()).add(edge[<span class="number">0</span>]);
+}
+
+<span class="comment">// Counting with merge</span>
+Map&lt;<span class="type">Integer</span>,<span class="type">Integer</span>&gt; counts = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">int</span> x : data)
+    counts.merge(x, <span class="number">1</span>, Integer::sum);
+
+<span class="comment">// ── No Counter → manual frequency map ──</span>
+Map&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt; freq = <span class="keyword">new</span> HashMap&lt;&gt;();
+<span class="keyword">for</span> (<span class="type">char</span> c : <span class="string">"abracadabra"</span>.toCharArray())
+    freq.merge(c, <span class="number">1</span>, Integer::sum);
+
+<span class="comment">// Get most common → sort entries</span>
+freq.entrySet().stream()
+    .sorted(Map.Entry.&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt;
+        comparingByValue().reversed())
+    .limit(<span class="number">3</span>);
+
+<span class="comment">// No Counter arithmetic → manual loop</span></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="counter-anagrams">Anagram &amp; Multiset Keys</h2>
+                <div class="tips-box">
+                    <h4>🔤 <code>ord</code>, <code>tuple(sorted(s))</code>, <code>Counter</code> arithmetic</h4>
+                    <p style="color: #888; margin-bottom: 10px;">
+                        The toolkit for any "are these the same multiset?" problem: <em>Group Anagrams, Valid Anagram, Find All Anagrams in a String, Minimum Window Substring, Permutation in String, Ransom Note</em>.
+                    </p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── 1) ord(c) - ord('a') — letter → 0..25 bucket ──</span>
+<span class="comment"># Java's c - 'a' equivalent. Python has no implicit char→int.</span>
+count = [<span class="number">0</span>] * <span class="number">26</span>
+<span class="keyword">for</span> c <span class="keyword">in</span> word:
+    count[<span class="function">ord</span>(c) - <span class="function">ord</span>(<span class="string">'a'</span>)] += <span class="number">1</span>
+
+<span class="comment"># Inverse: chr(ord('a') + idx)  →  letter from bucket</span>
+
+<span class="comment"># ── 2) Two canonical multiset keys for grouping ──</span>
+<span class="comment"># (a) Sort the word — O(k log k) per word, simplest:</span>
+key = <span class="function">tuple</span>(<span class="function">sorted</span>(word))           <span class="comment"># ('a','e','t')  hashable!</span>
+
+<span class="comment"># (b) 26-int count vector — O(k) per word, faster on long inputs:</span>
+count = [<span class="number">0</span>] * <span class="number">26</span>
+<span class="keyword">for</span> c <span class="keyword">in</span> word: count[<span class="function">ord</span>(c) - <span class="function">ord</span>(<span class="string">'a'</span>)] += <span class="number">1</span>
+key = <span class="function">tuple</span>(count)                  <span class="comment"># tuples hash; lists don't</span>
+
+<span class="comment"># ── 3) Counter compare for "is anagram?" ──</span>
+Counter(s) == Counter(t)            <span class="comment"># True iff anagrams (LC 242)</span>
+
+<span class="comment"># ── 4) Counter.elements() — flatten back to a multiset stream ──</span>
+<span class="function">list</span>(Counter(<span class="string">"aab"</span>).elements())    <span class="comment"># ['a','a','b']</span>
+<span class="comment"># Useful: rebuild a sequence after Counter arithmetic, or feed</span>
+<span class="comment"># into sorted()/heap operations.</span>
+
+<span class="comment"># ── 5) Sliding-window anagram check (LC 438) ──</span>
+<span class="comment"># Compare two Counters in O(26) — Counter equality is set-based.</span>
+need = Counter(p)
+window = Counter(s[:<span class="function">len</span>(p)])
+<span class="keyword">if</span> window == need: ans.append(<span class="number">0</span>)
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(p), <span class="function">len</span>(s)):
+    window[s[i]] += <span class="number">1</span>
+    window[s[i - <span class="function">len</span>(p)]] -= <span class="number">1</span>
+    <span class="keyword">if</span> window[s[i - <span class="function">len</span>(p)]] == <span class="number">0</span>:
+        <span class="keyword">del</span> window[s[i - <span class="function">len</span>(p)]]   <span class="comment"># ← keep == comparison clean</span>
+    <span class="keyword">if</span> window == need: ans.append(i - <span class="function">len</span>(p) + <span class="number">1</span>)
+
+<span class="comment"># ── 6) dict.fromkeys(arr) — order-preserving dedup ──</span>
+<span class="comment"># Java's LinkedHashSet in three tokens (3.7+ dicts are ordered).</span>
+<span class="function">list</span>(<span class="function">dict</span>.fromkeys([<span class="number">3</span>,<span class="number">1</span>,<span class="number">3</span>,<span class="number">2</span>,<span class="number">1</span>]))  <span class="comment"># [3, 1, 2]</span></pre>
+                    <h4 style="margin-top: 14px;">⚠️ Gotchas</h4>
+                    <ul>
+                        <li><code>list</code> is unhashable → can't use <code>list</code> as dict key. Always wrap a frequency vector in <code>tuple(...)</code> before using it as a key</li>
+                        <li>When comparing <code>Counter</code>s with <code>==</code>, <strong>delete zero-count keys</strong> (or use <code>+window</code> to drop them) — otherwise <code>Counter({'a':1, 'b':0}) != Counter({'a':1})</code></li>
+                        <li><code>ord('a') == 97</code>, <code>ord('A') == 65</code> — for mixed case, normalize with <code>.lower()</code> first or use a 52-slot vector</li>
+                        <li>Sorted-tuple key is O(k log k) per word but reads cleanest; count-vector key is O(k) — pick by input size, not aesthetics</li>
+                    </ul>
+                </div>
+
+                <div class="tips-box">
+                    <h4>🛠️ Built-ins commonly paired with Counter / DefaultDict</h4>
+                    <p style="color: #888; margin-bottom: 10px;">When you write Counter / DefaultDict code in interviews, these are the built-ins you reach for most.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">from</span> collections <span class="keyword">import</span> Counter
+
+<span class="comment"># ── Constructing ──</span>
+c = Counter(arr)                          <span class="comment"># any iterable</span>
+c = Counter(<span class="string">"hello"</span>)                      <span class="comment"># works on strings</span>
+c = Counter({<span class="string">"a"</span>: <span class="number">2</span>, <span class="string">"b"</span>: <span class="number">1</span>})             <span class="comment"># from a frequency dict</span>
+
+<span class="comment"># ── Top-N / sort ──</span>
+c.most_common(<span class="number">3</span>)                          <span class="comment"># [('a',5), ('b',2), ('c',1)]</span>
+<span class="function">sorted</span>(c, key=c.get, reverse=<span class="keyword">True</span>)        <span class="comment"># keys ordered by count desc</span>
+
+<span class="comment"># ── Comparing &amp; set-style ops ──</span>
+Counter(s) == Counter(t)                  <span class="comment"># multisets equal? (anagram check)</span>
+c1 + c2                                   <span class="comment"># element-wise add</span>
+c1 - c2                                   <span class="comment"># element-wise subtract (drops zeros &amp; negatives)</span>
+c1 &amp; c2                                   <span class="comment"># min of each (multiset intersection)</span>
+c1 | c2                                   <span class="comment"># max of each (multiset union)</span>
+
+<span class="comment"># ── Iterating ──</span>
+<span class="keyword">for</span> elem, cnt <span class="keyword">in</span> c.items(): ...
+<span class="keyword">for</span> elem <span class="keyword">in</span> c.elements(): ...             <span class="comment"># repeats each elem cnt times</span>
+<span class="function">sum</span>(c.values())                           <span class="comment"># total count</span>
+
+<span class="comment"># ── Combining with sum / max / any ──</span>
+total_vowels = <span class="function">sum</span>(c[v] <span class="keyword">for</span> v <span class="keyword">in</span> <span class="string">"aeiou"</span>)
+most_common_letter = <span class="function">max</span>(c, key=c.get)</pre>
+                    <p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
+                </div>
+            </div>
+
+            <nav class="page-nav">
+                <a href="string.html" class="prev">← String</a>
+                <a href="classes.html" class="next">Classes, Nodes &amp; OOP →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

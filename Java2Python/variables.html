@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Variables &amp; Memory | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>Variables &amp; Memory Model</h1>
+            <p class="subtitle">References, primitives, and the mutability that bites you</p>
+
+            <div class="section">
+                <div class="code-comparison">
+                    <div class="code-block">
+                        <div class="code-header python">🐍 Python</div>
+                        <div class="code-content">
+<pre><span class="comment"># Everything is an object reference</span>
+x = <span class="number">42</span>          <span class="comment"># x references int object</span>
+y = x           <span class="comment"># y references SAME object</span>
+x = <span class="number">100</span>         <span class="comment"># x now references NEW object</span>
+
+<span class="comment"># No type declarations needed</span>
+name = <span class="string">"Alice"</span>  <span class="comment"># str</span>
+age = <span class="number">25</span>        <span class="comment"># int</span>
+pi = <span class="number">3.14</span>       <span class="comment"># float</span>
+is_valid = <span class="keyword">True</span> <span class="comment"># bool</span>
+
+<span class="comment"># Dynamic typing</span>
+x = <span class="number">10</span>          <span class="comment"># int</span>
+x = <span class="string">"hello"</span>     <span class="comment"># now str (allowed!)</span></pre>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header java">☕ Java</div>
+                        <div class="code-content">
+<pre><span class="comment">// Primitives stored directly on stack</span>
+<span class="type">int</span> x = <span class="number">42</span>;       <span class="comment">// value stored directly</span>
+<span class="type">int</span> y = x;        <span class="comment">// COPY of value</span>
+x = <span class="number">100</span>;          <span class="comment">// only x changes</span>
+
+<span class="comment">// Type declarations required</span>
+<span class="type">String</span> name = <span class="string">"Alice"</span>;
+<span class="type">int</span> age = <span class="number">25</span>;
+<span class="type">double</span> pi = <span class="number">3.14</span>;
+<span class="type">boolean</span> isValid = <span class="keyword">true</span>;
+
+<span class="comment">// Static typing</span>
+<span class="type">int</span> x = <span class="number">10</span>;
+<span class="comment">// x = "hello";  // ERROR! Type mismatch</span></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="memory-diagram">
+                    <div class="memory-box">
+                        <div class="memory-title python">Python Memory</div>
+                        <p style="font-size: 0.85rem; color: #888; margin-bottom: 15px;">All variables are references to heap objects</p>
+                        <div class="memory-item">
+                            <span class="var">x</span>
+                            <span class="arrow">→</span>
+                            <span class="value">int(42) @ 0x7f...</span>
+                        </div>
+                        <div class="memory-item">
+                            <span class="var">name</span>
+                            <span class="arrow">→</span>
+                            <span class="value">str("Alice") @ 0x8a...</span>
+                        </div>
+                        <div class="memory-item">
+                            <span class="var">nums</span>
+                            <span class="arrow">→</span>
+                            <span class="value">list([1,2,3]) @ 0x9b...</span>
+                        </div>
+                    </div>
+                    <div class="memory-box">
+                        <div class="memory-title java">Java Memory</div>
+                        <p style="font-size: 0.85rem; color: #888; margin-bottom: 15px;">Primitives on stack, objects on heap</p>
+                        <div class="memory-item">
+                            <span class="var">x</span>
+                            <span class="arrow">=</span>
+                            <span class="value">42 (stack - primitive)</span>
+                        </div>
+                        <div class="memory-item">
+                            <span class="var">name</span>
+                            <span class="arrow">→</span>
+                            <span class="value">String @ heap</span>
+                        </div>
+                        <div class="memory-item">
+                            <span class="var">nums</span>
+                            <span class="arrow">→</span>
+                            <span class="value">ArrayList @ heap</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tips-box">
+                    <h4>💡 Interview Insight: Mutability</h4>
+                    <ul>
+                        <li><strong>Python:</strong> Lists are mutable, tuples/strings are immutable</li>
+                        <li><strong>Java:</strong> Arrays are mutable, Strings are immutable</li>
+                        <li>In Python, <code>a = b</code> for lists creates a reference, not a copy!</li>
+                        <li>Use <code>a = b.copy()</code> or <code>a = b[:]</code> for shallow copy</li>
+                    </ul>
+                </div>
+            </div>
+
+            <nav class="page-nav">
+                <a href="compilation.html" class="prev">← Compilation &amp; Execution</a>
+                <a href="complexity.html" class="next">Time Complexity →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

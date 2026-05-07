@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compilation &amp; Execution | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>Compilation &amp; Execution</h1>
+            <p class="subtitle">How Python and Java go from source to running code</p>
+
+            <div class="section">
+                <div class="flow-diagram">
+                    <div class="flow-row">
+                        <div class="flow-label python">Python</div>
+                        <div class="flow-box python">
+                            <div class="icon">📄</div>
+                            <div><strong>script.py</strong></div>
+                            <div class="label">Source Code</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box python">
+                            <div class="icon">⚙️</div>
+                            <div><strong>Interpreter</strong></div>
+                            <div class="label">Compiles to bytecode</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box python">
+                            <div class="icon">📦</div>
+                            <div><strong>.pyc</strong></div>
+                            <div class="label">Bytecode (cached)</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box python">
+                            <div class="icon">🖥️</div>
+                            <div><strong>PVM</strong></div>
+                            <div class="label">Python VM executes</div>
+                        </div>
+                    </div>
+
+                    <div class="flow-row">
+                        <div class="flow-label java">Java</div>
+                        <div class="flow-box java">
+                            <div class="icon">📄</div>
+                            <div><strong>App.java</strong></div>
+                            <div class="label">Source Code</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box java">
+                            <div class="icon">🔨</div>
+                            <div><strong>javac</strong></div>
+                            <div class="label">Compiler</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box java">
+                            <div class="icon">📦</div>
+                            <div><strong>.class</strong></div>
+                            <div class="label">Bytecode</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box java">
+                            <div class="icon">🖥️</div>
+                            <div><strong>JVM + JIT</strong></div>
+                            <div class="label">Runs &amp; optimizes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th><span class="badge python">Python</span></th>
+                            <th><span class="badge java">Java</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Typing</strong></td>
+                            <td>Dynamic (checked at runtime)</td>
+                            <td>Static (checked at compile time)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Compilation</strong></td>
+                            <td>Interpreted with bytecode caching</td>
+                            <td>Explicit compilation required (javac)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Runtime</strong></td>
+                            <td>CPython interpreter (GIL limits threading)</td>
+                            <td>JVM with JIT compilation (true multithreading)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Speed</strong></td>
+                            <td>Slower execution (interpreted)</td>
+                            <td>Faster execution (JIT optimized)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Memory</strong></td>
+                            <td>Higher overhead per object</td>
+                            <td>More efficient with primitives</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="visual-compare">
+                    <div class="visual-box">
+                        <div class="icon">🚀</div>
+                        <div class="title">Development Speed</div>
+                        <div class="speed-bar"><div class="speed-fill fast" style="width: 90%"></div></div>
+                        <div class="desc">Python: Fast to write</div>
+                        <div class="speed-bar"><div class="speed-fill medium" style="width: 60%"></div></div>
+                        <div class="desc">Java: More boilerplate</div>
+                    </div>
+                    <div class="visual-box">
+                        <div class="icon">⚡</div>
+                        <div class="title">Execution Speed</div>
+                        <div class="speed-bar"><div class="speed-fill medium" style="width: 40%"></div></div>
+                        <div class="desc">Python: Interpreted</div>
+                        <div class="speed-bar"><div class="speed-fill fast" style="width: 85%"></div></div>
+                        <div class="desc">Java: JIT compiled</div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="page-nav">
+                <a href="index.html" class="prev">← Home</a>
+                <a href="variables.html" class="next">Variables &amp; Memory →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>

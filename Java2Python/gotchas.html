@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Common Gotchas | Python vs Java</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>⚠️ Common Gotchas</h1>
+            <p class="subtitle">The traps that bite — and how to dodge them</p>
+            <p style="color: #888; margin-bottom: 20px; font-size: 0.9rem;">String Immutability lives on the <a href="string.html" style="color:#4fc3f7;">String</a> page next to the operations it affects.</p>
+
+            <div class="section">
+                <div class="ds-grid">
+                    <div class="ds-card" style="border-color: #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">Mutable Default Arguments</h4>
+                        <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># ❌ WRONG - list persists between calls!</span>
+<span class="keyword">def</span> <span class="function">add</span>(item, lst=[]):
+    lst.append(item)
+    <span class="keyword">return</span> lst
+
+<span class="comment"># ✅ CORRECT</span>
+<span class="keyword">def</span> <span class="function">add</span>(item, lst=<span class="keyword">None</span>):
+    <span class="keyword">if</span> lst <span class="keyword">is</span> <span class="keyword">None</span>:
+        lst = []
+    lst.append(item)
+    <span class="keyword">return</span> lst</pre>
+                        </div>
+                    </div>
+
+                    <div class="ds-card" style="border-color: #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">Integer Division</h4>
+                        <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># Python 3</span>
+<span class="number">7</span> / <span class="number">2</span>   <span class="comment"># = 3.5 (float division)</span>
+<span class="number">7</span> // <span class="number">2</span>  <span class="comment"># = 3   (integer division)</span>
+
+<span class="comment"># Negative numbers — Python's // FLOORS, Java's / TRUNCATES</span>
+-<span class="number">7</span> // <span class="number">2</span>             <span class="comment"># = -4   (Python floors toward -∞)</span>
+<span class="function">int</span>(-<span class="number">7</span> / <span class="number">2</span>)         <span class="comment"># = -3   (Java-like truncate toward 0)</span>
+-(-<span class="number">7</span> // <span class="number">2</span>) * -<span class="number">1</span>     <span class="comment"># = -3   (pure-int truncate; ugly but no float)</span>
+
+<span class="comment"># Ceiling division — two idioms, both pure-int:</span>
+-(-<span class="number">7</span> // <span class="number">3</span>)            <span class="comment"># = 3    (negate-floor-negate)</span>
+math.ceil(<span class="number">7</span> / <span class="number">3</span>)        <span class="comment"># = 3    (clearer; uses float)</span></pre>
+                        </div>
+                    </div>
+
+                    <div class="ds-card" style="border-color: #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">Modulo with Negatives</h4>
+                        <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># Python's % follows the SIGN OF THE DIVISOR (always ≥ 0 for positive b)</span>
+(-<span class="number">7</span>) % <span class="number">3</span>             <span class="comment"># = 2   (because -7 = -3*3 + 2)</span>
+<span class="number">7</span> % (-<span class="number">3</span>)             <span class="comment"># = -2  (matches sign of divisor)</span>
+
+<span class="comment"># Java's % follows the SIGN OF THE DIVIDEND (truncates toward 0)</span>
+<span class="comment">// Java:  (-7) % 3  → -1   (different from Python!)</span>
+
+<span class="comment"># For Java-like behavior, use math.fmod (returns float):</span>
+<span class="keyword">import</span> math
+math.fmod(-<span class="number">7</span>, <span class="number">3</span>)        <span class="comment"># = -1.0</span>
+
+<span class="comment"># Why this matters: hashing schemes, "wrap-around" indices,</span>
+<span class="comment"># circular array problems — Python's behavior is usually what you want</span>
+<span class="comment"># (idx - 1) % n         <span class="comment"># wraps -1 to n-1 cleanly. In Java you'd write ((idx-1) % n + n) % n</span></span></pre>
+                        </div>
+                    </div>
+
+                    <div class="ds-card" style="border-color: #ff6b6b;">
+                        <h4 style="color: #ff6b6b;">List Copy vs Reference</h4>
+                        <div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># ❌ Reference (same object)</span>
+a = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]
+b = a
+b.append(<span class="number">4</span>)  <span class="comment"># a is also [1,2,3,4]!</span>
+
+<span class="comment"># ✅ Shallow copy</span>
+b = a[:]       <span class="comment"># or a.copy()</span>
+b = <span class="function">list</span>(a)
+
+<span class="comment"># ✅ Deep copy (nested structures)</span>
+<span class="keyword">import</span> copy
+b = copy.deepcopy(a)</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="page-nav">
+                <a href="python-builtins.html" class="prev">← Python Builtins</a>
+                <a href="cheatsheet.html" class="next">Quick Cheat Sheet →</a>
+            </nav>
+        </div>
+    </main>
+    <script src="guide.js" defer></script>
+</body>
+</html>
