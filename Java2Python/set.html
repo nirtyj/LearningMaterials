@@ -34,6 +34,78 @@
 
             <div class="section">
                 <h2 id="set-init">Initialization</h2>
+                <div class="tips-box">
+                    <h4>📐 Syntax Templates</h4>
+                    <p style="color: #888; margin-bottom: 10px;">Multi-slot set APIs and common gotchas — labeled syntax plus concrete input → output so you can predict the result before running it.</p>
+
+                    <h4 style="margin-top: 14px;">🏗️ Construct template — <code>set(iterable)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Build a set from any iterable. Duplicates are dropped automatically.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="function">set</span>()                          <span class="comment"># → set()             empty set (NOT {})</span>
+<span class="function">set</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">3</span>])               <span class="comment"># → {1, 2, 3}         dups dropped</span>
+<span class="function">set</span>(<span class="string">"hello"</span>)                  <span class="comment"># → {'h', 'e', 'l', 'o'}   string is iterable</span>
+<span class="function">set</span>(<span class="function">range</span>(<span class="number">5</span>))                 <span class="comment"># → {0, 1, 2, 3, 4}</span>
+
+<span class="comment"># Literal form (when you have known elements):</span>
+{<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>}                       <span class="comment"># → {1, 2, 3}</span></pre>
+
+                    <h4 style="margin-top: 14px;">➕ Update template — <code>s.update(*iterables)</code> / <code>s |= other</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Bulk add. <code>update</code> can take multiple iterables in one call.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s = {<span class="number">1</span>, <span class="number">2</span>}
+
+s.update([<span class="number">3</span>, <span class="number">4</span>])               <span class="comment"># s → {1, 2, 3, 4}</span>
+s.update([<span class="number">5</span>], (<span class="number">6</span>, <span class="number">7</span>), {<span class="number">8</span>})       <span class="comment"># s → {1, 2, 3, 4, 5, 6, 7, 8}   multiple iterables in one call</span>
+
+<span class="comment"># Operator form — same effect, only one iterable:</span>
+s = {<span class="number">1</span>, <span class="number">2</span>}
+s |= {<span class="number">3</span>, <span class="number">4</span>}                     <span class="comment"># s → {1, 2, 3, 4}    same as s.update({3, 4})</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><code>update</code> mutates in place; <code>|</code> (no <code>=</code>) builds a NEW set</li>
+                        <li>Sister methods: <code>intersection_update</code> / <code>&amp;=</code>, <code>difference_update</code> / <code>-=</code>, <code>symmetric_difference_update</code> / <code>^=</code></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">📐 Set comprehension template — <code>{expr for x in iterable if cond}</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Same shape as a list comprehension; the <code>{}</code> outer braces produce a set instead of a list.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">{ what_to_return  <span class="keyword">for</span> thing <span class="keyword">in</span> things  <span class="keyword">if</span> keep_condition }
+        ↑                  ↑                    ↑
+    expression         iteration         optional filter
+
+{x*x <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">5</span>)}            <span class="comment"># → {0, 1, 4, 9, 16}    squares</span>
+{x <span class="keyword">for</span> x <span class="keyword">in</span> [<span class="number">1</span>,<span class="number">2</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">3</span>,<span class="number">3</span>] <span class="keyword">if</span> x &gt; <span class="number">1</span>}  <span class="comment"># → {2, 3}              dedup + filter in one pass</span>
+{ch.lower() <span class="keyword">for</span> ch <span class="keyword">in</span> <span class="string">"Hello"</span>}        <span class="comment"># → {'h', 'e', 'l', 'o'} normalize then dedup</span></pre>
+                    <p style="color: #888; margin-top: 4px;">Same template anatomy as the <a href="list.html#list-init" style="color:#4fc3f7;">list comprehension</a> — see list.html for the full slot breakdown.</p>
+
+                    <h4 style="margin-top: 14px;">⚖️ Set operators — <code>|</code>, <code>&amp;</code>, <code>-</code>, <code>^</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Four binary operators, four named methods. Operators require both operands to be sets; methods accept any iterable.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">a = {<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>}
+b = {<span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>}
+
+a | b      <span class="comment"># → {1, 2, 3, 4}    union: in EITHER         a.union(b)</span>
+a &amp; b      <span class="comment"># → {2, 3}          intersection: in BOTH    a.intersection(b)</span>
+a - b      <span class="comment"># → {1}             difference: in a NOT b   a.difference(b)</span>
+a ^ b      <span class="comment"># → {1, 4}          symmetric: in EXACTLY ONE a.symmetric_difference(b)</span>
+
+<span class="comment"># Method form takes any iterable; operator form requires both to be sets:</span>
+a.union([<span class="number">5</span>, <span class="number">6</span>])               <span class="comment"># → {1, 2, 3, 5, 6}    works on a list</span>
+a | [<span class="number">5</span>, <span class="number">6</span>]                    <span class="comment"># → TypeError</span></pre>
+
+                    <h4 style="margin-top: 14px;">⚠️ Gotcha — <code>discard(x)</code> vs <code>remove(x)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Same arg shape, different miss behavior. Pick by whether "missing" is expected.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s = {<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>}
+
+s.discard(<span class="number">2</span>)         <span class="comment"># s → {1, 3}    silent on miss</span>
+s.discard(<span class="number">99</span>)        <span class="comment"># s → {1, 3}    99 not present, no error</span>
+
+s.remove(<span class="number">3</span>)          <span class="comment"># s → {1}       removed</span>
+s.remove(<span class="number">99</span>)         <span class="comment"># → KeyError: 99    raises if missing</span></pre>
+                    <p style="color: #888; margin-top: 8px;">Mental model: <code>discard</code> = "delete if present"; <code>remove</code> = "must be there, crash if not". Same shape as dict <code>get</code> vs <code>[]</code> and string <code>find</code> vs <code>index</code>.</p>
+
+                    <h4 style="margin-top: 14px;">🪤 Gotcha — <code>{}</code> is an empty DICT, not a set</h4>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="function">type</span>({})                   <span class="comment"># → &lt;class 'dict'&gt;       NOT a set!</span>
+<span class="function">type</span>({<span class="number">1</span>})                  <span class="comment"># → &lt;class 'set'&gt;        single-element literal IS a set</span>
+<span class="function">type</span>(<span class="function">set</span>())                <span class="comment"># → &lt;class 'set'&gt;        the only way to get an empty set</span></pre>
+                    <p style="color: #888; margin-top: 8px;">See the <strong>"Method form &amp; frozenset"</strong> tips-box below for operator vs method depth, frozenset hashability, and BFS state-key idioms.</p>
+                </div>
+
                 <div class="code-comparison">
                     <div class="code-block">
                         <div class="code-header python">🐍 Python</div>

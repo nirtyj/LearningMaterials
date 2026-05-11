@@ -17,6 +17,96 @@
 
             <div class="section">
                 <h2 id="counter-init">Initialization</h2>
+                <div class="tips-box">
+                    <h4>📐 Syntax Templates</h4>
+                    <p style="color: #888; margin-bottom: 10px;">Multi-slot Counter APIs and common gotchas — labeled syntax plus concrete input → output so you can predict the result before running it.</p>
+
+                    <h4 style="margin-top: 14px;">🏗️ Construct template — three forms</h4>
+                    <p style="color: #888; margin-bottom: 8px;">Counter accepts three constructor shapes: an iterable, a mapping, or keyword args.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">from</span> collections <span class="keyword">import</span> Counter
+
+Counter( iterable | mapping | **kwargs )
+
+<span class="comment"># 1) From an iterable — counts each element:</span>
+Counter(<span class="string">"banana"</span>)              <span class="comment"># → Counter({'a': 3, 'n': 2, 'b': 1})</span>
+Counter([<span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">3</span>])      <span class="comment"># → Counter({3: 3, 2: 2, 1: 1})</span>
+
+<span class="comment"># 2) From a mapping (existing counts):</span>
+Counter({<span class="string">"a"</span>: <span class="number">2</span>, <span class="string">"b"</span>: <span class="number">1</span>})         <span class="comment"># → Counter({'a': 2, 'b': 1})</span>
+
+<span class="comment"># 3) From keyword args:</span>
+Counter(a=<span class="number">2</span>, b=<span class="number">1</span>)              <span class="comment"># → Counter({'a': 2, 'b': 1})</span>
+
+<span class="comment"># Empty Counter (any missing key returns 0 — that's the whole point):</span>
+c = Counter()
+c[<span class="string">"x"</span>]                        <span class="comment"># → 0      no KeyError, no insertion</span></pre>
+
+                    <h4 style="margin-top: 14px;">🏆 Most-common template — <code>c.most_common(n=None)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Returns a list of <code>(element, count)</code> pairs in count-descending order.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">c = Counter(<span class="string">"aaabbc"</span>)              <span class="comment"># Counter({'a': 3, 'b': 2, 'c': 1})</span>
+
+c.most_common(<span class="number">2</span>)                   <span class="comment"># → [('a', 3), ('b', 2)]      top 2</span>
+c.most_common(<span class="number">1</span>)                   <span class="comment"># → [('a', 3)]                top 1</span>
+c.most_common()                    <span class="comment"># → [('a', 3), ('b', 2), ('c', 1)]   no arg = all sorted</span>
+
+<span class="comment"># For just the top key (not the count), index into it:</span>
+c.most_common(<span class="number">1</span>)[<span class="number">0</span>][<span class="number">0</span>]             <span class="comment"># → 'a'    top element only</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Returns <code>[(elem, count), ...]</code> — note it's a list of tuples, not a Counter</li>
+                        <li>For top-K with a custom rank, prefer <code>heapq.nlargest(n, c, key=c.get)</code> — see <a href="heap.html#heap-init" style="color:#4fc3f7;">heap.html</a></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">➕ Update / subtract template — <code>c.update(iter)</code> / <code>c.subtract(iter)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Bulk additive update. <code>subtract</code> can drive counts negative (unlike the <code>-</code> operator).</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">c = Counter(<span class="string">"abc"</span>)               <span class="comment"># Counter({'a': 1, 'b': 1, 'c': 1})</span>
+
+c.update(<span class="string">"aab"</span>)                  <span class="comment"># Counter({'a': 3, 'b': 2, 'c': 1})   ADDS counts</span>
+c.update({<span class="string">"d"</span>: <span class="number">5</span>})              <span class="comment"># Counter({'d': 5, 'a': 3, 'b': 2, 'c': 1})   accepts mapping too</span>
+
+c = Counter(<span class="string">"abc"</span>)
+c.subtract(<span class="string">"aab"</span>)                <span class="comment"># Counter({'c': 1, 'b': 0, 'a': -1})  ALLOWS negatives/zero</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><code>update</code> ADDS to existing counts (it does NOT replace, unlike <code>dict.update</code> which would overwrite)</li>
+                        <li><code>subtract</code> permits negative results — use when you need to track surplus/deficit</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">➗ Counter arithmetic — <code>+</code>, <code>-</code>, <code>&amp;</code>, <code>|</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Multiset arithmetic. The four operators have different semantics from set operators!</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">c1 = Counter(<span class="string">"aab"</span>)              <span class="comment"># {'a': 2, 'b': 1}</span>
+c2 = Counter(<span class="string">"abb"</span>)              <span class="comment"># {'a': 1, 'b': 2}</span>
+
+c1 + c2                          <span class="comment"># → Counter({'a': 3, 'b': 3})       ADD counts</span>
+c1 - c2                          <span class="comment"># → Counter({'a': 1})               SUBTRACT, drop ≤0 (b: 1-2=-1 dropped)</span>
+c1 &amp; c2                          <span class="comment"># → Counter({'a': 1, 'b': 1})       MIN of each (intersection-like)</span>
+c1 | c2                          <span class="comment"># → Counter({'a': 2, 'b': 2})       MAX of each (union-like)</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><code>&amp;</code> = elementwise <strong>min</strong>, <code>|</code> = elementwise <strong>max</strong> — multiset semantics, NOT set intersection/union</li>
+                        <li>Binary operators (<code>+</code>/<code>-</code>) DROP zero and negative counts. <code>c1.subtract(c2)</code> KEEPS them — see template above</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">✨ Gotcha — missing keys return 0 (not KeyError)</h4>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">c = Counter(<span class="string">"abc"</span>)
+c[<span class="string">"a"</span>]                          <span class="comment"># → 1      present</span>
+c[<span class="string">"x"</span>]                          <span class="comment"># → 0      missing — returns 0, NO insertion, NO exception</span>
+
+<span class="comment"># That's the entire point of Counter — count without guarding for KeyError.</span>
+<span class="comment"># Compare to dict[k] which raises, or dict.get(k, 0) which is verbose.</span>
+
+<span class="comment"># ⚠️ Side-note: this is a "lookup", not "insertion":</span>
+<span class="string">"x"</span> <span class="keyword">in</span> c                       <span class="comment"># → False    accessing c["x"] does NOT add it</span></pre>
+
+                    <h4 style="margin-top: 14px;">🔀 Gotcha — Counter <code>&amp;</code>/<code>|</code> ≠ set <code>&amp;</code>/<code>|</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Same operators, different semantics. Easy to confuse if you've been working with sets.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># Sets — boolean membership:</span>
+{<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>} &amp; {<span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>}              <span class="comment"># → {2, 3}      INTERSECTION</span>
+{<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>} | {<span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>}              <span class="comment"># → {1, 2, 3, 4}  UNION</span>
+
+<span class="comment"># Counters — multiset (counts):</span>
+Counter(<span class="string">"aab"</span>) &amp; Counter(<span class="string">"abb"</span>)       <span class="comment"># → Counter({'a': 1, 'b': 1})  MIN of each count</span>
+Counter(<span class="string">"aab"</span>) | Counter(<span class="string">"abb"</span>)       <span class="comment"># → Counter({'a': 2, 'b': 2})  MAX of each count</span></pre>
+                    <p style="color: #888; margin-top: 8px;">See the existing tips-box below for ord/bucket mapping, canonical multiset keys, sliding-window anagrams, and Counter equality patterns.</p>
+                </div>
+
                 <div class="code-comparison">
                     <div class="code-block">
                         <div class="code-header python">🐍 Python</div>

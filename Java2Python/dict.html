@@ -47,6 +47,191 @@
 
             <div class="section">
                 <h2 id="dict-init">Initialization</h2>
+                <div class="tips-box">
+                    <h4>📐 Syntax Templates</h4>
+                    <p style="color: #888; margin-bottom: 10px;">Multi-slot dict APIs and common gotchas — labeled syntax plus concrete input → output so you can predict the result before running it.</p>
+
+                    <h4 style="margin-top: 14px;">🛡️ Get template — <code>d.get(key, default=None)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Two slots: the key, and what to return when it's missing. Never raises.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">d.get( key , default )
+        ↑     ↑
+        look  returned if key
+        up    is missing
+              (default None)
+
+d = {<span class="string">"a"</span>: <span class="number">1</span>, <span class="string">"b"</span>: <span class="number">2</span>}
+
+d.get(<span class="string">"a"</span>)              <span class="comment"># → 1            present</span>
+d.get(<span class="string">"x"</span>)              <span class="comment"># → None         missing, no exception</span>
+d.get(<span class="string">"x"</span>, <span class="number">0</span>)           <span class="comment"># → 0            missing → default</span>
+d.get(<span class="string">"x"</span>, [])          <span class="comment"># → []           missing → default (NEW empty list each call)</span>
+
+<span class="comment"># Common idiom — count without KeyError:</span>
+counts = {}
+<span class="keyword">for</span> ch <span class="keyword">in</span> <span class="string">"banana"</span>:
+    counts[ch] = counts.get(ch, <span class="number">0</span>) + <span class="number">1</span>
+<span class="comment"># → {'b': 1, 'a': 3, 'n': 2}</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Use <code>.get</code> when "key missing" is a normal case; use <code>d[key]</code> when missing means a bug (let it crash)</li>
+                        <li>For counting/grouping, prefer <code>collections.Counter</code> or <code>defaultdict(int)</code> — see <a href="counter.html" style="color:#4fc3f7;">counter.html</a></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🪤 Pop template — <code>d.pop(key, default)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Removes and returns the value. With a default, never raises; without, raises <code>KeyError</code> on miss.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">d = {<span class="string">"a"</span>: <span class="number">1</span>, <span class="string">"b"</span>: <span class="number">2</span>}
+
+d.pop(<span class="string">"a"</span>)              <span class="comment"># → 1            removed; d is now {"b": 2}</span>
+d.pop(<span class="string">"x"</span>, <span class="keyword">None</span>)        <span class="comment"># → None         missing, default returned (no KeyError)</span>
+d.pop(<span class="string">"x"</span>)              <span class="comment"># → KeyError: 'x'  no default, missing key crashes</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Pass a sentinel default (commonly <code>None</code>) when the key may not exist</li>
+                        <li>Returns the VALUE — discard with <code>_ = d.pop(k, None)</code> if you just want to delete</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🌱 Setdefault template — <code>d.setdefault(key, default)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Returns existing value OR inserts the default and returns it. <strong>Mutates the dict.</strong></p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">d = {<span class="string">"a"</span>: <span class="number">1</span>}
+
+d.setdefault(<span class="string">"a"</span>, <span class="number">99</span>)        <span class="comment"># → 1     "a" exists, return existing; d unchanged</span>
+d.setdefault(<span class="string">"b"</span>, <span class="number">99</span>)        <span class="comment"># → 99    "b" missing, INSERT 99, return 99; d = {"a":1, "b":99}</span>
+
+<span class="comment"># Common idiom — group items into lists per key:</span>
+groups = {}
+<span class="keyword">for</span> name, team <span class="keyword">in</span> people:
+    groups.setdefault(team, []).append(name)
+<span class="comment"># Each missing team gets a fresh [] inserted, then name is appended.</span>
+<span class="comment"># For this exact pattern, defaultdict(list) is cleaner.</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Mutating: very different from <code>get</code>, which never inserts</li>
+                        <li>For grouping into containers, <code>collections.defaultdict(list)</code> is usually cleaner</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🧩 Fromkeys template — <code>dict.fromkeys(iterable, value=None)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Build a dict from a sequence of keys, all mapped to the same value. Two slots: the keys, and the shared value.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">dict.fromkeys([<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>])         <span class="comment"># → {'a': None, 'b': None, 'c': None}</span>
+dict.fromkeys([<span class="string">"a"</span>, <span class="string">"b"</span>], <span class="number">0</span>)          <span class="comment"># → {'a': 0, 'b': 0}</span>
+dict.fromkeys(<span class="string">"abc"</span>, <span class="number">0</span>)             <span class="comment"># → {'a': 0, 'b': 0, 'c': 0}     string is iterable</span>
+
+<span class="comment"># Dedup-while-preserving-order trick (Python 3.7+):</span>
+<span class="function">list</span>(dict.fromkeys([<span class="number">3</span>, <span class="number">1</span>, <span class="number">3</span>, <span class="number">2</span>, <span class="number">1</span>]))    <span class="comment"># → [3, 1, 2]    set() doesn't preserve order</span></pre>
+
+                    <h4 style="margin-top: 14px;">📐 Dict comprehension template — <code>{k: v for k, v in items if cond}</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Same shape as a list comprehension, but with two-slot output (<code>key: value</code>).</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">{ key_expr : val_expr  <span class="keyword">for</span> k, v <span class="keyword">in</span> items  <span class="keyword">if</span> keep_condition }
+       ↑          ↑              ↑                      ↑
+       key        value          iteration              optional filter
+       output     output
+
+<span class="comment"># Invert a dict (value → key):</span>
+d = {<span class="string">"a"</span>: <span class="number">1</span>, <span class="string">"b"</span>: <span class="number">2</span>}
+{v: k <span class="keyword">for</span> k, v <span class="keyword">in</span> d.items()}              <span class="comment"># → {1: 'a', 2: 'b'}</span>
+
+<span class="comment"># Filter: keep only large values:</span>
+{k: v <span class="keyword">for</span> k, v <span class="keyword">in</span> d.items() <span class="keyword">if</span> v &gt; <span class="number">1</span>}      <span class="comment"># → {'b': 2}</span>
+
+<span class="comment"># Build from two parallel lists:</span>
+keys = [<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>]
+vals = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]
+{k: v <span class="keyword">for</span> k, v <span class="keyword">in</span> <span class="function">zip</span>(keys, vals)}        <span class="comment"># → {'a': 1, 'b': 2, 'c': 3}</span></pre>
+                    <p style="color: #888; margin-top: 4px;">Same template anatomy as the <a href="list.html#list-init" style="color:#4fc3f7;">list comprehension</a> — see list.html for the full slot breakdown.</p>
+
+                    <h4 style="margin-top: 14px;">🌟 Double-star unpacking — <code>**dict</code> (keyword arguments)</h4>
+                    <p style="color: #888; margin-bottom: 8px;"><code>**dict</code> opens a dictionary and passes each <code>key: value</code> pair as a keyword argument to a function. Mirror image of <code>**kwargs</code> in a definition.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># Two contexts — mirror images:</span>
+<span class="comment"># At a CALL site (spread out):</span>
+f(**mapping)                 <span class="comment"># spreads as keyword args</span>
+
+<span class="comment"># In a DEFINITION (collect up):</span>
+<span class="keyword">def</span> <span class="function">f</span>(**kwargs): ...         <span class="comment"># collects extra kwargs into a dict</span>
+
+<span class="comment"># ── Mental model ──</span>
+f(**{<span class="string">"name"</span>: <span class="string">"Nirty"</span>, <span class="string">"age"</span>: <span class="number">35</span>})
+<span class="comment"># is identical to:</span>
+f(name=<span class="string">"Nirty"</span>, age=<span class="number">35</span>)
+
+<span class="comment"># ── Use case 1: config dict → sorted options ──</span>
+options = {<span class="string">"key"</span>: <span class="keyword">lambda</span> x: -x, <span class="string">"reverse"</span>: <span class="keyword">False</span>}
+<span class="function">sorted</span>([<span class="number">3</span>, <span class="number">1</span>, <span class="number">5</span>, <span class="number">2</span>], **options)
+<span class="comment"># → [5, 3, 2, 1]</span>
+<span class="comment"># same as: sorted([3,1,5,2], key=lambda x: -x, reverse=False)</span>
+
+<span class="comment"># ── Use case 2: object construction from a dict ──</span>
+<span class="keyword">class</span> <span class="function">Person</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, name, age):
+        self.name, self.age = name, age
+
+data = {<span class="string">"name"</span>: <span class="string">"Nirty"</span>, <span class="string">"age"</span>: <span class="number">35</span>}
+p = Person(**data)           <span class="comment"># same as Person(name="Nirty", age=35)</span>
+
+<span class="comment"># ── Use case 3: function wrappers / forward options ──</span>
+<span class="keyword">def</span> <span class="function">run_query</span>(sql, timeout=<span class="number">30</span>, retries=<span class="number">3</span>):
+    ...
+
+config = {<span class="string">"timeout"</span>: <span class="number">60</span>, <span class="string">"retries"</span>: <span class="number">5</span>}
+run_query(<span class="string">"SELECT * FROM users"</span>, **config)
+<span class="comment"># same as: run_query("SELECT * FROM users", timeout=60, retries=5)</span>
+
+<span class="comment"># ── Use case 4: library calls ──</span>
+args = {<span class="string">"url"</span>: <span class="string">"https://example.com"</span>, <span class="string">"timeout"</span>: <span class="number">10</span>}
+requests.get(**args)         <span class="comment"># same as: requests.get(url="...", timeout=10)</span>
+
+<span class="comment"># ── Definition-time collection ──</span>
+<span class="keyword">def</span> <span class="function">log</span>(level, **fields):       <span class="comment"># fields is a DICT of all extra kwargs</span>
+    <span class="function">print</span>(level, fields)
+log(<span class="string">"INFO"</span>, user=<span class="string">"a"</span>, action=<span class="string">"login"</span>)
+<span class="comment"># → INFO {'user': 'a', 'action': 'login'}</span></pre>
+
+                    <h4 style="margin-top: 14px;">⚠️ Gotcha — <code>**dict</code> keys must match parameter names</h4>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">def</span> <span class="function">add</span>(a, b):
+    <span class="keyword">return</span> a + b
+
+<span class="comment"># ✅ Keys match parameter names:</span>
+add(**{<span class="string">"a"</span>: <span class="number">10</span>, <span class="string">"b"</span>: <span class="number">20</span>})       <span class="comment"># → 30</span>
+
+<span class="comment"># ❌ Keys don't match — TypeError:</span>
+add(**{<span class="string">"x"</span>: <span class="number">10</span>, <span class="string">"y"</span>: <span class="number">20</span>})
+<span class="comment"># → TypeError: add() got an unexpected keyword argument 'x'</span>
+
+<span class="comment"># ❌ Without ** — passes the whole dict as ONE positional arg:</span>
+add({<span class="string">"a"</span>: <span class="number">10</span>, <span class="string">"b"</span>: <span class="number">20</span>})
+<span class="comment"># → TypeError: add() missing 1 required positional argument: 'b'</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Dictionary keys MUST match the target function's parameter names exactly — typo in a key = <code>TypeError</code></li>
+                        <li>Without <code>**</code>, <code>f(d)</code> passes the whole dict as one <em>positional</em> argument (almost never what you want)</li>
+                        <li>In definitions, <code>def f(**kwargs)</code> collects extra kwargs into a dict — the mirror operation</li>
+                        <li>Companion: <strong><code>*</code> for positional/iterable unpacking</strong> — see <a href="list.html#list-init" style="color:#4fc3f7;">list.html → Syntax Templates</a></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">⚠️ Gotcha — <code>d[k]</code> vs <code>d.get(k)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Same mental model as string <code>find</code> vs <code>index</code>: missing-is-normal vs missing-is-a-bug.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">d = {<span class="string">"a"</span>: <span class="number">1</span>}
+
+d[<span class="string">"a"</span>]              <span class="comment"># → 1                    present</span>
+d[<span class="string">"x"</span>]              <span class="comment"># → KeyError: 'x'        missing key crashes</span>
+d.get(<span class="string">"x"</span>)           <span class="comment"># → None                 safe sentinel</span>
+d.get(<span class="string">"x"</span>, <span class="number">0</span>)        <span class="comment"># → 0                    safe with custom default</span>
+
+<span class="comment"># Use [] when missing means a bug (validate input by letting it crash):</span>
+config[<span class="string">"required_field"</span>]
+
+<span class="comment"># Use .get when missing is expected (counts, optional config, etc.):</span>
+counts.get(<span class="string">"new_key"</span>, <span class="number">0</span>)</pre>
+
+                    <h4 style="margin-top: 14px;">🚨 Gotcha — <code>fromkeys</code> shares the SAME mutable default</h4>
+                    <p style="color: #888; margin-bottom: 8px;">All keys point to the SAME object — same shape as the <code>[[0]*cols]*rows</code> bug from lists.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ❌ TRAP — every key points to the SAME list:</span>
+d = dict.fromkeys([<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>], [])
+d[<span class="string">"a"</span>].append(<span class="number">1</span>)
+<span class="comment"># d is now {'a': [1], 'b': [1], 'c': [1]}    ← all three lists are the SAME object!</span>
+
+<span class="comment"># ✅ Use a comprehension to get fresh containers per key:</span>
+d = {k: [] <span class="keyword">for</span> k <span class="keyword">in</span> [<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>]}
+d[<span class="string">"a"</span>].append(<span class="number">1</span>)
+<span class="comment"># d is {'a': [1], 'b': [], 'c': []}    ← each key got its own list</span></pre>
+                    <p style="color: #888; margin-top: 8px;">Same shared-reference bug as <a href="list.html#list-init" style="color:#4fc3f7;">list 2D grid init</a>. <code>fromkeys</code> is safe ONLY for immutable defaults (numbers, strings, tuples, <code>None</code>).</p>
+                    <p style="color: #888; margin-top: 8px;">See the <strong>"More dict methods"</strong> tips-box below for <code>popitem</code>, merge operators (<code>|</code>, <code>|=</code>), <code>update</code>, and the full method reference.</p>
+                </div>
+
                 <div class="code-comparison">
                     <div class="code-block">
                         <div class="code-header python">🐍 Python</div>

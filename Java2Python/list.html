@@ -48,6 +48,278 @@
 
             <div class="section">
                 <h2 id="list-init">Initialization</h2>
+                <div class="tips-box">
+                    <h4>📐 Syntax Templates</h4>
+                    <p style="color: #888; margin-bottom: 10px;">Three multi-slot templates (comprehension, slice, range) and three list-mutation patterns (copy, deepcopy, append/extend) — labeled syntax plus concrete input → output so you can predict the result before running it.</p>
+
+                    <h4 style="margin-top: 14px;">📐 List comprehension template</h4>
+                    <p style="color: #888; margin-bottom: 8px;">Memorize the four named slots. The filter is optional.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">[ what_to_return  <span class="keyword">for</span> thing <span class="keyword">in</span> things  <span class="keyword">if</span> keep_condition ]
+        ↑                  ↑                    ↑
+    expression         iteration         optional filter
+
+<span class="comment"># Example 1: no filter — square every number</span>
+[x*x <span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">range</span>(<span class="number">5</span>)]
+<span class="comment"># → [0, 1, 4, 9, 16]</span>
+
+<span class="comment"># Example 2: with filter — keep only even numbers</span>
+nums = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>]
+[x <span class="keyword">for</span> x <span class="keyword">in</span> nums <span class="keyword">if</span> x % <span class="number">2</span> == <span class="number">0</span>]
+<span class="comment"># → [2, 4, 6]</span>
+
+<span class="comment"># Example 3: transform AND filter — squares of evens</span>
+[x*x <span class="keyword">for</span> x <span class="keyword">in</span> nums <span class="keyword">if</span> x % <span class="number">2</span> == <span class="number">0</span>]
+<span class="comment"># → [4, 16, 36]</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><strong>what_to_return</strong> runs once per item that passes the filter — it's the value placed into the new list</li>
+                        <li><strong>thing in things</strong> is the same as a <code>for</code> loop header — <code>thing</code> is the loop variable</li>
+                        <li><strong>if keep_condition</strong> is optional; drop it when you want every item</li>
+                        <li>Swap the outer <code>[]</code> for <code>()</code> to get a <strong>generator</strong> (lazy, one value at a time) — see the Built-ins box below</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🔪 Slice template — <code>a[start:stop:step]</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Three slots, all optional. Defaults flip with the sign of <code>step</code>.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">a[ start : stop : step ]
+   ↑       ↑      ↑
+   first   one    direction &amp; stride
+   index   PAST   (default 1)
+   to      the
+   take    last
+   (def 0) (def len(a))
+
+a = [<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>, <span class="number">40</span>, <span class="number">50</span>]
+
+<span class="comment"># ── start/stop only (step omitted = 1) ──</span>
+a[<span class="number">1</span>:<span class="number">4</span>]      <span class="comment"># → [20, 30, 40]   start at 1, STOP IS EXCLUSIVE (index 4 not included)</span>
+a[:<span class="number">3</span>]       <span class="comment"># → [10, 20, 30]   start defaults to 0</span>
+a[<span class="number">2</span>:]       <span class="comment"># → [30, 40, 50]   stop defaults to len(a)</span>
+a[:]        <span class="comment"># → [10, 20, 30, 40, 50]   full shallow copy</span>
+
+<span class="comment"># ── step = 1 (forward, default) ──</span>
+a[::<span class="number">1</span>]      <span class="comment"># → [10, 20, 30, 40, 50]   same as a[:]</span>
+a[<span class="number">1</span>::<span class="number">1</span>]     <span class="comment"># → [20, 30, 40, 50]       from index 1 onward, every element</span>
+
+<span class="comment"># ── step = 2 (forward, every other) ──</span>
+a[::<span class="number">2</span>]      <span class="comment"># → [10, 30, 50]           every 2nd element from the start</span>
+a[<span class="number">1</span>::<span class="number">2</span>]     <span class="comment"># → [20, 40]               start at 1, every 2nd</span>
+
+<span class="comment"># ── step = -1 (backward, full reverse) ──</span>
+a[::-<span class="number">1</span>]     <span class="comment"># → [50, 40, 30, 20, 10]   when step is negative, defaults flip:</span>
+            <span class="comment">#                          start defaults to len(a)-1, stop to "before index 0"</span>
+
+<span class="comment"># ── step = -2 (backward, every other) ──</span>
+a[::-<span class="number">2</span>]     <span class="comment"># → [50, 30, 10]           reverse, every 2nd element</span>
+
+<span class="comment"># ── negative indices for start/stop ──</span>
+a[-<span class="number">2</span>:]      <span class="comment"># → [40, 50]               last two</span>
+a[:-<span class="number">2</span>]      <span class="comment"># → [10, 20, 30]           everything except the last two</span>
+a[-<span class="number">1</span>:-<span class="number">4</span>:-<span class="number">1</span>] <span class="comment"># → [50, 40, 30]           explicit reverse range</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><strong><code>stop</code> is exclusive</strong> — <code>a[1:4]</code> gives indices 1, 2, 3 (not 4). Same convention as <code>range</code></li>
+                        <li><strong>Defaults flip with sign of step</strong> — positive step → <code>start=0</code>, <code>stop=len(a)</code>; negative step → <code>start=len(a)-1</code>, <code>stop="just past index 0"</code></li>
+                        <li><strong><code>step</code> cannot be 0</strong> — raises <code>ValueError</code></li>
+                        <li><strong>Slicing never raises on out-of-range</strong> — <code>a[100:200]</code> returns <code>[]</code> instead of <code>IndexError</code> (unlike <code>a[100]</code>). Useful for safe substring/sublist work</li>
+                        <li>A slice always returns a <strong>NEW list</strong> (shallow copy of selected elements); the original is never mutated</li>
+                        <li>Strings and tuples slice with the same syntax — <code>"hello"[::-1]</code> → <code>"olleh"</code></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🎯 Range template — <code>range(start, stop, step)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Same <code>start</code>/<code>stop</code>/<code>step</code> mental model as slicing — three call shapes (1, 2, or 3 args).</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="function">range</span>( start , stop , step )
+        ↑       ↑      ↑
+        first   one    direction &amp; stride
+        value   PAST   (default 1, cannot be 0)
+        (def 0) the
+                last
+
+<span class="comment"># Three call shapes:</span>
+<span class="function">range</span>(stop)              <span class="comment"># 1 arg  — start=0, step=1</span>
+<span class="function">range</span>(start, stop)       <span class="comment"># 2 args — step=1</span>
+<span class="function">range</span>(start, stop, step) <span class="comment"># 3 args — full form</span>
+
+<span class="comment"># ── Forward, single arg ──</span>
+<span class="function">list</span>(<span class="function">range</span>(<span class="number">5</span>))             <span class="comment"># → [0, 1, 2, 3, 4]    stop=5; 5 is NOT included</span>
+
+<span class="comment"># ── Forward, two args ──</span>
+<span class="function">list</span>(<span class="function">range</span>(<span class="number">2</span>, <span class="number">7</span>))          <span class="comment"># → [2, 3, 4, 5, 6]    start=2, stop=7</span>
+
+<span class="comment"># ── Forward, custom step ──</span>
+<span class="function">list</span>(<span class="function">range</span>(<span class="number">0</span>, <span class="number">10</span>, <span class="number">2</span>))      <span class="comment"># → [0, 2, 4, 6, 8]    step=2: every other</span>
+<span class="function">list</span>(<span class="function">range</span>(<span class="number">1</span>, <span class="number">10</span>, <span class="number">3</span>))      <span class="comment"># → [1, 4, 7]          step=3: every third</span>
+
+<span class="comment"># ── Backward (negative step) ──</span>
+<span class="function">list</span>(<span class="function">range</span>(<span class="number">5</span>, <span class="number">0</span>, -<span class="number">1</span>))      <span class="comment"># → [5, 4, 3, 2, 1]    stop=0 EXCLUDED — 0 not in result</span>
+<span class="function">list</span>(<span class="function">range</span>(<span class="number">5</span>, -<span class="number">1</span>, -<span class="number">1</span>))     <span class="comment"># → [5, 4, 3, 2, 1, 0] stop=-1 to INCLUDE 0</span>
+
+<span class="comment"># ── Reverse-indices idiom (from practise/array.py exercise 8) ──</span>
+arr = [<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>]
+<span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(arr) - <span class="number">1</span>, -<span class="number">1</span>, -<span class="number">1</span>):
+    <span class="function">print</span>(i, arr[i])
+<span class="comment"># 2 30</span>
+<span class="comment"># 1 20</span>
+<span class="comment"># 0 10</span>
+
+<span class="comment"># Annotated walkthrough of the reverse-indices call:</span>
+<span class="function">range</span>( <span class="function">len</span>(arr) - <span class="number">1</span> , -<span class="number">1</span> , -<span class="number">1</span> )
+         ↑            ↑     ↑
+         last index   stop  step = -1
+         (= 2 here)   one   (count
+                      past  downward)
+                      0</pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><strong><code>stop</code> is exclusive</strong> — same convention as slicing. <code>range(5)</code> gives <code>0..4</code>, never <code>5</code></li>
+                        <li><strong><code>step</code> cannot be 0</strong> — raises <code>ValueError</code></li>
+                        <li><strong>Sign of step controls direction</strong> — positive counts up, negative counts down. If the direction can't reach <code>stop</code> (e.g. <code>range(5, 0)</code> with default step <code>+1</code>), the result is empty</li>
+                        <li><strong><code>range</code> is lazy</strong> — returns a <code>range</code> object, not a list. Wrap in <code>list(...)</code> to materialize, or just iterate with <code>for</code></li>
+                        <li><strong>Companion to slicing</strong> — same <code>start, stop, step</code> semantics, same exclusive-stop rule. Learning one teaches the other</li>
+                        <li>⚠️ <strong>Common bug:</strong> <code>range(len(arr)-1, 0, -1)</code> stops at <code>1</code> and <strong>misses index 0</strong> (because stop is exclusive and 0 == stop). Use <code>-1</code> as stop to include index 0</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🔀 Sorted template — <code>sorted(iterable, key=None, reverse=False)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Three slots: <em>what</em> to sort, <em>how</em> to compare each item, and <em>direction</em>. Returns a NEW list — original is untouched.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="function">sorted</span>( iterable , key=None , reverse=False )
+          ↑          ↑           ↑
+          what       how to      direction
+          to sort    rank each   (False = ascending,
+          (list,     item        True = descending)
+          tuple,     (function
+          set,       called per
+          dict       element)
+          keys, ...)
+
+<span class="comment"># ── No options: ascending, compare items directly ──</span>
+<span class="function">sorted</span>([<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>, <span class="number">1</span>, <span class="number">5</span>])              <span class="comment"># → [1, 1, 3, 4, 5]</span>
+<span class="function">sorted</span>(<span class="string">"banana"</span>)                     <span class="comment"># → ['a', 'a', 'a', 'b', 'n', 'n']  (any iterable!)</span>
+
+<span class="comment"># ── reverse=True: descending ──</span>
+<span class="function">sorted</span>([<span class="number">3</span>, <span class="number">1</span>, <span class="number">4</span>], reverse=<span class="keyword">True</span>)        <span class="comment"># → [4, 3, 1]</span>
+
+<span class="comment"># ── key=func: rank by a transformed value ──</span>
+<span class="function">sorted</span>([<span class="string">"pear"</span>, <span class="string">"fig"</span>, <span class="string">"apple"</span>], key=<span class="function">len</span>)   <span class="comment"># → ['fig', 'pear', 'apple']  (by length)</span>
+<span class="function">sorted</span>([<span class="number">3</span>, -<span class="number">1</span>, <span class="number">4</span>, -<span class="number">5</span>], key=<span class="function">abs</span>)        <span class="comment"># → [-1, 3, 4, -5]            (by absolute value)</span>
+
+<span class="comment"># ── key=lambda: inline custom rank ──</span>
+<span class="function">sorted</span>([<span class="number">3</span>, <span class="number">1</span>, <span class="number">5</span>], key=<span class="keyword">lambda</span> x: -x)   <span class="comment"># → [5, 3, 1]   (descending via negation — same as reverse=True for numbers)</span>
+
+<span class="comment"># ── Multi-key (tuple): primary key, then tie-breaker ──</span>
+people = [(<span class="number">25</span>, <span class="string">"Bob"</span>), (<span class="number">30</span>, <span class="string">"Alice"</span>), (<span class="number">25</span>, <span class="string">"Eve"</span>)]
+<span class="function">sorted</span>(people, key=<span class="keyword">lambda</span> x: (-x[<span class="number">0</span>], x[<span class="number">1</span>]))
+<span class="comment"># → [(30, 'Alice'), (25, 'Bob'), (25, 'Eve')]</span>
+<span class="comment">#   age DESC (negate), name ASC on ties</span>
+
+<span class="comment"># ── In-place vs new list ──</span>
+arr = [<span class="number">3</span>, <span class="number">1</span>, <span class="number">2</span>]
+new = <span class="function">sorted</span>(arr)              <span class="comment"># → [1, 2, 3]   arr unchanged</span>
+arr.sort()                       <span class="comment"># mutates arr → [1, 2, 3]; returns None — DON'T chain</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><strong><code>sorted</code> returns a NEW list</strong>; <code>list.sort()</code> mutates in place and returns <code>None</code> (so <code>x = arr.sort()</code> is the #1 bug)</li>
+                        <li><strong><code>key</code> is a function</strong>, not a value — Python calls it once per element and uses the return value to rank. The original elements are kept in the result</li>
+                        <li><strong><code>reverse=True</code> flips the whole order</strong>. For mixed directions (one key asc, another desc), put the negation inside the <code>key</code> tuple instead</li>
+                        <li><strong>Sort is stable</strong> — equal keys preserve original order. Lets you do multi-pass sorts: sort by secondary key first, then primary</li>
+                        <li>Same <code>key=</code> / <code>reverse=</code> arguments work on <code>min()</code>, <code>max()</code>, <code>heapq.nlargest()</code>, <code>heapq.nsmallest()</code></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🌟 Star unpacking — <code>*iterable</code> (positional)</h4>
+                    <p style="color: #888; margin-bottom: 8px;"><code>*</code> spreads an iterable into positional slots — at a function call, in a literal, or on the left-hand side of an assignment. Mirror image of <code>*args</code> in a definition.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># Two contexts — mirror images:</span>
+<span class="comment"># At a CALL site (spread out):</span>
+f(*iterable)               <span class="comment"># positional unpack: spreads items as args</span>
+
+<span class="comment"># In a DEFINITION (collect up):</span>
+<span class="keyword">def</span> <span class="function">f</span>(*args): ...        <span class="comment"># collects extra positionals into a tuple</span>
+
+<span class="comment"># ── 1) Function-call spread ──</span>
+<span class="keyword">def</span> <span class="function">add</span>(a, b, c): <span class="keyword">return</span> a + b + c
+nums = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]
+add(*nums)                 <span class="comment"># → 6     same as add(1, 2, 3)</span>
+add(nums)                  <span class="comment"># → TypeError — passes the LIST as one arg</span>
+
+<span class="comment"># ── 2) Matrix transpose: zip(*matrix) ──</span>
+matrix = [[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>], [<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>]]
+<span class="function">list</span>(<span class="function">zip</span>(*matrix))         <span class="comment"># → [(1, 4), (2, 5), (3, 6)]   columns become rows</span>
+<span class="comment"># * unpacks the rows into zip's positional slots:</span>
+<span class="comment">#   zip(*matrix) ≡ zip([1,2,3], [4,5,6])</span>
+
+<span class="comment"># ── 3) List/tuple literal merge (PEP 448) ──</span>
+a = [<span class="number">1</span>, <span class="number">2</span>]
+b = [<span class="number">3</span>, <span class="number">4</span>]
+[*a, *b]                   <span class="comment"># → [1, 2, 3, 4]              merge sequences</span>
+[<span class="number">0</span>, *a, <span class="number">99</span>, *b]            <span class="comment"># → [0, 1, 2, 99, 3, 4]       interleave with literals</span>
+(*a, *b)                   <span class="comment"># → (1, 2, 3, 4)              same trick for tuples</span>
+
+<span class="comment"># ── 4) LHS unpacking — split off head/tail ──</span>
+first, *rest = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>]
+<span class="comment"># first = 1, rest = [2, 3, 4]</span>
+
+*head, last = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>]
+<span class="comment"># head = [1, 2, 3], last = 4</span>
+
+a, *mid, z = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]
+<span class="comment"># a = 1, mid = [2, 3, 4], z = 5</span>
+
+<span class="comment"># ── 5) Definition-time collection ──</span>
+<span class="keyword">def</span> <span class="function">total</span>(*nums):           <span class="comment"># nums is a TUPLE of all positional args</span>
+    <span class="keyword">return</span> <span class="function">sum</span>(nums)
+total(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>)            <span class="comment"># → 10</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Two roles — <strong>call-site spread</strong> (open up) vs <strong>definition-time collect</strong> (gather up). Same syntax, opposite directions</li>
+                        <li><code>list(zip(*matrix))</code> is the standard idiom for <strong>transposing a matrix</strong> — no NumPy needed. See <strong>"🧮 Matrix &amp; Index Tricks"</strong> tips-box below for the full pattern</li>
+                        <li><code>[*a, *b]</code> and <code>(*a, *b)</code> are usually clearer/faster than <code>a + b</code> for sequence merging — and they work across mixed iterable types</li>
+                        <li>Companion: <strong><code>**</code> for keyword/dict unpacking</strong> — see <a href="dict.html#dict-init" style="color:#4fc3f7;">dict.html → Syntax Templates</a></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">📄 Shallow copy — example</h4>
+                    <p style="color: #888; margin-bottom: 8px;">Make an independent list so changes to the copy don't touch the original.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">a = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]
+b = a.copy()        <span class="comment"># or a[:]  or list(a)  — all equivalent</span>
+b.append(<span class="number">99</span>)
+
+<span class="comment"># a → [1, 2, 3]        (unchanged)</span>
+<span class="comment"># b → [1, 2, 3, 99]</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>A shallow copy is enough for <strong>flat</strong> lists of immutables (numbers, strings, tuples)</li>
+                        <li>It breaks when the list contains other lists/dicts/objects — see deep copy below</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🌳 Deep copy — example (and why shallow breaks)</h4>
+                    <p style="color: #888; margin-bottom: 8px;">When the list contains <em>other</em> lists, a shallow copy duplicates the outer list but still <strong>shares the inner ones</strong>.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── Shallow copy of a nested list — TRAP ──</span>
+a = [[<span class="number">1</span>, <span class="number">2</span>], [<span class="number">3</span>, <span class="number">4</span>]]
+b = a.copy()        <span class="comment"># shallow — inner lists are SHARED</span>
+b[<span class="number">0</span>].append(<span class="number">99</span>)
+
+<span class="comment"># a → [[1, 2, 99], [3, 4]]   ← a was mutated too!</span>
+<span class="comment"># b → [[1, 2, 99], [3, 4]]</span>
+
+<span class="comment"># ── Deep copy — independent inner lists ──</span>
+<span class="keyword">import</span> copy
+a = [[<span class="number">1</span>, <span class="number">2</span>], [<span class="number">3</span>, <span class="number">4</span>]]
+b = copy.deepcopy(a)
+b[<span class="number">0</span>].append(<span class="number">99</span>)
+
+<span class="comment"># a → [[1, 2], [3, 4]]       (unchanged)</span>
+<span class="comment"># b → [[1, 2, 99], [3, 4]]</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Reach for <code>copy.deepcopy</code> when the list contains lists, dicts, or objects you intend to mutate</li>
+                        <li>For flat lists of numbers/strings, <code>deepcopy</code> is overkill — <code>.copy()</code> is fine</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">➕ append vs extend — example</h4>
+                    <p style="color: #888; margin-bottom: 8px;"><code>append(b)</code> adds <code>b</code> as <strong>one element</strong>. <code>extend(b)</code> adds each <strong>item of</strong> <code>b</code>.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">a = [<span class="number">1</span>, <span class="number">2</span>]
+b = [<span class="number">3</span>, <span class="number">4</span>]
+
+x = a.copy(); x.append(b)    <span class="comment"># → [1, 2, [3, 4]]   b added as ONE element (a list inside a list)</span>
+y = a.copy(); y.extend(b)    <span class="comment"># → [1, 2, 3, 4]     b's items added one by one</span>
+z = a.copy(); z += b         <span class="comment"># → [1, 2, 3, 4]     same as extend</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><code>append(x)</code> always adds exactly one element — even if <code>x</code> is itself a list</li>
+                        <li><code>extend(iterable)</code> iterates and appends each item — works on lists, tuples, strings, generators</li>
+                        <li><code>a += b</code> on a list is identical to <code>a.extend(b)</code> (mutates in place)</li>
+                        <li><code>c = a + b</code> builds a NEW list — <code>a</code> and <code>b</code> stay unchanged</li>
+                    </ul>
+                </div>
+
                 <div class="code-comparison">
                     <div class="code-block">
                         <div class="code-header python">🐍 Python</div>

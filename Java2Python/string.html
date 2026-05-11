@@ -17,6 +17,146 @@
 
             <div class="section">
                 <h2 id="string-operations">Operations</h2>
+                <div class="tips-box">
+                    <h4>📐 Syntax Templates</h4>
+                    <p style="color: #888; margin-bottom: 10px;">Multi-slot string APIs and common gotchas — labeled syntax plus concrete input → output so you can predict the result before running it.</p>
+
+                    <h4 style="margin-top: 14px;">🔪 Slice template — <code>s[start:stop:step]</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Same three slots as list slicing. Strings are immutable, so a slice always returns a NEW string.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s = <span class="string">"hello"</span>
+
+s[<span class="number">1</span>:<span class="number">4</span>]      <span class="comment"># → "ell"   stop is EXCLUSIVE</span>
+s[:<span class="number">3</span>]       <span class="comment"># → "hel"   start defaults to 0</span>
+s[<span class="number">2</span>:]       <span class="comment"># → "llo"   stop defaults to len(s)</span>
+s[::<span class="number">2</span>]      <span class="comment"># → "hlo"   every other char</span>
+s[::-<span class="number">1</span>]     <span class="comment"># → "olleh" full reverse (idiomatic)</span>
+s[-<span class="number">2</span>:]      <span class="comment"># → "lo"    last two</span>
+s[:-<span class="number">2</span>]      <span class="comment"># → "hel"   everything except last two</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Same template as list slicing — see <a href="list.html#list-init" style="color:#4fc3f7;">list.html</a> for the full slot diagram and step-value rules</li>
+                        <li><code>s[::-1]</code> is the standard one-liner for "reverse a string"</li>
+                        <li>Slicing never raises — <code>s[100:200]</code> returns <code>""</code> instead of <code>IndexError</code></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">✂️ Split template — <code>s.split(sep=None, maxsplit=-1)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Two slots: what to split on, and the maximum number of splits to make.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s.split( sep , maxsplit )
+          ↑      ↑
+          delim  stop after N splits
+          (None  (-1 = unlimited)
+          = any
+          whitespace,
+          collapsed)
+
+<span class="comment"># ── Default sep (None): splits on whitespace runs, trims edges ──</span>
+<span class="string">"  a   b  "</span>.split()         <span class="comment"># → ['a', 'b']         (collapses runs, trims)</span>
+<span class="string">"hello world"</span>.split()       <span class="comment"># → ['hello', 'world']</span>
+
+<span class="comment"># ── Explicit sep ──</span>
+<span class="string">"a,b,c"</span>.split(<span class="string">","</span>)          <span class="comment"># → ['a', 'b', 'c']</span>
+<span class="string">"a,b,c"</span>.split(<span class="string">","</span>, <span class="number">1</span>)       <span class="comment"># → ['a', 'b,c']       maxsplit=1: stop after first split</span>
+<span class="string">"a,,b"</span>.split(<span class="string">","</span>)           <span class="comment"># → ['a', '', 'b']     empty strings KEPT with explicit sep</span>
+
+<span class="comment"># ── Companion: rsplit splits from the right ──</span>
+<span class="string">"a,b,c"</span>.rsplit(<span class="string">","</span>, <span class="number">1</span>)      <span class="comment"># → ['a,b', 'c']       useful for "split off extension"</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><code>split()</code> (no arg) is special: splits on ANY whitespace run AND trims leading/trailing whitespace</li>
+                        <li><code>split(" ")</code> (explicit space) is different: keeps empty strings between consecutive spaces</li>
+                        <li><code>maxsplit</code> caps the result at <code>maxsplit + 1</code> elements — useful when only the first separator matters</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🔁 Replace template — <code>s.replace(old, new, count=-1)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Returns a NEW string (strings are immutable). Three slots: what to find, what to replace with, how many times.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s.replace( old , new , count )
+            ↑     ↑     ↑
+            find  swap  max replacements
+                  with  (-1 = all, default)
+
+<span class="string">"banana"</span>.replace(<span class="string">"a"</span>, <span class="string">"X"</span>)        <span class="comment"># → "bXnXnX"  all occurrences</span>
+<span class="string">"banana"</span>.replace(<span class="string">"a"</span>, <span class="string">"X"</span>, <span class="number">1</span>)     <span class="comment"># → "bXnana"  first only</span>
+<span class="string">"banana"</span>.replace(<span class="string">"a"</span>, <span class="string">"X"</span>, <span class="number">2</span>)     <span class="comment"># → "bXnXna"  first two</span>
+<span class="string">"banana"</span>.replace(<span class="string">"z"</span>, <span class="string">"X"</span>)        <span class="comment"># → "banana"  no matches → unchanged copy</span>
+
+<span class="comment"># ⚠️ TRAP — without assignment, the new string is discarded:</span>
+s = <span class="string">"banana"</span>
+s.replace(<span class="string">"a"</span>, <span class="string">"X"</span>)               <span class="comment"># returns "bXnXnX" but s is still "banana"!</span>
+s = s.replace(<span class="string">"a"</span>, <span class="string">"X"</span>)           <span class="comment"># correct: rebind s</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li>Always assign the result — strings are immutable; <code>replace</code> never mutates</li>
+                        <li><code>count</code> caps total replacements; use <code>1</code> when only the first hit matters</li>
+                        <li>For pattern-based replacement, reach for <code>re.sub(pattern, repl, string, count=0)</code></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🔍 Find template — <code>s.find(sub, start=0, end=len(s))</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Three slots: what to look for, and an optional substring window. Returns the index, or <code>-1</code> if not found.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s.find( sub , start , end )
+         ↑     ↑       ↑
+         find  search  search
+         this  from    until
+               here    here (exclusive)
+               (def 0) (def len(s))
+
+<span class="string">"banana"</span>.find(<span class="string">"na"</span>)              <span class="comment"># → 2     first match</span>
+<span class="string">"banana"</span>.find(<span class="string">"na"</span>, <span class="number">3</span>)           <span class="comment"># → 4     skip past index 3, find next</span>
+<span class="string">"banana"</span>.find(<span class="string">"na"</span>, <span class="number">3</span>, <span class="number">5</span>)        <span class="comment"># → -1    window too tight to contain "na"</span>
+<span class="string">"banana"</span>.find(<span class="string">"z"</span>)               <span class="comment"># → -1    not found (no exception)</span>
+
+<span class="comment"># ── rfind searches from the right ──</span>
+<span class="string">"banana"</span>.rfind(<span class="string">"na"</span>)             <span class="comment"># → 4     last occurrence</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><code>find</code> returns <code>-1</code> on miss; <code>index</code> raises <code>ValueError</code> — same arg shape, different miss behavior (see Gotcha below)</li>
+                        <li><code>start</code>/<code>end</code> let you search a substring window without slicing first (no allocation)</li>
+                        <li>Membership-only check? Use <code>"na" in s</code> — clearer than <code>find &gt;= 0</code></li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">🪢 Join template — <code>sep.join(iterable)</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Glue strings together with a separator. The separator is the THING that calls <code>.join</code> — feels backwards at first, gets natural with use.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">sep.join( iterable )
+   ↑       ↑
+   glue    strings to glue
+   string  (must be str — not int!)
+
+<span class="string">","</span>.join([<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>])         <span class="comment"># → "a,b,c"</span>
+<span class="string">""</span>.join([<span class="string">"h"</span>, <span class="string">"i"</span>])               <span class="comment"># → "hi"          empty separator</span>
+<span class="string">""</span>.join(<span class="function">reversed</span>(<span class="string">"hi"</span>))           <span class="comment"># → "ih"          works on any iterable of str</span>
+<span class="string">"-"</span>.join(<span class="function">str</span>(x) <span class="keyword">for</span> x <span class="keyword">in</span> [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])  <span class="comment"># → "1-2-3"       cast non-strings first</span>
+
+<span class="comment"># ⚠️ TypeError if any element isn't a string:</span>
+<span class="string">","</span>.join([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])               <span class="comment"># → TypeError: sequence item 0: expected str, int found</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><code>"".join(parts)</code> is the standard way to build a string from chars/pieces — much faster than repeated <code>+=</code> on long inputs</li>
+                        <li>All elements must be <code>str</code> — wrap with <code>str(x)</code> or use a generator expression to cast</li>
+                        <li>The separator can be empty (<code>""</code>) or multi-char (<code>", "</code>)</li>
+                    </ul>
+
+                    <h4 style="margin-top: 14px;">⚠️ Gotcha — <code>find</code> vs <code>index</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Same arg shape, different miss behavior. Choose by whether "missing" is expected or exceptional.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="string">"banana"</span>.find(<span class="string">"z"</span>)     <span class="comment"># → -1                 safe sentinel</span>
+<span class="string">"banana"</span>.index(<span class="string">"z"</span>)    <span class="comment"># → ValueError: substring not found</span>
+
+<span class="comment"># Use find when missing is normal:</span>
+i = s.find(<span class="string">"@"</span>)
+<span class="keyword">if</span> i &gt;= <span class="number">0</span>: ...
+
+<span class="comment"># Use index when missing is a bug (let it crash):</span>
+i = s.index(<span class="string">"@"</span>)            <span class="comment"># trust the input had an @</span></pre>
+
+                    <h4 style="margin-top: 14px;">🧊 Gotcha — strings are IMMUTABLE</h4>
+                    <p style="color: #888; margin-bottom: 8px;">Every "modifying" method actually returns a new string. Without assignment, the result is thrown away.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s = <span class="string">"hello"</span>
+s.upper()                    <span class="comment"># returns "HELLO" — but s is still "hello"</span>
+s = s.upper()                <span class="comment"># now s is "HELLO"</span>
+
+<span class="comment"># ❌ Can't assign by index:</span>
+s[<span class="number">0</span>] = <span class="string">"H"</span>                 <span class="comment"># → TypeError: 'str' object does not support item assignment</span>
+
+<span class="comment"># ✅ Build via list, then join:</span>
+chars = <span class="function">list</span>(s)              <span class="comment"># ['h', 'e', 'l', 'l', 'o']</span>
+chars[<span class="number">0</span>] = <span class="string">"H"</span>
+s = <span class="string">""</span>.join(chars)          <span class="comment"># "Hello"</span></pre>
+                    <p style="color: #888; margin-top: 8px;">See <a href="#string-immutability" style="color:#4fc3f7;">Immutability — Why Building With <code>list</code> Matters</a> below for the full pattern.</p>
+                </div>
+
                 <div class="code-comparison">
                     <div class="code-block">
                         <div class="code-header python">🐍 Python</div>
