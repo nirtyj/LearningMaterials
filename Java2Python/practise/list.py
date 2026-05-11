@@ -1,4 +1,47 @@
 """
+
+=       assign
+==      equal value
+!=      not equal
+>       greater than
+<       less than
+>=      greater or equal
+<=      less or equal
+
++       add
+-       subtract
+*       multiply / unpack / repeat
+/       normal division
+//      floor division
+%       remainder
+**      power / dictionary unpacking
+
+[]      indexing
+[:]     slicing
+[::-1]  reverse
+
+and     both conditions true
+or      at least one condition true
+not     reverse boolean
+
+is      same object
+in      contains
+~i      equals -(i + 1), useful for mirror indexing
+
+//      row calculation
+%       column calculation
+divmod  row and column together
+[::-1]  reverse
+*       unpack rows
+zip     group columns
+==      compare values
+!=      detect mismatch
+
+[EXPRESSION for A in outer for B in A]
+
+"""
+
+"""
 Python List / Array Practice
 
 How to use:
@@ -72,7 +115,7 @@ def make_grid(rows, cols):
     ]
     """
 
-    a = [[0] * cols for i in range(rows)]
+    a = [[0] * cols for _ in range(rows)]
 
     return a
 
@@ -209,8 +252,6 @@ def adjacent_diffs(arr):
     Try to use:
     zip(arr, arr[1:])
     """
-
-    # YOUR CODE HERE
     c = [a - b for a, b in zip(arr, arr[1:])]
     return c
 
@@ -401,7 +442,18 @@ def rotate_clockwise(matrix):
 
     # YOUR CODE HERE
 
-    return NOT_IMPLEMENTED
+    return [list(rows) for rows in zip(*matrix[::-1])]
+
+def rotate_clockwise(matrix):       # -90 degrees - reverse rows, then transpose
+    return [list(row) for row in zip(*matrix[::-1])]
+
+
+def rotate_counter_clockwise(matrix):  # +90 degrees - transpose, then reverse rows
+    return [list(row) for row in zip(*matrix)][::-1]
+
+
+def rotate_180(matrix):             # +180 or -180 degrees - reverse rows and reverse each row
+    return [row[::-1] for row in matrix[::-1]]
 
 
 # ============================================================
@@ -436,10 +488,11 @@ def flat_to_coords(rows, cols):
     Try to use:
     divmod(i, cols)
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    a = []
+    for i in range(rows * cols):
+        x, y = divmod(i, cols)
+        a.append((x, y))
+    return a
 
 
 # ============================================================
@@ -468,7 +521,7 @@ def coord_to_flat(r, c, cols):
 
     # YOUR CODE HERE
 
-    return NOT_IMPLEMENTED
+    return r * cols + c
 
 
 # ============================================================
@@ -497,9 +550,11 @@ def is_palindrome(s):
     ~2 means -3
     """
 
-    # YOUR CODE HERE
+    for i in range(len(s) // 2):
+        if s[i] != s[~i]:
+            return False
 
-    return NOT_IMPLEMENTED
+    return True
 
 
 # ============================================================
@@ -524,10 +579,7 @@ def flatten(grid):
 
     Try to use a list comprehension.
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return [y for x in grid for y in x]
 
 
 # ============================================================
@@ -548,10 +600,7 @@ def only_evens(nums):
 
     Try to use a list comprehension.
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return [x for x in nums if x%2==0]
 
 
 # ============================================================
@@ -583,10 +632,7 @@ def safe_index(arr, target):
     Important:
     Do not let your code crash when the target is missing.
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return next((z for z, y in enumerate(arr) if y == target) ,-1)
 
 
 # ============================================================
@@ -616,10 +662,8 @@ def reverse_in_place_and_return(a):
     So do not write:
     return a.reverse()
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    a.reverse()
+    return a
 
 
 # ============================================================
@@ -666,9 +710,16 @@ def analyze_grid(grid):
     }
     """
 
-    # YOUR CODE HERE
+    a = {
+        "rows" : len(grid),
+        "cols" : len(next(rows for rows in grid)),
+        "flat" : [y for x in grid for y in x],
+        "transpose" : [list(rows) for rows in zip(*grid)],
+        "max_value" : max(y for x in grid for y in x),
+        "first_gt_10" : next((i for x in grid for i, y in enumerate(x) if y > 10), -1)
+    }
 
-    return NOT_IMPLEMENTED
+    return a
 
 
 # ============================================================
