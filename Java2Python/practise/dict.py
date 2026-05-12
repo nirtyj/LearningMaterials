@@ -84,10 +84,12 @@ def make_dicts():
         {0: 0, 1: 1, 2: 4, 3: 9},
     )
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    a = {}
+    b = { "a" : 1, "b" : 2, "c": 3}
+    c = dict({"a" : 1, "b" : 2})
+    d = dict(zip(["x", "y", "z"], [10,20,30]))
+    e = dict((x, x*x) for x in range(4))
+    return a, b, c, d, e
 
 
 # ============================================================
@@ -114,10 +116,7 @@ def safe_lookup(d, keys):
     Return:
     [1, 2, 0]
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return [d.get(x, 0) for x in keys ]
 
 
 # ============================================================
@@ -141,10 +140,11 @@ def insert_update_delete():
     Example return:
     ({"a": 10, "c": 3}, 2)
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    d = {"a": 1, "b": 2}
+    d["c"]= 3;
+    d["a"]= 10;
+    x = d.pop("b");
+    return d, x
 
 
 # ============================================================
@@ -168,10 +168,7 @@ def invert_dict(d):
     Return:
     {1: "a", 2: "b", 3: "c"}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return {v: k for k, v in d.items()}
 
 
 # ============================================================
@@ -203,7 +200,51 @@ def merge_dicts(d1, d2):
 
     # YOUR CODE HERE
 
-    return NOT_IMPLEMENTED
+    return d1 | d2
+
+
+# ============================================================
+# Exercise 5b: Merge In Place (|=)
+# ============================================================
+
+def merge_in_place(d1, d2):
+    """
+    In words:
+
+    Merge d2 INTO d1, mutating d1 in place.
+
+    If a key exists in both, the value from d2 wins.
+
+    Do NOT build a new dict. d1 should be the SAME object after,
+    just with extra / overwritten entries.
+
+    Try to use:
+    d1 |= d2          (Python 3.9+, the in-place merge operator)
+    or
+    d1.update(d2)     (works any version, same effect)
+
+    Return d1 (the same object you mutated).
+
+    Example:
+    d1 = {"a": 1, "b": 2}
+    d2 = {"b": 99, "c": 3}
+
+    After the merge:
+    d1 is now {"a": 1, "b": 99, "c": 3}
+    d2 is still {"b": 99, "c": 3}
+
+    Return:
+    {"a": 1, "b": 99, "c": 3}
+
+    Note:
+    This is the "I own d1, just update it" pattern.
+    Compare to Exercise 5 (merge_dicts) which BUILDS A NEW dict
+    and leaves both inputs untouched.
+    """
+
+    # YOUR CODE HERE
+    d1 |= d2
+    return d1
 
 
 # ============================================================
@@ -225,10 +266,7 @@ def squares_dict(nums):
     Return:
     {1: 1, 2: 4, 3: 9, 4: 16}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return { x: x*x for x in nums}
 
 
 # ============================================================
@@ -252,10 +290,7 @@ def filter_by_value(d, threshold):
     Return:
     {"b": 5, "c": 3}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return {x: y for x, y in d.items() if y > threshold}
 
 
 # ============================================================
@@ -771,6 +806,26 @@ def run_all_exercises():
         "Use {**d1, **d2} or d1 | d2 — colliding key takes value from d2.",
         merge_dicts({"a": 1, "b": 2}, {"b": 99, "c": 3}),
         {"a": 1, "b": 99, "c": 3},
+    )
+
+    # Exercise 5b: must mutate d1 in place AND return it (so we can verify both)
+    d1_for_5b = {"a": 1, "b": 2}
+    d2_for_5b = {"b": 99, "c": 3}
+    returned_5b = merge_in_place(d1_for_5b, d2_for_5b)
+    if returned_5b is NOT_IMPLEMENTED:
+        actual_5b = NOT_IMPLEMENTED
+    else:
+        # Pack three things: the returned value, the (mutated) d1, the (untouched) d2
+        actual_5b = (returned_5b, d1_for_5b, d2_for_5b)
+    check(
+        "Exercise 5b: Merge In Place (|=)",
+        "Mutate d1 with d2 (use d1 |= d2 or d1.update(d2)). d1 must change; d2 must not. Return d1.",
+        actual_5b,
+        (
+            {"a": 1, "b": 99, "c": 3},
+            {"a": 1, "b": 99, "c": 3},
+            {"b": 99, "c": 3},
+        ),
     )
 
     check(

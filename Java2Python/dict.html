@@ -139,6 +139,32 @@ vals = [<span class="number">1</span>, <span class="number">2</span>, <span clas
 {k: v <span class="keyword">for</span> k, v <span class="keyword">in</span> <span class="function">zip</span>(keys, vals)}        <span class="comment"># → {'a': 1, 'b': 2, 'c': 3}</span></pre>
                     <p style="color: #888; margin-top: 4px;">Same template anatomy as the <a href="list.html#list-init" style="color:#4fc3f7;">list comprehension</a> — see list.html for the full slot breakdown.</p>
 
+                    <h4 style="margin-top: 14px;">🔀 Merge template — <code>d1 | d2</code> · <code>d1 |= d2</code> · <code>{**d1, **d2}</code></h4>
+                    <p style="color: #888; margin-bottom: 8px;">Three forms — pick by whether you want a NEW dict, in-place mutation, or compatibility with older Python.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">d1 = {<span class="string">"a"</span>: <span class="number">1</span>, <span class="string">"b"</span>: <span class="number">2</span>}
+d2 = {<span class="string">"b"</span>: <span class="number">99</span>, <span class="string">"c"</span>: <span class="number">3</span>}
+
+<span class="comment"># ── 1) d1 | d2  →  NEW dict (Python 3.9+) ──</span>
+d1 | d2                  <span class="comment"># → {"a": 1, "b": 99, "c": 3}    d2 wins on collision; d1, d2 unchanged</span>
+
+<span class="comment"># ── 2) d1 |= d2  →  IN-PLACE merge (Python 3.9+) ──</span>
+d1 |= d2                 <span class="comment"># mutates d1; d2 wins on collision; d2 unchanged</span>
+<span class="comment"># d1 is now {"a": 1, "b": 99, "c": 3}</span>
+<span class="comment"># Equivalent to: d1.update(d2)</span>
+
+<span class="comment"># ── 3) {**d1, **d2}  →  NEW dict (works any version) ──</span>
+{**d1, **d2}             <span class="comment"># same result as d1 | d2</span>
+
+<span class="comment"># ── Inline overrides via ** ──</span>
+{**d1, <span class="string">"b"</span>: <span class="number">0</span>}            <span class="comment"># → {"a": 1, "b": 0}   override specific keys cleanly</span></pre>
+                    <ul style="padding-left: 22px; line-height: 1.8;">
+                        <li><strong><code>|</code> returns a NEW dict</strong> — <code>d1</code> and <code>d2</code> are untouched. Use when you must preserve both inputs</li>
+                        <li><strong><code>|=</code> mutates <code>d1</code> in place</strong> — identical to <code>d1.update(d2)</code>. Use when <code>d1</code> is yours to modify</li>
+                        <li><strong><code>{**d1, **d2}</code></strong> works on any Python version (pre-3.9). Also handy for <em>inline</em> overrides: <code>{**defaults, "key": override}</code></li>
+                        <li><strong>The RIGHT side always wins</strong> on key conflicts — same rule for all three forms</li>
+                        <li>For pre-3.9 in-place merge, use <code>d1.update(d2)</code> — see the "More dict methods" box below</li>
+                    </ul>
+
                     <h4 style="margin-top: 14px;">🌟 Double-star unpacking — <code>**dict</code> (keyword arguments)</h4>
                     <p style="color: #888; margin-bottom: 8px;"><code>**dict</code> opens a dictionary and passes each <code>key: value</code> pair as a keyword argument to a function. Mirror image of <code>**kwargs</code> in a definition.</p>
                     <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># Two contexts — mirror images:</span>

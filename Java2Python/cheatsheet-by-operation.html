@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Methods by Operation | Python Collections</title>
+    <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <div class="sidebar-backdrop"></div>
+    <aside class="sidebar"></aside>
+    <main class="content">
+        <div class="container">
+            <h1>🧰 Methods by Operation</h1>
+            <p class="subtitle">Same operation, different verb per collection — settle the <code>get</code>/<code>put</code>/<code>insert</code>/<code>add</code>/<code>pop</code> confusion in one place</p>
+
+            <div class="section">
+                <p style="color: #888;">Pick the operation you want, then look across the rows. <code>—</code> means that collection doesn't support that operation. Cross-links to the in-depth pages: <a href="list.html" style="color:#4fc3f7;">list</a> · <a href="dict.html" style="color:#4fc3f7;">dict</a> · <a href="set.html" style="color:#4fc3f7;">set</a> · <a href="queue.html" style="color:#4fc3f7;">deque</a> · <a href="counter.html" style="color:#4fc3f7;">Counter</a> · <a href="heap.html" style="color:#4fc3f7;">heap</a>.</p>
+
+                <h3 style="margin-top: 20px;">📑 Jump to</h3>
+                <ul style="line-height: 1.9;">
+                    <li><a href="#op-create" style="color:#4fc3f7;">Create</a> · <a href="#op-get" style="color:#4fc3f7;">Get / Lookup</a> · <a href="#op-membership" style="color:#4fc3f7;">Membership (<code>in</code>)</a> · <a href="#op-add" style="color:#4fc3f7;">Add / Insert</a></li>
+                    <li><a href="#op-update" style="color:#4fc3f7;">Update</a> · <a href="#op-remove" style="color:#4fc3f7;">Remove / Delete</a> · <a href="#op-pop" style="color:#4fc3f7;">Pop</a> · <a href="#op-size" style="color:#4fc3f7;">Size</a></li>
+                    <li><a href="#op-iterate" style="color:#4fc3f7;">Iterate</a> · <a href="#op-search" style="color:#4fc3f7;">Search / Find</a> · <a href="#op-sort" style="color:#4fc3f7;">Sort</a> · <a href="#op-copy" style="color:#4fc3f7;">Copy</a></li>
+                    <li><a href="#op-combine" style="color:#4fc3f7;">Combine / Merge</a> · <a href="#op-convert" style="color:#4fc3f7;">Convert between types</a> · <a href="#which" style="color:#4fc3f7;">Which collection should I use?</a></li>
+                </ul>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-create">1. Create</h2>
+                <p style="color: #888;">How to make an empty collection, a literal, or one built from an iterable.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>Empty</th><th>Literal</th><th>From iterable</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list</strong></td><td><code>[]</code></td><td><code>[1, 2, 3]</code></td><td><code>list(iter)</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td><code>{}</code></td><td><code>{"a": 1, "b": 2}</code></td><td><code>dict(pairs)</code> · <code>dict(zip(keys, vals))</code></td></tr>
+                        <tr><td><strong>set</strong></td><td><code>set()</code> ⚠️ <em>not <code>{}</code></em></td><td><code>{1, 2, 3}</code></td><td><code>set(iter)</code></td></tr>
+                        <tr><td><strong>tuple</strong></td><td><code>()</code></td><td><code>(1, 2, 3)</code></td><td><code>tuple(iter)</code></td></tr>
+                        <tr><td><strong>str</strong></td><td><code>""</code></td><td><code>"hello"</code></td><td><code>"".join(iter_of_str)</code></td></tr>
+                        <tr><td><strong>deque</strong></td><td><code>deque()</code></td><td><code>deque([1, 2, 3])</code></td><td><code>deque(iter, maxlen=N)</code></td></tr>
+                        <tr><td><strong>Counter</strong></td><td><code>Counter()</code></td><td><code>Counter(a=2, b=1)</code></td><td><code>Counter(iter)</code> · <code>Counter(mapping)</code></td></tr>
+                        <tr><td><strong>defaultdict</strong></td><td><code>defaultdict(int)</code></td><td>—</td><td><code>defaultdict(list, mapping)</code></td></tr>
+                        <tr><td><strong>heap</strong></td><td><code>[]</code> (just a list)</td><td>—</td><td><code>heapq.heapify(list)</code> (in place, O(n))</td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>⚠️ <code>{}</code> is an empty <strong>dict</strong>, not a set</h4>
+                    <p style="color: #888;">Use <code>set()</code> for an empty set. <code>{1}</code> is a set; <code>{}</code> is a dict; <code>{"a": 1}</code> is a dict. Python's parser commits when it sees a colon.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-get">2. Get / Lookup</h2>
+                <p style="color: #888;">Read an element you already know how to address. <strong>Raise vs safe-default</strong> is the most common pitfall.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>Strict (raises if missing)</th><th>Safe (returns default)</th><th>Peek / smallest</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list</strong></td><td><code>a[i]</code> → <code>IndexError</code></td><td><code>a[i] if i &lt; len(a) else default</code></td><td><code>a[0]</code>, <code>a[-1]</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td><code>d[k]</code> → <code>KeyError</code></td><td><code>d.get(k, default)</code></td><td>—</td></tr>
+                        <tr><td><strong>set</strong></td><td>— (use <code>in</code>)</td><td>— (use <code>in</code>)</td><td>—</td></tr>
+                        <tr><td><strong>str</strong></td><td><code>s[i]</code> → <code>IndexError</code></td><td><code>s[i:i+1]</code> (slice — never raises)</td><td><code>s[0]</code>, <code>s[-1]</code></td></tr>
+                        <tr><td><strong>deque</strong></td><td><code>dq[i]</code> → <code>IndexError</code></td><td>—</td><td><code>dq[0]</code>, <code>dq[-1]</code></td></tr>
+                        <tr><td><strong>Counter</strong></td><td>—</td><td><code>c[k]</code> → 0 if missing ✨</td><td><code>c.most_common(1)[0]</code></td></tr>
+                        <tr><td><strong>heap</strong></td><td>—</td><td>—</td><td><code>h[0]</code> (smallest, no pop)</td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>🛡️ <code>d[k]</code> vs <code>d.get(k)</code></h4>
+                    <p style="color: #888;">Use <code>d[k]</code> when missing means a bug (let it crash). Use <code>d.get(k, default)</code> when missing is normal (counting, optional config). Same shape as <code>list.index(x)</code> vs <code>"abc".find(x)</code>.</p>
+                </div>
+                <div class="tips-box">
+                    <h4>✨ <code>Counter[k]</code> returns 0 on miss — that's the whole point</h4>
+                    <p style="color: #888;">Accessing a missing key on a <code>Counter</code> does NOT insert it and does NOT raise. <code>c["x"]</code> returns 0. <code>"x" in c</code> is still <code>False</code> afterward.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-membership">3. Membership — <code>in</code></h2>
+                <p style="color: #888;">All collections support <code>x in coll</code>. What gets checked differs.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th><code>x in coll</code> checks…</th><th>Time</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list / tuple / deque</strong></td><td>values</td><td>O(n) (linear scan)</td></tr>
+                        <tr><td><strong>str</strong></td><td>substring</td><td>O(n·m)</td></tr>
+                        <tr><td><strong>dict / Counter / defaultdict</strong></td><td><strong>keys only</strong> (not values)</td><td>O(1) average</td></tr>
+                        <tr><td><strong>set / frozenset</strong></td><td>elements</td><td>O(1) average</td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>⚠️ <code>x in dict</code> checks keys, not values</h4>
+                    <p style="color: #888;">For values: <code>x in d.values()</code> (O(n)). For pairs: <code>(k, v) in d.items()</code>.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-add">4. Add / Insert</h2>
+                <p style="color: #888;">Put a new item in. "Add one" appends/sets a single element; "Bulk" takes an iterable.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>Add one</th><th>At a position</th><th>Bulk</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list</strong></td><td><code>a.append(x)</code></td><td><code>a.insert(i, x)</code></td><td><code>a.extend(iter)</code> · <code>a += iter</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td><code>d[k] = v</code> · <code>d.setdefault(k, v)</code></td><td>— (no order to position into before 3.7)</td><td><code>d.update(other)</code> · <code>d |= other</code> (3.9+)</td></tr>
+                        <tr><td><strong>set</strong></td><td><code>s.add(x)</code></td><td>— (unordered)</td><td><code>s.update(*iters)</code> · <code>s |= other</code></td></tr>
+                        <tr><td><strong>deque</strong></td><td><code>dq.append(x)</code> · <code>dq.appendleft(x)</code></td><td>— (use rotate)</td><td><code>dq.extend(iter)</code> · <code>dq.extendleft(iter)</code></td></tr>
+                        <tr><td><strong>Counter</strong></td><td><code>c[k] += 1</code></td><td>—</td><td><code>c.update(iter)</code> · <code>c.subtract(iter)</code></td></tr>
+                        <tr><td><strong>heap</strong></td><td><code>heapq.heappush(h, x)</code></td><td>—</td><td>build then <code>heapq.heapify(h)</code></td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>📌 <code>append</code> vs <code>extend</code> (list / deque)</h4>
+                    <p style="color: #888;"><code>a.append(b)</code> adds <code>b</code> as <strong>one element</strong> (the list becomes nested). <code>a.extend(b)</code> iterates <code>b</code> and adds each item.</p>
+                    <pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0;">a = [<span class="number">1</span>, <span class="number">2</span>]; b = [<span class="number">3</span>, <span class="number">4</span>]
+a.copy() + [b]   <span class="comment"># [1, 2, [3, 4]]   append shape</span>
+a + b            <span class="comment"># [1, 2, 3, 4]     extend shape</span></pre>
+                </div>
+                <div class="tips-box">
+                    <h4>🪤 <code>dq.extendleft(iter)</code> reverses the input</h4>
+                    <p style="color: #888;">Each item is <code>appendleft</code>'d in turn — so the last item ends up leftmost. <code>deque([1]); dq.extendleft([2,3])</code> → <code>deque([3, 2, 1])</code>.</p>
+                </div>
+                <div class="tips-box">
+                    <h4>🌱 <code>setdefault</code> mutates</h4>
+                    <p style="color: #888;"><code>d.setdefault(k, default)</code> returns the existing value if <code>k</code> is present, otherwise <strong>inserts <code>default</code> and returns it</strong>. Different from <code>d.get(k, default)</code>, which never inserts.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-update">5. Update existing</h2>
+                <p style="color: #888;">Change the value at a position you already know exists.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>By position / key</th><th>Insert if missing</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list / deque</strong></td><td><code>a[i] = v</code></td><td>— (use <code>append</code>/<code>insert</code>)</td></tr>
+                        <tr><td><strong>dict / Counter / defaultdict</strong></td><td><code>d[k] = v</code></td><td><code>d.setdefault(k, default)</code></td></tr>
+                        <tr><td><strong>set</strong></td><td>— (sets store identity, no "update in place")</td><td><code>s.add(x)</code></td></tr>
+                        <tr><td><strong>tuple / str / frozenset</strong></td><td>❌ immutable — build a new one</td><td>—</td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>🧊 Immutable means no in-place update</h4>
+                    <p style="color: #888;"><code>s[0] = "H"</code> on a string raises <code>TypeError</code>. Convert to a list (<code>list(s)</code>), mutate, then <code>"".join(...)</code> back.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-remove">6. Remove / Delete</h2>
+                <p style="color: #888;">Delete an element. <strong>Raise vs silent</strong> on a missing target is the central confusion.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>By value — raises</th><th>By value — silent</th><th>By index / key</th><th>Clear all</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list</strong></td><td><code>a.remove(x)</code> → <code>ValueError</code></td><td>— (use a guard: <code>if x in a: a.remove(x)</code>)</td><td><code>del a[i]</code> · <code>a.pop(i)</code></td><td><code>a.clear()</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td>—</td><td>—</td><td><code>del d[k]</code> (raise) · <code>d.pop(k, default)</code> (safe)</td><td><code>d.clear()</code></td></tr>
+                        <tr><td><strong>set</strong></td><td><code>s.remove(x)</code> → <code>KeyError</code></td><td><code>s.discard(x)</code> ← silent</td><td>—</td><td><code>s.clear()</code></td></tr>
+                        <tr><td><strong>deque</strong></td><td><code>dq.remove(x)</code> → <code>ValueError</code></td><td>—</td><td><code>del dq[i]</code></td><td><code>dq.clear()</code></td></tr>
+                        <tr><td><strong>str</strong></td><td>—</td><td><code>s.replace(old, "")</code> (immutable → new string)</td><td>—</td><td>—</td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>⚠️ <code>set.discard(x)</code> vs <code>set.remove(x)</code></h4>
+                    <p style="color: #888;"><code>discard</code> = "delete if present" (silent on miss); <code>remove</code> = "must be there, crash if not". Same arg shape, different miss behavior.</p>
+                </div>
+                <div class="tips-box">
+                    <h4>⚠️ <code>list.remove(x)</code> takes a <strong>value</strong>; <code>list.pop(i)</code> takes an <strong>index</strong></h4>
+                    <p style="color: #888;">Easy to invert: <code>a.remove(0)</code> deletes the first <strong>value equal to 0</strong>, NOT the first element. To delete by index, use <code>a.pop(0)</code> or <code>del a[0]</code>.</p>
+                </div>
+                <div class="tips-box">
+                    <h4>🛡️ <code>d.pop(k, default)</code> never raises</h4>
+                    <p style="color: #888;">Pass a sentinel default (commonly <code>None</code>) when the key may not exist. <code>d.pop(k)</code> alone raises <code>KeyError</code> on miss.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-pop">7. Pop — remove and return</h2>
+                <p style="color: #888;">Combined "delete + give it to me". Each collection picks a different element by default.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>Default pop returns…</th><th>Other ends / variants</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list</strong></td><td><code>a.pop()</code> → last (O(1))</td><td><code>a.pop(0)</code> → first (O(n)!) · <code>a.pop(i)</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td><code>d.pop(k)</code> → value at <code>k</code> (raises)</td><td><code>d.pop(k, default)</code> · <code>d.popitem()</code> (LIFO, raise if empty)</td></tr>
+                        <tr><td><strong>set</strong></td><td><code>s.pop()</code> → arbitrary element (raise if empty)</td><td>— (use <code>discard</code> for targeted)</td></tr>
+                        <tr><td><strong>deque</strong></td><td><code>dq.pop()</code> → rightmost (O(1))</td><td><code>dq.popleft()</code> → leftmost (O(1))</td></tr>
+                        <tr><td><strong>heap</strong></td><td><code>heapq.heappop(h)</code> → smallest (O(log n))</td><td><code>heapq.heappushpop(h, x)</code> · <code>heapq.heapreplace(h, x)</code></td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>🚫 <code>list.pop(0)</code> is O(n) — use <code>deque.popleft()</code> instead</h4>
+                    <p style="color: #888;">Removing from the front of a list shifts every element. For a FIFO queue (BFS), use <code>collections.deque</code> — both <code>append</code> and <code>popleft</code> are O(1).</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-size">8. Size</h2>
+                <p style="color: #888;">All collections use the same built-in.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Goal</th><th>Code</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Length of anything</td><td><code>len(x)</code></td></tr>
+                        <tr><td>Empty check (idiomatic)</td><td><code>if not x:</code> (works for list, dict, set, str, deque, Counter)</td></tr>
+                        <tr><td>Total count (Counter)</td><td><code>sum(c.values())</code></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-iterate">9. Iterate</h2>
+                <p style="color: #888;">Walk through elements. For dict, decide whether you want keys, values, or pairs.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>Values</th><th>With index</th><th>Pairs</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list / tuple / str / deque</strong></td><td><code>for x in a</code></td><td><code>for i, x in enumerate(a)</code></td><td><code>for a, b in zip(x, y)</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td><code>for v in d.values()</code></td><td><code>for i, k in enumerate(d)</code></td><td><code>for k, v in d.items()</code></td></tr>
+                        <tr><td><strong>dict — keys</strong></td><td><code>for k in d</code> (same as <code>d.keys()</code>)</td><td>—</td><td>—</td></tr>
+                        <tr><td><strong>set</strong></td><td><code>for x in s</code> (unordered!)</td><td>—</td><td>—</td></tr>
+                        <tr><td><strong>Counter</strong></td><td><code>for x in c.elements()</code> (repeats!)</td><td>—</td><td><code>for k, n in c.items()</code> · <code>c.most_common()</code></td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>🔄 Iterating a dict gives KEYS</h4>
+                    <p style="color: #888;"><code>for k in d:</code> is identical to <code>for k in d.keys():</code>. To iterate values use <code>d.values()</code>; for pairs use <code>d.items()</code>.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-search">10. Search / Find</h2>
+                <p style="color: #888;">Locate an element. Same raise-vs-default split as Lookup.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>First index — raises</th><th>First index — safe</th><th>Count</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list / tuple</strong></td><td><code>a.index(x)</code> → <code>ValueError</code></td><td><code>next((i for i,v in enumerate(a) if v == x), -1)</code></td><td><code>a.count(x)</code></td></tr>
+                        <tr><td><strong>str</strong></td><td><code>s.index(sub)</code> → <code>ValueError</code></td><td><code>s.find(sub)</code> → <code>-1</code></td><td><code>s.count(sub)</code></td></tr>
+                        <tr><td><strong>deque</strong></td><td><code>dq.index(x)</code> → <code>ValueError</code></td><td>— (wrap in try)</td><td><code>dq.count(x)</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td>—</td><td>—</td><td>— (use <code>Counter(d.values())</code>)</td></tr>
+                        <tr><td><strong>set</strong></td><td>—</td><td>—</td><td>— (1 if present, 0 if not)</td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>🔍 <code>str.find</code> vs <code>str.index</code></h4>
+                    <p style="color: #888;">Same args, different miss behavior — exactly like <code>dict.get</code> vs <code>d[k]</code> and <code>set.discard</code> vs <code>set.remove</code>. It's the same pattern everywhere.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-sort">11. Sort / Order</h2>
+                <p style="color: #888;"><code>sorted()</code> always returns a NEW list; <code>.sort()</code> mutates in place and returns <code>None</code>.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>New sorted</th><th>In-place</th><th>By key / descending</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list</strong></td><td><code>sorted(a)</code></td><td><code>a.sort()</code></td><td><code>sorted(a, key=len, reverse=True)</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td><code>sorted(d)</code> (sorts keys)</td><td>— (insertion-ordered in 3.7+)</td><td><code>sorted(d.items(), key=lambda x: x[1])</code></td></tr>
+                        <tr><td><strong>set / frozenset</strong></td><td><code>sorted(s)</code> → list</td><td>— (unordered)</td><td><code>sorted(s, reverse=True)</code></td></tr>
+                        <tr><td><strong>str</strong></td><td><code>"".join(sorted(s))</code></td><td>— (immutable)</td><td><code>"".join(sorted(s, reverse=True))</code></td></tr>
+                        <tr><td><strong>deque</strong></td><td><code>sorted(dq)</code> → list</td><td>— (no <code>.sort()</code> method)</td><td>—</td></tr>
+                        <tr><td><strong>heap</strong></td><td>—</td><td><code>heapq.heapify(list)</code> (heap order, NOT sorted)</td><td><code>heapq.nlargest(n, iter, key=...)</code> · <code>heapq.nsmallest(...)</code></td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>⚠️ <code>x = a.sort()</code> is the #1 bug</h4>
+                    <p style="color: #888;"><code>list.sort()</code> returns <code>None</code> and mutates <code>a</code> in place. Same for <code>heapq.heapify()</code>, <code>list.reverse()</code>, <code>random.shuffle()</code>. If you want a new sorted list, use <code>sorted(a)</code>.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-copy">12. Copy</h2>
+                <p style="color: #888;">Make an independent collection. <strong>Shallow</strong> duplicates the outer container; <strong>deep</strong> recursively duplicates inner objects too.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>Shallow</th><th>Deep</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list</strong></td><td><code>a.copy()</code> · <code>a[:]</code> · <code>list(a)</code></td><td><code>copy.deepcopy(a)</code></td></tr>
+                        <tr><td><strong>dict</strong></td><td><code>d.copy()</code> · <code>dict(d)</code> · <code>{**d}</code></td><td><code>copy.deepcopy(d)</code></td></tr>
+                        <tr><td><strong>set</strong></td><td><code>s.copy()</code> · <code>set(s)</code></td><td><code>copy.deepcopy(s)</code></td></tr>
+                        <tr><td><strong>deque</strong></td><td><code>dq.copy()</code> · <code>deque(dq)</code></td><td><code>copy.deepcopy(dq)</code></td></tr>
+                        <tr><td><strong>tuple / str / frozenset</strong></td><td>not needed — immutable, sharing is safe</td><td>—</td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>🌳 When you NEED deep copy</h4>
+                    <p style="color: #888;">Shallow is fine for flat containers of immutables (numbers, strings, tuples). The moment any element is itself a mutable container (list of lists, dict of lists, etc.) and you'll mutate it, you need <code>copy.deepcopy</code>. See <a href="list.html#list-init" style="color:#4fc3f7;">list.html</a> for the worked example.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-combine">13. Combine / Merge</h2>
+                <p style="color: #888;">Build a NEW collection from two existing ones. Operators usually return new; the <code>=</code> variants mutate in place.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>Collection</th><th>New</th><th>In place</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>list / tuple / str</strong></td><td><code>a + b</code></td><td><code>a += b</code> (list/deque only; for tuple/str this rebinds)</td></tr>
+                        <tr><td><strong>dict</strong></td><td><code>{**d1, **d2}</code> · <code>d1 | d2</code> (3.9+)</td><td><code>d1.update(d2)</code> · <code>d1 |= d2</code></td></tr>
+                        <tr><td><strong>set — union</strong></td><td><code>s1 | s2</code></td><td><code>s1 |= s2</code> · <code>s1.update(s2)</code></td></tr>
+                        <tr><td><strong>set — intersection</strong></td><td><code>s1 &amp; s2</code></td><td><code>s1 &amp;= s2</code></td></tr>
+                        <tr><td><strong>set — difference</strong></td><td><code>s1 - s2</code></td><td><code>s1 -= s2</code></td></tr>
+                        <tr><td><strong>set — symmetric diff</strong></td><td><code>s1 ^ s2</code></td><td><code>s1 ^= s2</code></td></tr>
+                        <tr><td><strong>Counter</strong></td><td><code>c1 + c2</code> · <code>c1 - c2</code> · <code>c1 &amp; c2</code> (min) · <code>c1 | c2</code> (max)</td><td><code>c1.update(c2)</code> (add) · <code>c1.subtract(c2)</code> (allow negatives)</td></tr>
+                        <tr><td><strong>heap</strong></td><td><code>list(heapq.merge(h1, h2))</code> (inputs must be sorted)</td><td>—</td></tr>
+                    </tbody>
+                </table>
+                <div class="tips-box">
+                    <h4>🔀 <code>Counter &amp;</code> ≠ <code>set &amp;</code></h4>
+                    <p style="color: #888;">Sets: <code>{1,2,3} &amp; {2,3,4}</code> → <code>{2, 3}</code> (intersection). Counters: <code>Counter("aab") &amp; Counter("abb")</code> → <code>Counter({'a':1,'b':1})</code> (elementwise MIN). Same operator, different semantics — multiset vs boolean.</p>
+                </div>
+                <div class="tips-box">
+                    <h4>⚠️ <code>dict.update(other)</code> overwrites — <code>Counter.update(other)</code> ADDS</h4>
+                    <p style="color: #888;">Same method name, different semantics. <code>dict.update</code> replaces colliding values; <code>Counter.update</code> sums them.</p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="op-convert">14. Convert between types</h2>
+                <p style="color: #888;">Cross-type recipes you'll reach for constantly.</p>
+                <table class="comparison-table">
+                    <thead>
+                        <tr><th>From → To</th><th>Code</th><th>Notes</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>list → set</td><td><code>set(a)</code></td><td>Dedups; loses order</td></tr>
+                        <tr><td>list → set (keep order)</td><td><code>list(dict.fromkeys(a))</code></td><td>Dedup, preserve first-occurrence order (3.7+)</td></tr>
+                        <tr><td>set → list</td><td><code>list(s)</code></td><td>Order is implementation-defined; <code>sorted(s)</code> if you need determinism</td></tr>
+                        <tr><td>list of pairs → dict</td><td><code>dict(pairs)</code></td><td>Later pair wins on duplicate keys</td></tr>
+                        <tr><td>dict → list of pairs</td><td><code>list(d.items())</code></td><td>—</td></tr>
+                        <tr><td>dict keys → list</td><td><code>list(d)</code> · <code>list(d.keys())</code></td><td>Insertion order</td></tr>
+                        <tr><td>two lists → dict</td><td><code>dict(zip(keys, vals))</code></td><td>Stops at the shorter</td></tr>
+                        <tr><td>str → list of chars</td><td><code>list(s)</code></td><td><code>"abc"</code> → <code>['a','b','c']</code></td></tr>
+                        <tr><td>list → str</td><td><code>"".join(a)</code></td><td>All elements must be <code>str</code></td></tr>
+                        <tr><td>str → words</td><td><code>s.split()</code></td><td>No arg = any whitespace, collapsed</td></tr>
+                        <tr><td>list → Counter</td><td><code>Counter(a)</code></td><td>Frequency dict</td></tr>
+                        <tr><td>Counter → list of pairs</td><td><code>c.most_common()</code></td><td>Already sorted by count desc</td></tr>
+                        <tr><td>list → heap</td><td><code>heapq.heapify(a)</code></td><td>In place, O(n)</td></tr>
+                        <tr><td>any iterable → tuple</td><td><code>tuple(iter)</code></td><td>Use when you need a hashable sequence (dict key, set element)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ============================================================ -->
+            <div class="section">
+                <h2 id="which">Which collection should I use?</h2>
+                <div class="tips-box">
+                    <h4>🧭 When in doubt — by what you need</h4>
+                    <ul style="padding-left: 22px; line-height: 1.9;">
+                        <li><strong>Ordering + indexed access</strong> → <code>list</code></li>
+                        <li><strong>O(1) key lookup by name</strong> → <code>dict</code></li>
+                        <li><strong>Uniqueness + fast membership</strong> → <code>set</code></li>
+                        <li><strong>O(1) push/pop at BOTH ends</strong> → <code>collections.deque</code></li>
+                        <li><strong>Counts / frequencies</strong> → <code>collections.Counter</code></li>
+                        <li><strong>Auto-init missing keys (grouping/counting)</strong> → <code>collections.defaultdict</code></li>
+                        <li><strong>Smallest-first priority queue</strong> → <code>heapq</code> on a list</li>
+                        <li><strong>Hashable / immutable sequence</strong> → <code>tuple</code> (dict keys, set elements, return-multiple-values)</li>
+                        <li><strong>Hashable / immutable set</strong> → <code>frozenset</code></li>
+                    </ul>
+                </div>
+                <div class="tips-box">
+                    <h4>🧪 The "raise vs safe" pattern shows up everywhere</h4>
+                    <p style="color: #888;">Once you spot it, it generalizes. Same shape across the standard library:</p>
+                    <table class="comparison-table" style="margin-top: 10px;">
+                        <thead><tr><th>Collection</th><th>Raise on miss</th><th>Safe (default / silent)</th></tr></thead>
+                        <tbody>
+                            <tr><td>dict</td><td><code>d[k]</code> · <code>d.pop(k)</code></td><td><code>d.get(k, def)</code> · <code>d.pop(k, def)</code></td></tr>
+                            <tr><td>list</td><td><code>a.index(x)</code> · <code>a.remove(x)</code></td><td>guard with <code>x in a</code> first</td></tr>
+                            <tr><td>set</td><td><code>s.remove(x)</code></td><td><code>s.discard(x)</code></td></tr>
+                            <tr><td>str</td><td><code>s.index(sub)</code></td><td><code>s.find(sub)</code> (returns -1)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top: 30px; color: #888;">
+                <p>For deep dives, see the in-depth pages: <a href="list.html" style="color:#4fc3f7;">List</a> · <a href="dict.html" style="color:#4fc3f7;">Dict</a> · <a href="set.html" style="color:#4fc3f7;">Set</a> · <a href="queue.html" style="color:#4fc3f7;">Queue / Deque</a> · <a href="stack.html" style="color:#4fc3f7;">Stack</a> · <a href="counter.html" style="color:#4fc3f7;">Counter</a> · <a href="heap.html" style="color:#4fc3f7;">Heap</a> · <a href="string.html" style="color:#4fc3f7;">String</a>. Practice files: <a href="practise/list.py" style="color:#4fc3f7;"><code>practise/list.py</code></a> · <a href="practise/dict.py" style="color:#4fc3f7;"><code>practise/dict.py</code></a>.</p>
+            </div>
+
+        </div>
+    </main>
+</body>
+</html>
