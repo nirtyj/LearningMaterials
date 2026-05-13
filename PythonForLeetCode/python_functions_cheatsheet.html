@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Built-ins & Higher-Order Functions — LeetCode Cheatsheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F4ED;
+    --ink: #15110B;
+    --ink-soft: #5C5447;
+    --rule: #D9D2C3;
+    --rule-soft: #E8E2D2;
+    --panel: #FBF9F3;
+    --code-bg: #EEE8D7;
+    --accent: #A0341E;
+    --o1-bg:    #DDE9D8; --o1-fg:    #2D5524;
+    --olog-bg:  #D7E0EB; --olog-fg:  #1F3A5C;
+    --on-bg:    #EDE4D0; --on-fg:    #6B5418;
+    --onlog-bg: #EAD8C7; --onlog-fg: #7A3F12;
+    --lazy-bg:  #E4DCEC; --lazy-fg:  #4A2E6A;
+    --eager-bg: #E8DFCF; --eager-fg: #5C4422;
+    --na-fg:    #B5AB94;
+    --header-bg: #1A1610;
+    --header-fg: #F7F4ED;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+  body { font-family: 'Fraunces', Georgia, serif; font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 48px 32px 96px; }
+  @media (max-width: 800px) { .wrap { padding: 32px 16px 64px; } }
+
+  header.top { border-bottom: 1px solid var(--rule); padding-bottom: 24px; margin-bottom: 32px; }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-variation-settings: "opsz" 144;
+    font-size: clamp(36px, 5vw, 56px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+  h1 .accent { color: var(--accent); font-style: italic; font-weight: 600; }
+  .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.18em; color: var(--ink-soft);
+  }
+  h2 {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-variation-settings: "opsz" 144;
+    font-size: 28px; letter-spacing: -0.01em;
+    margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+  }
+
+  code, kbd, .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 18px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); }
+  .legend .swatch { display: inline-block; padding: 1px 7px; border-radius: 3px; font-weight: 500; }
+
+  .intro {
+    margin: 20px 0 0; padding: 16px 20px; background: var(--panel); border-left: 3px solid var(--accent);
+    font-size: 14.5px; line-height: 1.65; color: var(--ink);
+  }
+  .intro b { font-weight: 700; }
+  .intro code { background: var(--code-bg); padding: 1px 5px; border-radius: 2px; font-size: 12.5px; }
+
+  .table-scroll {
+    overflow: auto; max-height: 82vh;
+    border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);
+    box-shadow: 0 1px 0 var(--rule-soft), 0 8px 24px -16px rgba(21,17,11,0.15);
+  }
+  table {
+    border-collapse: separate; border-spacing: 0;
+    width: 100%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; line-height: 1.55;
+  }
+  thead th {
+    position: sticky; top: 0; z-index: 3;
+    background: var(--header-bg); color: var(--header-fg);
+    text-align: left; padding: 11px 14px;
+    font-weight: 700; font-size: 11.5px; letter-spacing: 0.04em;
+    white-space: nowrap; border-right: 1px solid #2C2620;
+  }
+  thead th:first-child { left: 0; z-index: 4; min-width: 220px; border-right: 1px solid #2C2620; }
+  tbody td, tbody th {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--rule-soft);
+    border-right: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  tbody th {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--panel);
+    text-align: left; font-weight: 600;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    min-width: 220px; max-width: 240px;
+    border-right: 1px solid var(--rule);
+  }
+  tbody th .mod { color: var(--ink-soft); font-weight: 400; font-size: 10.5px; display: block; margin-top: 2px; letter-spacing: 0.06em; text-transform: uppercase; }
+  tbody tr:nth-child(even) td { background: rgba(217,210,195,0.18); }
+  tbody tr:nth-child(even) th { background: #F6F2E6; }
+  tbody tr:hover td { background: rgba(160,52,30,0.06); }
+  tbody tr:hover th { background: #F0E9D5; }
+
+  .section-row th, .section-row td {
+    background: #1A1610 !important;
+    color: #C9A968 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 10.5px !important; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.16em;
+    padding: 8px 14px !important;
+    border-right: 1px solid #2C2620 !important;
+  }
+  .section-row th { position: sticky; left: 0; z-index: 2; }
+
+  /* column widths */
+  col.col-sig    { width: 22%; }
+  col.col-what   { width: 28%; }
+  col.col-big    { width: 12%; }
+  col.col-ex     { width: 24%; }
+
+  .sig { color: var(--ink); display: block; word-break: break-word; }
+  .sig .opt { color: var(--ink-soft); }
+  .what { color: var(--ink); font-family: 'Fraunces', serif; font-size: 14.5px; line-height: 1.5; }
+  .ex { color: var(--ink); display: block; white-space: pre-wrap; }
+  .ex .c { color: var(--ink-soft); font-style: italic; }
+  .note { color: var(--ink-soft); font-size: 11px; font-style: italic; display: block; margin-top: 4px; }
+
+  .tag {
+    display: inline-block; padding: 1px 6px; border-radius: 2px;
+    font-size: 10.5px; font-weight: 500; margin-right: 4px;
+  }
+  .lazy  { background: var(--lazy-bg);  color: var(--lazy-fg); }
+  .eager { background: var(--eager-bg); color: var(--eager-fg); }
+  .since { background: #DDE9D8; color: #2D5524; }
+
+  .O { display: inline-block; padding: 1px 6px; border-radius: 2px; font-size: 10.5px; font-weight: 500; }
+  .O1 { background: var(--o1-bg); color: var(--o1-fg); }
+  .Olog { background: var(--olog-bg); color: var(--olog-fg); }
+  .On { background: var(--on-bg); color: var(--on-fg); }
+  .Onlog { background: var(--onlog-bg); color: var(--onlog-fg); }
+
+  .patterns { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin-top: 18px; }
+  .pattern { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 14px 16px; }
+  .pattern h4 {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent);
+    margin: 0 0 10px; font-weight: 700;
+  }
+  .pattern pre {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.55;
+    margin: 0; color: var(--ink); white-space: pre-wrap;
+  }
+  .pattern pre .c { color: var(--ink-soft); font-style: italic; }
+
+  .gotchas { list-style: none; padding: 0; margin: 0; }
+  .gotchas li {
+    padding: 12px 0 12px 28px;
+    border-bottom: 1px dashed var(--rule);
+    position: relative; font-size: 15px;
+  }
+  .gotchas li::before { content: "❗"; position: absolute; left: 0; top: 12px; font-size: 12px; }
+  .gotchas code { background: var(--code-bg); padding: 1px 5px; border-radius: 2px; font-size: 12.5px; }
+
+  footer {
+    margin-top: 80px; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--ink-soft); letter-spacing: 0.04em;
+  }
+  .scroll-hint {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--ink-soft); margin: 16px 0 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="sub">Python · built-ins + itertools + functools + math</div>
+  <h1>Functions <span class="accent">cheatsheet</span></h1>
+  <div class="legend">
+    <span class="item"><span class="swatch tag lazy">lazy</span> returns iterator (consume once)</span>
+    <span class="item"><span class="swatch tag eager">eager</span> returns concrete value/list</span>
+    <span class="item"><span class="swatch tag since">3.x+</span> version-gated</span>
+    <span class="item"><span class="swatch O O1">O(1)</span></span>
+    <span class="item"><span class="swatch O Olog">O(log n)</span></span>
+    <span class="item"><span class="swatch O On">O(n)</span></span>
+    <span class="item"><span class="swatch O Onlog">O(n log n)</span></span>
+  </div>
+  <div class="intro">
+    <b>What these are called:</b> top-level names like <code>max</code>, <code>sorted</code>, <code>sum</code> are <b>built-in functions</b> — always available, no import. The ones that take a function as an argument (<code>key=</code>, <code>map</code>, <code>filter</code>, <code>reduce</code>) are <b>higher-order functions</b>. <code>itertools</code>, <code>functools</code>, and <code>math</code> are stdlib modules — import required, but on every Python install.<br>
+    <b>Lazy vs eager:</b> lazy functions return an iterator that yields one element at a time and is exhausted after one pass. Wrap in <code>list(...)</code> if you need to iterate twice or index into it.
+  </div>
+</header>
+
+<div class="scroll-hint">scroll horizontally if needed →</div>
+
+<div class="table-scroll">
+<table>
+  <colgroup>
+    <col>
+    <col class="col-sig">
+    <col class="col-what">
+    <col class="col-big">
+    <col class="col-ex">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Function</th>
+      <th>Signature</th>
+      <th>What it does</th>
+      <th>Complexity</th>
+      <th>Example</th>
+    </tr>
+  </thead>
+  <tbody>
+
+  <tr class="section-row"><th>Reduction · collapse iterable → single value</th><td colspan="4"></td></tr>
+
+  <tr>
+    <th>max <span class="mod">builtin</span></th>
+    <td><span class="sig">max(it, *, key=None, default=...)<br>max(a, b, c, *, key=None)</span></td>
+    <td class="what"><span class="tag eager">eager</span>Largest element. With <code>key=f</code>, compares by <code>f(x)</code>. Empty iterable raises unless <code>default=</code> given.</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">max([3,1,4,1,5])  <span class="c"># 5</span>
+max(d, key=d.get)  <span class="c"># argmax</span>
+max(words, key=len)
+max([], default=0)</span></td>
+  </tr>
+
+  <tr>
+    <th>min <span class="mod">builtin</span></th>
+    <td><span class="sig">min(it, *, key=None, default=...)</span></td>
+    <td class="what"><span class="tag eager">eager</span>Smallest. Same args as <code>max</code>.</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">min(points, key=lambda p: p[0]**2+p[1]**2)
+min(d, key=d.get)  <span class="c"># argmin</span></span></td>
+  </tr>
+
+  <tr>
+    <th>sum <span class="mod">builtin</span></th>
+    <td><span class="sig">sum(it, /, start=0)</span></td>
+    <td class="what"><span class="tag eager">eager</span>Sum of numerics. <code>start</code> is the initial value (defaults 0).</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">sum(nums)
+sum(x*x for x in nums)
+sum(row.count(1) for row in grid)</span><span class="note">don't use to concat lists — use <code>chain</code></span></td>
+  </tr>
+
+  <tr>
+    <th>math.prod <span class="mod">math · 3.8+</span></th>
+    <td><span class="sig">math.prod(it, *, start=1)</span></td>
+    <td class="what"><span class="tag eager">eager</span>Product of numerics. Multiplicative analog of <code>sum</code>.</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">math.prod([2,3,5])  <span class="c"># 30</span>
+math.prod(dims)  <span class="c"># volume</span></span></td>
+  </tr>
+
+  <tr>
+    <th>any <span class="mod">builtin</span></th>
+    <td><span class="sig">any(it)</span></td>
+    <td class="what"><span class="tag eager">eager</span><b>Short-circuits</b>: returns <code>True</code> on first truthy element, <code>False</code> if all falsy. Empty → <code>False</code>.</td>
+    <td><span class="O On">O(n) worst, often less</span></td>
+    <td><span class="ex">any(x &lt; 0 for x in nums)
+any(c.isdigit() for c in s)</span></td>
+  </tr>
+
+  <tr>
+    <th>all <span class="mod">builtin</span></th>
+    <td><span class="sig">all(it)</span></td>
+    <td class="what"><span class="tag eager">eager</span><b>Short-circuits</b>: <code>True</code> if every element truthy. Empty → <code>True</code> (vacuous).</td>
+    <td><span class="O On">O(n) worst</span></td>
+    <td><span class="ex">all(x &gt; 0 for x in nums)
+all(g[i][j] == g[j][i] for i,j in pairs)</span></td>
+  </tr>
+
+  <tr>
+    <th>len <span class="mod">builtin</span></th>
+    <td><span class="sig">len(seq)</span></td>
+    <td class="what"><span class="tag eager">eager</span>Element count. Works on sized containers, not arbitrary iterators.</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">len(nums)
+len({1,2,3})  <span class="c"># 3</span>
+<span class="c"># for an iterator, use sum(1 for _ in it)</span></span></td>
+  </tr>
+
+  <tr>
+    <th>functools.reduce <span class="mod">functools</span></th>
+    <td><span class="sig">reduce(f, it, [init])</span></td>
+    <td class="what"><span class="tag eager">eager</span>Folds iterable with binary <code>f</code>. Without <code>init</code>, uses first element; raises on empty.</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">from functools import reduce
+reduce(operator.xor, nums)  <span class="c"># XOR all</span>
+reduce(math.gcd, nums)
+reduce(lambda a,b: a*b, nums, 1)</span></td>
+  </tr>
+
+  <tr class="section-row"><th>Sequence transforms · iterable → iterable</th><td colspan="4"></td></tr>
+
+  <tr>
+    <th>sorted <span class="mod">builtin</span></th>
+    <td><span class="sig">sorted(it, *, key=None, reverse=False)</span></td>
+    <td class="what"><span class="tag eager">eager</span>Returns a new <b>list</b>, sorted. Stable. <code>key</code> called once per element.</td>
+    <td><span class="O Onlog">O(n log n)</span></td>
+    <td><span class="ex">sorted(nums)
+sorted(words, key=len)
+sorted(pts, key=lambda p:(p[0],-p[1]))
+sorted(d.items(), key=lambda kv:kv[1])</span></td>
+  </tr>
+
+  <tr>
+    <th>reversed <span class="mod">builtin</span></th>
+    <td><span class="sig">reversed(seq)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Iterator over the sequence backwards. Requires <code>__reversed__</code> or <code>__len__</code>+<code>__getitem__</code>.</td>
+    <td><span class="O O1">O(1) setup, O(n) walk</span></td>
+    <td><span class="ex">for x in reversed(nums): ...
+list(reversed(range(10)))</span></td>
+  </tr>
+
+  <tr>
+    <th>map <span class="mod">builtin</span></th>
+    <td><span class="sig">map(f, *iterables)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Apply <code>f</code> element-wise. With multiple iterables, <code>f</code> takes that many args, stops at shortest.</td>
+    <td><span class="O O1">O(1) setup</span></td>
+    <td><span class="ex">list(map(int, input().split()))
+list(map(str.lower, words))
+list(map(operator.add, a, b))  <span class="c"># zip-add</span></span></td>
+  </tr>
+
+  <tr>
+    <th>filter <span class="mod">builtin</span></th>
+    <td><span class="sig">filter(pred, it)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Keeps elements where <code>pred(x)</code> is truthy. <code>filter(None, it)</code> drops falsy values.</td>
+    <td><span class="O O1">O(1) setup</span></td>
+    <td><span class="ex">list(filter(lambda x: x&gt;0, nums))
+list(filter(None, ["", "a", None, "b"]))
+<span class="c"># → ['a', 'b']</span></span></td>
+  </tr>
+
+  <tr>
+    <th>zip <span class="mod">builtin</span></th>
+    <td><span class="sig">zip(*iterables, strict=False)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Pair elements positionally. Stops at shortest. <code>strict=True</code> raises on length mismatch (3.10+).</td>
+    <td><span class="O O1">O(1) setup</span></td>
+    <td><span class="ex">for i, x in zip(idxs, vals): ...
+dict(zip(keys, values))
+list(zip(*matrix))  <span class="c"># transpose</span></span></td>
+  </tr>
+
+  <tr>
+    <th>enumerate <span class="mod">builtin</span></th>
+    <td><span class="sig">enumerate(it, start=0)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Yields <code>(index, value)</code> pairs. Use <code>start=1</code> for 1-indexed.</td>
+    <td><span class="O O1">O(1) setup</span></td>
+    <td><span class="ex">for i, x in enumerate(nums): ...
+for i, x in enumerate(nums, 1): ...</span></td>
+  </tr>
+
+  <tr>
+    <th>range <span class="mod">builtin</span></th>
+    <td><span class="sig">range(stop)<br>range(start, stop[, step])</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Lazy integer sequence. O(1) memory regardless of size. Supports indexing, slicing, <code>in</code>.</td>
+    <td><span class="O O1">O(1) construct</span></td>
+    <td><span class="ex">range(10)
+range(1, 11)
+range(10, 0, -1)
+range(0, n, 2)</span></td>
+  </tr>
+
+  <tr>
+    <th>iter / next <span class="mod">builtin</span></th>
+    <td><span class="sig">iter(it)<br>iter(callable, sentinel)<br>next(it[, default])</span></td>
+    <td class="what">Get iterator from iterable; advance one step. Two-arg <code>iter</code> calls <code>callable()</code> until it returns <code>sentinel</code>.</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">it = iter(nums)
+first = next(it)
+first_pos = next((x for x in nums if x&gt;0), -1)</span></td>
+  </tr>
+
+  <tr class="section-row"><th>itertools · iterator algebra</th><td colspan="4"></td></tr>
+
+  <tr>
+    <th>accumulate <span class="mod">itertools</span></th>
+    <td><span class="sig">accumulate(it, func=add, *, initial=None)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Running reduction. With default <code>add</code>: prefix sums. <code>initial</code> prepends a seed (3.8+).</td>
+    <td><span class="O O1">O(1) per step</span></td>
+    <td><span class="ex">list(accumulate([1,2,3,4]))   <span class="c"># [1,3,6,10]</span>
+list(accumulate(nums, max))   <span class="c"># running max</span>
+list(accumulate(nums, initial=0))</span></td>
+  </tr>
+
+  <tr>
+    <th>chain <span class="mod">itertools</span></th>
+    <td><span class="sig">chain(*iterables)<br>chain.from_iterable(it_of_its)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Concatenate iterables end-to-end. <code>from_iterable</code> flattens one level.</td>
+    <td><span class="O O1">O(1) per step</span></td>
+    <td><span class="ex">list(chain([1,2], [3,4]))     <span class="c"># [1,2,3,4]</span>
+list(chain.from_iterable(grid))  <span class="c"># flatten 2D</span></span></td>
+  </tr>
+
+  <tr>
+    <th>pairwise <span class="mod">itertools · 3.10+</span></th>
+    <td><span class="sig">pairwise(it)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Yields overlapping adjacent pairs: <code>(s0,s1), (s1,s2), ...</code></td>
+    <td><span class="O O1">O(1) per step</span></td>
+    <td><span class="ex">list(pairwise([1,2,3,4]))
+<span class="c"># [(1,2), (2,3), (3,4)]</span>
+all(a&lt;b for a,b in pairwise(nums))  <span class="c"># strictly inc?</span></span></td>
+  </tr>
+
+  <tr>
+    <th>combinations <span class="mod">itertools</span></th>
+    <td><span class="sig">combinations(it, r)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>r-length tuples, sorted order, no repeats.</td>
+    <td>C(n, r) tuples</td>
+    <td><span class="ex">list(combinations("abc", 2))
+<span class="c"># [('a','b'),('a','c'),('b','c')]</span></span></td>
+  </tr>
+
+  <tr>
+    <th>combinations_with_replacement <span class="mod">itertools</span></th>
+    <td><span class="sig">combinations_with_replacement(it, r)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Same as combinations but repeats allowed.</td>
+    <td>C(n+r-1, r)</td>
+    <td><span class="ex">list(combinations_with_replacement("ab", 2))
+<span class="c"># [('a','a'),('a','b'),('b','b')]</span></span></td>
+  </tr>
+
+  <tr>
+    <th>permutations <span class="mod">itertools</span></th>
+    <td><span class="sig">permutations(it, r=None)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>r-length orderings. <code>r=None</code> → full length.</td>
+    <td>P(n, r) tuples</td>
+    <td><span class="ex">list(permutations([1,2,3], 2))
+<span class="c"># (1,2),(1,3),(2,1),(2,3),(3,1),(3,2)</span></span></td>
+  </tr>
+
+  <tr>
+    <th>product <span class="mod">itertools</span></th>
+    <td><span class="sig">product(*iterables, repeat=1)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Cartesian product. <code>repeat=k</code> → k-tuples from one iterable (replaces nested loops).</td>
+    <td>prod of lengths</td>
+    <td><span class="ex">list(product([1,2], "ab"))
+<span class="c"># (1,'a'),(1,'b'),(2,'a'),(2,'b')</span>
+for r,c in product(range(R), range(C)): ...
+list(product([0,1], repeat=3))  <span class="c"># all 3-bit masks</span></span></td>
+  </tr>
+
+  <tr>
+    <th>groupby <span class="mod">itertools</span></th>
+    <td><span class="sig">groupby(it, key=None)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Groups <b>consecutive</b> equal-key elements. Yields <code>(key, group_iter)</code>. <b>Sort first</b> for full grouping.</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">for k, g in groupby("aaabbc"):
+    print(k, sum(1 for _ in g))
+<span class="c"># a 3 / b 2 / c 1</span>
+for k, g in groupby(sorted(words, key=len), key=len): ...</span></td>
+  </tr>
+
+  <tr>
+    <th>count <span class="mod">itertools</span></th>
+    <td><span class="sig">count(start=0, step=1)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span><b>Infinite</b> counter. Pair with <code>zip</code> or <code>islice</code> to bound.</td>
+    <td><span class="O O1">O(1) per step</span></td>
+    <td><span class="ex">for i, x in zip(count(1), items):  <span class="c"># like enumerate(start=1)</span>
+    ...</span></td>
+  </tr>
+
+  <tr>
+    <th>cycle <span class="mod">itertools</span></th>
+    <td><span class="sig">cycle(it)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span><b>Infinite</b> repeat of iterable. Caches elements.</td>
+    <td><span class="O O1">O(1) per step</span></td>
+    <td><span class="ex">colors = cycle(["R","G","B"])
+next(colors), next(colors)  <span class="c"># 'R','G'</span></span></td>
+  </tr>
+
+  <tr>
+    <th>repeat <span class="mod">itertools</span></th>
+    <td><span class="sig">repeat(x, times=∞)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Yields <code>x</code> repeatedly. Bounded if <code>times</code> given.</td>
+    <td><span class="O O1">O(1) per step</span></td>
+    <td><span class="ex">list(repeat(0, 5))  <span class="c"># [0,0,0,0,0]</span>
+list(map(pow, range(5), repeat(2)))  <span class="c"># squares</span></span></td>
+  </tr>
+
+  <tr>
+    <th>islice <span class="mod">itertools</span></th>
+    <td><span class="sig">islice(it, stop)<br>islice(it, start, stop[, step])</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Slice on an iterator (which can't be sliced normally). Cannot use negative indices.</td>
+    <td><span class="O On">O(stop)</span></td>
+    <td><span class="ex">list(islice(count(), 10))
+list(islice(it, 5, 15))</span></td>
+  </tr>
+
+  <tr>
+    <th>takewhile / dropwhile <span class="mod">itertools</span></th>
+    <td><span class="sig">takewhile(pred, it)<br>dropwhile(pred, it)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Take/skip from the start while predicate holds. <code>dropwhile</code> stops dropping at first <code>False</code>.</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">list(takewhile(lambda x: x&lt;5, [1,3,5,2]))  <span class="c"># [1,3]</span>
+list(dropwhile(str.isspace, line))  <span class="c"># lstrip</span></span></td>
+  </tr>
+
+  <tr>
+    <th>compress <span class="mod">itertools</span></th>
+    <td><span class="sig">compress(data, selectors)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Pick data elements where selector is truthy. Like a boolean mask.</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">list(compress("abcd", [1,0,1,0]))  <span class="c"># ['a','c']</span></span></td>
+  </tr>
+
+  <tr>
+    <th>starmap <span class="mod">itertools</span></th>
+    <td><span class="sig">starmap(f, it_of_tuples)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Like <code>map</code> but unpacks each tuple as args. <code>starmap(f, pairs)</code> ≡ <code>(f(*p) for p in pairs)</code>.</td>
+    <td><span class="O O1">O(1) per step</span></td>
+    <td><span class="ex">list(starmap(pow, [(2,3),(2,4)]))  <span class="c"># [8, 16]</span></span></td>
+  </tr>
+
+  <tr>
+    <th>zip_longest <span class="mod">itertools</span></th>
+    <td><span class="sig">zip_longest(*its, fillvalue=None)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Like <code>zip</code> but pads shorter iterables with <code>fillvalue</code> instead of stopping.</td>
+    <td><span class="O On">O(longest)</span></td>
+    <td><span class="ex">list(zip_longest("abc", "12", fillvalue="-"))
+<span class="c"># [('a','1'),('b','2'),('c','-')]</span></span></td>
+  </tr>
+
+  <tr>
+    <th>tee <span class="mod">itertools</span></th>
+    <td><span class="sig">tee(it, n=2)</span></td>
+    <td class="what"><span class="tag lazy">lazy</span>Splits one iterator into <code>n</code> independent ones. Caches consumed elements — heavy if branches advance unevenly.</td>
+    <td>O(n) space worst</td>
+    <td><span class="ex">a, b = tee(stream)
+<span class="c"># now you can iterate stream twice</span></span></td>
+  </tr>
+
+  <tr class="section-row"><th>functools · function-level utilities</th><td colspan="4"></td></tr>
+
+  <tr>
+    <th>cache <span class="mod">functools · 3.9+</span></th>
+    <td><span class="sig">@cache</span></td>
+    <td class="what">Unbounded memoization. The DP godsend. Args must be hashable.</td>
+    <td>per-call O(1) cache lookup</td>
+    <td><span class="ex">from functools import cache
+@cache
+def dp(i, j):
+    if i == n or j == m: return 0
+    ...</span></td>
+  </tr>
+
+  <tr>
+    <th>lru_cache <span class="mod">functools</span></th>
+    <td><span class="sig">@lru_cache(maxsize=128)</span></td>
+    <td class="what">Bounded LRU memoization. <code>maxsize=None</code> = unbounded (equivalent to <code>@cache</code>). Inspect with <code>fn.cache_info()</code>.</td>
+    <td>per-call O(1) lookup</td>
+    <td><span class="ex">@lru_cache(maxsize=None)
+def fib(n):
+    return n if n&lt;2 else fib(n-1)+fib(n-2)
+fib.cache_info()
+fib.cache_clear()</span></td>
+  </tr>
+
+  <tr>
+    <th>partial <span class="mod">functools</span></th>
+    <td><span class="sig">partial(f, *args, **kw)</span></td>
+    <td class="what">Pre-binds arguments to a function, returns a new callable.</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">from functools import partial
+add5 = partial(operator.add, 5)
+list(map(partial(int, base=2), bits))</span></td>
+  </tr>
+
+  <tr>
+    <th>reduce <span class="mod">functools</span></th>
+    <td><span class="sig">reduce(f, it, [init])</span></td>
+    <td class="what">See Reduction section above.</td>
+    <td><span class="O On">O(n)</span></td>
+    <td><span class="ex">reduce(operator.or_, masks)  <span class="c"># bitmask union</span></span></td>
+  </tr>
+
+  <tr>
+    <th>cmp_to_key <span class="mod">functools</span></th>
+    <td><span class="sig">cmp_to_key(cmp_func)</span></td>
+    <td class="what">Adapts an old-style C-comparator (returns -1/0/1) into a <code>key=</code> function. Useful for custom orderings that can't be expressed as a tuple.</td>
+    <td><span class="O O1">O(1) wrap</span></td>
+    <td><span class="ex">from functools import cmp_to_key
+def cmp(a, b):  <span class="c"># LC 179 Largest Number</span>
+    return -1 if a+b &gt; b+a else 1
+sorted(nums, key=cmp_to_key(cmp))</span></td>
+  </tr>
+
+  <tr>
+    <th>total_ordering <span class="mod">functools</span></th>
+    <td><span class="sig">@total_ordering</span></td>
+    <td class="what">Class decorator: define <code>__eq__</code> + one of <code>&lt; &lt;= &gt; &gt;=</code>, get the rest for free.</td>
+    <td>—</td>
+    <td><span class="ex">@total_ordering
+class Item:
+    def __eq__(self, o): ...
+    def __lt__(self, o): ...</span></td>
+  </tr>
+
+  <tr class="section-row"><th>math · numeric utilities</th><td colspan="4"></td></tr>
+
+  <tr>
+    <th>math.gcd / math.lcm <span class="mod">math · lcm 3.9+</span></th>
+    <td><span class="sig">gcd(*ints)<br>lcm(*ints)</span></td>
+    <td class="what">Greatest common divisor / least common multiple. Variadic since 3.9.</td>
+    <td><span class="O Olog">O(log min(a,b))</span></td>
+    <td><span class="ex">math.gcd(12, 18)            <span class="c"># 6</span>
+math.gcd(*nums)             <span class="c"># gcd of array</span>
+reduce(math.gcd, nums)      <span class="c"># pre-3.9 style</span></span></td>
+  </tr>
+
+  <tr>
+    <th>math.isqrt <span class="mod">math · 3.8+</span></th>
+    <td><span class="sig">isqrt(n)</span></td>
+    <td class="what">Integer square root: floor(sqrt(n)). Exact for huge ints — no float error.</td>
+    <td><span class="O Olog">~O(log n)</span></td>
+    <td><span class="ex">math.isqrt(10)  <span class="c"># 3</span>
+math.isqrt(10**18)  <span class="c"># exact, no rounding</span></span></td>
+  </tr>
+
+  <tr>
+    <th>math.comb / math.perm <span class="mod">math · 3.8+</span></th>
+    <td><span class="sig">comb(n, k)<br>perm(n, k=None)</span></td>
+    <td class="what">Binomial C(n,k) / arrangement P(n,k). Exact integer arithmetic.</td>
+    <td><span class="O On">O(min(k, n-k))</span></td>
+    <td><span class="ex">math.comb(20, 5)   <span class="c"># 15504</span>
+math.perm(10, 3)   <span class="c"># 720</span></span></td>
+  </tr>
+
+  <tr>
+    <th>math.factorial <span class="mod">math</span></th>
+    <td><span class="sig">factorial(n)</span></td>
+    <td class="what">n!. Exact arbitrary-precision integer.</td>
+    <td><span class="O On">~O(n) ops, big numbers</span></td>
+    <td><span class="ex">math.factorial(10)  <span class="c"># 3628800</span></span></td>
+  </tr>
+
+  <tr>
+    <th>math.log / log2 / log10 <span class="mod">math</span></th>
+    <td><span class="sig">log(x[, base])<br>log2(x), log10(x)</span></td>
+    <td class="what">Natural / base-2 / base-10 log. Returns float — use <code>(n).bit_length()</code> for integer log2-ceiling.</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">math.log2(1024)  <span class="c"># 10.0</span>
+(1024).bit_length() - 1  <span class="c"># 10, exact int</span></span></td>
+  </tr>
+
+  <tr>
+    <th>math.inf / math.nan <span class="mod">math</span></th>
+    <td><span class="sig">math.inf, math.nan<br>float('inf'), float('-inf')</span></td>
+    <td class="what">Infinity sentinel. Standard initializer for "smallest so far" / "largest so far".</td>
+    <td>—</td>
+    <td><span class="ex">best = math.inf
+for x in nums:
+    best = min(best, cost(x))</span></td>
+  </tr>
+
+  <tr>
+    <th>math.ceil / floor / trunc / sqrt <span class="mod">math</span></th>
+    <td><span class="sig">ceil(x), floor(x)<br>trunc(x), sqrt(x)</span></td>
+    <td class="what">Rounding modes. Prefer <code>isqrt</code> for integers.</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">math.ceil(7/3)   <span class="c"># 3</span>
+-(-7 // 3)       <span class="c"># ceil-div, no float</span></span></td>
+  </tr>
+
+  <tr>
+    <th>math.dist / math.hypot <span class="mod">math · 3.8+</span></th>
+    <td><span class="sig">dist(p, q)<br>hypot(*coords)</span></td>
+    <td class="what">Euclidean distance between points / norm of a vector. Numerically stable.</td>
+    <td><span class="O On">O(d)</span></td>
+    <td><span class="ex">math.dist((1,2,3), (4,5,6))
+math.hypot(3, 4)  <span class="c"># 5.0</span></span></td>
+  </tr>
+
+  <tr class="section-row"><th>Numeric builtins · single-value operations</th><td colspan="4"></td></tr>
+
+  <tr>
+    <th>abs <span class="mod">builtin</span></th>
+    <td><span class="sig">abs(x)</span></td>
+    <td class="what">Absolute value. Works on ints, floats, and complex (magnitude).</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">abs(-5)  <span class="c"># 5</span>
+abs(3+4j)  <span class="c"># 5.0</span></span></td>
+  </tr>
+
+  <tr>
+    <th>round <span class="mod">builtin</span></th>
+    <td><span class="sig">round(x, ndigits=0)</span></td>
+    <td class="what">Banker's rounding (round-half-to-even). With <code>ndigits</code>, rounds to that decimal place.</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">round(2.5)   <span class="c"># 2 — not 3!</span>
+round(3.5)   <span class="c"># 4</span>
+round(1.2345, 2)  <span class="c"># 1.23</span></span></td>
+  </tr>
+
+  <tr>
+    <th>divmod <span class="mod">builtin</span></th>
+    <td><span class="sig">divmod(a, b)</span></td>
+    <td class="what">Returns <code>(a // b, a % b)</code> as a tuple. One op, often more efficient than computing both.</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">q, r = divmod(17, 5)   <span class="c"># (3, 2)</span>
+h, m = divmod(minutes, 60)</span></td>
+  </tr>
+
+  <tr>
+    <th>pow <span class="mod">builtin</span></th>
+    <td><span class="sig">pow(base, exp[, mod])</span></td>
+    <td class="what">3-arg form is <b>modular exponentiation</b> — fast and avoids huge intermediates. Far better than <code>(b**e) % m</code>.</td>
+    <td><span class="O Olog">O(log exp)</span></td>
+    <td><span class="ex">pow(2, 10)         <span class="c"># 1024</span>
+pow(2, 1000, 13)   <span class="c"># modular</span>
+pow(a, -1, p)      <span class="c"># modular inverse (3.8+)</span></span></td>
+  </tr>
+
+  <tr>
+    <th>bin / oct / hex <span class="mod">builtin</span></th>
+    <td><span class="sig">bin(n), oct(n), hex(n)</span></td>
+    <td class="what">String representation with <code>0b</code> / <code>0o</code> / <code>0x</code> prefix. Use <code>format(n, 'b')</code> to drop prefix.</td>
+    <td><span class="O On">O(log n)</span></td>
+    <td><span class="ex">bin(10)            <span class="c"># '0b1010'</span>
+format(10, '08b')  <span class="c"># '00001010'</span></span></td>
+  </tr>
+
+  <tr>
+    <th>int / float / bool <span class="mod">builtin</span></th>
+    <td><span class="sig">int(x[, base])<br>float(s), bool(x)</span></td>
+    <td class="what">Type conversion. <code>int(s, base)</code> parses string in given base.</td>
+    <td><span class="O On">O(len)</span></td>
+    <td><span class="ex">int("1010", 2)   <span class="c"># 10</span>
+int("ff", 16)    <span class="c"># 255</span>
+bool([])         <span class="c"># False</span></span></td>
+  </tr>
+
+  <tr>
+    <th>chr / ord <span class="mod">builtin</span></th>
+    <td><span class="sig">chr(int), ord(char)</span></td>
+    <td class="what">Codepoint ↔ character. Essential for char-arithmetic problems.</td>
+    <td><span class="O O1">O(1)</span></td>
+    <td><span class="ex">ord('a') - ord('A')   <span class="c"># 32</span>
+chr(ord('a') + 3)     <span class="c"># 'd'</span>
+[ord(c)-ord('a') for c in s]  <span class="c"># index 0..25</span></span></td>
+  </tr>
+
+  <tr>
+    <th>(n).bit_length / .bit_count <span class="mod">int method · count 3.10+</span></th>
+    <td><span class="sig">n.bit_length()<br>n.bit_count()</span></td>
+    <td class="what">Number of bits to represent <code>|n|</code> / number of set bits (popcount).</td>
+    <td><span class="O O1">O(1) / O(bits)</span></td>
+    <td><span class="ex">(1024).bit_length()   <span class="c"># 11</span>
+(0b1011).bit_count()  <span class="c"># 3</span></span></td>
+  </tr>
+
+  </tbody>
+</table>
+</div>
+
+<h2>The <code style="font-size:0.85em;">key=</code> idiom</h2>
+<p style="font-size:14.5px; color:var(--ink-soft); margin:0 0 14px;">The unifying concept: <code>max</code>, <code>min</code>, <code>sorted</code>, and <code>heapq.nlargest</code>/<code>nsmallest</code> all accept a <code>key</code> function. The function is called once per element; its return value is what gets compared. Tuples compare lexicographically, so multi-key sorts fall out for free.</p>
+
+<div class="patterns">
+
+  <div class="pattern">
+    <h4>argmax / argmin</h4>
+<pre>max(d, key=d.get)        <span class="c"># key with largest value</span>
+min(d, key=d.get)        <span class="c"># key with smallest value</span>
+max(range(len(a)), key=a.__getitem__)  <span class="c"># argmax of list</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Sort by multiple keys</h4>
+<pre>sorted(emps, key=lambda e:(e.dept, -e.salary, e.name))
+<span class="c"># dept ascending, salary descending, name asc</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Sort dict by value</h4>
+<pre>sorted(d.items(), key=lambda kv: kv[1])
+<span class="c">or</span>
+sorted(d.items(), key=operator.itemgetter(1))</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Closest to target</h4>
+<pre>min(points, key=lambda p: (p[0]-x)**2 + (p[1]-y)**2)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Stable sort, multi-pass</h4>
+<pre><span class="c"># Sort by secondary first, then primary — stability preserves order</span>
+a.sort(key=lambda x: x.name)       <span class="c"># secondary</span>
+a.sort(key=lambda x: x.priority)   <span class="c"># primary</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Custom compare (cmp_to_key)</h4>
+<pre><span class="c"># LC 179: largest number by concatenation</span>
+def cmp(a, b):
+    return -1 if a+b &gt; b+a else 1
+nums = sorted(map(str, nums), key=cmp_to_key(cmp))</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Transpose / unzip</h4>
+<pre>rows = [[1,2,3], [4,5,6]]
+list(zip(*rows))   <span class="c"># [(1,4),(2,5),(3,6)]</span>
+
+pairs = [(1,'a'),(2,'b')]
+nums, chars = zip(*pairs)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Prefix sums / running max</h4>
+<pre>from itertools import accumulate
+pre  = list(accumulate(nums))            <span class="c"># sums</span>
+rmax = list(accumulate(nums, max))       <span class="c"># running max</span>
+pre0 = list(accumulate(nums, initial=0)) <span class="c"># pre[0]=0</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Pairwise sliding window</h4>
+<pre>from itertools import pairwise
+diffs = [b-a for a,b in pairwise(nums)]
+ok = all(b &gt;= a for a,b in pairwise(nums))</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Cartesian product replaces nested loops</h4>
+<pre>from itertools import product
+for r, c in product(range(R), range(C)):
+    ...
+for mask in product([0,1], repeat=n):
+    ...   <span class="c"># enumerate 2^n bitmasks</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Generate all subsets / combinations</h4>
+<pre>from itertools import combinations, chain
+def powerset(it):
+    s = list(it)
+    return chain.from_iterable(
+        combinations(s, r) for r in range(len(s)+1))</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>GCD / XOR / OR of array</h4>
+<pre>from functools import reduce
+import math, operator
+reduce(math.gcd, nums)
+reduce(operator.xor, nums)
+reduce(operator.or_, masks)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Memoized DP</h4>
+<pre>from functools import cache
+@cache
+def dp(i, j):
+    if i &gt;= n or j &gt;= m: return 0
+    return max(dp(i+1, j), dp(i, j+1)) + grid[i][j]</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Modular exponentiation</h4>
+<pre>pow(2, 10**9, 10**9 + 7)   <span class="c"># fast modexp</span>
+pow(a, -1, p)              <span class="c"># modular inverse, 3.8+</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Group consecutive runs</h4>
+<pre>from itertools import groupby
+<span class="c"># run-length encode</span>
+[(k, sum(1 for _ in g)) for k, g in groupby(s)]
+<span class="c"># "aaabbc" → [('a',3),('b',2),('c',1)]</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Group by attribute (full)</h4>
+<pre><span class="c"># groupby needs sorted input for full grouping</span>
+items.sort(key=lambda x: x.cat)
+for cat, group in groupby(items, key=lambda x: x.cat):
+    ...
+<span class="c"># or use defaultdict(list) — usually cleaner</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Char arithmetic</h4>
+<pre>idx  = ord(c) - ord('a')           <span class="c"># 0..25</span>
+char = chr(ord('a') + idx)
+counts = [0] * 26
+for c in s: counts[ord(c)-ord('a')] += 1</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Bitmask tricks</h4>
+<pre>n.bit_length()          <span class="c"># floor(log2)+1</span>
+n.bit_count()           <span class="c"># popcount (3.10+)</span>
+bin(n).count('1')       <span class="c"># popcount pre-3.10</span>
+n &amp; (n - 1)             <span class="c"># clear lowest set bit</span>
+n &amp; -n                  <span class="c"># isolate lowest set bit</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Ceiling division (no float)</h4>
+<pre>-(-a // b)              <span class="c"># ceil(a/b), all-integer</span>
+(a + b - 1) // b        <span class="c"># same, positive only</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Find first match</h4>
+<pre>next((x for x in nums if pred(x)), default)
+next((i for i,x in enumerate(nums) if pred(x)), -1)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Comprehension equivalents</h4>
+<pre><span class="c"># map/filter via comprehension — usually clearer</span>
+[f(x) for x in it]                    <span class="c"># map(f, it)</span>
+[x for x in it if pred(x)]            <span class="c"># filter(pred, it)</span>
+{f(x): g(x) for x in it}              <span class="c"># dict from items</span>
+{x for x in it}                       <span class="c"># set</span>
+(f(x) for x in it)                    <span class="c"># generator (lazy)</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Bounded iterator slice</h4>
+<pre>from itertools import islice
+first_10 = list(islice(infinite_stream, 10))
+chunk = list(islice(it, start, stop))</pre>
+  </div>
+
+</div>
+
+<h2>Gotchas</h2>
+<ul class="gotchas">
+  <li><code>map</code>, <code>filter</code>, <code>zip</code>, and most <code>itertools</code> return <b>iterators that are consumed once</b>. Wrap in <code>list(...)</code> if you need to reuse or print multiple times.</li>
+  <li><code>max([], default=...)</code> / <code>min([], default=...)</code> — without <code>default</code>, empty iterables raise <code>ValueError</code>.</li>
+  <li><code>reduce(f, [])</code> without an initializer raises <code>TypeError</code>. Always provide <code>init</code> when the iterable might be empty.</li>
+  <li><code>round</code> uses <b>banker's rounding</b>: <code>round(0.5) == 0</code>, <code>round(1.5) == 2</code>, <code>round(2.5) == 2</code>. Not what most people expect.</li>
+  <li><code>sum([])</code> returns 0; <code>sum</code> with a non-numeric <code>start</code> is rejected (don't use it to flatten lists — use <code>chain.from_iterable</code> or a comprehension).</li>
+  <li><code>itertools.groupby</code> only groups <b>consecutive</b> equal-key elements. Sort first, or use <code>defaultdict(list)</code> for full grouping.</li>
+  <li><code>itertools.count</code>, <code>cycle</code>, <code>repeat</code> (no <code>times</code>) are <b>infinite</b>. Combining with <code>list(...)</code> hangs forever.</li>
+  <li><code>zip</code> stops at the shortest iterable silently. Use <code>strict=True</code> (3.10+) when lengths must match, or <code>zip_longest</code> for padding.</li>
+  <li><code>sorted</code> is <b>stable</b> — equal keys preserve original order. Use this for multi-pass sorts: sort by secondary first, then primary.</li>
+  <li>The <code>key=</code> function is called <b>once per element</b>, not per comparison (Schwartzian transform internally). Heavy <code>key</code> functions are fine.</li>
+  <li><code>list.sort()</code> sorts in place and returns <code>None</code>; <code>sorted(list)</code> returns a new list. Don't write <code>a = a.sort()</code>.</li>
+  <li><code>functools.reduce</code> is imported from <code>functools</code>, not a builtin (since Python 3). Watch for "<code>NameError: name 'reduce' is not defined</code>".</li>
+  <li><code>math.log2(n)</code> returns a float — fine for size, but for exact integer log use <code>n.bit_length() - 1</code>.</li>
+  <li><code>pow(b, e, m)</code> is dramatically faster than <code>(b**e) % m</code> for large <code>e</code> — and avoids creating huge intermediates.</li>
+  <li><code>int(s)</code> parses base 10 by default; <code>int(s, 0)</code> interprets <code>0b</code>/<code>0o</code>/<code>0x</code> prefixes; <code>int(s, base)</code> for explicit base.</li>
+  <li><code>any</code> and <code>all</code> short-circuit, so generator expressions inside them stop as early as possible — pass a generator, not a list.</li>
+  <li><code>@cache</code> requires hashable arguments. Lists/sets/dicts as args won't work — convert to <code>tuple</code>/<code>frozenset</code>/<code>tuple(items())</code> first.</li>
+</ul>
+
+<footer>
+  Python 3.10+ assumed (3.14+ noted where relevant) · companion to the container cheatsheet
+</footer>
+
+</div>
+</body>
+</html>

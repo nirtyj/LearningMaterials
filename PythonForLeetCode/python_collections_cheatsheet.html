@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Containers — LeetCode Cheatsheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F4ED;
+    --ink: #15110B;
+    --ink-soft: #5C5447;
+    --rule: #D9D2C3;
+    --rule-soft: #E8E2D2;
+    --panel: #FBF9F3;
+    --code-bg: #EEE8D7;
+    --accent: #A0341E;
+    --o1-bg:    #DDE9D8; --o1-fg:    #2D5524;   /* constant */
+    --olog-bg:  #D7E0EB; --olog-fg:  #1F3A5C;   /* log */
+    --on-bg:    #EDE4D0; --on-fg:    #6B5418;   /* linear */
+    --onlog-bg: #EAD8C7; --onlog-fg: #7A3F12;   /* n log n */
+    --na-fg:    #B5AB94;
+    --header-bg: #1A1610;
+    --header-fg: #F7F4ED;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* page chrome */
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 48px 32px 96px; }
+  @media (max-width: 800px) { .wrap { padding: 32px 16px 64px; } }
+
+  header.top {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-variation-settings: "opsz" 144;
+    font-size: clamp(36px, 5vw, 56px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+  h1 .accent { color: var(--accent); font-style: italic; font-weight: 600; }
+  .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-soft);
+  }
+
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-variation-settings: "opsz" 144;
+    font-size: 28px;
+    letter-spacing: -0.01em;
+    margin: 56px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    margin: 28px 0 10px;
+    font-weight: 700;
+  }
+
+  p, li { font-size: 15.5px; }
+  code, kbd, .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin: 18px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); }
+  .legend .swatch {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .vars {
+    margin: 20px 0 0;
+    padding: 14px 18px;
+    background: var(--panel);
+    border-left: 3px solid var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.9;
+    color: var(--ink-soft);
+  }
+  .vars b { color: var(--ink); font-weight: 700; }
+
+  /* table */
+  .table-scroll {
+    overflow: auto;
+    max-height: 82vh;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--panel);
+    box-shadow: 0 1px 0 var(--rule-soft), 0 8px 24px -16px rgba(21,17,11,0.15);
+  }
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: max-content;
+    min-width: 100%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--header-bg);
+    color: var(--header-fg);
+    text-align: left;
+    padding: 11px 12px;
+    font-weight: 700;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    border-right: 1px solid #2C2620;
+  }
+  thead th .var { color: #C9A968; font-weight: 500; }
+  thead th:first-child {
+    left: 0;
+    z-index: 4;
+    min-width: 200px;
+    border-right: 1px solid #2C2620;
+  }
+  tbody td, tbody th {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule-soft);
+    border-right: 1px solid var(--rule-soft);
+    vertical-align: top;
+    min-width: 180px;
+    max-width: 240px;
+  }
+  tbody th {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--panel);
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink);
+    font-family: 'Fraunces', serif;
+    font-size: 13.5px;
+    min-width: 200px;
+    border-right: 1px solid var(--rule);
+  }
+  tbody tr:nth-child(even) td { background: rgba(217,210,195,0.18); }
+  tbody tr:nth-child(even) th { background: #F6F2E6; }
+  tbody tr:hover td { background: rgba(160,52,30,0.06); }
+  tbody tr:hover th { background: #F0E9D5; }
+
+  .section-row th, .section-row td {
+    background: #1A1610 !important;
+    color: #C9A968 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 10.5px !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    padding: 8px 12px !important;
+    border-right: 1px solid #2C2620 !important;
+  }
+  .section-row th { position: sticky; left: 0; z-index: 2; }
+
+  .na { color: var(--na-fg); font-size: 14px; }
+
+  .cmd { color: var(--ink); display: block; word-break: break-word; }
+  .cmd .lit { color: #6B2716; }      /* string/keyword */
+  .cmd .fn  { color: #1F3A5C; }      /* method */
+  .cmd .var { color: #5C5447; }      /* variable */
+  .note { color: var(--ink-soft); font-size: 10.5px; font-style: italic; margin-left: 2px; }
+
+  .O {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-size: 10.5px;
+    font-weight: 500;
+    margin-top: 4px;
+    letter-spacing: 0;
+  }
+  .O1    { background: var(--o1-bg);    color: var(--o1-fg); }
+  .Olog  { background: var(--olog-bg);  color: var(--olog-fg); }
+  .On    { background: var(--on-bg);    color: var(--on-fg); }
+  .Onlog { background: var(--onlog-bg); color: var(--onlog-fg); }
+
+  /* patterns */
+  .patterns {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .pattern {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 14px 16px;
+  }
+  .pattern h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin: 0 0 10px;
+    font-weight: 700;
+  }
+  .pattern pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+  .pattern pre .c { color: var(--ink-soft); font-style: italic; }
+
+  /* gotchas */
+  .gotchas { list-style: none; padding: 0; margin: 0; }
+  .gotchas li {
+    padding: 12px 0 12px 28px;
+    border-bottom: 1px dashed var(--rule);
+    position: relative;
+    font-size: 15px;
+  }
+  .gotchas li::before {
+    content: "❗";
+    position: absolute;
+    left: 0;
+    top: 12px;
+    font-size: 12px;
+  }
+  .gotchas code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 12.5px;
+  }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+  }
+
+  .scroll-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-soft);
+    margin: 16px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .scroll-hint .arrow {
+    display: inline-block;
+    animation: nudge 1.6s ease-in-out infinite;
+  }
+  @keyframes nudge {
+    0%, 100% { transform: translateX(0); }
+    50%      { transform: translateX(6px); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="sub">Python · stdlib + sortedcontainers</div>
+  <h1>Container <span class="accent">cheatsheet</span></h1>
+  <div class="legend">
+    <span class="item"><span class="swatch O O1">O(1)</span></span>
+    <span class="item"><span class="swatch O Olog">O(log n)</span></span>
+    <span class="item"><span class="swatch O On">O(n)</span></span>
+    <span class="item"><span class="swatch O Onlog">O(n log n)</span></span>
+    <span class="item"><span class="na">—</span> not applicable</span>
+  </div>
+  <div class="vars">
+    <b>imports</b> &nbsp; <code>from collections import Counter, defaultdict, deque, OrderedDict</code> · <code>import heapq, bisect</code> · <code>from sortedcontainers import SortedList, SortedDict, SortedSet</code><br>
+    <b>vars</b> &nbsp; <b>a</b>=list · <b>t</b>=tuple · <b>st</b>=str · <b>r</b>=range · <b>d</b>=dict · <b>dd</b>=defaultdict · <b>od</b>=OrderedDict · <b>c</b>=Counter · <b>s</b>=set · <b>fs</b>=frozenset · <b>dq</b>=deque · <b>h</b>=heap-list · <b>sl</b>=SortedList · <b>sd</b>=SortedDict · <b>ss</b>=SortedSet
+  </div>
+</header>
+
+<div class="scroll-hint">scroll horizontally <span class="arrow">→</span></div>
+
+<div class="table-scroll">
+<table>
+  <thead>
+    <tr>
+      <th>Operation</th>
+      <th>list <span class="var">a</span></th>
+      <th>tuple <span class="var">t</span></th>
+      <th>str <span class="var">st</span></th>
+      <th>range <span class="var">r</span></th>
+      <th>dict <span class="var">d</span></th>
+      <th>defaultdict <span class="var">dd</span></th>
+      <th>OrderedDict <span class="var">od</span></th>
+      <th>Counter <span class="var">c</span></th>
+      <th>set <span class="var">s</span></th>
+      <th>frozenset <span class="var">fs</span></th>
+      <th>deque <span class="var">dq</span></th>
+      <th>heapq <span class="var">h</span></th>
+      <th>SortedList <span class="var">sl</span></th>
+      <th>SortedDict <span class="var">sd</span></th>
+      <th>SortedSet <span class="var">ss</span></th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <tr class="section-row"><th>Construction</th><td colspan="15"></td></tr>
+
+    <tr>
+      <th>construct empty</th>
+      <td><span class="cmd">[]</span></td>
+      <td><span class="cmd">()</span></td>
+      <td><span class="cmd">""</span></td>
+      <td><span class="cmd">range(0)</span></td>
+      <td><span class="cmd">{}</span></td>
+      <td><span class="cmd">defaultdict(int)</span></td>
+      <td><span class="cmd">OrderedDict()</span></td>
+      <td><span class="cmd">Counter()</span></td>
+      <td><span class="cmd">set()</span></td>
+      <td><span class="cmd">frozenset()</span></td>
+      <td><span class="cmd">deque()</span></td>
+      <td><span class="cmd">[]</span></td>
+      <td><span class="cmd">SortedList()</span></td>
+      <td><span class="cmd">SortedDict()</span></td>
+      <td><span class="cmd">SortedSet()</span></td>
+    </tr>
+    <tr>
+      <th>from iterable</th>
+      <td><span class="cmd">list(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">tuple(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">"".join(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">range(a, b, s)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dict(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">defaultdict(list, it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">OrderedDict(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">Counter(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">set(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">frozenset(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">deque(it)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">heapq.heapify(h)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">SortedList(it)</span><span class="O Onlog">O(n log n)</span></td>
+      <td><span class="cmd">SortedDict(it)</span><span class="O Onlog">O(n log n)</span></td>
+      <td><span class="cmd">SortedSet(it)</span><span class="O Onlog">O(n log n)</span></td>
+    </tr>
+    <tr>
+      <th>shallow copy</th>
+      <td><span class="cmd">a.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="na">— (immutable)</span></td>
+      <td><span class="na">— (immutable)</span></td>
+      <td><span class="na">— (immutable)</span></td>
+      <td><span class="cmd">d.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">dd.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">od.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">c.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">s.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="na">— (immutable)</span></td>
+      <td><span class="cmd">dq.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">h.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">sl.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">sd.copy()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">ss.copy()</span><span class="O On">O(n)</span></td>
+    </tr>
+    <tr>
+      <th>clear</th>
+      <td><span class="cmd">a.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">dd.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">od.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">c.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">s.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">h.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">sl.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">sd.clear()</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">ss.clear()</span><span class="O On">O(n)</span></td>
+    </tr>
+
+    <tr class="section-row"><th>Access &amp; lookup</th><td colspan="15"></td></tr>
+
+    <tr>
+      <th>access by key/idx</th>
+      <td><span class="cmd">a[i]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">t[i]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">st[i]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">r[i]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">d[k]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dd[k]</span><span class="O O1">O(1)</span><span class="note">creates if missing</span></td>
+      <td><span class="cmd">od[k]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">c[k]</span><span class="O O1">O(1)</span><span class="note">0 if missing</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq[i]</span><span class="O O1">O(1) ends</span><span class="O On">O(n) mid</span></td>
+      <td><span class="cmd">h[0]</span><span class="O O1">O(1) peek-min</span></td>
+      <td><span class="cmd">sl[i]</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd[k]</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss[i]</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>get w/ default</th>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d.get(k, x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dd[k]</span><span class="note">→ factory()</span></td>
+      <td><span class="cmd">od.get(k, x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">c[k]</span><span class="note">→ 0</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sd.get(k, x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>setdefault</th>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d.setdefault(k, x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dd[k]</span><span class="note">implicit</span></td>
+      <td><span class="cmd">od.setdefault(k, x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sd.setdefault(k, x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>contains <span class="mono">(x in)</span></th>
+      <td><span class="cmd">x in a</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">x in t</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">sub in st</span><span class="O On">O(n·m)</span></td>
+      <td><span class="cmd">x in r</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">k in d</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">k in dd</span><span class="O O1">O(1)</span><span class="note">no create</span></td>
+      <td><span class="cmd">k in od</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">k in c</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">x in s</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">x in fs</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">x in dq</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">x in h</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">x in sl</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">k in sd</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">x in ss</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>find index of x</th>
+      <td><span class="cmd">a.index(x)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">t.index(x)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">st.find(sub)</span><span class="O On">O(n·m)</span><span class="note">.index raises</span></td>
+      <td><span class="cmd">r.index(x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.index(x)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.index(x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">ss.index(x)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>count of x</th>
+      <td><span class="cmd">a.count(x)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">t.count(x)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">st.count(sub)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">r.count(x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dd[x]</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">c[x]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">1 if x in s else 0</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">1 if x in fs else 0</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dq.count(x)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.count(x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">1 if x in ss else 0</span></td>
+    </tr>
+    <tr>
+      <th>length</th>
+      <td><span class="cmd">len(a)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(t)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(st)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(r)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(d)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(dd)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(od)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(c)</span><span class="O O1">O(1)</span><span class="note">incl. zero keys</span></td>
+      <td><span class="cmd">len(s)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(fs)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(dq)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(h)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(sl)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(sd)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">len(ss)</span><span class="O O1">O(1)</span></td>
+    </tr>
+
+    <tr class="section-row"><th>Modify — add</th><td colspan="15"></td></tr>
+
+    <tr>
+      <th>set / assign</th>
+      <td><span class="cmd">a[i] = x</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">— (immutable)</span></td>
+      <td><span class="na">— (immutable)</span></td>
+      <td><span class="na">— (immutable)</span></td>
+      <td><span class="cmd">d[k] = v</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dd[k] = v</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">od[k] = v</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">c[k] = v</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">s.add(x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">— (immutable)</span></td>
+      <td><span class="cmd">dq[i] = x</span><span class="O On">O(n) mid</span></td>
+      <td><span class="na">— (breaks invariant)</span></td>
+      <td><span class="na">— (use add/remove)</span></td>
+      <td><span class="cmd">sd[k] = v</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="na">— (use add)</span></td>
+    </tr>
+    <tr>
+      <th>append right / add</th>
+      <td><span class="cmd">a.append(x)</span><span class="O O1">O(1) amort.</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">st + "x"</span><span class="O On">O(n)</span><span class="note">use list+join</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d[k] = v</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dd[k].append(x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">od[k] = v</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">c[k] += 1</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">s.add(x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.append(x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">heapq.heappush(h, x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sl.add(x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd[k] = v</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss.add(x)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>append left</th>
+      <td><span class="cmd">a.insert(0, x)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">od.move_to_end(k, last=False)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.appendleft(x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>extend right</th>
+      <td><span class="cmd">a.extend(it)</span><span class="O On">O(k)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">"".join([st, ...])</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d.update(d2)</span><span class="O On">O(k)</span></td>
+      <td><span class="cmd">dd.update(d2)</span><span class="O On">O(k)</span></td>
+      <td><span class="cmd">od.update(d2)</span><span class="O On">O(k)</span></td>
+      <td><span class="cmd">c.update(it)</span><span class="note">adds counts</span><span class="O On">O(k)</span></td>
+      <td><span class="cmd">s.update(it) / s |= s2</span><span class="O On">O(k)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.extend(it)</span><span class="O On">O(k)</span></td>
+      <td><span class="cmd">heapq.merge(h1, h2)</span><span class="note">→ iter</span></td>
+      <td><span class="cmd">sl.update(it)</span><span class="O Onlog">O(k log n)</span></td>
+      <td><span class="cmd">sd.update(d2)</span><span class="O Onlog">O(k log n)</span></td>
+      <td><span class="cmd">ss.update(it)</span><span class="O Onlog">O(k log n)</span></td>
+    </tr>
+    <tr>
+      <th>extend left</th>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.extendleft(it)</span><span class="O On">O(k)</span><span class="note">reverses input!</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>insert at idx</th>
+      <td><span class="cmd">a.insert(i, x)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.insert(i, x)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.add(x)</span><span class="note">auto-positions</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">ss.add(x)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>sorted insert</th>
+      <td><span class="cmd">bisect.insort(a, x)</span><span class="O On">O(n)</span><span class="note">log search + shift</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.add(x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd[k] = v</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss.add(x)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+
+    <tr class="section-row"><th>Modify — remove</th><td colspan="15"></td></tr>
+
+    <tr>
+      <th>pop right / newest</th>
+      <td><span class="cmd">a.pop()</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d.popitem()</span><span class="O O1">O(1) (last)</span></td>
+      <td><span class="cmd">dd.popitem()</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">od.popitem(last=True)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">c.popitem()</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">s.pop()</span><span class="note">arbitrary</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.pop()</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.pop()</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd.popitem()</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss.pop()</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>pop left / min</th>
+      <td><span class="cmd">a.pop(0)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">od.popitem(last=False)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.popleft()</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">heapq.heappop(h)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sl.pop(0)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd.popitem(0)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss.pop(0)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>pop by key/idx (safe)</th>
+      <td><span class="cmd">a.pop(i)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d.pop(k, default)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dd.pop(k, default)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">od.pop(k, default)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">c.pop(k, default)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.pop(i)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd.pop(k, default)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss.pop(i)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>push-then-pop (heap)</th>
+      <td colspan="11"><span class="na">—</span></td>
+      <td><span class="cmd">heapq.heappushpop(h, x)</span><span class="note">push first, then pop smallest</span><span class="O Olog">O(log n)</span></td>
+      <td colspan="3"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>replace root (heap)</th>
+      <td colspan="11"><span class="na">—</span></td>
+      <td><span class="cmd">heapq.heapreplace(h, x)</span><span class="note">pop smallest first, then push</span><span class="O Olog">O(log n)</span></td>
+      <td colspan="3"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>max-heap <span class="note">(Py 3.14+)</span></th>
+      <td colspan="11"><span class="na">—</span></td>
+      <td>
+        <span class="cmd">heapq.heapify_max(h)</span><span class="O On">O(n)</span>
+        <span class="cmd">heapq.heappush_max(h, x)</span><span class="O Olog">O(log n)</span>
+        <span class="cmd">heapq.heappop_max(h)</span><span class="O Olog">O(log n)</span>
+        <span class="cmd">heapq.heapreplace_max(h, x)</span>
+        <span class="note">pre-3.14: negate values</span>
+      </td>
+      <td colspan="3"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>remove by value</th>
+      <td><span class="cmd">a.remove(x)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">del d[k]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">del dd[k]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">del od[k]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">del c[k]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">s.remove(x)</span><span class="note">raises if absent</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.remove(x)</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.remove(x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">del sd[k]</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss.remove(x)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>safe remove <span class="note">(no raise)</span></th>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d.pop(k, None)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">dd.pop(k, None)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">od.pop(k, None)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">c.pop(k, None)</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">s.discard(x)</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.discard(x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">ss.discard(x)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>delete idx/slice</th>
+      <td><span class="cmd">del a[i]</span><span class="O On">O(n)</span><span class="cmd">del a[i:j]</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">del sl[i]</span><span class="O Olog">~O(log n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">del ss[i]</span><span class="O Olog">~O(log n)</span></td>
+    </tr>
+
+    <tr class="section-row"><th>Search &amp; ordering</th><td colspan="15"></td></tr>
+
+    <tr>
+      <th>min</th>
+      <td><span class="cmd">min(a)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">min(t)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">min(st)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">r.start</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">min(d)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">min(dd)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">min(od)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">min(c)</span><span class="O On">O(n) keys</span></td>
+      <td><span class="cmd">min(s)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">min(fs)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">min(dq)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">h[0]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">sl[0]</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd.peekitem(0)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss[0]</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td><span class="cmd">max(a)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(t)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(st)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">r[-1]</span><span class="O O1">O(1)</span></td>
+      <td><span class="cmd">max(d)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(dd)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(od)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(c)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(s)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(fs)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(dq)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">max(h)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">sl[-1]</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd.peekitem(-1)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss[-1]</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>top-k largest</th>
+      <td><span class="cmd">heapq.nlargest(k, a)</span><span class="O Onlog">O(n log k)</span></td>
+      <td>same</td>
+      <td>same</td>
+      <td>—</td>
+      <td>on <span class="cmd">d.items()</span></td>
+      <td>on <span class="cmd">dd.items()</span></td>
+      <td>same</td>
+      <td><span class="cmd">c.most_common(k)</span><span class="O Onlog">O(n log k)</span></td>
+      <td>same</td>
+      <td>same</td>
+      <td>same</td>
+      <td><span class="cmd">heapq.nlargest(k, h)</span></td>
+      <td><span class="cmd">sl[-k:]</span><span class="O Olog">k·O(log n)</span></td>
+      <td>—</td>
+      <td><span class="cmd">ss[-k:]</span></td>
+    </tr>
+    <tr>
+      <th>n-smallest</th>
+      <td><span class="cmd">heapq.nsmallest(k, a)</span><span class="O Onlog">O(n log k)</span></td>
+      <td>same</td>
+      <td>same</td>
+      <td>—</td>
+      <td>on items</td>
+      <td>on items</td>
+      <td>same</td>
+      <td><span class="cmd">c.most_common()[-k:]</span></td>
+      <td>same</td>
+      <td>same</td>
+      <td>same</td>
+      <td><span class="cmd">heapq.nsmallest(k, h)</span></td>
+      <td><span class="cmd">sl[:k]</span><span class="O Olog">k·O(log n)</span></td>
+      <td>—</td>
+      <td><span class="cmd">ss[:k]</span></td>
+    </tr>
+    <tr>
+      <th>sort / sorted iter</th>
+      <td><span class="cmd">a.sort()</span><span class="O Onlog">O(n log n)</span><span class="cmd">sorted(a)</span></td>
+      <td><span class="cmd">sorted(t)</span><span class="O Onlog">O(n log n)</span></td>
+      <td><span class="cmd">sorted(st)</span><span class="O Onlog">O(n log n)</span></td>
+      <td><span class="na">already ordered</span></td>
+      <td><span class="cmd">sorted(d)</span><span class="O Onlog">O(n log n)</span></td>
+      <td><span class="cmd">sorted(dd)</span><span class="O Onlog">O(n log n)</span></td>
+      <td><span class="na">insertion-ordered</span></td>
+      <td><span class="cmd">c.most_common()</span><span class="O Onlog">O(n log n)</span></td>
+      <td><span class="cmd">sorted(s)</span><span class="O Onlog">O(n log n)</span></td>
+      <td>same</td>
+      <td><span class="cmd">sorted(dq)</span><span class="O Onlog">O(n log n)</span></td>
+      <td><span class="cmd">sorted(h)</span><span class="O Onlog">O(n log n)</span><span class="note">heap ≠ sorted</span></td>
+      <td><span class="cmd">iter(sl)</span><span class="O On">O(n)</span><span class="note">already sorted</span></td>
+      <td><span class="cmd">iter(sd)</span><span class="O On">O(n)</span></td>
+      <td><span class="cmd">iter(ss)</span><span class="O On">O(n)</span></td>
+    </tr>
+    <tr>
+      <th>binary-search left</th>
+      <td><span class="cmd">bisect.bisect_left(a, x)</span><span class="O Olog">O(log n)</span><span class="note">a must be sorted</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.bisect_left(x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd.bisect_left(k)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss.bisect_left(x)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>upper bound (right)</th>
+      <td><span class="cmd">bisect.bisect_right(a, x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.bisect_right(x)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">sd.bisect_right(k)</span><span class="O Olog">O(log n)</span></td>
+      <td><span class="cmd">ss.bisect_right(x)</span><span class="O Olog">O(log n)</span></td>
+    </tr>
+    <tr>
+      <th>range query <span class="note">[lo, hi)</span></th>
+      <td><span class="cmd">a[bisect_left(a,lo):bisect_left(a,hi)]</span><span class="note">a sorted</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.irange(lo, hi)</span><span class="note">inclusive both</span></td>
+      <td><span class="cmd">sd.irange(lo, hi)</span></td>
+      <td><span class="cmd">ss.irange(lo, hi)</span></td>
+    </tr>
+    <tr>
+      <th>index range iter</th>
+      <td><span class="cmd">a[i:j]</span><span class="O On">O(k)</span></td>
+      <td><span class="cmd">t[i:j]</span><span class="O On">O(k)</span></td>
+      <td><span class="cmd">st[i:j]</span><span class="O On">O(k)</span></td>
+      <td><span class="cmd">r[i:j]</span><span class="O O1">O(1)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">— (no native slice)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">sl.islice(i, j)</span><span class="cmd">sl[i:j]</span></td>
+      <td><span class="cmd">sd.islice(i, j)</span></td>
+      <td><span class="cmd">ss.islice(i, j)</span><span class="cmd">ss[i:j]</span></td>
+    </tr>
+
+    <tr class="section-row"><th>Iteration &amp; views</th><td colspan="15"></td></tr>
+
+    <tr>
+      <th>iterate order</th>
+      <td>insertion</td>
+      <td>insertion</td>
+      <td>position</td>
+      <td>arithmetic</td>
+      <td>insertion (3.7+)</td>
+      <td>insertion</td>
+      <td>insertion (reorderable)</td>
+      <td>insertion</td>
+      <td>arbitrary</td>
+      <td>arbitrary</td>
+      <td>insertion</td>
+      <td><b>heap order ≠ sorted</b></td>
+      <td><b>ascending sorted</b></td>
+      <td>ascending by key</td>
+      <td>ascending</td>
+    </tr>
+    <tr>
+      <th>reverse in-place</th>
+      <td><span class="cmd">a.reverse()</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">dq.reverse()</span><span class="O On">O(n)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>reversed iter</th>
+      <td><span class="cmd">reversed(a)</span><span class="O O1">O(1) setup</span></td>
+      <td><span class="cmd">reversed(t)</span></td>
+      <td><span class="cmd">reversed(st)</span></td>
+      <td><span class="cmd">reversed(r)</span></td>
+      <td><span class="cmd">reversed(d)</span><span class="note">3.8+</span></td>
+      <td><span class="cmd">reversed(dd)</span></td>
+      <td><span class="cmd">reversed(od)</span></td>
+      <td><span class="cmd">reversed(c)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">reversed(dq)</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">reversed(sl)</span></td>
+      <td><span class="cmd">reversed(sd)</span></td>
+      <td><span class="cmd">reversed(ss)</span></td>
+    </tr>
+    <tr>
+      <th>dict views</th>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="cmd">d.keys()</span><span class="cmd">d.values()</span><span class="cmd">d.items()</span></td>
+      <td>same</td>
+      <td>same</td>
+      <td><span class="cmd">c.items()</span><span class="note">k → count</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td><span class="na">—</span></td>
+      <td>same (sorted)</td>
+      <td><span class="na">—</span></td>
+    </tr>
+
+    <tr class="section-row"><th>Set / Counter algebra</th><td colspan="15"></td></tr>
+
+    <tr>
+      <th>union / intersect / diff / sym-diff</th>
+      <td colspan="8"><span class="na">—</span></td>
+      <td><span class="cmd">s | t</span><span class="cmd">s &amp; t</span><span class="cmd">s - t</span><span class="cmd">s ^ t</span></td>
+      <td>same (returns frozenset)</td>
+      <td colspan="2"><span class="na">—</span></td>
+      <td colspan="3">SortedSet supports same operators</td>
+    </tr>
+    <tr>
+      <th>Counter math</th>
+      <td colspan="7"><span class="na">—</span></td>
+      <td><span class="cmd">c + d</span><span class="note">add counts</span><span class="cmd">c - d</span><span class="note">subtract, drops ≤0</span><span class="cmd">c &amp; d</span><span class="note">min (intersect)</span><span class="cmd">c | d</span><span class="note">max (union)</span></td>
+      <td colspan="7"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>subset / superset</th>
+      <td colspan="8"><span class="na">—</span></td>
+      <td><span class="cmd">s &lt;= t</span><span class="cmd">s &lt; t</span><span class="cmd">s &gt;= t</span><span class="cmd">s.isdisjoint(t)</span></td>
+      <td>same</td>
+      <td colspan="2"><span class="na">—</span></td>
+      <td colspan="3">SortedSet: same operators</td>
+    </tr>
+    <tr>
+      <th>total of all counts</th>
+      <td colspan="7"><span class="na">—</span></td>
+      <td><span class="cmd">c.total()</span><span class="note">Py 3.10+</span><span class="O On">O(n)</span></td>
+      <td colspan="7"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>expand counts (multiset)</th>
+      <td colspan="7"><span class="na">—</span></td>
+      <td><span class="cmd">list(c.elements())</span><span class="O On">O(total)</span><span class="note">repeats each k by count</span></td>
+      <td colspan="7"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>subtract counts (signed)</th>
+      <td colspan="7"><span class="na">—</span></td>
+      <td><span class="cmd">c.subtract(it)</span><span class="note">keeps ≤0 unlike  <code>c - d</code></span><span class="O On">O(k)</span></td>
+      <td colspan="7"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>strip zero / negative</th>
+      <td colspan="7"><span class="na">—</span></td>
+      <td><span class="cmd">+c</span><span class="note">unary plus: drops k where c[k] ≤ 0</span><span class="O On">O(n)</span></td>
+      <td colspan="7"><span class="na">—</span></td>
+    </tr>
+
+    <tr class="section-row"><th>Specialty</th><td colspan="15"></td></tr>
+
+    <tr>
+      <th>bounded (auto-evict)</th>
+      <td colspan="10"><span class="na">—</span></td>
+      <td><span class="cmd">deque(it, maxlen=n)</span><span class="note">pushes opposite end auto-evict</span></td>
+      <td colspan="4"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>rotate</th>
+      <td colspan="10"><span class="na">—</span></td>
+      <td><span class="cmd">dq.rotate(n)</span><span class="note">n&gt;0 right, n&lt;0 left</span><span class="O On">O(|n|)</span></td>
+      <td colspan="4"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>move existing key (LRU)</th>
+      <td colspan="6"><span class="na">—</span></td>
+      <td><span class="cmd">od.move_to_end(k)</span><span class="O O1">O(1)</span><span class="cmd">od.move_to_end(k, last=False)</span></td>
+      <td colspan="8"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>merge sorted iters</th>
+      <td colspan="11"><span class="na">—</span></td>
+      <td><span class="cmd">heapq.merge(h1, h2, ...)</span><span class="note">→ lazy iter, doesn't modify</span></td>
+      <td colspan="3"><span class="na">—</span></td>
+    </tr>
+    <tr>
+      <th>hashable? (dict-key safe)</th>
+      <td><b>no</b></td>
+      <td><b>yes</b> (if elements are)</td>
+      <td><b>yes</b></td>
+      <td><b>yes</b></td>
+      <td><b>no</b></td>
+      <td><b>no</b></td>
+      <td><b>no</b></td>
+      <td><b>no</b></td>
+      <td><b>no</b></td>
+      <td><b>yes</b></td>
+      <td><b>no</b></td>
+      <td><b>no</b></td>
+      <td><b>no</b></td>
+      <td><b>no</b></td>
+      <td><b>no</b></td>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+<h2>Common patterns</h2>
+<div class="patterns">
+
+  <div class="pattern">
+    <h4>Group by key</h4>
+<pre>groups = defaultdict(list)
+for x in arr:
+    groups[key(x)].append(x)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Counting</h4>
+<pre>c = Counter(arr)
+c.most_common(k)         <span class="c"># top-k</span>
++c                       <span class="c"># strip ≤0</span>
+not (Counter(note) - Counter(mag))  <span class="c"># subset?</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Invert dict</h4>
+<pre>inv = {v: k for k, v in d.items()}</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Dedupe, preserve order</h4>
+<pre>deduped = list(dict.fromkeys(a))</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>BFS (deque)</h4>
+<pre>q = deque([start])
+seen = {start}
+while q:
+    node = q.popleft()
+    for nei in graph[node]:
+        if nei not in seen:
+            seen.add(nei)
+            q.append(nei)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Sliding window max (monotonic deque)</h4>
+<pre>dq = deque()  <span class="c"># indices, vals decreasing</span>
+for i, x in enumerate(nums):
+    while dq and nums[dq[-1]] &lt;= x:
+        dq.pop()
+    dq.append(i)
+    if dq[0] &lt;= i - k:
+        dq.popleft()
+    if i &gt;= k - 1:
+        out.append(nums[dq[0]])</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Bounded recent window</h4>
+<pre>window = deque(maxlen=k)
+window.append(x)  <span class="c"># auto-evicts oldest</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Top-k via fixed-size heap</h4>
+<pre>h = []
+for x in nums:
+    heapq.heappush(h, x)
+    if len(h) &gt; k:
+        heapq.heappop(h)
+<span class="c"># h[0] is k-th largest</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Dijkstra (heap of pairs)</h4>
+<pre>pq = [(0, src)]
+dist = {src: 0}
+while pq:
+    d, u = heapq.heappop(pq)
+    if d &gt; dist[u]: continue
+    for v, w in graph[u]:
+        nd = d + w
+        if nd &lt; dist.get(v, inf):
+            dist[v] = nd
+            heapq.heappush(pq, (nd, v))</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Max-heap, pre-3.14</h4>
+<pre>heapq.heappush(h, -x)
+-heapq.heappop(h)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Max-heap, Py 3.14+</h4>
+<pre>heapq.heapify_max(h)
+heapq.heappush_max(h, x)
+heapq.heappop_max(h)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>LRU cache (OrderedDict)</h4>
+<pre>def get(k):
+    if k not in cache: return -1
+    cache.move_to_end(k)
+    return cache[k]
+def put(k, v):
+    if k in cache: cache.move_to_end(k)
+    cache[k] = v
+    if len(cache) &gt; cap:
+        cache.popitem(last=False)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Binary search (bisect)</h4>
+<pre><span class="c"># count of x in sorted a</span>
+bisect_right(a, x) - bisect_left(a, x)
+
+<span class="c"># LIS — O(n log n)</span>
+tails = []
+for x in nums:
+    i = bisect_left(tails, x)
+    if i == len(tails): tails.append(x)
+    else: tails[i] = x
+return len(tails)</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>SortedList range query</h4>
+<pre>sl = SortedList()
+sl.add(x)
+list(sl.irange(lo, hi))      <span class="c"># inclusive both</span>
+sl.bisect_right(x) - sl.bisect_left(x)  <span class="c"># count</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Tuple as state / dict key</h4>
+<pre>seen = set()
+seen.add((r, c, mask))   <span class="c"># grid + bitmask state</span>
+heapq.heappush(pq, (cost, node, stops))</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Memoized DP</h4>
+<pre>from functools import cache
+@cache
+def dp(i, j):
+    ...</pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Prefix sums</h4>
+<pre>from itertools import accumulate
+pre = list(accumulate(nums))
+pre = list(accumulate(nums, max))   <span class="c"># running max</span></pre>
+  </div>
+
+  <div class="pattern">
+    <h4>Sort by custom key</h4>
+<pre>a.sort(key=lambda x: (x[1], -x[0]))
+<span class="c"># tuples sort lexicographically</span></pre>
+  </div>
+
+</div>
+
+<h2>Gotchas</h2>
+<ul class="gotchas">
+  <li><code>defaultdict[k]</code> on a missing key <b>creates it</b>. Use <code>k in dd</code> or <code>dd.get(k)</code> to check without inserting.</li>
+  <li><code>Counter</code> zero counts: <code>c[x] = 0</code> does <b>not</b> remove the key. Use <code>del c[x]</code> or <code>+c</code> to strip zero/negative entries.</li>
+  <li><code>len(c)</code> includes keys with zero or negative counts.</li>
+  <li><code>c1 - c2</code> drops zero/negative counts; <code>c1.subtract(c2)</code> keeps them (can go negative).</li>
+  <li><code>dq.extendleft([1,2,3])</code> → <code>deque([3,2,1])</code>. Iterable is reversed because each element is <code>appendleft</code>'d.</li>
+  <li><code>dq[i]</code> middle indexing is <b>O(n)</b>. Python docs explicitly say to use a list for fast random access.</li>
+  <li><code>heappushpop(h, x)</code> pushes then pops smallest. <code>heapreplace(h, x)</code> pops smallest then pushes — different result when <code>x</code> is smaller than the current root.</li>
+  <li>Iterating a heap (<code>for x in h</code>) does <b>not</b> yield sorted order — heap invariant ≠ sorted.</li>
+  <li><code>set.pop()</code> returns an arbitrary element, not min/max.</li>
+  <li><code>bisect.insort</code> finds the position in O(log n) but the list-shift is O(n). For frequent sorted inserts, use <code>SortedList</code>.</li>
+  <li><code>itertools.groupby</code> only groups <b>consecutive</b> equal items. Sort first if you want full grouping.</li>
+  <li><code>str.find(sub)</code> returns <code>-1</code> if not found; <code>str.index(sub)</code> raises <code>ValueError</code>. Same pattern for <code>list.index</code>.</li>
+  <li>Convert <code>defaultdict</code> to plain <code>dict</code> before returning if a grader checks structure: <code>dict(graph)</code>.</li>
+  <li><code>list.pop(0)</code> is O(n) — for queue-like access from the front, use <code>deque.popleft()</code>.</li>
+  <li>Tuples sort lexicographically. Use <code>(priority, tiebreaker, payload)</code> in heap entries to avoid comparing un-orderable payloads.</li>
+</ul>
+
+<footer>
+  Python 3.10+ assumed (3.14+ noted where relevant) · <span class="mono">sortedcontainers</span> is pre-installed on LeetCode · times are CPython amortized averages
+</footer>
+
+</div>
+</body>
+</html>

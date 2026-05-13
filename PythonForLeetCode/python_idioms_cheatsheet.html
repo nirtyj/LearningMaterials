@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Idioms & Patterns — LeetCode Cheatsheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F4ED;
+    --ink: #15110B;
+    --ink-soft: #5C5447;
+    --rule: #D9D2C3;
+    --rule-soft: #E8E2D2;
+    --panel: #FBF9F3;
+    --code-bg: #EEE8D7;
+    --accent: #A0341E;
+    --o1-bg:    #DDE9D8; --o1-fg:    #2D5524;
+    --olog-bg:  #D7E0EB; --olog-fg:  #1F3A5C;
+    --on-bg:    #EDE4D0; --on-fg:    #6B5418;
+    --onlog-bg: #EAD8C7; --onlog-fg: #7A3F12;
+    --na-fg:    #B5AB94;
+    --header-bg: #1A1610;
+    --header-fg: #F7F4ED;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+  body { font-family: 'Fraunces', Georgia, serif; font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 48px 32px 96px; }
+  @media (max-width: 800px) { .wrap { padding: 32px 16px 64px; } }
+
+  header.top { border-bottom: 1px solid var(--rule); padding-bottom: 24px; margin-bottom: 32px; }
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 800;
+    font-variation-settings: "opsz" 144;
+    font-size: clamp(36px, 5vw, 56px); line-height: 1.02;
+    letter-spacing: -0.02em; margin: 0 0 8px;
+  }
+  h1 .accent { color: var(--accent); font-style: italic; font-weight: 600; }
+  .sub { font-family: 'JetBrains Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-soft); }
+  h2 {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-variation-settings: "opsz" 144;
+    font-size: 28px; letter-spacing: -0.01em;
+    margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+  }
+  h3 {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.18em; color: var(--accent);
+    margin: 28px 0 10px; font-weight: 700;
+  }
+  code, kbd, .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .intro {
+    margin: 20px 0 0; padding: 16px 20px; background: var(--panel); border-left: 3px solid var(--accent);
+    font-size: 14.5px; line-height: 1.65;
+  }
+  .intro code { background: var(--code-bg); padding: 1px 5px; border-radius: 2px; font-size: 12.5px; }
+
+  .table-scroll {
+    overflow: auto; max-height: 70vh;
+    border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);
+    box-shadow: 0 1px 0 var(--rule-soft), 0 8px 24px -16px rgba(21,17,11,0.15);
+  }
+  table {
+    border-collapse: separate; border-spacing: 0;
+    width: 100%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; line-height: 1.55;
+  }
+  thead th {
+    position: sticky; top: 0; z-index: 3;
+    background: var(--header-bg); color: var(--header-fg);
+    text-align: left; padding: 11px 14px;
+    font-weight: 700; font-size: 11.5px; letter-spacing: 0.04em;
+    white-space: nowrap; border-right: 1px solid #2C2620;
+  }
+  thead th:first-child { left: 0; z-index: 4; min-width: 200px; border-right: 1px solid #2C2620; }
+  tbody td, tbody th {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule-soft);
+    border-right: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  tbody th {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--panel);
+    text-align: left; font-weight: 600;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    min-width: 200px; max-width: 240px;
+    border-right: 1px solid var(--rule);
+  }
+  tbody th .mod { color: var(--ink-soft); font-weight: 400; font-size: 10.5px; display: block; margin-top: 2px; letter-spacing: 0.06em; text-transform: uppercase; }
+  tbody tr:nth-child(even) td { background: rgba(217,210,195,0.18); }
+  tbody tr:nth-child(even) th { background: #F6F2E6; }
+  tbody tr:hover td { background: rgba(160,52,30,0.06); }
+  tbody tr:hover th { background: #F0E9D5; }
+
+  col.col-what  { width: 36%; }
+  col.col-big   { width: 12%; }
+  col.col-ex    { width: 30%; }
+
+  .what { color: var(--ink); font-family: 'Fraunces', serif; font-size: 14.5px; line-height: 1.5; }
+  .ex { color: var(--ink); display: block; white-space: pre-wrap; }
+  .ex .c { color: var(--ink-soft); font-style: italic; }
+  .note { color: var(--ink-soft); font-size: 11px; font-style: italic; display: block; margin-top: 4px; }
+
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 2px; font-size: 10.5px; font-weight: 500; margin-right: 4px; }
+  .since { background: #DDE9D8; color: #2D5524; }
+  .warn { background: #EAD8C7; color: #7A3F12; }
+
+  .O { display: inline-block; padding: 1px 6px; border-radius: 2px; font-size: 10.5px; font-weight: 500; }
+  .O1 { background: var(--o1-bg); color: var(--o1-fg); }
+  .Olog { background: var(--olog-bg); color: var(--olog-fg); }
+  .On { background: var(--on-bg); color: var(--on-fg); }
+  .Onlog { background: var(--onlog-bg); color: var(--onlog-fg); }
+
+  .patterns { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin-top: 14px; }
+  .pattern { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 14px 16px; }
+  .pattern h4 {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent);
+    margin: 0 0 10px; font-weight: 700;
+  }
+  .pattern pre {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.55;
+    margin: 0; color: var(--ink); white-space: pre-wrap;
+  }
+  .pattern pre .c { color: var(--ink-soft); font-style: italic; }
+  .pattern .desc { font-family: 'Fraunces', serif; font-size: 13.5px; line-height: 1.5; margin: 0 0 8px; color: var(--ink-soft); }
+
+  .gotchas { list-style: none; padding: 0; margin: 0; }
+  .gotchas li {
+    padding: 12px 0 12px 28px;
+    border-bottom: 1px dashed var(--rule);
+    position: relative; font-size: 15px;
+  }
+  .gotchas li::before { content: "❗"; position: absolute; left: 0; top: 12px; font-size: 12px; }
+  .gotchas code { background: var(--code-bg); padding: 1px 5px; border-radius: 2px; font-size: 12.5px; }
+
+  footer {
+    margin-top: 80px; padding-top: 16px; border-top: 1px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--ink-soft); letter-spacing: 0.04em;
+  }
+
+  /* TOC */
+  .toc {
+    margin: 20px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    display: flex; flex-wrap: wrap; gap: 6px 10px;
+  }
+  .toc a {
+    color: var(--ink); text-decoration: none;
+    background: var(--code-bg);
+    padding: 4px 9px; border-radius: 2px;
+    transition: background 0.15s;
+  }
+  .toc a:hover { background: var(--accent); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="sub">Python · idioms &amp; syntax patterns</div>
+  <h1>Idioms <span class="accent">cheatsheet</span></h1>
+  <div class="intro">
+    The third sheet in the series. Covers what's left after <i>containers</i> and <i>functions</i>: <b>strings &amp; regex</b>, <b>slicing</b>, <b>bitwise</b>, <b>comprehensions &amp; walrus</b>, <b>unpacking</b>, the <b>operator</b> module, <b>class patterns</b> for LeetCode (TreeNode, ListNode, heap-comparable classes), <b>recursion setup</b>, and <b>2D grid idioms</b>.
+  </div>
+  <nav class="toc">
+    <a href="#strings">strings</a>
+    <a href="#regex">regex</a>
+    <a href="#slicing">slicing</a>
+    <a href="#bitwise">bitwise</a>
+    <a href="#comprehensions">comprehensions</a>
+    <a href="#unpacking">unpacking</a>
+    <a href="#operator">operator</a>
+    <a href="#classes">classes</a>
+    <a href="#recursion">recursion</a>
+    <a href="#grid">2D grid</a>
+    <a href="#gotchas">gotchas</a>
+  </nav>
+</header>
+
+<!-- ================================================== STRINGS ================================================== -->
+<h2 id="strings">String methods</h2>
+<p style="font-size:14.5px; color:var(--ink-soft); margin:0 0 14px;">Strings are immutable — every "modifying" method returns a new string. Build incrementally with a <code>list</code> + <code>''.join()</code>, never <code>+=</code> in a loop.</p>
+
+<div class="table-scroll">
+<table>
+  <colgroup><col><col class="col-what"><col class="col-big"><col class="col-ex"></colgroup>
+  <thead>
+    <tr><th>Method</th><th>What it does</th><th>Complexity</th><th>Example</th></tr>
+  </thead>
+  <tbody>
+
+    <tr><th>s.split(sep=None, maxsplit=-1)</th>
+      <td class="what">Split into list. Default splits on <b>any whitespace run</b> and trims edges. With explicit <code>sep</code>, splits on each occurrence (preserves empties).</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"a b  c".split()      <span class="c"># ['a','b','c']</span>
+"a,,b".split(",")     <span class="c"># ['a','','b']</span>
+"a,b,c".split(",", 1) <span class="c"># ['a','b,c']</span></span></td>
+    </tr>
+    <tr><th>s.rsplit(sep, maxsplit)</th>
+      <td class="what">Same as <code>split</code> but counts from the right. Matters only with <code>maxsplit</code>.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"a/b/c.txt".rsplit("/", 1)
+<span class="c"># ['a/b', 'c.txt']</span></span></td>
+    </tr>
+    <tr><th>s.splitlines(keepends=False)</th>
+      <td class="what">Splits on <b>any line terminator</b> (<code>\n \r \r\n</code> etc.). Better than <code>.split('\n')</code>.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"line1\nline2\r\nline3".splitlines()
+<span class="c"># ['line1','line2','line3']</span></span></td>
+    </tr>
+    <tr><th>s.strip(chars=None) / lstrip / rstrip</th>
+      <td class="what">Trim chars (default whitespace) from both ends / left / right. <code>chars</code> is a <b>set</b> of characters to remove, not a substring.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"  hi  ".strip()       <span class="c"># 'hi'</span>
+"##hi##".strip("#")    <span class="c"># 'hi'</span>
+"abcXY".strip("ab")    <span class="c"># 'cXY'</span></span></td>
+    </tr>
+    <tr><th>s.replace(old, new, count=-1)</th>
+      <td class="what">Replace all (or first <code>count</code>) non-overlapping occurrences.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"aaa".replace("a", "bb")  <span class="c"># 'bbbbbb'</span>
+"a a a".replace("a", "b", 2)  <span class="c"># 'b b a'</span></span></td>
+    </tr>
+    <tr><th>s.removeprefix(p) / removesuffix(p) <span class="mod">3.9+</span></th>
+      <td class="what">Strip prefix/suffix if present, else return unchanged. Cleaner than <code>s[len(p):]</code> with a guard.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"unhappy".removeprefix("un")  <span class="c"># 'happy'</span>
+"happy".removeprefix("un")    <span class="c"># 'happy'</span></span></td>
+    </tr>
+    <tr><th>s.find(sub) / rfind(sub)</th>
+      <td class="what">Index of first/last occurrence, or <code>-1</code> if not found. <b>Doesn't raise.</b></td>
+      <td><span class="O On">O(n·m)</span></td>
+      <td><span class="ex">"hello".find("ll")     <span class="c"># 2</span>
+"hello".find("xx")     <span class="c"># -1</span>
+"hello".find("l", 3)   <span class="c"># 3 (start from idx 3)</span></span></td>
+    </tr>
+    <tr><th>s.index(sub) / rindex(sub)</th>
+      <td class="what">Same as <code>find</code>/<code>rfind</code> but <b>raises <code>ValueError</code></b> if not found.</td>
+      <td><span class="O On">O(n·m)</span></td>
+      <td><span class="ex">"hello".index("ll")    <span class="c"># 2</span>
+"hello".index("xx")    <span class="c"># ValueError</span></span></td>
+    </tr>
+    <tr><th>s.count(sub)</th>
+      <td class="what">Number of <b>non-overlapping</b> occurrences.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"aaa".count("aa")  <span class="c"># 1, not 2</span>
+"banana".count("a")  <span class="c"># 3</span></span></td>
+    </tr>
+    <tr><th>s.startswith(prefix) / endswith(suffix)</th>
+      <td class="what">Returns bool. <b>Accepts a tuple</b> for "any of these".</td>
+      <td><span class="O On">O(m)</span></td>
+      <td><span class="ex">name.endswith((".jpg", ".png"))
+url.startswith(("http://", "https://"))</span></td>
+    </tr>
+    <tr><th>s.lower() / upper() / casefold()</th>
+      <td class="what">Case normalize. <code>casefold</code> is more aggressive than <code>lower</code> (handles e.g. German <code>ß</code> → <code>ss</code>) — use it for case-insensitive equality.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">a.casefold() == b.casefold()
+"Hello".lower()  <span class="c"># 'hello'</span></span></td>
+    </tr>
+    <tr><th>s.title() / capitalize() / swapcase()</th>
+      <td class="what"><code>title</code>: capitalize first letter of each word. <code>capitalize</code>: first letter of string only. <code>swapcase</code>: flip case of each letter.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"hello world".title()      <span class="c"># 'Hello World'</span>
+"hello world".capitalize() <span class="c"># 'Hello world'</span></span></td>
+    </tr>
+    <tr><th>s.isdigit() / isalpha() / isalnum()</th>
+      <td class="what">All chars are digit / letter / alphanumeric, and string is <b>non-empty</b>. Empty string → <code>False</code>.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"123".isdigit()      <span class="c"># True</span>
+"".isdigit()         <span class="c"># False!</span>
+"-3".isdigit()       <span class="c"># False (sign not digit)</span></span></td>
+    </tr>
+    <tr><th>s.isspace() / islower() / isupper() / isascii()</th>
+      <td class="what">Pure whitespace / all lowercase letters / all uppercase letters / all ASCII. Same empty-string rule.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"  \t".isspace()     <span class="c"># True</span>
+"héllo".isascii()    <span class="c"># False</span></span></td>
+    </tr>
+    <tr><th>s.isnumeric() / isdecimal()</th>
+      <td class="what">Subtler than <code>isdigit</code>: <code>isdecimal</code> ⊆ <code>isdigit</code> ⊆ <code>isnumeric</code>. <code>isnumeric</code> matches fractions like <code>'½'</code>; <code>isdecimal</code> only base-10 digits.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"½".isnumeric()   <span class="c"># True</span>
+"½".isdigit()     <span class="c"># False</span>
+"½".isdecimal()   <span class="c"># False</span></span></td>
+    </tr>
+    <tr><th>sep.join(iterable)</th>
+      <td class="what">Concatenate strings with separator. <b>The canonical way to build strings.</b> Called on the separator, not the list.</td>
+      <td><span class="O On">O(total len)</span></td>
+      <td><span class="ex">",".join(["a","b","c"])  <span class="c"># 'a,b,c'</span>
+"".join(chars)
+"\n".join(lines)</span></td>
+    </tr>
+    <tr><th>s.translate(table)</th>
+      <td class="what">Char-level batch replacement using a translation table from <code>str.maketrans</code>. Faster than chained <code>.replace()</code>.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">tbl = str.maketrans("abc", "xyz")
+"cab".translate(tbl)  <span class="c"># 'zxy'</span>
+
+<span class="c"># delete chars</span>
+tbl = str.maketrans("", "", string.punctuation)
+"hi, there!".translate(tbl)  <span class="c"># 'hi there'</span></span></td>
+    </tr>
+    <tr><th>s.zfill(n) / ljust(n,c) / rjust(n,c) / center(n,c)</th>
+      <td class="what">Pad to length <code>n</code>. <code>zfill</code> pads with zeros on the left.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"7".zfill(3)        <span class="c"># '007'</span>
+"hi".ljust(5, "-")  <span class="c"># 'hi---'</span>
+"hi".center(6, "*") <span class="c"># '**hi**'</span></span></td>
+    </tr>
+    <tr><th>f-string / s.format()</th>
+      <td class="what">Interpolation. f-strings (3.6+) are preferred. Format spec after <code>:</code>.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">f"{x:.2f}"        <span class="c"># 2 decimal places</span>
+f"{x:08b}"        <span class="c"># 8-bit binary, zero-padded</span>
+f"{x:&gt;10}"        <span class="c"># right-align width 10</span>
+f"{x=}"           <span class="c"># 'x=42' (3.8+)</span></span></td>
+    </tr>
+    <tr><th>s.encode() / b.decode()</th>
+      <td class="what">str ↔ bytes. Rarely needed in LC unless dealing with binary problems.</td>
+      <td><span class="O On">O(n)</span></td>
+      <td><span class="ex">"hello".encode()         <span class="c"># b'hello'</span>
+b"hello".decode()        <span class="c"># 'hello'</span></span></td>
+    </tr>
+
+    <tr><th>string.ascii_lowercase <span class="mod">string module</span></th>
+      <td class="what">Constant: <code>'abcdefghijklmnopqrstuvwxyz'</code>. Plus: <code>ascii_uppercase</code>, <code>ascii_letters</code>, <code>digits</code>, <code>hexdigits</code>, <code>punctuation</code>, <code>whitespace</code>, <code>printable</code>.</td>
+      <td>—</td>
+      <td><span class="ex">import string
+{c: i for i, c in enumerate(string.ascii_lowercase)}
+<span class="c"># {'a':0, 'b':1, ...}</span></span></td>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================== REGEX ================================================== -->
+<h2 id="regex">Regex · re module</h2>
+<p style="font-size:14.5px; color:var(--ink-soft); margin:0 0 14px;">Use raw strings <code>r"..."</code> for patterns so backslashes pass through unmangled. Precompile with <code>re.compile()</code> if you'll reuse the pattern in a loop.</p>
+
+<div class="table-scroll">
+<table>
+  <colgroup><col><col class="col-what"><col><col class="col-ex"></colgroup>
+  <thead>
+    <tr><th>Function</th><th>What it does</th><th>Returns</th><th>Example</th></tr>
+  </thead>
+  <tbody>
+
+    <tr><th>re.search(pat, s)</th>
+      <td class="what">Find first match <b>anywhere</b> in <code>s</code>.</td>
+      <td><code>Match</code> or <code>None</code></td>
+      <td><span class="ex">m = re.search(r"\d+", "abc 42 xyz")
+m.group()  <span class="c"># '42'</span></span></td>
+    </tr>
+    <tr><th>re.match(pat, s)</th>
+      <td class="what">Match only at the <b>start</b> of <code>s</code>. (Doesn't require end-of-string — use <code>fullmatch</code> for that.)</td>
+      <td><code>Match</code> or <code>None</code></td>
+      <td><span class="ex">re.match(r"\d+", "42abc")  <span class="c"># match '42'</span>
+re.match(r"\d+", "abc42") <span class="c"># None</span></span></td>
+    </tr>
+    <tr><th>re.fullmatch(pat, s)</th>
+      <td class="what">Pattern must match the <b>entire</b> string.</td>
+      <td><code>Match</code> or <code>None</code></td>
+      <td><span class="ex">re.fullmatch(r"\d+", "42")     <span class="c"># match</span>
+re.fullmatch(r"\d+", "42a")    <span class="c"># None</span></span></td>
+    </tr>
+    <tr><th>re.findall(pat, s)</th>
+      <td class="what">List of all non-overlapping matches. If pattern has groups, returns tuples of group contents instead of full match.</td>
+      <td><code>list[str]</code> or <code>list[tuple]</code></td>
+      <td><span class="ex">re.findall(r"\d+", "a1 b22 c333")
+<span class="c"># ['1','22','333']</span>
+re.findall(r"(\w+)=(\d+)", "x=1 y=2")
+<span class="c"># [('x','1'),('y','2')]</span></span></td>
+    </tr>
+    <tr><th>re.finditer(pat, s)</th>
+      <td class="what">Iterator of <code>Match</code> objects (gives positions, named groups, etc.). Memory-friendly for big strings.</td>
+      <td>iter of <code>Match</code></td>
+      <td><span class="ex">for m in re.finditer(r"\d+", text):
+    print(m.start(), m.group())</span></td>
+    </tr>
+    <tr><th>re.sub(pat, repl, s, count=0)</th>
+      <td class="what">Replace matches. <code>repl</code> can be a string (with <code>\1</code> backrefs) or a function taking a Match.</td>
+      <td><code>str</code></td>
+      <td><span class="ex">re.sub(r"\s+", " ", text)            <span class="c"># collapse whitespace</span>
+re.sub(r"(\w+)@(\w+)", r"\2:\1", s)  <span class="c"># swap groups</span>
+re.sub(r"\d+", lambda m: str(int(m[0])+1), s)</span></td>
+    </tr>
+    <tr><th>re.split(pat, s, maxsplit=0)</th>
+      <td class="what">Split on regex. Capturing groups are <b>included in the output</b>.</td>
+      <td><code>list[str]</code></td>
+      <td><span class="ex">re.split(r"[,;]\s*", "a, b;c , d")
+<span class="c"># ['a','b','c','d']</span></span></td>
+    </tr>
+    <tr><th>re.compile(pat, flags=0)</th>
+      <td class="what">Precompile. The returned object has all the above as methods. Use when matching the same pattern many times.</td>
+      <td><code>Pattern</code> object</td>
+      <td><span class="ex">DIGITS = re.compile(r"\d+")
+for line in lines:
+    for m in DIGITS.finditer(line): ...</span></td>
+    </tr>
+    <tr><th>m.group(n) / m[n]</th>
+      <td class="what">Get nth capture group. <code>group(0)</code> or <code>m[0]</code> is the whole match.</td>
+      <td><code>str</code></td>
+      <td><span class="ex">m = re.search(r"(\w+) (\w+)", "Hello World")
+m[0]  <span class="c"># 'Hello World'</span>
+m[1], m[2]  <span class="c"># ('Hello','World')</span></span></td>
+    </tr>
+    <tr><th>m.groups() / m.groupdict()</th>
+      <td class="what">Tuple of all groups / dict of named groups.</td>
+      <td><code>tuple</code> / <code>dict</code></td>
+      <td><span class="ex">m = re.search(r"(?P&lt;y&gt;\d{4})-(?P&lt;m&gt;\d{2})", "2024-11")
+m.groupdict()  <span class="c"># {'y':'2024','m':'11'}</span></span></td>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+<h3>Character class &amp; pattern quick reference</h3>
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Pattern</th><th>Matches</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><th>\d / \D</th><td class="what">Digit / non-digit. Equivalent to <code>[0-9]</code> for ASCII.</td><td><code>r"\d+"</code> matches <code>"42"</code></td></tr>
+    <tr><th>\w / \W</th><td class="what">Word char (letter, digit, <code>_</code>) / non-word. Unicode-aware by default.</td><td><code>r"\w+"</code> matches identifiers</td></tr>
+    <tr><th>\s / \S</th><td class="what">Whitespace (<code>space \t \n \r \f \v</code>) / non-whitespace.</td><td><code>r"\s+"</code> matches runs of space</td></tr>
+    <tr><th>.</th><td class="what">Any char <b>except newline</b>. Use <code>re.DOTALL</code> flag to match newline too.</td><td><code>r"a.c"</code> matches <code>"abc"</code></td></tr>
+    <tr><th>[abc] / [^abc]</th><td class="what">Any one of <code>a b c</code> / anything except. Use <code>-</code> for ranges: <code>[a-z0-9]</code>.</td><td><code>[A-Za-z_]</code> first ident char</td></tr>
+    <tr><th>^ / $</th><td class="what">Start / end of string. With <code>re.MULTILINE</code>, also each line.</td><td><code>r"^\d+$"</code> all-digit line</td></tr>
+    <tr><th>\b / \B</th><td class="what">Word boundary / non-boundary (zero-width).</td><td><code>r"\bcat\b"</code> whole word "cat"</td></tr>
+    <tr><th>*  +  ?</th><td class="what">0+ / 1+ / 0-or-1 of previous. <b>Greedy</b> by default.</td><td><code>r"a*"</code>, <code>r"a+"</code>, <code>r"a?"</code></td></tr>
+    <tr><th>{n} / {n,} / {n,m}</th><td class="what">Exactly n / at least n / between n and m.</td><td><code>r"\d{4}"</code> exactly 4 digits</td></tr>
+    <tr><th>*? +? ??</th><td class="what"><b>Lazy</b> versions — match as few as possible.</td><td><code>r"&lt;.*?&gt;"</code> shortest HTML-ish tag</td></tr>
+    <tr><th>(pat)</th><td class="what">Capturing group — accessible via <code>m.group(n)</code>.</td><td><code>r"(\d+)"</code> capture digits</td></tr>
+    <tr><th>(?:pat)</th><td class="what">Non-capturing group. Use when you need grouping but don't need to extract.</td><td><code>r"(?:ab)+"</code> repeat "ab"</td></tr>
+    <tr><th>(?P&lt;name&gt;pat)</th><td class="what">Named group. Access via <code>m["name"]</code> or <code>m.group("name")</code>.</td><td><code>r"(?P&lt;y&gt;\d{4})"</code></td></tr>
+    <tr><th>(?=pat) / (?!pat)</th><td class="what">Positive / negative <b>lookahead</b> (zero-width).</td><td><code>r"\d+(?=px)"</code> digits before "px"</td></tr>
+    <tr><th>(?&lt;=pat) / (?&lt;!pat)</th><td class="what">Positive / negative <b>lookbehind</b>. Fixed-width pattern required.</td><td><code>r"(?&lt;=\$)\d+"</code> digits after "$"</td></tr>
+    <tr><th>|</th><td class="what">Alternation. Lower precedence than concatenation — use groups for scoping.</td><td><code>r"cat|dog"</code></td></tr>
+    <tr><th>Flags</th><td class="what"><code>re.I</code> ignore case, <code>re.M</code> multiline, <code>re.S</code> dot matches newline, <code>re.X</code> verbose (whitespace ignored in pattern).</td><td><code>re.findall(r"hi", s, re.I)</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================== SLICING ================================================== -->
+<h2 id="slicing">Slicing idioms</h2>
+<p style="font-size:14.5px; color:var(--ink-soft); margin:0 0 14px;">Format: <code>a[start:stop:step]</code>. All three optional. Negative indices count from the end. <code>start</code> inclusive, <code>stop</code> exclusive. Out-of-bounds is clipped, not an error — so <code>a[:100]</code> on a 5-element list returns the whole thing.</p>
+
+<div class="patterns">
+
+  <div class="pattern"><h4>Reverse</h4>
+<pre>a[::-1]               <span class="c"># new list, reversed</span>
+s[::-1]               <span class="c"># reversed string</span>
+list(reversed(a))     <span class="c"># equivalent, lazy</span></pre></div>
+
+  <div class="pattern"><h4>Head / tail</h4>
+<pre>a[:k]                 <span class="c"># first k</span>
+a[-k:]                <span class="c"># last k</span>
+a[:-k]                <span class="c"># drop last k</span>
+a[k:]                 <span class="c"># drop first k</span></pre></div>
+
+  <div class="pattern"><h4>Stride</h4>
+<pre>a[::2]                <span class="c"># even indices</span>
+a[1::2]               <span class="c"># odd indices</span>
+a[::3]                <span class="c"># every 3rd</span>
+a[::-2]               <span class="c"># reverse, every other</span></pre></div>
+
+  <div class="pattern"><h4>Substring / subarray</h4>
+<pre>s[i:j]                <span class="c"># chars i..j-1</span>
+s[:5]                 <span class="c"># first 5 chars</span>
+s[-3:]                <span class="c"># last 3 chars</span>
+words[1:-1]           <span class="c"># drop first &amp; last</span></pre></div>
+
+  <div class="pattern"><h4>Slice assignment</h4>
+<pre>a[1:3] = [10, 20, 30]
+<span class="c"># replaces 2 elements with 3 — list grows</span>
+
+a[::2] = b
+<span class="c"># strided: len(b) must equal len(a[::2])</span>
+
+a[:] = [1, 2, 3]
+<span class="c"># replace contents in place (preserves refs)</span></pre></div>
+
+  <div class="pattern"><h4>Insert / extend via slice</h4>
+<pre>a[len(a):] = [99]     <span class="c"># append</span>
+a[0:0] = [1, 2]       <span class="c"># prepend (O(n))</span>
+a[i:i] = [x]          <span class="c"># insert at i</span></pre></div>
+
+  <div class="pattern"><h4>Delete</h4>
+<pre>del a[i]              <span class="c"># single index</span>
+del a[i:j]            <span class="c"># range</span>
+del a[::2]            <span class="c"># every other</span>
+a[:] = []             <span class="c"># clear in place</span></pre></div>
+
+  <div class="pattern"><h4>Copy</h4>
+<pre>b = a[:]              <span class="c"># shallow copy</span>
+b = a.copy()          <span class="c"># equivalent</span>
+b = list(a)           <span class="c"># also works</span></pre></div>
+
+  <div class="pattern"><h4>Chunk into pieces of size k</h4>
+<pre>[a[i:i+k] for i in range(0, len(a), k)]
+
+<span class="c"># Strict chunks (drop incomplete tail):</span>
+[a[i:i+k] for i in range(0, len(a) - k + 1, k)]</pre></div>
+
+  <div class="pattern"><h4>Split in half / at index</h4>
+<pre>mid = len(a) // 2
+left, right = a[:mid], a[mid:]</pre></div>
+
+  <div class="pattern"><h4>Palindrome check (string)</h4>
+<pre>s == s[::-1]</pre></div>
+
+  <div class="pattern"><h4>Rotate list by k</h4>
+<pre>k %= len(a)
+rotated = a[-k:] + a[:-k]   <span class="c"># right by k</span>
+rotated = a[k:] + a[:k]     <span class="c"># left by k</span></pre></div>
+
+  <div class="pattern"><h4>slice() object</h4>
+<pre>sl = slice(1, 5, 2)
+a[sl]                 <span class="c"># a[1:5:2]</span>
+<span class="c"># Useful when slice is parameterized.</span></pre></div>
+
+</div>
+
+<!-- ================================================== BITWISE ================================================== -->
+<h2 id="bitwise">Bitwise operators</h2>
+
+<div class="table-scroll">
+<table>
+  <colgroup><col><col class="col-what"><col><col class="col-ex"></colgroup>
+  <thead><tr><th>Operator</th><th>What</th><th>Identity</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><th>a &amp; b</th><td class="what">Bitwise AND. <code>1</code> bits where <b>both</b> have <code>1</code>.</td><td><code>a &amp; 0 = 0</code></td><td><code>0b1100 &amp; 0b1010 == 0b1000</code></td></tr>
+    <tr><th>a | b</th><td class="what">Bitwise OR. <code>1</code> bits where <b>either</b> has <code>1</code>.</td><td><code>a | 0 = a</code></td><td><code>0b1100 | 0b1010 == 0b1110</code></td></tr>
+    <tr><th>a ^ b</th><td class="what">Bitwise XOR. <code>1</code> bits where they <b>differ</b>. Self-inverse: <code>a ^ a = 0</code>.</td><td><code>a ^ 0 = a</code></td><td><code>0b1100 ^ 0b1010 == 0b0110</code></td></tr>
+    <tr><th>~a</th><td class="what">Bitwise NOT. Equals <code>-a - 1</code> for Python's arbitrary-precision ints.</td><td><code>~0 = -1</code></td><td><code>~5 == -6</code></td></tr>
+    <tr><th>a &lt;&lt; k</th><td class="what">Left shift. Equivalent to <code>a * 2**k</code>.</td><td>—</td><td><code>1 &lt;&lt; 5 == 32</code></td></tr>
+    <tr><th>a &gt;&gt; k</th><td class="what">Right shift (arithmetic — sign-preserving). Equivalent to <code>a // 2**k</code>.</td><td>—</td><td><code>32 &gt;&gt; 2 == 8</code></td></tr>
+    <tr><th>n.bit_count() <span class="mod">3.10+</span></th><td class="what">Popcount: number of <code>1</code> bits in <code>|n|</code>.</td><td>—</td><td><code>(0b1011).bit_count() == 3</code></td></tr>
+    <tr><th>n.bit_length()</th><td class="what">Position of highest set bit (= ⌊log2(|n|)⌋ + 1).</td><td><code>(0).bit_length() == 0</code></td><td><code>(1024).bit_length() == 11</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Bit manipulation patterns</h3>
+<div class="patterns">
+
+  <div class="pattern"><h4>Test / set / clear / toggle bit k</h4>
+<pre>n &amp; (1 &lt;&lt; k)         <span class="c"># test (truthy if set)</span>
+n | (1 &lt;&lt; k)         <span class="c"># set bit k</span>
+n &amp; ~(1 &lt;&lt; k)        <span class="c"># clear bit k</span>
+n ^ (1 &lt;&lt; k)         <span class="c"># toggle bit k</span></pre></div>
+
+  <div class="pattern"><h4>Lowest set bit</h4>
+<pre>n &amp; -n              <span class="c"># isolate lowest set bit</span>
+n &amp; (n - 1)         <span class="c"># clear lowest set bit</span>
+(n &amp; -n).bit_length() - 1  <span class="c"># index of lowest set bit</span></pre></div>
+
+  <div class="pattern"><h4>Power of 2 check</h4>
+<pre>n &gt; 0 and (n &amp; (n - 1)) == 0
+<span class="c"># True only when n is exactly 2^k</span></pre></div>
+
+  <div class="pattern"><h4>Popcount (count set bits)</h4>
+<pre>n.bit_count()              <span class="c"># 3.10+</span>
+bin(n).count('1')          <span class="c"># pre-3.10</span>
+
+<span class="c"># Brian Kernighan: O(set bits)</span>
+cnt = 0
+while n:
+    n &amp;= n - 1
+    cnt += 1</pre></div>
+
+  <div class="pattern"><h4>Iterate set bits</h4>
+<pre>while n:
+    low = n &amp; -n         <span class="c"># isolate lowest</span>
+    k = low.bit_length() - 1  <span class="c"># its index</span>
+    process(k)
+    n ^= low             <span class="c"># clear it</span></pre></div>
+
+  <div class="pattern"><h4>Iterate subsets of mask</h4>
+<pre>sub = mask
+while sub &gt; 0:
+    process(sub)
+    sub = (sub - 1) &amp; mask
+process(0)               <span class="c"># empty subset</span>
+<span class="c"># Visits all 2^k subsets in O(3^n) total across all masks</span></pre></div>
+
+  <div class="pattern"><h4>XOR for "find the unique"</h4>
+<pre><span class="c"># Every element appears twice except one — find it.</span>
+from functools import reduce
+import operator
+reduce(operator.xor, nums)</pre></div>
+
+  <div class="pattern"><h4>Swap without temp</h4>
+<pre>a, b = b, a              <span class="c"># Pythonic — use this</span>
+
+<span class="c"># XOR swap (works for ints, no temp memory):</span>
+a ^= b; b ^= a; a ^= b</pre></div>
+
+  <div class="pattern"><h4>Bitmask DP template</h4>
+<pre><span class="c"># e.g. TSP-style: dp[mask][i] = best to visit set `mask` ending at i</span>
+@cache
+def dp(mask, i):
+    if mask == (1 &lt;&lt; n) - 1:
+        return cost[i][0]
+    best = inf
+    for j in range(n):
+        if not (mask &gt;&gt; j) &amp; 1:
+            best = min(best, cost[i][j] + dp(mask | (1 &lt;&lt; j), j))
+    return best</pre></div>
+
+  <div class="pattern"><h4>All bits below k</h4>
+<pre>(1 &lt;&lt; k) - 1            <span class="c"># 0b...0111 (k ones)</span>
+<span class="c"># Useful as a full-mask for n items: (1 &lt;&lt; n) - 1</span></pre></div>
+
+  <div class="pattern"><h4>Bin / decimal conversion</h4>
+<pre>bin(10)                  <span class="c"># '0b1010'</span>
+format(10, 'b')          <span class="c"># '1010' (no prefix)</span>
+format(10, '08b')        <span class="c"># '00001010'</span>
+int('1010', 2)           <span class="c"># 10</span>
+int('0b1010', 0)         <span class="c"># 10, auto-detect</span></pre></div>
+
+</div>
+
+<!-- ================================================== COMPREHENSIONS ================================================== -->
+<h2 id="comprehensions">Comprehensions, generators &amp; walrus</h2>
+
+<div class="patterns">
+
+  <div class="pattern"><h4>List comprehension</h4>
+<pre>[f(x) for x in it]
+[x for x in it if pred(x)]
+[f(x) if cond else g(x) for x in it]
+<span class="c"># Note: if-else expression goes BEFORE for; if-filter goes AFTER.</span></pre></div>
+
+  <div class="pattern"><h4>Dict comprehension</h4>
+<pre>{k: v for k, v in pairs}
+{x: x**2 for x in range(5)}
+{v: k for k, v in d.items()}    <span class="c"># invert dict</span></pre></div>
+
+  <div class="pattern"><h4>Set comprehension</h4>
+<pre>{x for x in it}
+{x % 5 for x in nums}           <span class="c"># unique residues</span></pre></div>
+
+  <div class="pattern"><h4>Generator expression</h4>
+<pre>(f(x) for x in it)              <span class="c"># lazy, one-shot</span>
+sum(x*x for x in nums)          <span class="c"># no [] needed inside call</span>
+any(x &lt; 0 for x in nums)        <span class="c"># short-circuits!</span></pre></div>
+
+  <div class="pattern"><h4>Nested / flatten 2D</h4>
+<pre>[x for row in grid for x in row]
+<span class="c"># Read left-to-right: for row..., for x in row..., yield x</span>
+
+[[0] * C for _ in range(R)]     <span class="c"># 2D grid (R x C)</span></pre></div>
+
+  <div class="pattern"><h4>Cross product (nested for)</h4>
+<pre>[(i, j) for i in range(R) for j in range(C)]
+<span class="c"># Or: list(product(range(R), range(C)))</span></pre></div>
+
+  <div class="pattern"><h4>Filter then map</h4>
+<pre>[f(x) for x in it if pred(x)]
+<span class="c"># Filter happens first, then f is applied to survivors.</span></pre></div>
+
+  <div class="pattern"><h4>Conditional expression</h4>
+<pre>val = a if cond else b
+
+<span class="c"># Chained (right-associative):</span>
+grade = "A" if s &gt;= 90 else "B" if s &gt;= 80 else "C"</pre></div>
+
+  <div class="pattern"><h4>Walrus :=  <span class="mod" style="font-weight:400;font-size:10px;">3.8+</span></h4>
+<pre><span class="c"># Assign and use in the same expression.</span>
+if (n := len(arr)) &gt; 10:
+    print(f"too big: {n}")
+
+while (line := f.readline()):
+    process(line)</pre></div>
+
+  <div class="pattern"><h4>Walrus in comprehension</h4>
+<pre><span class="c"># Avoid recomputing expensive f(x):</span>
+[y for x in data if (y := f(x)) &gt; 0]
+<span class="c"># f(x) called once per x, y reused in filter and output.</span></pre></div>
+
+  <div class="pattern"><h4>Comprehension with enumerate / zip</h4>
+<pre>{i: x for i, x in enumerate(nums)}
+[a + b for a, b in zip(xs, ys)]
+[(i, c) for i, c in enumerate(s) if c.isalpha()]</pre></div>
+
+  <div class="pattern"><h4>Dict counting via comprehension</h4>
+<pre><span class="c"># Use Counter — but if you want to:</span>
+freq = {}
+for x in arr:
+    freq[x] = freq.get(x, 0) + 1
+
+<span class="c"># Or via groupby (must sort first):</span>
+{k: len(list(g)) for k, g in groupby(sorted(arr))}</pre></div>
+
+</div>
+
+<!-- ================================================== UNPACKING ================================================== -->
+<h2 id="unpacking">Unpacking &amp; multiple assignment</h2>
+
+<div class="patterns">
+
+  <div class="pattern"><h4>Swap</h4>
+<pre>a, b = b, a
+nums[i], nums[j] = nums[j], nums[i]</pre></div>
+
+  <div class="pattern"><h4>Multiple return</h4>
+<pre>q, r = divmod(17, 5)
+mn, mx = min(a), max(a)
+head, *tail = lst</pre></div>
+
+  <div class="pattern"><h4>Star unpacking</h4>
+<pre>first, *rest = [1, 2, 3, 4]    <span class="c"># first=1, rest=[2,3,4]</span>
+*head, last = [1, 2, 3, 4]     <span class="c"># head=[1,2,3], last=4</span>
+a, *mid, z = [1, 2, 3, 4, 5]   <span class="c"># a=1, mid=[2,3,4], z=5</span></pre></div>
+
+  <div class="pattern"><h4>Loop unpacking</h4>
+<pre>for k, v in d.items(): ...
+for i, x in enumerate(nums): ...
+for a, b in pairs: ...
+for r, c in product(range(R), range(C)): ...
+for x, (y, z) in nested: ...    <span class="c"># nested patterns work</span></pre></div>
+
+  <div class="pattern"><h4>Function: *args / **kwargs</h4>
+<pre>def f(*args, **kwargs):
+    <span class="c"># args is tuple, kwargs is dict</span>
+    print(args, kwargs)
+
+<span class="c"># Forward all args:</span>
+def wrapper(*args, **kwargs):
+    return inner(*args, **kwargs)</pre></div>
+
+  <div class="pattern"><h4>Splat in calls</h4>
+<pre>f(*list_of_args)         <span class="c"># spread positional</span>
+f(**dict_of_kwargs)      <span class="c"># spread keyword</span>
+
+print(*[1, 2, 3])        <span class="c"># 1 2 3</span>
+math.gcd(*nums)          <span class="c"># gcd of array</span>
+max(*pair, *triple)      <span class="c"># mix and match</span></pre></div>
+
+  <div class="pattern"><h4>Merge dicts / build containers</h4>
+<pre>merged = {**d1, **d2}          <span class="c"># d2 wins on conflict</span>
+merged = d1 | d2               <span class="c"># 3.9+ equivalent</span>
+
+combined = [*a, *b, *c]        <span class="c"># concat lists</span>
+union = {*s1, *s2}             <span class="c"># union of sets</span></pre></div>
+
+  <div class="pattern"><h4>Discard with _</h4>
+<pre>_, val = ("key", "value")
+for _ in range(n): ...         <span class="c"># index unused</span>
+first, *_, last = lst          <span class="c"># middle unused</span></pre></div>
+
+  <div class="pattern"><h4>Keyword-only / positional-only args</h4>
+<pre>def f(a, b, *, key=None):       <span class="c"># key must be by name</span>
+    ...
+def f(a, b, /, c):              <span class="c"># 3.8+: a,b positional-only</span>
+    ...
+<span class="c"># All builtins like sorted(it, *, key=...) use this.</span></pre></div>
+
+  <div class="pattern"><h4>Multi-target assignment</h4>
+<pre>a = b = c = 0                  <span class="c"># all three bound to 0</span>
+<span class="c"># Beware mutables:</span>
+a = b = []                     <span class="c"># a and b are the SAME list</span></pre></div>
+
+</div>
+
+<!-- ================================================== OPERATOR ================================================== -->
+<h2 id="operator">operator module</h2>
+<p style="font-size:14.5px; color:var(--ink-soft); margin:0 0 14px;">Function versions of every Python operator. Faster than equivalent lambdas because they're implemented in C. Especially useful as <code>key=</code> arguments and <code>reduce</code> functions.</p>
+
+<div class="table-scroll">
+<table>
+  <colgroup><col><col class="col-what"><col><col class="col-ex"></colgroup>
+  <thead><tr><th>Function</th><th>Equivalent</th><th>Returns</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><th>itemgetter(i)</th>
+      <td class="what">Builds a callable that does <code>x[i]</code>. Multi-arg form returns a tuple.</td>
+      <td><code>callable</code></td>
+      <td><span class="ex">sorted(pairs, key=itemgetter(1))
+sorted(rows, key=itemgetter(2, 0))  <span class="c"># multi-key</span></span></td>
+    </tr>
+    <tr><th>attrgetter("name")</th>
+      <td class="what">Builds a callable that does <code>x.name</code>. Supports dotted paths.</td>
+      <td><code>callable</code></td>
+      <td><span class="ex">sorted(emps, key=attrgetter("salary"))
+sorted(nodes, key=attrgetter("parent.id"))</span></td>
+    </tr>
+    <tr><th>methodcaller("m", *args)</th>
+      <td class="what">Builds a callable that does <code>x.m(*args)</code>.</td>
+      <td><code>callable</code></td>
+      <td><span class="ex">list(map(methodcaller("upper"), words))
+sorted(strs, key=methodcaller("count", "a"))</span></td>
+    </tr>
+    <tr><th>add / sub / mul / truediv / floordiv / mod / pow</th>
+      <td class="what">Arithmetic operators as functions.</td>
+      <td>—</td>
+      <td><span class="ex">reduce(operator.mul, nums, 1)
+list(map(operator.add, a, b))  <span class="c"># elementwise</span></span></td>
+    </tr>
+    <tr><th>and_ / or_ / xor / invert</th>
+      <td class="what">Bitwise operators (<code>and_</code>/<code>or_</code> have trailing underscore to avoid keyword clash).</td>
+      <td>—</td>
+      <td><span class="ex">reduce(operator.xor, nums)     <span class="c"># XOR all</span>
+reduce(operator.or_, masks)    <span class="c"># OR all</span>
+reduce(operator.and_, masks)</span></td>
+    </tr>
+    <tr><th>not_ / truth</th>
+      <td class="what">Logical NOT / truthiness as functions.</td>
+      <td><code>bool</code></td>
+      <td><span class="ex">list(filter(operator.truth, mixed))
+<span class="c"># keeps only truthy values</span></span></td>
+    </tr>
+    <tr><th>lt / le / eq / ne / gt / ge</th>
+      <td class="what">Comparison operators as functions. Useful with <code>functools.cmp_to_key</code>.</td>
+      <td><code>bool</code></td>
+      <td><span class="ex">sorted(nums, key=functools.cmp_to_key(operator.gt))</span></td>
+    </tr>
+    <tr><th>neg / abs / pos</th>
+      <td class="what">Unary minus / absolute value / unary plus.</td>
+      <td>—</td>
+      <td><span class="ex">list(map(operator.neg, nums))</span></td>
+    </tr>
+    <tr><th>getitem / setitem / delitem</th>
+      <td class="what"><code>x[i]</code> / <code>x[i] = v</code> / <code>del x[i]</code> as functions.</td>
+      <td>—</td>
+      <td><span class="ex">list(map(operator.getitem, [a]*3, [0,2,4]))
+<span class="c"># elements at indices 0,2,4 of a</span></span></td>
+    </tr>
+    <tr><th>contains</th>
+      <td class="what"><code>contains(container, x)</code> equivalent to <code>x in container</code>. Note arg order is reversed.</td>
+      <td><code>bool</code></td>
+      <td><span class="ex">operator.contains([1,2,3], 2)  <span class="c"># True</span></span></td>
+    </tr>
+    <tr><th>iadd / iand / etc.</th>
+      <td class="what">In-place versions (<code>+=</code>, <code>&amp;=</code>, etc.). Useful when you want explicit augmented assignment semantics.</td>
+      <td>—</td>
+      <td><span class="ex">a = operator.iadd(a, b)  <span class="c"># like a += b</span></span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================== CLASSES ================================================== -->
+<h2 id="classes">Class patterns for LeetCode</h2>
+
+<div class="patterns">
+
+  <div class="pattern"><h4>TreeNode (LC standard)</h4>
+<pre>class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+<span class="c"># Walk via recursion or explicit stack.</span></pre></div>
+
+  <div class="pattern"><h4>ListNode (LC standard)</h4>
+<pre>class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+<span class="c"># Iterate:</span>
+node = head
+while node:
+    process(node.val)
+    node = node.next</pre></div>
+
+  <div class="pattern"><h4>Dummy head trick (linked lists)</h4>
+<pre>dummy = ListNode(0, head)
+prev, cur = dummy, head
+<span class="c"># ... mutate prev.next freely ...</span>
+return dummy.next</pre></div>
+
+  <div class="pattern"><h4>Tree traversal — recursive</h4>
+<pre>def inorder(node, out):
+    if not node: return
+    inorder(node.left, out)
+    out.append(node.val)
+    inorder(node.right, out)</pre></div>
+
+  <div class="pattern"><h4>Tree traversal — iterative (stack)</h4>
+<pre>stack, cur, out = [], root, []
+while cur or stack:
+    while cur:
+        stack.append(cur)
+        cur = cur.left
+    cur = stack.pop()
+    out.append(cur.val)
+    cur = cur.right</pre></div>
+
+  <div class="pattern"><h4>Custom class — heap-comparable</h4>
+<pre>class Item:
+    def __init__(self, prio, payload):
+        self.prio, self.payload = prio, payload
+    def __lt__(self, other):
+        return self.prio &lt; other.prio
+
+heapq.heappush(pq, Item(3, "a"))
+<span class="c"># Or skip the class and just use tuples: (prio, idx, payload)</span></pre></div>
+
+  <div class="pattern"><h4>Custom class — dict / set key</h4>
+<pre>class Point:
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+    def __eq__(self, o):
+        return isinstance(o, Point) and (self.x, self.y) == (o.x, o.y)
+    def __hash__(self):
+        return hash((self.x, self.y))
+<span class="c"># Without both, default hash is by id — different instances ≠.</span></pre></div>
+
+  <div class="pattern"><h4>@dataclass</h4>
+<pre>from dataclasses import dataclass
+
+@dataclass
+class Edge:
+    u: int
+    v: int
+    w: float = 1.0
+<span class="c"># Auto-generates __init__, __repr__, __eq__</span>
+
+@dataclass(frozen=True)         <span class="c"># hashable, immutable</span>
+class Coord:
+    r: int; c: int
+
+@dataclass(order=True)          <span class="c"># sortable / heap-comparable</span>
+class Job:
+    priority: int
+    name: str = field(compare=False)</pre></div>
+
+  <div class="pattern"><h4>@property / @cached_property</h4>
+<pre>from functools import cached_property
+
+class Polygon:
+    def __init__(self, pts):
+        self.pts = pts
+
+    @cached_property
+    def area(self):
+        <span class="c"># Computed once, cached on instance.</span>
+        return shoelace(self.pts)</pre></div>
+
+  <div class="pattern"><h4>Iterator protocol</h4>
+<pre>class Range:
+    def __init__(self, n): self.n, self.i = n, 0
+    def __iter__(self): return self
+    def __next__(self):
+        if self.i &gt;= self.n: raise StopIteration
+        v = self.i; self.i += 1; return v
+
+<span class="c"># Or just use a generator function (yield) — way simpler.</span></pre></div>
+
+  <div class="pattern"><h4>Generator function</h4>
+<pre>def inorder(node):
+    if not node: return
+    yield from inorder(node.left)
+    yield node.val
+    yield from inorder(node.right)
+
+<span class="c"># Consume:</span>
+for v in inorder(root): ...
+sorted(inorder(root))</pre></div>
+
+  <div class="pattern"><h4>Trie node</h4>
+<pre>class Trie:
+    def __init__(self):
+        self.kids = {}
+        self.end = False
+
+    def insert(self, word):
+        node = self
+        for c in word:
+            node = node.kids.setdefault(c, Trie())
+        node.end = True
+
+<span class="c"># Or with defaultdict for terseness:</span>
+from collections import defaultdict
+Trie = lambda: defaultdict(Trie)
+<span class="c"># t = Trie(); t['c']['a']['t']['#'] = True</span></pre></div>
+
+</div>
+
+<!-- ================================================== RECURSION ================================================== -->
+<h2 id="recursion">Recursion setup</h2>
+
+<div class="patterns">
+
+  <div class="pattern"><h4>Raise the recursion limit</h4>
+<pre>import sys
+sys.setrecursionlimit(10**6)
+<span class="c"># Default is 1000. Deep DP / linked lists / unbalanced trees hit it.</span>
+<span class="c"># LC usually accepts 10**5 to 10**6 safely.</span></pre></div>
+
+  <div class="pattern"><h4>Memoize with @cache</h4>
+<pre>from functools import cache
+
+@cache
+def dp(i, j):
+    if i == n or j == m: return 0
+    if s1[i] == s2[j]:
+        return 1 + dp(i+1, j+1)
+    return max(dp(i+1, j), dp(i, j+1))
+<span class="c"># Arguments must be hashable. Convert lists to tuples.</span></pre></div>
+
+  <div class="pattern"><h4>Iterative DFS via stack</h4>
+<pre><span class="c"># When recursion depth is too high or you want explicit control.</span>
+stack = [start]
+seen = {start}
+while stack:
+    node = stack.pop()
+    for nei in graph[node]:
+        if nei not in seen:
+            seen.add(nei)
+            stack.append(nei)</pre></div>
+
+  <div class="pattern"><h4>Iterative BFS via deque</h4>
+<pre>from collections import deque
+q = deque([(start, 0)])    <span class="c"># (node, distance)</span>
+seen = {start}
+while q:
+    node, d = q.popleft()
+    if node == target: return d
+    for nei in graph[node]:
+        if nei not in seen:
+            seen.add(nei)
+            q.append((nei, d + 1))</pre></div>
+
+  <div class="pattern"><h4>Iterative DFS with post-order (yield twice)</h4>
+<pre><span class="c"># For when you need to "return" after children are processed.</span>
+stack = [(root, False)]
+while stack:
+    node, visited = stack.pop()
+    if not node: continue
+    if visited:
+        process(node)         <span class="c"># post-order action</span>
+    else:
+        stack.append((node, True))
+        stack.append((node.right, False))
+        stack.append((node.left, False))</pre></div>
+
+  <div class="pattern"><h4>Tail-call note</h4>
+<pre><span class="c"># Python does NOT optimize tail calls.</span>
+<span class="c"># def f(n): return f(n-1) if n &gt; 0 else 0</span>
+<span class="c"># still consumes O(n) stack frames.</span>
+<span class="c"># Convert to a loop manually for deep recursions.</span></pre></div>
+
+</div>
+
+<!-- ================================================== GRID ================================================== -->
+<h2 id="grid">2D grid idioms</h2>
+
+<div class="patterns">
+
+  <div class="pattern"><h4>Create R × C grid (correctly)</h4>
+<pre>grid = [[0] * C for _ in range(R)]
+
+<span class="c"># WRONG — aliased rows, mutating one mutates all:</span>
+grid = [[0] * C] * R</pre></div>
+
+  <div class="pattern"><h4>Iterate every cell</h4>
+<pre>for r in range(R):
+    for c in range(C):
+        process(grid[r][c])
+
+<span class="c"># Or with product (one loop, deeper indentation saved):</span>
+from itertools import product
+for r, c in product(range(R), range(C)): ...</pre></div>
+
+  <div class="pattern"><h4>4-direction neighbors</h4>
+<pre>DIRS4 = [(-1,0), (1,0), (0,-1), (0,1)]
+for dr, dc in DIRS4:
+    nr, nc = r + dr, c + dc
+    if 0 &lt;= nr &lt; R and 0 &lt;= nc &lt; C:
+        process(grid[nr][nc])</pre></div>
+
+  <div class="pattern"><h4>8-direction (king moves)</h4>
+<pre>DIRS8 = [(-1,-1),(-1,0),(-1,1),
+         ( 0,-1),       ( 0,1),
+         ( 1,-1),( 1,0),( 1,1)]
+
+<span class="c"># Or generated:</span>
+DIRS8 = [(dr, dc) for dr in (-1,0,1) for dc in (-1,0,1) if (dr,dc) != (0,0)]</pre></div>
+
+  <div class="pattern"><h4>In-bounds check</h4>
+<pre>def inb(r, c):
+    return 0 &lt;= r &lt; R and 0 &lt;= c &lt; C</pre></div>
+
+  <div class="pattern"><h4>Transpose</h4>
+<pre>transposed = list(zip(*grid))
+<span class="c"># Each element is a tuple. Wrap rows in list() if you need mutable.</span>
+transposed = [list(row) for row in zip(*grid)]</pre></div>
+
+  <div class="pattern"><h4>Rotate 90° clockwise</h4>
+<pre>rotated = list(zip(*grid[::-1]))
+<span class="c"># Reverse rows, then transpose.</span>
+
+<span class="c"># In place (square only):</span>
+grid[:] = list(map(list, zip(*grid[::-1])))</pre></div>
+
+  <div class="pattern"><h4>Rotate 90° counter-clockwise</h4>
+<pre>rotated = list(zip(*grid))[::-1]
+<span class="c"># Transpose, then reverse rows.</span></pre></div>
+
+  <div class="pattern"><h4>Rotate 180° / flip</h4>
+<pre>rot180 = [row[::-1] for row in grid[::-1]]
+flip_h = [row[::-1] for row in grid]      <span class="c"># horizontal</span>
+flip_v = grid[::-1]                       <span class="c"># vertical</span></pre></div>
+
+  <div class="pattern"><h4>Flatten</h4>
+<pre>flat = [x for row in grid for x in row]
+flat = list(chain.from_iterable(grid))    <span class="c"># equivalent</span>
+<span class="c"># For sum: sum(map(sum, grid))</span></pre></div>
+
+  <div class="pattern"><h4>Index ↔ (r, c) for 1D grid</h4>
+<pre>idx = r * C + c
+r, c = divmod(idx, C)
+<span class="c"># Useful for union-find / hashing positions.</span></pre></div>
+
+  <div class="pattern"><h4>2D prefix sums</h4>
+<pre>pre = [[0]*(C+1) for _ in range(R+1)]
+for r in range(R):
+    for c in range(C):
+        pre[r+1][c+1] = (grid[r][c] + pre[r][c+1]
+                       + pre[r+1][c] - pre[r][c])
+
+<span class="c"># Sum over rect (r1..r2, c1..c2) inclusive, O(1):</span>
+total = pre[r2+1][c2+1] - pre[r1][c2+1] - pre[r2+1][c1] + pre[r1][c1]</pre></div>
+
+  <div class="pattern"><h4>Sparse grid via dict</h4>
+<pre>from collections import defaultdict
+grid = defaultdict(int)
+grid[(r, c)] = 1
+<span class="c"># Better than allocating R*C cells when most are empty.</span>
+<span class="c"># Lookup with default: grid[(r,c)] returns 0 if absent.</span></pre></div>
+
+</div>
+
+<!-- ================================================== GOTCHAS ================================================== -->
+<h2 id="gotchas">Gotchas</h2>
+<ul class="gotchas">
+  <li><code>[[0]*C]*R</code> creates <b>R references to the same row</b>. Use <code>[[0]*C for _ in range(R)]</code>.</li>
+  <li><code>s.find()</code> returns <code>-1</code> on miss; <code>s.index()</code> raises <code>ValueError</code>. Same for <code>list</code>.</li>
+  <li>Empty string is <b>falsy</b> for all <code>is*()</code> methods: <code>"".isdigit()</code> is <code>False</code>, not <code>True</code>.</li>
+  <li><code>s.strip("ab")</code> strips <b>any chars in the set</b>, not the literal substring <code>"ab"</code>. Use <code>removeprefix</code>/<code>removesuffix</code> (3.9+) for substring strip.</li>
+  <li>String concat in a loop (<code>s += ...</code>) is <b>O(n²)</b> on Python implementations without the CPython buffer-resize optimization. Always prefer <code>''.join(parts)</code>.</li>
+  <li><code>re.findall</code> with groups returns <b>tuples</b>, not the full match. Use <code>finditer</code> + <code>m.group(0)</code> if you need the whole match plus group access.</li>
+  <li>Always use <b>raw strings</b> <code>r"\d+"</code> for regex patterns. Otherwise <code>"\b"</code> is interpreted as backspace, not word boundary.</li>
+  <li>Regex <code>.</code> doesn't match newlines unless you pass <code>re.DOTALL</code> (alias <code>re.S</code>).</li>
+  <li>Slice with step <code>0</code> raises <code>ValueError</code>. Negative step requires <code>start &gt; stop</code> (otherwise empty result).</li>
+  <li><code>a[:] = [...]</code> mutates in place; <code>a = [...]</code> rebinds the name. Matters when other references to the list exist.</li>
+  <li>Python ints are arbitrary precision, so <code>~n == -n-1</code> always, not "flip 32 bits". For fixed-width semantics, mask: <code>~n &amp; 0xFFFFFFFF</code>.</li>
+  <li>Right shift <code>&gt;&gt;</code> is arithmetic (sign-preserving). For unsigned semantics on negatives, mask first.</li>
+  <li>Walrus has surprising precedence — when in doubt, add parens: <code>if (n := f()) &gt; 0:</code>.</li>
+  <li>Walrus is not allowed at module-level statement scope without parens in some 3.8 corners. Just always wrap it.</li>
+  <li><code>{**d1, **d2}</code>: <b>d2 wins</b> on conflicting keys. <code>d1 | d2</code> behaves the same (3.9+).</li>
+  <li>Default mutable arguments are <b>shared across calls</b>: <code>def f(acc=[])</code> bug. Use <code>def f(acc=None): acc = acc or []</code>.</li>
+  <li>Custom class without <code>__eq__</code>/<code>__hash__</code> uses identity equality — two equal-looking instances are different dict keys.</li>
+  <li>Defining <code>__eq__</code> without <code>__hash__</code> makes the class <b>unhashable</b>. Define both, or use <code>@dataclass(frozen=True)</code>.</li>
+  <li><code>sys.setrecursionlimit(n)</code> doesn't grow the C stack — set too high and you get a segfault instead of <code>RecursionError</code>. <code>10**6</code> is usually safe; higher is risky.</li>
+  <li><code>@cache</code> on a method silently keeps a reference to <code>self</code>, leaking the instance. Use <code>@cached_property</code> for per-instance caching.</li>
+  <li>Python doesn't optimize tail recursion — convert deep tail calls to loops manually.</li>
+  <li><code>list(zip(*grid))</code> yields tuples, not lists. If you need mutability: <code>[list(r) for r in zip(*grid)]</code>.</li>
+</ul>
+
+<footer>
+  Python 3.10+ assumed (newer features tagged) · third in the series: <i>containers · functions · idioms</i>
+</footer>
+
+</div>
+</body>
+</html>

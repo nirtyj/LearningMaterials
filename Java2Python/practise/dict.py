@@ -316,10 +316,8 @@ def keys_with_max_value(d):
     Return:
     ["b", "c"]
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    maxval = max(d.values())
+    return [x for x, y in d.items() if y == maxval]  
 
 
 # ============================================================
@@ -345,16 +343,13 @@ def from_pairs(pairs):
     Return:
     {"a": 10, "b": 2}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return dict({x[0]:x[1] for x in pairs})
 
 
 # ============================================================
 # Exercise 10: Count Characters in a String
 # ============================================================
-
+from collections import Counter
 def count_chars(s):
     """
     In words:
@@ -372,10 +367,7 @@ def count_chars(s):
     Return:
     {"b": 1, "a": 3, "n": 2}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return Counter(s)
 
 
 # ============================================================
@@ -401,10 +393,10 @@ def group_by_first_letter(words):
     Return:
     {"a": ["apple", "ant"], "b": ["bee", "banana"]}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    count = {}
+    for word in words:
+        count.setdefault(word[0], []).append(word)
+    return count
 
 
 # ============================================================
@@ -431,9 +423,10 @@ def defaultdict_count(s):
     {"b": 1, "a": 3, "n": 2}
     """
 
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    d = defaultdict(int)
+    for ch in s:
+        d[ch] = d[ch] + 1
+    return d
 
 
 # ============================================================
@@ -464,10 +457,9 @@ def fromkeys_trap():
     Example return:
     {"a": [1], "b": [], "c": []}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    d = dict({k:[] for k in ["a", "b", "c"]})
+    d["a"].append(1)
+    return d
 
 
 # ============================================================
@@ -494,10 +486,7 @@ def sort_by_value_desc(d):
     Return:
     [("b", 3), ("c", 3), ("a", 1)]
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted(d.items(), key = lambda x: (-x[1], x[0]))
 
 
 # ============================================================
@@ -525,10 +514,7 @@ def argmax_key(d):
     Return:
     "b"
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return max(d, key=d.get)
 
 
 # ============================================================
@@ -557,16 +543,13 @@ def dict_iteration(d):
         [("a", 1), ("b", 2), ("c", 3)],
     )
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted(d.keys(), key = lambda d: d), sorted(d.values(), key = lambda d: d), sorted(d.items(), key = lambda d : (d[0], d[1]))
 
 
 # ============================================================
 # Exercise 17: Word Frequencies in a List
 # ============================================================
-
+from collections import Counter
 def word_frequencies(words):
     """
     In words:
@@ -584,10 +567,8 @@ def word_frequencies(words):
     Return:
     {"the": 2, "cat": 1, "sat": 1, "on": 1, "mat": 1}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    c = Counter(words)
+    return c
 
 
 # ============================================================
@@ -617,10 +598,8 @@ def find_duplicates(nums):
     Return:
     [1, 2]
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    c = Counter(nums)
+    return [x for x, y in c.items() if y > 1]
 
 
 # ============================================================
@@ -660,9 +639,14 @@ def two_sum_indices(nums, target):
     (-1, -1)
     """
 
-    # YOUR CODE HERE
+    c = {}
+    for i, v in enumerate(nums):
+        if target - v in c:
+            return c[target - v], i
+        else:
+            c[v] = i
 
-    return NOT_IMPLEMENTED
+    return -1, -1
 
 
 # ============================================================
@@ -726,10 +710,18 @@ def analyze_records(records):
         "oldest":          ("alice", 35, "ny"),
     }
     """
+    max_age_by_name = {}
+    for name, age, city in records:
+        max_age_by_name[name] = max(age, max_age_by_name.get(name, age))
 
-    # YOUR CODE HERE
+    a = {
+        "count_by_city" : Counter(city for name, age, city in records),
+        "max_age_by_name": max({name: age for name, age, city in records}, key 
+        "names_in_ny": 0,
+        "oldest" : 0
+    }
 
-    return NOT_IMPLEMENTED
+    return a
 
 
 # ============================================================
