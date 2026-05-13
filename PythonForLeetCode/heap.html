@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Heap / Priority Queue | Python for LeetCode</title>
+<link href="guide.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-expanded="false" aria-label="Toggle navigation" class="nav-toggle">☰</button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar"></aside>
+<main class="content">
+<div class="container">
+<h1>⛰️ Heap / Priority Queue</h1>
+<p class="subtitle">O(log n) push/pop, plus the Top-K / Two Heaps pattern</p>
+<div style="background: #1a1a1a; border-left: 3px solid #4fc3f7; padding: 10px 14px; margin: 12px 0 20px 0; border-radius: 4px;">
+<strong>📎 Companion refs:</strong> <a href="algorithms.html" style="color:#4fc3f7;">Algorithm Patterns</a> (Top-K / Two Heaps) · <a href="power-features.html" style="color:#4fc3f7;">Power Features</a> (<code>heapreplace</code>) · <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>
+            </div>
+<div class="section">
+<h2 id="heap-init">Initialization</h2>
+<div class="tips-box">
+<h4>📐 Syntax Templates</h4>
+<p style="color: #888; margin-bottom: 10px;">Multi-slot heapq APIs and common gotchas — labeled syntax plus concrete input → output so you can predict the result before running it.</p>
+<h4 style="margin-top: 14px;">⬆️ Push/Pop template — <code>heappush(heap, item)</code> / <code>heappop(heap)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">A heap is just a list maintained in heap order by these functions. Both ops are O(log n).</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">import</span> heapq
+
+heapq.heappush( heap , item )
+                ↑      ↑
+                list   value (any orderable
+                kept   type — int, tuple,
+                in     etc.)
+                heap
+                order
+
+h = []
+heapq.heappush(h, <span class="number">5</span>)
+heapq.heappush(h, <span class="number">1</span>)
+heapq.heappush(h, <span class="number">3</span>)        <span class="comment"># h is now [1, 3, 5] (heap-ordered, smallest at h[0])</span>
+
+heapq.heappop(h)              <span class="comment"># → 1   removes &amp; returns smallest</span>
+heapq.heappop(h)              <span class="comment"># → 3</span>
+h[<span class="number">0</span>]                          <span class="comment"># peek smallest WITHOUT popping (cheap)</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li>Always use <code>heapq.heappush</code> / <code>heapq.heappop</code> — never <code>list.append</code> / <code>list.pop</code> on a heap (breaks the invariant)</li>
+<li><code>h[0]</code> is the smallest element; that's the only random-access guarantee. The rest is heap-ordered, NOT sorted</li>
+</ul>
+<h4 style="margin-top: 14px;">🔀 Combined-op template — <code>heappushpop</code> / <code>heapreplace</code></h4>
+<p style="color: #888; margin-bottom: 8px;">One log-n traversal instead of two. Different orderings — pick by what should always go in.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">heapq.heappushpop( heap , item )    <span class="comment"># PUSH first, then POP smallest</span>
+heapq.heapreplace( heap , item )    <span class="comment"># POP smallest first, then PUSH (item ALWAYS goes in)</span>
+
+h = [<span class="number">1</span>, <span class="number">3</span>, <span class="number">5</span>]
+heapq.heappushpop(h, <span class="number">0</span>)        <span class="comment"># → 0    0 is smaller than 1, so 0 pushes-then-pops itself out; h unchanged</span>
+heapq.heappushpop(h, <span class="number">4</span>)        <span class="comment"># → 1    4 pushed, then 1 popped (was smallest); h = [3, 4, 5]</span>
+
+h = [<span class="number">1</span>, <span class="number">3</span>, <span class="number">5</span>]
+heapq.heapreplace(h, <span class="number">0</span>)        <span class="comment"># → 1    1 popped first, THEN 0 pushed; h = [0, 3, 5]</span>
+heapq.heapreplace(h, <span class="number">4</span>)        <span class="comment"># → 0    0 popped first, THEN 4 pushed; h = [3, 4, 5]</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li><code>heappushpop</code>: the smaller of <code>item</code> and <code>h[0]</code> comes out. Use when "either item could be the new minimum"</li>
+<li><code>heapreplace</code>: <code>h[0]</code> always pops; <code>item</code> always goes in. Use when you know <code>item</code> belongs (e.g. streaming top-K, where every new item is a candidate)</li>
+</ul>
+<h4 style="margin-top: 14px;">🏆 Top-K template — <code>nlargest(n, iterable, key=None)</code> / <code>nsmallest(n, iterable, key=None)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Three slots: how many, what to scan, and an optional rank function. Uses O(n) memory (a heap of size n), not O(len(iterable)).</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">heapq.nlargest( n , iterable , key=None )
+                ↑    ↑          ↑
+                how  what to    optional rank
+                many scan       function
+                                (called per item)
+
+heapq.nlargest(<span class="number">3</span>, [<span class="number">5</span>, <span class="number">1</span>, <span class="number">3</span>, <span class="number">8</span>, <span class="number">2</span>])           <span class="comment"># → [8, 5, 3]      sorted descending</span>
+heapq.nsmallest(<span class="number">3</span>, [<span class="number">5</span>, <span class="number">1</span>, <span class="number">3</span>, <span class="number">8</span>, <span class="number">2</span>])          <span class="comment"># → [1, 2, 3]      sorted ascending</span>
+
+<span class="comment"># With key= function:</span>
+words = [<span class="string">"fig"</span>, <span class="string">"banana"</span>, <span class="string">"pear"</span>, <span class="string">"apple"</span>]
+heapq.nlargest(<span class="number">2</span>, words, key=<span class="function">len</span>)            <span class="comment"># → ['banana', 'apple']  longest two</span>
+
+<span class="comment"># Top-K by frequency from a Counter:</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> Counter
+c = Counter(<span class="string">"abracadabra"</span>)
+heapq.nlargest(<span class="number">3</span>, c, key=c.get)            <span class="comment"># → ['a', 'b', 'r']     top-3 most common keys</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li>For top-K from a stream of unknown length, this is the right tool — it doesn't materialize the full input</li>
+<li>For <code>n == 1</code>, prefer <code>max</code>/<code>min</code> (clearer); for <code>n &gt;= len/2</code>, just <code>sorted(...)[:n]</code></li>
+<li><code>key=</code> works the same as in <code>sorted</code> — function called on each item; ranking uses the return value</li>
+</ul>
+<h4 style="margin-top: 14px;">🏗️ Heapify template — <code>heapq.heapify(list)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">In-place, O(n) — faster than pushing items one at a time (which would be O(n log n)).</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">arr = [<span class="number">5</span>, <span class="number">1</span>, <span class="number">3</span>, <span class="number">8</span>, <span class="number">2</span>]
+heapq.heapify(arr)            <span class="comment"># mutates arr → [1, 2, 3, 8, 5]   returns None!</span>
+arr[<span class="number">0</span>]                        <span class="comment"># → 1    smallest is now at index 0</span>
+
+<span class="comment"># ⚠️ TRAP — heapify returns None:</span>
+h = heapq.heapify(arr)        <span class="comment"># h is None! arr was mutated in place</span>
+<span class="comment"># Just call it:</span>
+heapq.heapify(arr)            <span class="comment"># correct — arr is now a heap</span></pre>
+<h4 style="margin-top: 14px;">🪢 Merge template — <code>heapq.merge(*iterables, key=None, reverse=False)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Lazy merge of pre-sorted iterables. Returns an iterator — wrap in <code>list(...)</code> to materialize.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">a = [<span class="number">1</span>, <span class="number">4</span>, <span class="number">7</span>]
+b = [<span class="number">2</span>, <span class="number">3</span>, <span class="number">9</span>]
+c = [<span class="number">5</span>, <span class="number">6</span>, <span class="number">8</span>]
+
+<span class="function">list</span>(heapq.merge(a, b, c))            <span class="comment"># → [1, 2, 3, 4, 5, 6, 7, 8, 9]</span>
+<span class="function">list</span>(heapq.merge(a, b, reverse=<span class="keyword">True</span>))   <span class="comment"># inputs must be DESC if reverse=True</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li>Inputs MUST already be sorted (ascending by default); <code>merge</code> doesn't sort</li>
+<li>Lazy: useful for merging huge sorted files without loading them fully</li>
+</ul>
+<h4 style="margin-top: 14px;">⚠️ Gotcha — <code>heapq</code> is a MIN-heap (use negation for max-heap)</h4>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># Max-heap of ints — push negated, negate on pop:</span>
+h = []
+<span class="keyword">for</span> x <span class="keyword">in</span> [<span class="number">5</span>, <span class="number">1</span>, <span class="number">8</span>, <span class="number">3</span>]:
+    heapq.heappush(h, -x)
+-heapq.heappop(h)             <span class="comment"># → 8   the original max</span>
+
+<span class="comment"># Max-heap of (priority, payload) tuples — negate the priority only:</span>
+heapq.heappush(h, (-priority, payload))</pre>
+<h4 style="margin-top: 14px;">🎯 Gotcha — tuple priorities need a tiebreaker</h4>
+<p style="color: #888; margin-bottom: 8px;">Python compares tuples element-wise. If two priorities tie and the payload isn't comparable, you'll get a <code>TypeError</code>.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ❌ Will crash if two priorities are equal AND payload isn't orderable:</span>
+heapq.heappush(h, (priority, payload))
+
+<span class="comment"># ✅ Add a unique tiebreaker (insertion counter) to break ties cheaply:</span>
+<span class="keyword">import</span> itertools
+counter = itertools.count()
+heapq.heappush(h, (priority, <span class="function">next</span>(counter), payload))
+<span class="comment"># Tuples compare priority first; if equal, the (always-unique) counter wins.</span></pre>
+<p style="color: #888; margin-top: 8px;">See the existing tips-box below for <code>nlargest</code>/<code>nsmallest</code> use with Counter and other patterns.</p>
+</div>
+<div class="code-block">
+
+<div class="code-content">
+<pre><span class="keyword">import</span> heapq
+heap = []                          <span class="comment"># empty (just a list)</span>
+nums = [<span class="number">3</span>,<span class="number">1</span>,<span class="number">2</span>]; heapq.heapify(nums) <span class="comment"># in-place</span></pre>
+</div>
+</div>
+</div>
+<div class="section">
+<h2 id="heap-operations">Operations</h2>
+<div class="code-block">
+
+<div class="code-content">
+<pre><span class="keyword">import</span> heapq
+
+<span class="comment"># ── Min Heap ──</span>
+heap = []
+heapq.heappush(heap, <span class="number">5</span>)      <span class="comment"># [5]</span>
+heapq.heappush(heap, <span class="number">1</span>)      <span class="comment"># [1,5]</span>
+heapq.heappush(heap, <span class="number">3</span>)      <span class="comment"># [1,5,3]</span>
+heap[<span class="number">0</span>]                      <span class="comment"># peek min → 1</span>
+heapq.heappop(heap)          <span class="comment"># pop min → 1</span>
+
+<span class="comment"># ── Max Heap (negate values!) ──</span>
+heapq.heappush(heap, -val)
+-heapq.heappop(heap)
+
+<span class="comment"># ── Heapify existing list ──</span>
+nums = [<span class="number">5</span>, <span class="number">3</span>, <span class="number">8</span>, <span class="number">1</span>]
+heapq.heapify(nums)          <span class="comment"># O(n), in-place</span>
+
+<span class="comment"># ── Push + Pop combined ──</span>
+heapq.heappushpop(heap, val) <span class="comment"># push then pop min</span>
+heapq.heapreplace(heap, val) <span class="comment"># pop min then push</span>
+
+<span class="comment"># ── Top K Pattern ──</span>
+heapq.nlargest(<span class="number">3</span>, nums)      <span class="comment"># 3 largest</span>
+heapq.nsmallest(<span class="number">3</span>, nums)     <span class="comment"># 3 smallest</span>
+
+<span class="comment"># ── With tuples (priority, data) ──</span>
+heapq.heappush(heap, (<span class="number">2</span>, <span class="string">"low"</span>))
+heapq.heappush(heap, (<span class="number">1</span>, <span class="string">"high"</span>))
+heapq.heappop(heap)          <span class="comment"># (1, "high")</span></pre>
+</div>
+</div>
+<div class="tips-box">
+<h4>🛠️ Built-ins commonly paired with heaps</h4>
+<p style="color: #888; margin-bottom: 10px;">When you write heap code in interviews, these are the built-ins you reach for most.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">import</span> heapq
+
+<span class="comment"># ── Top-K shortcuts (bypass heappush/heappop loops) ──</span>
+heapq.nlargest(k, arr)                    <span class="comment"># top k as list</span>
+heapq.nsmallest(k, arr)
+heapq.nlargest(k, items, key=<span class="keyword">lambda</span> x: x.score)  <span class="comment"># objects by attribute</span>
+
+<span class="comment"># ── Tuples as priorities ──</span>
+heapq.heappush(pq, (priority, tiebreaker, payload))
+val, _, obj = heapq.heappop(pq)           <span class="comment"># tuple unpacking on pop</span>
+
+<span class="comment"># ── Heapify in place (O(n) — faster than n × heappush) ──</span>
+heapq.heapify(arr)
+
+<span class="comment"># ── Counter + heapq combo (top-k frequent) ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> Counter
+count = Counter(arr)
+heapq.nlargest(k, count, key=count.get)   <span class="comment"># keys with top-k counts</span>
+
+<span class="comment"># ── Iterating: a heap is just a list ──</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> pq: ...                         <span class="comment"># NOT in sorted order — array layout</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">sorted</span>(pq): ...                 <span class="comment"># sorted snapshot (allocates)</span>
+<span class="function">len</span>(pq), pq[<span class="number">0</span>]                          <span class="comment"># size, peek-min — no method call needed</span>
+
+<span class="comment"># ── Max-heap via negation ──</span>
+heapq.heappush(pq, -val)
+-heapq.heappop(pq)                        <span class="comment"># flip sign back on extract</span></pre>
+<p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
+</div>
+</div>
+<div class="section">
+<h2 id="heap-pattern">Interview Pattern: Heap / Top-K / Two Heaps</h2>
+<p style="color: #888; margin-bottom: 15px;">Priority queue for K-th element, streaming median. Used in: <em>Kth Largest Element, Top K Frequent, Merge K Sorted Lists, Find Median from Data Stream, Task Scheduler</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="keyword">import</span> heapq
+
+<span class="comment"># ── Top K Frequent Elements (LC 347) ──</span>
+<span class="keyword">def</span> <span class="function">topKFrequent</span>(nums, k):
+    count = Counter(nums)                <span class="comment"># ← instant frequency</span>
+    <span class="keyword">return</span> heapq.nlargest(k, count, key=count.get)  <span class="comment"># ← one-liner!</span>
+    <span class="comment"># Alt: return [x for x, _ in count.most_common(k)]</span>
+
+<span class="comment"># ── Kth Largest Element (LC 215) ──</span>
+<span class="keyword">def</span> <span class="function">findKthLargest</span>(nums, k):
+    <span class="keyword">return</span> heapq.nlargest(k, nums)[-<span class="number">1</span>]   <span class="comment"># ← built-in!</span>
+
+<span class="comment"># ── Merge K Sorted Lists (LC 23) ──</span>
+<span class="keyword">def</span> <span class="function">mergeKLists</span>(lists):
+    heap = []
+    <span class="keyword">for</span> i, l <span class="keyword">in</span> <span class="function">enumerate</span>(lists):
+        <span class="keyword">if</span> l:
+            heapq.heappush(heap, (l.val, i, l))  <span class="comment"># ← i breaks ties!</span>
+    dummy = cur = ListNode(<span class="number">0</span>)
+    <span class="keyword">while</span> heap:
+        val, i, node = heapq.heappop(heap)
+        cur.next = node
+        cur = cur.next
+        <span class="keyword">if</span> node.next:
+            heapq.heappush(heap, (node.next.val, i, node.next))
+    <span class="keyword">return</span> dummy.next
+
+<span class="comment"># ── Find Median (LC 295) — Two Heaps ──</span>
+<span class="comment"># small = max-heap (negate!), large = min-heap</span>
+small, large = [], []  <span class="comment"># max-heap (neg), min-heap</span>
+heapq.heappush(small, -num)
+heapq.heappush(large, -heapq.heappop(small))
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • heapq.nlargest(k, ...)  — avoid full sort</span>
+<span class="comment"># • Counter().most_common(k) — top K frequencies</span>
+<span class="comment"># • -val for max-heap       — negate trick</span>
+<span class="comment"># • (val, tiebreaker, obj)  — tuple comparison order</span></pre>
+</div>
+</div>
+</div>
+<nav class="page-nav">
+<a class="prev" href="queue.html">← Queue / Deque</a>
+<a class="next" href="string.html">String →</a>
+</nav>
+</div>
+</main>
+<script defer="" src="guide.js"></script>
+</body>
+</html>

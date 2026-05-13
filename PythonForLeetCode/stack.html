@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stack | Python for LeetCode</title>
+<link href="guide.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-expanded="false" aria-label="Toggle navigation" class="nav-toggle">☰</button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar"></aside>
+<main class="content">
+<div class="container">
+<h1>📚 Stack</h1>
+<p class="subtitle">LIFO — push / pop / peek, plus Monotonic Stack pattern</p>
+<div style="background: #1a1a1a; border-left: 3px solid #4fc3f7; padding: 10px 14px; margin: 12px 0 20px 0; border-radius: 4px;">
+<strong>📎 Companion refs:</strong> <a href="algorithms.html" style="color:#4fc3f7;">Algorithm Patterns</a> (monotonic stack examples) · <a href="cheatsheet-by-operation.html" style="color:#4fc3f7;">Methods by Operation</a>
+            </div>
+<div class="section">
+<h2 id="stack-init">Initialization</h2>
+<div class="code-block">
+
+<div class="code-content">
+<pre>stack = []                         <span class="comment"># just a list</span></pre>
+</div>
+</div>
+</div>
+<div class="section">
+<h2 id="stack-operations">Operations</h2>
+<div class="code-block">
+
+<div class="code-content">
+<pre>stack = []
+
+<span class="comment"># ── Push / Pop / Peek ──</span>
+stack.append(<span class="number">1</span>)              <span class="comment"># push → [1]</span>
+stack.append(<span class="number">2</span>)              <span class="comment"># push → [1,2]</span>
+stack.append(<span class="number">3</span>)              <span class="comment"># push → [1,2,3]</span>
+stack[-<span class="number">1</span>]                    <span class="comment"># peek → 3 (no remove)</span>
+stack.pop()                  <span class="comment"># pop → 3, stack=[1,2]</span>
+
+<span class="comment"># ── Check ──</span>
+<span class="function">len</span>(stack) == <span class="number">0</span>              <span class="comment"># is empty?</span>
+<span class="keyword">not</span> stack                    <span class="comment"># Pythonic empty check</span>
+
+<span class="comment"># ── Common Pattern: Monotonic Stack ──</span>
+stack = []
+<span class="keyword">for</span> i, num <span class="keyword">in</span> <span class="function">enumerate</span>(nums):
+    <span class="keyword">while</span> stack <span class="keyword">and</span> nums[stack[-<span class="number">1</span>]] &lt; num:
+        stack.pop()
+    stack.append(i)</pre>
+</div>
+</div>
+<div class="tips-box">
+<h4>🛠️ Built-ins commonly paired with stacks</h4>
+<p style="color: #888; margin-bottom: 10px;">When you write stack code in interviews, these are the built-ins you reach for most.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── Building ──</span>
+stack = []                                <span class="comment"># plain list</span>
+stack = <span class="function">list</span>(arr)                          <span class="comment"># initialize with elements</span>
+stack = [root] <span class="keyword">if</span> root <span class="keyword">else</span> []             <span class="comment"># conditional init (DFS start)</span>
+
+<span class="comment"># ── Push / pop / peek (built-in idioms — no method calls needed) ──</span>
+stack.append(x)                           <span class="comment"># push</span>
+stack.pop()                               <span class="comment"># pop top</span>
+stack[-<span class="number">1</span>]                                 <span class="comment"># peek — no method needed</span>
+<span class="keyword">not</span> stack                                 <span class="comment"># Pythonic empty check</span>
+<span class="function">len</span>(stack) == <span class="number">0</span>                           <span class="comment"># explicit length check</span>
+
+<span class="comment"># ── Iterating without consuming ──</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> stack: ...                       <span class="comment"># bottom-to-top order</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> <span class="function">reversed</span>(stack): ...             <span class="comment"># top-to-bottom — what you usually want</span>
+<span class="keyword">while</span> stack <span class="keyword">and</span> stack[-<span class="number">1</span>] &lt; x:            <span class="comment"># monotonic-stack scan idiom</span>
+    stack.pop()
+
+<span class="comment"># ── Snapshot / convert ──</span>
+<span class="function">list</span>(stack)                               <span class="comment"># shallow copy</span>
+<span class="string">""</span>.join(stack)                            <span class="comment"># build string from char stack — common in parsing</span></pre>
+<p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
+</div>
+</div>
+<div class="section">
+<h2 id="stack-pattern">Interview Pattern: Monotonic Stack</h2>
+<p style="color: #888; margin-bottom: 15px;">LIFO for matching, next greater / smaller. Used in: <em>Valid Parentheses, Daily Temperatures, Largest Rectangle in Histogram, Car Fleet</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Valid Parentheses (LC 20) ──</span>
+<span class="keyword">def</span> <span class="function">isValid</span>(s):
+    stack = []
+    pairs = {<span class="string">')'</span>: <span class="string">'('</span>, <span class="string">']'</span>: <span class="string">'['</span>, <span class="string">'}'</span>: <span class="string">'{'</span>}  <span class="comment"># ← dict for O(1) match</span>
+    <span class="keyword">for</span> c <span class="keyword">in</span> s:
+        <span class="keyword">if</span> c <span class="keyword">in</span> pairs:
+            <span class="keyword">if</span> <span class="keyword">not</span> stack <span class="keyword">or</span> stack[-<span class="number">1</span>] != pairs[c]:
+                <span class="keyword">return</span> <span class="keyword">False</span>
+            stack.pop()
+        <span class="keyword">else</span>:
+            stack.append(c)
+    <span class="keyword">return</span> <span class="keyword">not</span> stack                   <span class="comment"># ← Pythonic empty check</span>
+
+<span class="comment"># ── Daily Temperatures (LC 739) — Monotonic stack ──</span>
+<span class="keyword">def</span> <span class="function">dailyTemperatures</span>(temps):
+    ans = [<span class="number">0</span>] * <span class="function">len</span>(temps)
+    stack = []                           <span class="comment"># stores indices</span>
+    <span class="keyword">for</span> i, t <span class="keyword">in</span> <span class="function">enumerate</span>(temps):
+        <span class="keyword">while</span> stack <span class="keyword">and</span> temps[stack[-<span class="number">1</span>]] &lt; t:
+            j = stack.pop()
+            ans[j] = i - j               <span class="comment"># ← days to wait</span>
+        stack.append(i)
+    <span class="keyword">return</span> ans
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • stack[-1]          — peek (no method needed!)</span>
+<span class="comment"># • not stack          — Pythonic "is empty" check</span>
+<span class="comment"># • dict for matching  — O(1) bracket pair lookup</span></pre>
+</div>
+</div>
+</div>
+<nav class="page-nav">
+<a class="prev" href="set.html">← Set / HashSet</a>
+<a class="next" href="queue.html">Queue / Deque →</a>
+</nav>
+</div>
+</main>
+<script defer="" src="guide.js"></script>
+</body>
+</html>

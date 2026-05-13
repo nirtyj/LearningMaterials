@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Compilation &amp; Execution | Python for LeetCode</title>
+<link href="guide.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-expanded="false" aria-label="Toggle navigation" class="nav-toggle">☰</button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar"></aside>
+<main class="content">
+<div class="container">
+<h1>Compilation &amp; Execution</h1>
+<p class="subtitle">How Python goes from source to running code</p>
+
+<div class="section">
+<h2>The pipeline</h2>
+<div class="flow-diagram">
+<div class="flow-row">
+<div class="flow-label python">Python</div>
+<div class="flow-box python">
+<div class="icon">📄</div>
+<div><strong>script.py</strong></div>
+<div class="label">Source code</div>
+</div>
+<div class="flow-arrow">→</div>
+<div class="flow-box python">
+<div class="icon">⚙️</div>
+<div><strong>Interpreter</strong></div>
+<div class="label">Compiles to bytecode</div>
+</div>
+<div class="flow-arrow">→</div>
+<div class="flow-box python">
+<div class="icon">📦</div>
+<div><strong>.pyc</strong></div>
+<div class="label">Bytecode (cached in <code>__pycache__/</code>)</div>
+</div>
+<div class="flow-arrow">→</div>
+<div class="flow-box python">
+<div class="icon">🖥️</div>
+<div><strong>PVM</strong></div>
+<div class="label">Python VM executes</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<h2>What you actually need for interviews</h2>
+<div class="tips-box">
+<ul>
+<li><strong>CPython is the default runtime.</strong> When you write Python on LeetCode, you're running CPython — a bytecode interpreter written in C.</li>
+<li><strong>Dynamic typing</strong> — type checking happens at runtime. There's no compile step that catches <code>obj.foo()</code> on a wrong-typed object; you find out when it runs.</li>
+<li><strong>Bytecode is cached</strong> in <code>__pycache__/*.pyc</code>. First import is slow (compile); subsequent imports skip compilation if the source hasn't changed.</li>
+<li><strong>The GIL</strong> (Global Interpreter Lock) — only one Python thread executes bytecode at a time. CPU-bound threading doesn't speed up pure-Python code. Multiprocessing or C extensions get around it. <em>Rarely tested directly, but useful context.</em></li>
+<li><strong>Reference counting + cycle GC</strong> — objects are freed as soon as their refcount hits zero, with a periodic cycle detector for circular references.</li>
+<li><strong>PyPy</strong> is an alternate runtime with a JIT compiler — 5–10× faster on tight loops. Not available on LeetCode but worth knowing if your contest judge offers it.</li>
+</ul>
+</div>
+</div>
+
+<div class="section">
+<h2>Performance reality on LeetCode</h2>
+<div class="tips-box">
+<ul>
+<li>A pure-Python solution is typically <strong>3–10× slower</strong> than the same algorithm in a compiled language. LeetCode time limits account for this — your solution doesn't need to be fastest, just within Python's bucket.</li>
+<li>When you see TLE on a correct algorithm: switch to <strong>built-in/C-backed operations</strong> (<code>sum()</code>, <code>min()</code>, <code>sorted()</code>, list slicing, <code>collections.Counter</code>) instead of hand-rolled loops. The hot loop is C, not Python.</li>
+<li>Avoid repeated string concatenation in a loop (<code>s += c</code>) — use <code>"".join(parts)</code> instead. Strings are immutable, so <code>+=</code> rebuilds the whole string each time.</li>
+</ul>
+</div>
+</div>
+
+<nav class="page-nav">
+<a class="prev" href="index.html">← Home</a>
+<a class="next" href="variables.html">Variables &amp; Memory →</a>
+</nav>
+</div>
+</main>
+<script defer="" src="guide.js"></script>
+</body>
+</html>

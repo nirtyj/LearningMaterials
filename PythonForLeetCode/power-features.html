@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Python Power Features | Python for LeetCode</title>
+<link href="guide.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-expanded="false" aria-label="Toggle navigation" class="nav-toggle">☰</button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar"></aside>
+<main class="content">
+<div class="container">
+<h1>⚡ Python Power Features</h1>
+<p class="subtitle">Idioms that compress 5–10 lines into a single Python expression</p>
+<div class="section">
+<div class="quick-ref">
+<div class="quick-ref-card">
+<h4>🔢 Multiple Assignment</h4>
+<code>a, b = b, a  # swap</code>
+<code>a, b, *rest = [1,2,3,4,5]</code>
+<p class="note">No temp variable needed!</p>
+</div>
+<div class="quick-ref-card">
+<h4>📏 Slicing Magic</h4>
+<code>arr[start:end:step]</code>
+<code>arr[-1]  # last element</code>
+<code>arr[:-1] # all but last</code>
+<code>arr[::-1] # reversed</code>
+</div>
+<div class="quick-ref-card">
+<h4>🔄 Enumerate &amp; Zip</h4>
+<code>for i, val in enumerate(arr):</code>
+<code>for a, b in zip(list1, list2):</code>
+<p class="note">No need for index tracking!</p>
+</div>
+<div class="quick-ref-card">
+<h4>📊 DefaultDict</h4>
+<code>from collections import defaultdict</code>
+<code>d = defaultdict(list)</code>
+<code>d = defaultdict(int)  # counters</code>
+<p class="note">Auto-creates missing keys</p>
+</div>
+<div class="quick-ref-card">
+<h4>∞ Infinity</h4>
+<code>float('inf')   # positive infinity</code>
+<code>float('-inf')  # negative infinity</code>
+<p class="note">Great for min/max comparisons</p>
+</div>
+<div class="quick-ref-card">
+<h4>🎭 Any/All</h4>
+<code>any(x &gt; 0 for x in nums)</code>
+<code>all(x &gt; 0 for x in nums)</code>
+<p class="note">Short-circuit evaluation</p>
+</div>
+<div class="quick-ref-card">
+<h4>🔍 Binary Search</h4>
+<code>import bisect</code>
+<code>bisect.bisect_left(arr, x)</code>
+<code>bisect.insort(arr, x)</code>
+<p class="note">Built-in binary search!</p>
+</div>
+<div class="quick-ref-card">
+<h4>🧮 Math Shortcuts</h4>
+<code>divmod(10, 3)  # (3, 1)</code>
+<code>pow(2, 10, mod)  # modular exp</code>
+<code>math.gcd(a, b)</code>
+</div>
+</div>
+<div class="tips-box">
+<h4>🎯 Interview Quick Wins with Python</h4>
+<ul>
+<li><strong>Counter</strong> for frequency problems → <code>Counter(arr).most_common(k)</code></li>
+<li><strong>heapq.nlargest/nsmallest</strong> for top-K → more efficient than full sort</li>
+<li><strong>collections.deque</strong> for BFS/sliding window → O(1) popleft</li>
+<li><strong>Tuple as dict key</strong> for 2D coordinates → <code>visited[(row, col)]</code></li>
+<li><strong>Set operations</strong> for duplicates/intersection → <code>set1 &amp; set2</code></li>
+</ul>
+</div>
+<div class="tips-box">
+<h4>🎚️ Compact Sort &amp; Search Idioms</h4>
+<p style="color: #888; margin-bottom: 10px;">
+                        Four small idioms that collapse 5–10 lines into a single Python expression. Show up constantly in <em>Reconstruct Queue, Largest Number, Russian Doll Envelopes, Find K Closest Elements, Top K Frequent</em>.
+                    </p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── 1) Multi-key sort with mixed direction ──</span>
+<span class="comment"># Tuple key sorts lexicographically. Use - on numerics to flip direction.</span>
+people.sort(key=<span class="keyword">lambda</span> p: (-p[<span class="number">0</span>], p[<span class="number">1</span>]))   <span class="comment"># height desc, k asc (LC 406)</span>
+envelopes.sort(key=<span class="keyword">lambda</span> e: (e[<span class="number">0</span>], -e[<span class="number">1</span>])) <span class="comment"># LC 354: width asc, height desc</span>
+<span class="comment"># For non-numeric reverse keys, use cmp_to_key (already covered above).</span>
+
+<span class="comment"># ── 2) next((x for x in arr if cond), default) — find-first ──</span>
+<span class="comment"># Replaces the for/return/else dance.</span>
+first_even = <span class="function">next</span>((x <span class="keyword">for</span> x <span class="keyword">in</span> nums <span class="keyword">if</span> x % <span class="number">2</span> == <span class="number">0</span>), -<span class="number">1</span>)
+
+<span class="comment"># With index — pair enumerate + next:</span>
+i = <span class="function">next</span>((i <span class="keyword">for</span> i, x <span class="keyword">in</span> <span class="function">enumerate</span>(nums) <span class="keyword">if</span> x &gt; target), <span class="function">len</span>(nums))
+
+<span class="comment"># ⚠️ Without the default, StopIteration leaks out — always supply one.</span>
+
+<span class="comment"># ── 3) max(d, key=d.get) — argmax of a dict ──</span>
+<span class="comment"># Returns the KEY whose VALUE is largest. (max(d) alone returns max key.)</span>
+freq = Counter(nums)
+mode = <span class="function">max</span>(freq, key=freq.get)        <span class="comment"># most-frequent element</span>
+
+<span class="comment"># Same with min, and arbitrary key fns:</span>
+furthest = <span class="function">max</span>(points, key=<span class="keyword">lambda</span> p: p[<span class="number">0</span>]**<span class="number">2</span> + p[<span class="number">1</span>]**<span class="number">2</span>)
+
+<span class="comment"># ── 4) heapq.heappushpop / heapreplace — atomic top-K ──</span>
+<span class="comment"># heappushpop(h, x): push then pop, ONE sift-down (faster than push + pop).</span>
+<span class="comment"># heapreplace(h, x): pop then push — same cost. Use when h is non-empty.</span>
+<span class="keyword">import</span> heapq
+<span class="keyword">def</span> <span class="function">topK</span>(nums, k):
+    h = nums[:k]
+    heapq.heapify(h)                    <span class="comment"># O(k) min-heap of first k</span>
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums[k:]:
+        <span class="keyword">if</span> n &gt; h[<span class="number">0</span>]:
+            heapq.heapreplace(h, n)     <span class="comment"># ← one sift, not two</span>
+    <span class="keyword">return</span> h                            <span class="comment"># the top k (unsorted)</span>
+
+<span class="comment"># ── Bonus: deque(maxlen=k) — auto-evicting fixed window ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> deque
+window = deque(maxlen=k)                <span class="comment"># appending past k auto-pops left</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> stream:
+    window.append(x)                    <span class="comment"># window holds at most last k</span></pre>
+<h4 style="margin-top: 14px;">💡 Why each one</h4>
+<ul>
+<li><strong>Multi-key sort</strong>: a tuple key sorts lexicographically in one pass; chain criteria by adding more tuple slots. Negation flips direction on numerics — for strings, use two passes (Python's sort is stable) or <code>cmp_to_key</code></li>
+<li><strong><code>next(gen, default)</code></strong>: O(1) memory, short-circuits on first match. Forgetting the default is the #1 bug — always supply one</li>
+<li><strong><code>max(d, key=d.get)</code></strong>: argmax in 4 tokens. Ties broken by insertion order (3.7+) — call <code>sorted(d, key=...)</code> if you need a deterministic tiebreak</li>
+<li><strong><code>heapreplace</code></strong> vs <code>heappush + heappop</code>: same big-O but ~2× faster in practice — important inside top-K hot loops on large streams</li>
+</ul>
+</div>
+</div>
+<nav class="page-nav">
+<a class="prev" href="algorithms.html">← Algorithm Patterns</a>
+<a class="next" href="python-builtins.html">Python Builtins →</a>
+</nav>
+</div>
+</main>
+<script defer="" src="guide.js"></script>
+</body>
+</html>

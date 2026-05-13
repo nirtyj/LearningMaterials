@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Common Gotchas | Python for LeetCode</title>
+<link href="guide.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-expanded="false" aria-label="Toggle navigation" class="nav-toggle">☰</button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar"></aside>
+<main class="content">
+<div class="container">
+<h1>⚠️ Common Gotchas</h1>
+<p class="subtitle">The traps that bite — and how to dodge them</p>
+<p style="color: #888; margin-bottom: 20px; font-size: 0.9rem;">String Immutability lives on the <a href="string.html" style="color:#4fc3f7;">String</a> page next to the operations it affects.</p>
+<div class="section">
+<div class="ds-grid">
+<div class="ds-card" style="border-color: #ff6b6b;">
+<h4 style="color: #ff6b6b;">Mutable Default Arguments</h4>
+<div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># ❌ WRONG - list persists between calls!</span>
+<span class="keyword">def</span> <span class="function">add</span>(item, lst=[]):
+    lst.append(item)
+    <span class="keyword">return</span> lst
+
+<span class="comment"># ✅ CORRECT</span>
+<span class="keyword">def</span> <span class="function">add</span>(item, lst=<span class="keyword">None</span>):
+    <span class="keyword">if</span> lst <span class="keyword">is</span> <span class="keyword">None</span>:
+        lst = []
+    lst.append(item)
+    <span class="keyword">return</span> lst</pre>
+</div>
+</div>
+<div class="ds-card" style="border-color: #ff6b6b;">
+<h4 style="color: #ff6b6b;">Integer Division</h4>
+<div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># Python 3</span>
+<span class="number">7</span> / <span class="number">2</span>   <span class="comment"># = 3.5 (float division)</span>
+<span class="number">7</span> // <span class="number">2</span>  <span class="comment"># = 3   (integer division)</span>
+
+<span class="comment"># Negative numbers — // FLOORS toward -∞ (not toward 0)</span>
+-<span class="number">7</span> // <span class="number">2</span>             <span class="comment"># = -4   (floors toward -∞)</span>
+<span class="function">int</span>(-<span class="number">7</span> / <span class="number">2</span>)         <span class="comment"># = -3   (truncate toward 0, via float)</span>
+-(-<span class="number">7</span> // <span class="number">2</span>) * -<span class="number">1</span>     <span class="comment"># = -3   (pure-int truncate; ugly but no float)</span>
+
+<span class="comment"># Ceiling division — two idioms, both pure-int:</span>
+-(-<span class="number">7</span> // <span class="number">3</span>)            <span class="comment"># = 3    (negate-floor-negate)</span>
+math.ceil(<span class="number">7</span> / <span class="number">3</span>)        <span class="comment"># = 3    (clearer; uses float)</span></pre>
+</div>
+</div>
+<div class="ds-card" style="border-color: #ff6b6b;">
+<h4 style="color: #ff6b6b;">Modulo with Negatives</h4>
+<div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># Python's % follows the SIGN OF THE DIVISOR (always ≥ 0 for positive b)</span>
+(-<span class="number">7</span>) % <span class="number">3</span>             <span class="comment"># = 2   (because -7 = -3*3 + 2)</span>
+<span class="number">7</span> % (-<span class="number">3</span>)             <span class="comment"># = -2  (matches sign of divisor)</span>
+
+<span class="comment"># For truncate-toward-0 behavior (returns float):</span>
+<span class="keyword">import</span> math
+math.fmod(-<span class="number">7</span>, <span class="number">3</span>)        <span class="comment"># = -1.0</span>
+
+<span class="comment"># Why this matters: hashing, "wrap-around" indices, and</span>
+<span class="comment"># circular-array problems — Python's behavior is usually what you want</span>
+(idx - <span class="number">1</span>) % n          <span class="comment"># wraps -1 to n-1 cleanly</span></pre>
+</div>
+</div>
+<div class="ds-card" style="border-color: #ff6b6b;">
+<h4 style="color: #ff6b6b;">List Copy vs Reference</h4>
+<div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># ❌ Reference (same object)</span>
+a = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]
+b = a
+b.append(<span class="number">4</span>)  <span class="comment"># a is also [1,2,3,4]!</span>
+
+<span class="comment"># ✅ Shallow copy</span>
+b = a[:]       <span class="comment"># or a.copy()</span>
+b = <span class="function">list</span>(a)
+
+<span class="comment"># ✅ Deep copy (nested structures)</span>
+<span class="keyword">import</span> copy
+b = copy.deepcopy(a)</pre>
+</div>
+</div>
+</div>
+</div>
+<nav class="page-nav">
+<a class="prev" href="python-builtins.html">← Python Builtins</a>
+<a class="next" href="cheatsheet-by-operation.html">Methods by Operation →</a>
+</nav>
+</div>
+</main>
+<script defer="" src="guide.js"></script>
+</body>
+</html>

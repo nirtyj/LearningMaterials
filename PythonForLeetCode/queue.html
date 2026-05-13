@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Queue / Deque | Python for LeetCode</title>
+<link href="guide.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-expanded="false" aria-label="Toggle navigation" class="nav-toggle">☰</button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar"></aside>
+<main class="content">
+<div class="container">
+<h1>🚶 Queue / Deque</h1>
+<p class="subtitle">FIFO and double-ended — plus the BFS pattern</p>
+<div style="background: #1a1a1a; border-left: 3px solid #4fc3f7; padding: 10px 14px; margin: 12px 0 20px 0; border-radius: 4px;">
+<strong>📎 Companion refs:</strong> <a href="algorithms.html" style="color:#4fc3f7;">Algorithm Patterns</a> (BFS) · <a href="cheatsheet-by-operation.html" style="color:#4fc3f7;">Methods by Operation</a> · <a href="power-features.html" style="color:#4fc3f7;">Power Features</a> (<code>deque(maxlen=k)</code> for sliding windows)
+            </div>
+<div class="section">
+<h2 id="queue-init">Initialization</h2>
+<div class="tips-box">
+<h4>📐 Syntax Templates</h4>
+<p style="color: #888; margin-bottom: 10px;">Multi-slot deque APIs and common gotchas — labeled syntax plus concrete input → output so you can predict the result before running it.</p>
+<h4 style="margin-top: 14px;">🏗️ Construct template — <code>deque(iterable=(), maxlen=None)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Two slots: initial contents and an optional bound. A bounded deque drops from the opposite end on overflow.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">from</span> collections <span class="keyword">import</span> deque
+
+deque( iterable , maxlen )
+        ↑          ↑
+        initial    optional bound
+        contents   (default None = unbounded)
+        (default
+        empty)
+
+deque()                          <span class="comment"># → deque([])              empty</span>
+deque([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])                  <span class="comment"># → deque([1, 2, 3])       from any iterable</span>
+deque(<span class="string">"abc"</span>)                     <span class="comment"># → deque(['a', 'b', 'c']) string is iterable too</span>
+deque([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>], maxlen=<span class="number">2</span>)         <span class="comment"># → deque([2, 3], maxlen=2) front item dropped to fit</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li><code>maxlen</code>-bounded deque: pushing on one end pops from the other when full — useful for sliding windows and "last N items" caches</li>
+<li>Pass <em>any</em> iterable as the first arg — list, tuple, string, generator</li>
+</ul>
+<h4 style="margin-top: 14px;">↔️ Both-ends template — <code>append</code> / <code>appendleft</code> / <code>pop</code> / <code>popleft</code></h4>
+<p style="color: #888; margin-bottom: 8px;">All four are O(1). The "left" variants are why <code>deque</code> exists — <code>list.pop(0)</code> is O(n).</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">dq = deque([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])
+
+dq.append(<span class="number">4</span>)              <span class="comment"># → deque([1, 2, 3, 4])    add right (the "queue tail")</span>
+dq.appendleft(<span class="number">0</span>)          <span class="comment"># → deque([0, 1, 2, 3, 4]) add left (the "queue head")</span>
+
+dq.pop()                  <span class="comment"># → 4   removes &amp; returns RIGHTMOST</span>
+dq.popleft()              <span class="comment"># → 0   removes &amp; returns LEFTMOST</span>
+
+<span class="comment"># BFS pattern (the canonical use):</span>
+queue = deque([start])
+<span class="keyword">while</span> queue:
+    node = queue.popleft()        <span class="comment"># O(1) dequeue from head</span>
+    <span class="keyword">for</span> nbr <span class="keyword">in</span> graph[node]:
+        queue.append(nbr)         <span class="comment"># O(1) enqueue at tail</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li>Mental model: <code>append</code>/<code>pop</code> = right end (tail); <code>appendleft</code>/<code>popleft</code> = left end (head)</li>
+<li>FIFO queue: append + popleft. Stack on a deque: append + pop. LIFO from the left: appendleft + popleft.</li>
+</ul>
+<h4 style="margin-top: 14px;">📥 Bulk template — <code>extend(iterable)</code> / <code>extendleft(iterable)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Add many items at once. <code>extendleft</code> has a non-obvious quirk — see the gotcha below.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">dq = deque([<span class="number">1</span>])
+
+dq.extend([<span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>])
+<span class="comment"># → deque([1, 2, 3, 4])      items appended in order</span>
+
+dq = deque([<span class="number">1</span>])
+dq.extendleft([<span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>])
+<span class="comment"># → deque([4, 3, 2, 1])      items appendleft'd one at a time → REVERSED!</span></pre>
+<h4 style="margin-top: 14px;">🔄 Rotate template — <code>dq.rotate(n=1)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Circular shift. Positive shifts right (last items wrap to front); negative shifts left.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">dq = deque([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>])
+
+dq.rotate(<span class="number">1</span>)                <span class="comment"># → deque([5, 1, 2, 3, 4])  last → front (right by 1)</span>
+dq.rotate(<span class="number">2</span>)                <span class="comment"># → deque([4, 5, 1, 2, 3])  right by 2 (cumulative from above)</span>
+
+dq = deque([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>])
+dq.rotate(-<span class="number">1</span>)               <span class="comment"># → deque([2, 3, 4, 5, 1])  first → back (left by 1)</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li>Positive <code>n</code>: rightward shift (think "rotate clockwise" — items roll off the right and onto the left)</li>
+<li>Negative <code>n</code>: leftward shift</li>
+<li>Useful for round-robin scheduling, circular buffers, and the "rotate array by k" interview question</li>
+</ul>
+<h4 style="margin-top: 14px;">⚠️ Gotcha — <code>extendleft</code> reverses</h4>
+<p style="color: #888; margin-bottom: 8px;">Each item in the iterable is <code>appendleft</code>'d in turn — so the LAST item ends up leftmost.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">dq = deque()
+dq.extendleft([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])      <span class="comment"># → deque([3, 2, 1])   not [1, 2, 3]!</span>
+
+<span class="comment"># Equivalent to:</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]:
+    dq.appendleft(x)             <span class="comment"># 1 lands first → pushed left by 2 → pushed left by 3</span>
+
+<span class="comment"># Want left-prepend in original order? Reverse the input:</span>
+dq.extendleft(<span class="function">reversed</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]))
+<span class="comment"># → deque([1, 2, 3])</span></pre>
+<h4 style="margin-top: 14px;">🪤 Gotcha — <code>maxlen</code> drops from the OPPOSITE end</h4>
+<p style="color: #888; margin-bottom: 8px;">Pushing right when full pops left, and vice versa. That's the sliding-window superpower.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">dq = deque(maxlen=<span class="number">3</span>)
+dq.append(<span class="number">1</span>); dq.append(<span class="number">2</span>); dq.append(<span class="number">3</span>)
+<span class="comment"># → deque([1, 2, 3], maxlen=3)</span>
+
+dq.append(<span class="number">4</span>)                  <span class="comment"># → deque([2, 3, 4], maxlen=3)   pushed right, 1 popped from left</span>
+dq.appendleft(<span class="number">0</span>)              <span class="comment"># → deque([0, 2, 3], maxlen=3)   pushed left, 4 popped from right</span></pre>
+<p style="color: #888; margin-top: 8px;">See the tips-box below for BFS level-snapshot idioms and queue construction patterns.</p>
+</div>
+<div class="code-block">
+
+<div class="code-content">
+<pre><span class="keyword">from</span> collections <span class="keyword">import</span> deque
+q = deque()                        <span class="comment"># empty</span>
+q = deque([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])              <span class="comment"># from list</span>
+q = deque(maxlen=<span class="number">5</span>)               <span class="comment"># bounded queue</span></pre>
+</div>
+</div>
+</div>
+<div class="section">
+<h2 id="queue-operations">Operations</h2>
+<div class="code-block">
+
+<div class="code-content">
+<pre><span class="keyword">from</span> collections <span class="keyword">import</span> deque
+
+q = deque()
+
+<span class="comment"># ── Enqueue / Dequeue ──</span>
+q.append(<span class="number">1</span>)                  <span class="comment"># right → deque([1])</span>
+q.append(<span class="number">2</span>)                  <span class="comment"># right → deque([1,2])</span>
+q.appendleft(<span class="number">0</span>)              <span class="comment"># left  → deque([0,1,2])</span>
+q.popleft()                  <span class="comment"># dequeue → 0 (O(1)!)</span>
+q.pop()                      <span class="comment"># from right → 2</span>
+
+<span class="comment"># ── Peek ──</span>
+q[<span class="number">0</span>]                         <span class="comment"># front</span>
+q[-<span class="number">1</span>]                        <span class="comment"># back</span></pre>
+</div>
+</div>
+<div class="tips-box">
+<h4>🛠️ Built-ins commonly paired with queues / deques</h4>
+<p style="color: #888; margin-bottom: 10px;">When you write queue / deque code in interviews, these are the built-ins you reach for most.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">from</span> collections <span class="keyword">import</span> deque
+
+<span class="comment"># ── Building ──</span>
+q = deque()
+q = deque([root])                         <span class="comment"># init with single element (BFS start)</span>
+q = deque(arr)                            <span class="comment"># init from any iterable</span>
+q = deque(maxlen=k)                       <span class="comment"># bounded — auto-pops oldest</span>
+
+<span class="comment"># ── BFS level-snapshot pattern (the universal trick) ──</span>
+<span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(q)):                   <span class="comment"># snapshot size BEFORE iterating</span>
+    node = q.popleft()
+    q.extend(node.children)               <span class="comment"># bulk append — extend = append-many</span>
+
+<span class="comment"># ── Iterating without consuming ──</span>
+<span class="keyword">for</span> x <span class="keyword">in</span> q: ...                          <span class="comment"># left-to-right</span>
+<span class="function">list</span>(q)                                   <span class="comment"># snapshot copy</span>
+<span class="function">enumerate</span>(q)                              <span class="comment"># index + value</span>
+
+<span class="comment"># ── Index-style peek ──</span>
+q[<span class="number">0</span>]                                       <span class="comment"># front</span>
+q[-<span class="number">1</span>]                                      <span class="comment"># back</span>
+
+<span class="comment"># ── Sliding window with maxlen ──</span>
+window = deque(maxlen=k)
+<span class="keyword">for</span> x <span class="keyword">in</span> stream:
+    window.append(x)                      <span class="comment"># window auto-trims to last k items</span>
+    <span class="keyword">if</span> <span class="function">len</span>(window) == k: <span class="function">print</span>(<span class="function">sum</span>(window))</pre>
+<p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
+</div>
+</div>
+<div class="section">
+<h2 id="queue-pattern">Interview Pattern: BFS (Level-Order / Shortest Path)</h2>
+<p style="color: #888; margin-bottom: 15px;">Queue-based level traversal for trees / graphs. Used in: <em>Level Order Traversal, Rotting Oranges, Word Ladder, Walls and Gates, Number of Islands</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Template: Tree level-order BFS ──</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> deque
+<span class="keyword">def</span> <span class="function">levelOrder</span>(root):
+    <span class="keyword">if</span> <span class="keyword">not</span> root: <span class="keyword">return</span> []
+    res, q = [], deque([root])
+    <span class="keyword">while</span> q:
+        level = []
+        <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(q)):         <span class="comment"># ← process one level</span>
+            node = q.popleft()
+            level.append(node.val)
+            <span class="keyword">if</span> node.left:  q.append(node.left)
+            <span class="keyword">if</span> node.right: q.append(node.right)
+        res.append(level)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Template: Graph/Grid BFS ──</span>
+<span class="keyword">def</span> <span class="function">bfs</span>(grid, start):
+    q = deque([start])
+    visited = {start}                    <span class="comment"># ← set for O(1) lookup</span>
+    steps = <span class="number">0</span>
+    <span class="keyword">while</span> q:
+        <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(q)):
+            r, c = q.popleft()           <span class="comment"># ← tuple unpacking</span>
+            <span class="keyword">for</span> dr, dc <span class="keyword">in</span> [(<span class="number">1</span>,<span class="number">0</span>),(-<span class="number">1</span>,<span class="number">0</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,-<span class="number">1</span>)]:  <span class="comment"># ← 4 directions</span>
+                nr, nc = r + dr, c + dc
+                <span class="keyword">if</span> <span class="number">0</span> &lt;= nr &lt; rows <span class="keyword">and</span> <span class="number">0</span> &lt;= nc &lt; cols \
+                   <span class="keyword">and</span> (nr, nc) <span class="keyword">not</span> <span class="keyword">in</span> visited:
+                    visited.add((nr, nc)) <span class="comment"># ← tuple as set element</span>
+                    q.append((nr, nc))
+        steps += <span class="number">1</span>
+    <span class="keyword">return</span> steps
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • deque([start])      — O(1) popleft (list.pop(0) is O(n)!)</span>
+<span class="comment"># • for _ in range(len(q))  — snapshot level size</span>
+<span class="comment"># • (r, c) tuples       — hashable, can go in sets</span>
+<span class="comment"># • 0 &lt;= nr &lt; rows      — chained comparison</span></pre>
+</div>
+</div>
+</div>
+<nav class="page-nav">
+<a class="prev" href="stack.html">← Stack</a>
+<a class="next" href="heap.html">Heap / Priority Queue →</a>
+</nav>
+</div>
+</main>
+<script defer="" src="guide.js"></script>
+</body>
+</html>

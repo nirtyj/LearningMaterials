@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>String | Python for LeetCode</title>
+<link href="guide.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-expanded="false" aria-label="Toggle navigation" class="nav-toggle">☰</button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar"></aside>
+<main class="content">
+<div class="container">
+<h1>📝 String</h1>
+<p class="subtitle">Immutable — slicing, the <code>ord</code>/<code>chr</code> trick, and join-instead-of-concat</p>
+<div style="background: #1a1a1a; border-left: 3px solid #4fc3f7; padding: 10px 14px; margin: 12px 0 20px 0; border-radius: 4px;">
+<strong>📎 Companion refs:</strong> <a href="list.html#list-init" style="color:#4fc3f7;">List → Slice template</a> (same grammar) · <a href="python-builtins.html#builtins-char" style="color:#4fc3f7;">Python Builtins → Char checks</a> · <a href="cheatsheet-by-operation.html" style="color:#4fc3f7;">Methods by Operation</a>
+            </div>
+<div class="section">
+<h2 id="string-operations">Operations</h2>
+<div class="tips-box">
+<h4>📐 Syntax Templates</h4>
+<p style="color: #888; margin-bottom: 10px;">Multi-slot string APIs and common gotchas — labeled syntax plus concrete input → output so you can predict the result before running it.</p>
+<h4 style="margin-top: 14px;">🔪 Slicing — <code>s[start:stop:step]</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Strings slice with the same <code>[start:stop:step]</code> grammar as lists — see <a href="list.html#list-init" style="color:#4fc3f7;">List → Slice template</a> for the full slot diagram, negative-index rules, and step-sign behavior. Two string-specific things to know:</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="string">"hello"</span>[::-<span class="number">1</span>]                       <span class="comment"># → "olleh"  idiomatic string reverse</span>
+s[<span class="number">0</span>] = <span class="string">"H"</span>                          <span class="comment"># ❌ TypeError — strings are immutable</span>
+s = <span class="string">"H"</span> + s[<span class="number">1</span>:]                     <span class="comment"># ✅ build a new string instead</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li>Slices always return a <strong>new string</strong> (strings are immutable — there is no in-place form)</li>
+<li>No assignment-by-index: <code>s[i] = c</code> raises <code>TypeError</code>. For repeated character changes, convert to a <code>list</code>, mutate, then <code>"".join(...)</code> — see the Immutability section below</li>
+</ul>
+<h4 style="margin-top: 14px;">✂️ Split template — <code>s.split(sep=None, maxsplit=-1)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Two slots: what to split on, and the maximum number of splits to make.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s.split( sep , maxsplit )
+          ↑      ↑
+          delim  stop after N splits
+          (None  (-1 = unlimited)
+          = any
+          whitespace,
+          collapsed)
+
+<span class="comment"># ── Default sep (None): splits on whitespace runs, trims edges ──</span>
+<span class="string">"  a   b  "</span>.split()         <span class="comment"># → ['a', 'b']         (collapses runs, trims)</span>
+<span class="string">"hello world"</span>.split()       <span class="comment"># → ['hello', 'world']</span>
+
+<span class="comment"># ── Explicit sep ──</span>
+<span class="string">"a,b,c"</span>.split(<span class="string">","</span>)          <span class="comment"># → ['a', 'b', 'c']</span>
+<span class="string">"a,b,c"</span>.split(<span class="string">","</span>, <span class="number">1</span>)       <span class="comment"># → ['a', 'b,c']       maxsplit=1: stop after first split</span>
+<span class="string">"a,,b"</span>.split(<span class="string">","</span>)           <span class="comment"># → ['a', '', 'b']     empty strings KEPT with explicit sep</span>
+
+<span class="comment"># ── Companion: rsplit splits from the right ──</span>
+<span class="string">"a,b,c"</span>.rsplit(<span class="string">","</span>, <span class="number">1</span>)      <span class="comment"># → ['a,b', 'c']       useful for "split off extension"</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li><code>split()</code> (no arg) is special: splits on ANY whitespace run AND trims leading/trailing whitespace</li>
+<li><code>split(" ")</code> (explicit space) is different: keeps empty strings between consecutive spaces</li>
+<li><code>maxsplit</code> caps the result at <code>maxsplit + 1</code> elements — useful when only the first separator matters</li>
+</ul>
+<h4 style="margin-top: 14px;">🔁 Replace template — <code>s.replace(old, new, count=-1)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Returns a NEW string (strings are immutable). Three slots: what to find, what to replace with, how many times.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s.replace( old , new , count )
+            ↑     ↑     ↑
+            find  swap  max replacements
+                  with  (-1 = all, default)
+
+<span class="string">"banana"</span>.replace(<span class="string">"a"</span>, <span class="string">"X"</span>)        <span class="comment"># → "bXnXnX"  all occurrences</span>
+<span class="string">"banana"</span>.replace(<span class="string">"a"</span>, <span class="string">"X"</span>, <span class="number">1</span>)     <span class="comment"># → "bXnana"  first only</span>
+<span class="string">"banana"</span>.replace(<span class="string">"a"</span>, <span class="string">"X"</span>, <span class="number">2</span>)     <span class="comment"># → "bXnXna"  first two</span>
+<span class="string">"banana"</span>.replace(<span class="string">"z"</span>, <span class="string">"X"</span>)        <span class="comment"># → "banana"  no matches → unchanged copy</span>
+
+<span class="comment"># ⚠️ TRAP — without assignment, the new string is discarded:</span>
+s = <span class="string">"banana"</span>
+s.replace(<span class="string">"a"</span>, <span class="string">"X"</span>)               <span class="comment"># returns "bXnXnX" but s is still "banana"!</span>
+s = s.replace(<span class="string">"a"</span>, <span class="string">"X"</span>)           <span class="comment"># correct: rebind s</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li>Always assign the result — strings are immutable; <code>replace</code> never mutates</li>
+<li><code>count</code> caps total replacements; use <code>1</code> when only the first hit matters</li>
+<li>For pattern-based replacement, reach for <code>re.sub(pattern, repl, string, count=0)</code></li>
+</ul>
+<h4 style="margin-top: 14px;">🔍 Find template — <code>s.find(sub, start=0, end=len(s))</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Three slots: what to look for, and an optional substring window. Returns the index, or <code>-1</code> if not found.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s.find( sub , start , end )
+         ↑     ↑       ↑
+         find  search  search
+         this  from    until
+               here    here (exclusive)
+               (def 0) (def len(s))
+
+<span class="string">"banana"</span>.find(<span class="string">"na"</span>)              <span class="comment"># → 2     first match</span>
+<span class="string">"banana"</span>.find(<span class="string">"na"</span>, <span class="number">3</span>)           <span class="comment"># → 4     skip past index 3, find next</span>
+<span class="string">"banana"</span>.find(<span class="string">"na"</span>, <span class="number">3</span>, <span class="number">5</span>)        <span class="comment"># → -1    window too tight to contain "na"</span>
+<span class="string">"banana"</span>.find(<span class="string">"z"</span>)               <span class="comment"># → -1    not found (no exception)</span>
+
+<span class="comment"># ── rfind searches from the right ──</span>
+<span class="string">"banana"</span>.rfind(<span class="string">"na"</span>)             <span class="comment"># → 4     last occurrence</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li><code>find</code> returns <code>-1</code> on miss; <code>index</code> raises <code>ValueError</code> — same arg shape, different miss behavior (see Gotcha below)</li>
+<li><code>start</code>/<code>end</code> let you search a substring window without slicing first (no allocation)</li>
+<li>Membership-only check? Use <code>"na" in s</code> — clearer than <code>find &gt;= 0</code></li>
+</ul>
+<h4 style="margin-top: 14px;">🪢 Join template — <code>sep.join(iterable)</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Glue strings together with a separator. The separator is the THING that calls <code>.join</code> — feels backwards at first, gets natural with use.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">sep.join( iterable )
+   ↑       ↑
+   glue    strings to glue
+   string  (must be str — not int!)
+
+<span class="string">","</span>.join([<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>])         <span class="comment"># → "a,b,c"</span>
+<span class="string">""</span>.join([<span class="string">"h"</span>, <span class="string">"i"</span>])               <span class="comment"># → "hi"          empty separator</span>
+<span class="string">""</span>.join(<span class="function">reversed</span>(<span class="string">"hi"</span>))           <span class="comment"># → "ih"          works on any iterable of str</span>
+<span class="string">"-"</span>.join(<span class="function">str</span>(x) <span class="keyword">for</span> x <span class="keyword">in</span> [<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])  <span class="comment"># → "1-2-3"       cast non-strings first</span>
+
+<span class="comment"># ⚠️ TypeError if any element isn't a string:</span>
+<span class="string">","</span>.join([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>])               <span class="comment"># → TypeError: sequence item 0: expected str, int found</span></pre>
+<ul style="padding-left: 22px; line-height: 1.8;">
+<li><code>"".join(parts)</code> is the standard way to build a string from chars/pieces — much faster than repeated <code>+=</code> on long inputs</li>
+<li>All elements must be <code>str</code> — wrap with <code>str(x)</code> or use a generator expression to cast</li>
+<li>The separator can be empty (<code>""</code>) or multi-char (<code>", "</code>)</li>
+</ul>
+<h4 style="margin-top: 14px;">⚠️ Gotcha — <code>find</code> vs <code>index</code></h4>
+<p style="color: #888; margin-bottom: 8px;">Same arg shape, different miss behavior. Choose by whether "missing" is expected or exceptional.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="string">"banana"</span>.find(<span class="string">"z"</span>)     <span class="comment"># → -1                 safe sentinel</span>
+<span class="string">"banana"</span>.index(<span class="string">"z"</span>)    <span class="comment"># → ValueError: substring not found</span>
+
+<span class="comment"># Use find when missing is normal:</span>
+i = s.find(<span class="string">"@"</span>)
+<span class="keyword">if</span> i &gt;= <span class="number">0</span>: ...
+
+<span class="comment"># Use index when missing is a bug (let it crash):</span>
+i = s.index(<span class="string">"@"</span>)            <span class="comment"># trust the input had an @</span></pre>
+<h4 style="margin-top: 14px;">🧊 Gotcha — strings are IMMUTABLE</h4>
+<p style="color: #888; margin-bottom: 8px;">Every "modifying" method actually returns a new string. Without assignment, the result is thrown away.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;">s = <span class="string">"hello"</span>
+s.upper()                    <span class="comment"># returns "HELLO" — but s is still "hello"</span>
+s = s.upper()                <span class="comment"># now s is "HELLO"</span>
+
+<span class="comment"># ❌ Can't assign by index:</span>
+s[<span class="number">0</span>] = <span class="string">"H"</span>                 <span class="comment"># → TypeError: 'str' object does not support item assignment</span>
+
+<span class="comment"># ✅ Build via list, then join:</span>
+chars = <span class="function">list</span>(s)              <span class="comment"># ['h', 'e', 'l', 'l', 'o']</span>
+chars[<span class="number">0</span>] = <span class="string">"H"</span>
+s = <span class="string">""</span>.join(chars)          <span class="comment"># "Hello"</span></pre>
+<p style="color: #888; margin-top: 8px;">See <a href="#string-immutability" style="color:#4fc3f7;">Immutability — Why Building With <code>list</code> Matters</a> below for the full pattern.</p>
+</div>
+<div class="code-block">
+
+<div class="code-content">
+<pre>s = <span class="string">"hello world"</span>
+
+<span class="comment"># ── Access ──</span>
+s[<span class="number">0</span>]                         <span class="comment"># 'h'</span>
+s[-<span class="number">1</span>]                        <span class="comment"># 'd'</span>
+s[<span class="number">1</span>:<span class="number">5</span>]                       <span class="comment"># 'ello' (slicing)</span>
+
+<span class="comment"># ── Modify (strings are immutable!) ──</span>
+s.upper()                    <span class="comment"># 'HELLO WORLD'</span>
+s.lower()                    <span class="comment"># 'hello world'</span>
+s.strip()                    <span class="comment"># trim whitespace</span>
+s.replace(<span class="string">"hello"</span>, <span class="string">"hi"</span>)    <span class="comment"># 'hi world'</span>
+
+<span class="comment"># ── Split / Join ──</span>
+s.split()                    <span class="comment"># ['hello','world']</span>
+s.split(<span class="string">","</span>)                 <span class="comment"># split on comma</span>
+<span class="string">" "</span>.join([<span class="string">"a"</span>, <span class="string">"b"</span>])        <span class="comment"># "a b"</span>
+
+<span class="comment"># ── Check ──</span>
+s.startswith(<span class="string">"he"</span>)          <span class="comment"># True</span>
+s.endswith(<span class="string">"ld"</span>)             <span class="comment"># True</span>
+s.isdigit()                  <span class="comment"># False</span>
+s.isalpha()                  <span class="comment"># False (has space)</span>
+<span class="string">"ell"</span> <span class="keyword">in</span> s                  <span class="comment"># True (substring check)</span>
+s.find(<span class="string">"lo"</span>)                <span class="comment"># 3 (-1 if not found)</span>
+
+<span class="comment"># ── Reverse ──</span>
+s[::-<span class="number">1</span>]                      <span class="comment"># 'dlrow olleh'</span>
+
+<span class="comment"># ── Build string efficiently ──</span>
+chars = []
+chars.append(<span class="string">"h"</span>)
+chars.append(<span class="string">"i"</span>)
+result = <span class="string">""</span>.join(chars)      <span class="comment"># "hi"</span>
+
+<span class="comment"># ── f-strings ──</span>
+name = <span class="string">"Bob"</span>
+<span class="keyword">f</span><span class="string">"Hello {name}, 2+2={2+2}"</span>  <span class="comment"># "Hello Bob, 2+2=4"</span></pre>
+</div>
+</div>
+<div class="tips-box">
+<h4>🛠️ Built-ins commonly paired with strings</h4>
+<p style="color: #888; margin-bottom: 10px;">When you write string code in interviews, these are the built-ins you reach for most.</p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── Char access ──</span>
+s[<span class="number">0</span>], s[-<span class="number">1</span>], s[i:j]              <span class="comment"># indexing, slicing — strings index like lists</span>
+<span class="function">ord</span>(c), <span class="function">chr</span>(<span class="number">97</span>)                  <span class="comment"># char ↔ int; see python-builtins.html#builtins-functions for the bucket trick</span>
+
+<span class="comment"># ── Char checks (per-char or whole-string) ──</span>
+c.isalnum(), c.isalpha()         <span class="comment"># letter or digit / letter</span>
+c.isdigit(), c.isspace()         <span class="comment"># digit / whitespace</span>
+c.islower(), c.isupper()         <span class="comment"># case</span>
+c.lower(), c.upper(), c.casefold()  <span class="comment"># case-fold for compares</span>
+
+<span class="comment"># ── Iterating ──</span>
+<span class="keyword">for</span> c <span class="keyword">in</span> s: ...                  <span class="comment"># direct char iteration</span>
+<span class="keyword">for</span> i, c <span class="keyword">in</span> <span class="function">enumerate</span>(s): ...    <span class="comment"># index + char</span>
+<span class="keyword">for</span> a, b <span class="keyword">in</span> <span class="function">zip</span>(s, s[<span class="number">1</span>:]): ...   <span class="comment"># adjacent pairs (palindrome scans, runs)</span>
+<span class="keyword">for</span> a, b <span class="keyword">in</span> pairwise(s): ...     <span class="comment"># 3.10+ — same idea via itertools</span>
+
+<span class="comment"># ── Transforming ──</span>
+<span class="string">""</span>.join(<span class="function">reversed</span>(s))             <span class="comment"># reverse without slicing</span>
+<span class="string">""</span>.join(c <span class="keyword">for</span> c <span class="keyword">in</span> s <span class="keyword">if</span> c.isalnum())  <span class="comment"># filter chars in one shot</span>
+[c.lower() <span class="keyword">for</span> c <span class="keyword">in</span> s <span class="keyword">if</span> c.isalnum()] <span class="comment"># cleaned list of chars</span>
+
+<span class="comment"># ── Searching / aggregating ──</span>
+s.count(<span class="string">"ab"</span>)                    <span class="comment"># non-overlapping count</span>
+<span class="function">sum</span>(<span class="number">1</span> <span class="keyword">for</span> c <span class="keyword">in</span> s <span class="keyword">if</span> c.isdigit()) <span class="comment"># count by predicate</span>
+<span class="function">max</span>(s.split(), key=<span class="function">len</span>)          <span class="comment"># longest word</span></pre>
+<p class="note">Full reference for any of these: <a href="python-builtins.html" style="color:#4fc3f7;">Python Builtins</a>.</p>
+</div>
+</div>
+<div class="section">
+<h2 id="string-immutability">Immutability — Why Building With <code>list</code> Matters</h2>
+<div class="ds-grid">
+<div class="ds-card" style="border-color: #ff6b6b;">
+<h4 style="color: #ff6b6b;">String Immutability</h4>
+<div class="code-content" style="background: #0d1117; border-radius: 8px; padding: 15px; margin: 10px 0;">
+<pre><span class="comment"># Strings are immutable in BOTH languages</span>
+s = <span class="string">"hello"</span>
+<span class="comment"># s[0] = "H"  # ERROR!</span>
+
+<span class="comment"># ✅ Create new string</span>
+s = <span class="string">"H"</span> + s[<span class="number">1</span>:]
+
+<span class="comment"># For many modifications, use list</span>
+chars = <span class="function">list</span>(s)
+chars[<span class="number">0</span>] = <span class="string">"H"</span>
+s = <span class="string">""</span>.join(chars)</pre>
+</div>
+</div>
+</div>
+<p class="note">Repeated <code>s += "x"</code> in a loop is O(n²) in Python — every <code>+=</code> allocates a fresh string. Build a <code>list</code> and <code>"".join()</code> at the end for O(n).</p>
+</div>
+<nav class="page-nav">
+<a class="prev" href="heap.html">← Heap / Priority Queue</a>
+<a class="next" href="counter.html">DefaultDict / Counter →</a>
+</nav>
+</div>
+</main>
+<script defer="" src="guide.js"></script>
+</body>
+</html>

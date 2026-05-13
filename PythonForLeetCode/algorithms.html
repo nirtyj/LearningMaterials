@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Algorithm Patterns | Python for LeetCode</title>
+<link href="guide.css" rel="stylesheet"/>
+</head>
+<body>
+<button aria-expanded="false" aria-label="Toggle navigation" class="nav-toggle">☰</button>
+<div class="sidebar-backdrop"></div>
+<aside class="sidebar"></aside>
+<main class="content">
+<div class="container">
+<h1>🧩 Algorithm Patterns</h1>
+<p class="subtitle">Pattern-recognition cheat sheet — Python tricks for the Neetcode 150 / Blind 75</p>
+<p style="color: #888; margin-bottom: 20px; font-size: 0.9rem;">Patterns tied to a specific data structure (Monotonic Stack, BFS, Heap/Top-K) live on those pages instead — see <a href="stack.html" style="color:#4fc3f7;">Stack</a>, <a href="queue.html" style="color:#4fc3f7;">Queue</a>, <a href="heap.html" style="color:#4fc3f7;">Heap</a>.</p>
+<div class="section">
+<div class="tips-box" style="margin-bottom: 30px;">
+<h4>🗺️ Pattern Selection Flowchart</h4>
+<ul>
+<li>Input array is <strong>sorted</strong>? → <strong>Binary Search</strong> or <strong>Two Pointers</strong></li>
+<li>Asked for all <strong>permutations / combinations / subsets</strong>? → <strong>Backtracking</strong></li>
+<li>Given a <strong>tree or graph</strong>? → <strong>DFS / BFS</strong></li>
+<li>Given a <strong>linked list</strong>? → <strong>Two Pointers (fast/slow)</strong></li>
+<li>Asked for <strong>top/least K items</strong>? → <strong>Heap</strong></li>
+<li>Asked for <strong>max/min subarray</strong>? → <strong>DP</strong> or <strong>Kadane's / Sliding Window</strong></li>
+<li>Dealing with <strong>contiguous subarray/substring</strong>? → <strong>Sliding Window</strong></li>
+<li>Need <strong>O(1) lookup</strong>? → <strong>Hash Map / Set</strong></li>
+<li>Finding <strong>connected components</strong>? → <strong>Union Find</strong> or <strong>DFS</strong></li>
+<li>Scheduling / <strong>overlapping intervals</strong>? → <strong>Sort + Greedy</strong></li>
+<li>Need <strong>prefix string search</strong>? → <strong>Trie</strong></li>
+<li><strong>Next greater/smaller</strong> element? → <strong>Monotonic Stack</strong></li>
+</ul>
+</div>
+<h3 id="algo-prefix-sum">1️⃣ Prefix Sum</h3>
+<p style="color: #888; margin-bottom: 15px;">Precompute cumulative sums for O(1) range-sum queries. Used in: <em>Subarray Sum Equals K, Range Sum Query, Product of Array Except Self</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Build prefix sum ──</span>
+<span class="keyword">from</span> itertools <span class="keyword">import</span> accumulate
+prefix = <span class="function">list</span>(accumulate(nums, initial=<span class="number">0</span>))
+<span class="comment"># range sum [i, j] = prefix[j+1] - prefix[i]</span>
+
+<span class="comment"># ── Manual prefix sum ──</span>
+prefix = [<span class="number">0</span>] * (<span class="function">len</span>(nums) + <span class="number">1</span>)
+<span class="keyword">for</span> i, n <span class="keyword">in</span> <span class="function">enumerate</span>(nums):
+    prefix[i + <span class="number">1</span>] = prefix[i] + n
+
+<span class="comment"># ── Subarray Sum Equals K (LC 560) ──</span>
+<span class="comment"># Trick: use a dict to count prefix sums seen so far</span>
+<span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict
+<span class="keyword">def</span> <span class="function">subarraySum</span>(nums, k):
+    count = cur = <span class="number">0</span>
+    seen = defaultdict(<span class="function">int</span>)
+    seen[<span class="number">0</span>] = <span class="number">1</span>                          <span class="comment"># ← empty prefix</span>
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+        cur += n
+        count += seen[cur - k]           <span class="comment"># ← O(1) lookup</span>
+        seen[cur] += <span class="number">1</span>
+    <span class="keyword">return</span> count
+
+<span class="comment"># ── Product Except Self (LC 238) ──</span>
+<span class="comment"># Trick: build left and right products in-place</span>
+<span class="keyword">def</span> <span class="function">productExceptSelf</span>(nums):
+    n = <span class="function">len</span>(nums)
+    ans = [<span class="number">1</span>] * n
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, n):
+        ans[i] = ans[i-<span class="number">1</span>] * nums[i-<span class="number">1</span>]     <span class="comment"># left products</span>
+    right = <span class="number">1</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n-<span class="number">1</span>, -<span class="number">1</span>, -<span class="number">1</span>):
+        ans[i] *= right
+        right *= nums[i]                 <span class="comment"># right products</span>
+    <span class="keyword">return</span> ans</pre>
+</div>
+</div>
+<h3 id="algo-two-pointers">2️⃣ Two Pointers</h3>
+<p style="color: #888; margin-bottom: 15px;">Opposite ends converging or same-direction pointers on sorted arrays. Used in: <em>Two Sum II, 3Sum, Container With Most Water, Trapping Rain Water, Valid Palindrome</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Template: Opposite-end pointers ──</span>
+l, r = <span class="number">0</span>, <span class="function">len</span>(nums) - <span class="number">1</span>
+<span class="keyword">while</span> l &lt; r:
+    <span class="keyword">if</span> condition:
+        l += <span class="number">1</span>
+    <span class="keyword">else</span>:
+        r -= <span class="number">1</span>
+
+<span class="comment"># ── 3Sum (LC 15) ──</span>
+<span class="comment"># Trick: sort + skip duplicates with while loops</span>
+<span class="keyword">def</span> <span class="function">threeSum</span>(nums):
+    nums.sort()
+    res = []
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(nums) - <span class="number">2</span>):
+        <span class="keyword">if</span> i &gt; <span class="number">0</span> <span class="keyword">and</span> nums[i] == nums[i-<span class="number">1</span>]:
+            <span class="keyword">continue</span>                     <span class="comment"># ← skip duplicates</span>
+        l, r = i + <span class="number">1</span>, <span class="function">len</span>(nums) - <span class="number">1</span>
+        <span class="keyword">while</span> l &lt; r:
+            s = nums[i] + nums[l] + nums[r]
+            <span class="keyword">if</span> s &lt; <span class="number">0</span>: l += <span class="number">1</span>
+            <span class="keyword">elif</span> s &gt; <span class="number">0</span>: r -= <span class="number">1</span>
+            <span class="keyword">else</span>:
+                res.append([nums[i], nums[l], nums[r]])
+                <span class="keyword">while</span> l &lt; r <span class="keyword">and</span> nums[l] == nums[l+<span class="number">1</span>]: l += <span class="number">1</span>
+                l += <span class="number">1</span>; r -= <span class="number">1</span>
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Valid Palindrome (LC 125) ──</span>
+<span class="comment"># Trick: isalnum() + two pointers</span>
+<span class="keyword">def</span> <span class="function">isPalindrome</span>(s):
+    s = [c.lower() <span class="keyword">for</span> c <span class="keyword">in</span> s <span class="keyword">if</span> c.isalnum()]
+    <span class="keyword">return</span> s == s[::-<span class="number">1</span>]                  <span class="comment"># ← one-liner!</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • a, b = b, a       — swap without temp</span>
+<span class="comment"># • s.isalnum()        — checks alphanumeric</span>
+<span class="comment"># • nums.sort()        — in-place O(n log n)</span>
+<span class="comment"># • s == s[::-1]       — palindrome check</span></pre>
+</div>
+</div>
+<h3 id="algo-sliding-window">3️⃣ Sliding Window</h3>
+<p style="color: #888; margin-bottom: 15px;">Expand/shrink a window over contiguous elements. Used in: <em>Best Time to Buy/Sell Stock, Longest Substring Without Repeating Chars, Minimum Window Substring, Permutation in String</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Template: Variable-size window ──</span>
+<span class="keyword">def</span> <span class="function">sliding_window</span>(s):
+    window = defaultdict(<span class="function">int</span>)            <span class="comment"># ← track window state</span>
+    l = res = <span class="number">0</span>
+    <span class="keyword">for</span> r <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(s)):
+        window[s[r]] += <span class="number">1</span>               <span class="comment"># expand</span>
+        <span class="keyword">while</span> window_invalid():           <span class="comment"># shrink</span>
+            window[s[l]] -= <span class="number">1</span>
+            l += <span class="number">1</span>
+        res = <span class="function">max</span>(res, r - l + <span class="number">1</span>)       <span class="comment"># update answer</span>
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Longest Substring Without Repeating (LC 3) ──</span>
+<span class="keyword">def</span> <span class="function">lengthOfLongestSubstring</span>(s):
+    seen = {}                            <span class="comment"># char → last index</span>
+    l = res = <span class="number">0</span>
+    <span class="keyword">for</span> r, c <span class="keyword">in</span> <span class="function">enumerate</span>(s):          <span class="comment"># ← enumerate!</span>
+        <span class="keyword">if</span> c <span class="keyword">in</span> seen <span class="keyword">and</span> seen[c] &gt;= l:
+            l = seen[c] + <span class="number">1</span>
+        seen[c] = r
+        res = <span class="function">max</span>(res, r - l + <span class="number">1</span>)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Minimum Window Substring (LC 76) ──</span>
+<span class="comment"># Trick: Counter for need vs window tracking</span>
+<span class="keyword">def</span> <span class="function">minWindow</span>(s, t):
+    need = Counter(t)
+    missing = <span class="function">len</span>(t)
+    l = start = <span class="number">0</span>; end = <span class="function">float</span>(<span class="string">'inf'</span>)
+    <span class="keyword">for</span> r, c <span class="keyword">in</span> <span class="function">enumerate</span>(s):
+        <span class="keyword">if</span> need[c] &gt; <span class="number">0</span>: missing -= <span class="number">1</span>
+        need[c] -= <span class="number">1</span>
+        <span class="keyword">while</span> missing == <span class="number">0</span>:              <span class="comment"># all chars found</span>
+            <span class="keyword">if</span> r - l &lt; end - start:
+                start, end = l, r
+            need[s[l]] += <span class="number">1</span>
+            <span class="keyword">if</span> need[s[l]] &gt; <span class="number">0</span>: missing += <span class="number">1</span>
+            l += <span class="number">1</span>
+    <span class="keyword">return</span> s[start:end+<span class="number">1</span>] <span class="keyword">if</span> end &lt; <span class="function">float</span>(<span class="string">'inf'</span>) <span class="keyword">else</span> <span class="string">""</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • Counter(t)         — instant frequency map</span>
+<span class="comment"># • defaultdict(int)   — no KeyError on missing keys</span>
+<span class="comment"># • enumerate(s)       — index + char in one shot</span>
+<span class="comment"># • float('inf')       — easy infinity comparison</span></pre>
+</div>
+</div>
+<h3 id="algo-fast-slow">4️⃣ Fast &amp; Slow Pointers</h3>
+<p style="color: #888; margin-bottom: 15px;">Detect cycles, find middle of linked list. Used in: <em>Linked List Cycle, Middle of Linked List, Happy Number, Find Duplicate Number</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Detect cycle (LC 141) ──</span>
+<span class="keyword">def</span> <span class="function">hasCycle</span>(head):
+    slow = fast = head
+    <span class="keyword">while</span> fast <span class="keyword">and</span> fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        <span class="keyword">if</span> slow == fast: <span class="keyword">return</span> <span class="keyword">True</span>
+    <span class="keyword">return</span> <span class="keyword">False</span>
+
+<span class="comment"># ── Find middle (LC 876) ──</span>
+<span class="keyword">def</span> <span class="function">middleNode</span>(head):
+    slow = fast = head
+    <span class="keyword">while</span> fast <span class="keyword">and</span> fast.next:
+        slow, fast = slow.next, fast.next.next  <span class="comment"># ← parallel assign!</span>
+    <span class="keyword">return</span> slow
+
+<span class="comment"># ── Happy Number (LC 202) ──</span>
+<span class="comment"># Trick: treat as cycle detection in number sequence</span>
+<span class="keyword">def</span> <span class="function">isHappy</span>(n):
+    <span class="keyword">def</span> <span class="function">next_num</span>(n):
+        <span class="keyword">return</span> <span class="function">sum</span>(<span class="function">int</span>(d)**<span class="number">2</span> <span class="keyword">for</span> d <span class="keyword">in</span> <span class="function">str</span>(n))  <span class="comment"># ← str→digits trick!</span>
+    slow, fast = n, next_num(n)
+    <span class="keyword">while</span> fast != <span class="number">1</span> <span class="keyword">and</span> slow != fast:
+        slow = next_num(slow)
+        fast = next_num(next_num(fast))
+    <span class="keyword">return</span> fast == <span class="number">1</span></pre>
+</div>
+</div>
+<h3 id="algo-binary-search">5️⃣ Binary Search</h3>
+<p style="color: #888; margin-bottom: 15px;">Halve search space each step. Used in: <em>Binary Search, Search in Rotated Array, Find Min in Rotated Array, Koko Eating Bananas, Search 2D Matrix</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Template: standard binary search ──</span>
+<span class="keyword">def</span> <span class="function">binary_search</span>(nums, target):
+    l, r = <span class="number">0</span>, <span class="function">len</span>(nums) - <span class="number">1</span>
+    <span class="keyword">while</span> l &lt;= r:
+        m = (l + r) // <span class="number">2</span>               <span class="comment"># ← no overflow in Python!</span>
+        <span class="keyword">if</span> nums[m] == target: <span class="keyword">return</span> m
+        <span class="keyword">elif</span> nums[m] &lt; target: l = m + <span class="number">1</span>
+        <span class="keyword">else</span>: r = m - <span class="number">1</span>
+    <span class="keyword">return</span> -<span class="number">1</span>
+
+<span class="comment"># ── bisect module (built-in binary search!) ──</span>
+<span class="keyword">from</span> bisect <span class="keyword">import</span> bisect_left, bisect_right, insort
+i = bisect_left(arr, target)         <span class="comment"># leftmost insert point</span>
+i = bisect_right(arr, target)        <span class="comment"># rightmost insert point</span>
+insort(arr, val)                     <span class="comment"># insert keeping sorted</span>
+<span class="comment"># Check if target exists:</span>
+found = i &lt; <span class="function">len</span>(arr) <span class="keyword">and</span> arr[i] == target
+
+<span class="comment"># ── Binary Search on Answer Space (LC 875 Koko) ──</span>
+<span class="comment"># Trick: binary search on the answer, not the array</span>
+<span class="keyword">import</span> math
+<span class="keyword">def</span> <span class="function">minEatingSpeed</span>(piles, h):
+    l, r = <span class="number">1</span>, <span class="function">max</span>(piles)
+    <span class="keyword">while</span> l &lt; r:
+        m = (l + r) // <span class="number">2</span>
+        <span class="keyword">if</span> <span class="function">sum</span>(math.ceil(p / m) <span class="keyword">for</span> p <span class="keyword">in</span> piles) &lt;= h:
+            r = m                        <span class="comment"># ← can eat slower</span>
+        <span class="keyword">else</span>:
+            l = m + <span class="number">1</span>
+    <span class="keyword">return</span> l
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • No integer overflow (Python has big ints!)</span>
+<span class="comment"># • bisect_left/right  — skip writing binary search</span>
+<span class="comment"># • math.ceil(a/b) or -(-a//b)  — ceiling division</span>
+<span class="comment"># • sum(... for ... in ...)  — generator expression</span></pre>
+</div>
+</div>
+<div class="tips-box">
+<h4>🌳 <code>SortedList</code> — Python's missing TreeMap</h4>
+<p style="color: #888; margin-bottom: 10px;">
+                        Python's stdlib has no balanced BST / <code>TreeMap</code> / <code>TreeSet</code>. <code>sortedcontainers.SortedList</code> fills that hole — <strong>O(log n) insert + delete + indexed access</strong> in pure Python. It's pre-installed on LeetCode and most online judges, and is the standard answer for sliding-window-median, count-of-smaller, and order-statistic problems.
+                    </p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="keyword">from</span> sortedcontainers <span class="keyword">import</span> SortedList, SortedDict, SortedSet
+
+sl = SortedList([<span class="number">5</span>, <span class="number">1</span>, <span class="number">3</span>])
+sl.add(<span class="number">2</span>)                          <span class="comment"># O(log n)  → [1, 2, 3, 5]</span>
+sl.remove(<span class="number">3</span>)                       <span class="comment"># O(log n)  → [1, 2, 5]</span>
+sl[<span class="number">0</span>], sl[-<span class="number">1</span>]                     <span class="comment"># O(log n) indexed access — min &amp; max</span>
+sl.bisect_left(<span class="number">3</span>)                  <span class="comment"># index of first ≥ 3</span>
+sl.bisect_right(<span class="number">3</span>)                 <span class="comment"># index of first &gt; 3</span>
+sl.irange(<span class="number">2</span>, <span class="number">5</span>)                    <span class="comment"># iterate values in [2, 5] inclusive</span>
+
+<span class="comment"># ── Sliding Window Median (LC 480) ──</span>
+<span class="comment"># Plain list: O(k) insert per slide → TLE.</span>
+<span class="comment"># SortedList: O(log k) insert + O(1) median by index.</span>
+<span class="keyword">def</span> <span class="function">medianSlidingWindow</span>(nums, k):
+    window = SortedList(nums[:k])
+    res = []
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(k, <span class="function">len</span>(nums) + <span class="number">1</span>):
+        res.append((window[k//<span class="number">2</span>] + window[~(k//<span class="number">2</span>)]) / <span class="number">2</span>)  <span class="comment"># ← ~i trick!</span>
+        <span class="keyword">if</span> i &lt; <span class="function">len</span>(nums):
+            window.remove(nums[i - k])
+            window.add(nums[i])
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Patience-sort LIS (LC 300) — bisect on a SortedList alt ──</span>
+<span class="comment"># Plain bisect+list works here because we only overwrite, never insert middle:</span>
+<span class="keyword">from</span> bisect <span class="keyword">import</span> bisect_left
+<span class="keyword">def</span> <span class="function">lengthOfLIS</span>(nums):
+    tails = []                          <span class="comment"># tails[i] = smallest tail of any inc subseq of length i+1</span>
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+        i = bisect_left(tails, n)
+        <span class="keyword">if</span> i == <span class="function">len</span>(tails):
+            tails.append(n)             <span class="comment"># extend longest run</span>
+        <span class="keyword">else</span>:
+            tails[i] = n                <span class="comment"># replace — keeps tails sorted</span>
+    <span class="keyword">return</span> <span class="function">len</span>(tails)                 <span class="comment"># O(n log n)</span>
+
+<span class="comment"># ── Count of Smaller Numbers After Self (LC 315) ──</span>
+<span class="comment"># Walk right→left, ask "how many already-seen are &lt; current?"</span>
+<span class="keyword">def</span> <span class="function">countSmaller</span>(nums):
+    seen = SortedList()
+    res = []
+    <span class="keyword">for</span> n <span class="keyword">in</span> <span class="function">reversed</span>(nums):
+        res.append(seen.bisect_left(n))  <span class="comment"># O(log n)</span>
+        seen.add(n)
+    <span class="keyword">return</span> res[::-<span class="number">1</span>]</pre>
+<h4 style="margin-top: 14px;">🎯 When to reach for it</h4>
+<ul>
+<li>Need <strong>insert + delete + min/max</strong> all in O(log n) → <code>SortedList</code> (heap can't delete arbitrary)</li>
+<li>Need <strong>order statistics</strong> (the k-th smallest) → <code>SortedList</code> (heap can't index)</li>
+<li>Need <strong>range queries</strong> on a sorted multiset → <code>SortedList.irange()</code></li>
+<li><strong>Plain <code>bisect</code> + <code>list</code> is fine</strong> when you only append/replace at known indices (LIS) — the O(n) insert middle is what kills you, and that's exactly what <code>SortedList</code> avoids</li>
+<li><strong>Interview note</strong>: most interviewers accept <code>SortedList</code> at FAANG. If forbidden, the fallback is two heaps (median) or a manually-balanced BST / segment tree</li>
+</ul>
+</div>
+<h3 id="algo-linked-list">6️⃣ Linked List Tricks</h3>
+<p style="color: #888; margin-bottom: 15px;">Dummy nodes, reversal, merge. Used in: <em>Reverse Linked List, Merge Two Sorted Lists, Remove Nth Node, Reorder List, LRU Cache</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Reverse linked list (LC 206) ──</span>
+<span class="keyword">def</span> <span class="function">reverseList</span>(head):
+    prev, curr = <span class="keyword">None</span>, head
+    <span class="keyword">while</span> curr:
+        curr.next, prev, curr = prev, curr, curr.next  <span class="comment"># ← triple swap!</span>
+    <span class="keyword">return</span> prev
+
+<span class="comment"># ── Dummy node pattern (merge, insert, delete) ──</span>
+dummy = ListNode(<span class="number">0</span>)
+dummy.next = head
+<span class="comment"># ... manipulate list ...</span>
+<span class="keyword">return</span> dummy.next                     <span class="comment"># ← avoids edge cases!</span>
+
+<span class="comment"># ── Merge two sorted lists (LC 21) ──</span>
+<span class="keyword">def</span> <span class="function">mergeTwoLists</span>(l1, l2):
+    dummy = cur = ListNode(<span class="number">0</span>)
+    <span class="keyword">while</span> l1 <span class="keyword">and</span> l2:
+        <span class="keyword">if</span> l1.val &lt; l2.val:
+            cur.next, l1 = l1, l1.next
+        <span class="keyword">else</span>:
+            cur.next, l2 = l2, l2.next
+        cur = cur.next
+    cur.next = l1 <span class="keyword">or</span> l2                 <span class="comment"># ← Python's or returns truthy!</span>
+    <span class="keyword">return</span> dummy.next</pre>
+</div>
+</div>
+<h3 id="algo-dfs">7️⃣ DFS / Tree Traversal</h3>
+<p style="color: #888; margin-bottom: 15px;">Recursive depth-first exploration. Used in: <em>Max Depth, Same Tree, Invert Tree, Diameter, Lowest Common Ancestor, Serialize/Deserialize, Number of Islands</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Max Depth (LC 104) ──</span>
+<span class="keyword">def</span> <span class="function">maxDepth</span>(root):
+    <span class="keyword">if</span> <span class="keyword">not</span> root: <span class="keyword">return</span> <span class="number">0</span>
+    <span class="keyword">return</span> <span class="number">1</span> + <span class="function">max</span>(maxDepth(root.left), maxDepth(root.right))
+
+<span class="comment"># ── Diameter of Binary Tree (LC 543) ──</span>
+<span class="comment"># Trick: nonlocal to track state across recursive calls</span>
+<span class="keyword">def</span> <span class="function">diameterOfBinaryTree</span>(root):
+    res = <span class="number">0</span>
+    <span class="keyword">def</span> <span class="function">dfs</span>(node):
+        <span class="keyword">nonlocal</span> res                    <span class="comment"># ← access outer variable</span>
+        <span class="keyword">if</span> <span class="keyword">not</span> node: <span class="keyword">return</span> <span class="number">0</span>
+        l, r = dfs(node.left), dfs(node.right)
+        res = <span class="function">max</span>(res, l + r)
+        <span class="keyword">return</span> <span class="number">1</span> + <span class="function">max</span>(l, r)
+    dfs(root)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Number of Islands (LC 200) — grid DFS ──</span>
+<span class="keyword">def</span> <span class="function">numIslands</span>(grid):
+    <span class="keyword">def</span> <span class="function">dfs</span>(r, c):
+        <span class="keyword">if</span> r &lt; <span class="number">0</span> <span class="keyword">or</span> r &gt;= rows <span class="keyword">or</span> c &lt; <span class="number">0</span> <span class="keyword">or</span> c &gt;= cols \
+           <span class="keyword">or</span> grid[r][c] != <span class="string">"1"</span>:
+            <span class="keyword">return</span>
+        grid[r][c] = <span class="string">"#"</span>                <span class="comment"># ← mark visited in-place</span>
+        <span class="keyword">for</span> dr, dc <span class="keyword">in</span> [(<span class="number">1</span>,<span class="number">0</span>),(-<span class="number">1</span>,<span class="number">0</span>),(<span class="number">0</span>,<span class="number">1</span>),(<span class="number">0</span>,-<span class="number">1</span>)]:
+            dfs(r + dr, c + dc)
+    rows, cols = <span class="function">len</span>(grid), <span class="function">len</span>(grid[<span class="number">0</span>])
+    count = <span class="number">0</span>
+    <span class="keyword">for</span> r <span class="keyword">in</span> <span class="function">range</span>(rows):
+        <span class="keyword">for</span> c <span class="keyword">in</span> <span class="function">range</span>(cols):
+            <span class="keyword">if</span> grid[r][c] == <span class="string">"1"</span>:
+                dfs(r, c)
+                count += <span class="number">1</span>
+    <span class="keyword">return</span> count
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • nonlocal            — modify enclosing scope variable</span>
+<span class="comment"># • nested def          — closures capture outer vars</span>
+<span class="comment"># • modify grid in-place — no need for visited set</span>
+<span class="comment"># • for dr, dc in [...]  — clean direction iteration</span></pre>
+</div>
+</div>
+<h3 id="algo-backtracking">8️⃣ Backtracking</h3>
+<p style="color: #888; margin-bottom: 15px;">Explore all combinations/permutations, undo choices. Used in: <em>Subsets, Permutations, Combination Sum, Word Search, N-Queens, Generate Parentheses</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Subsets (LC 78) ──</span>
+<span class="keyword">def</span> <span class="function">subsets</span>(nums):
+    res = []
+    <span class="keyword">def</span> <span class="function">backtrack</span>(start, path):
+        res.append(path[:])              <span class="comment"># ← copy! (path[:] or list(path))</span>
+        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(start, <span class="function">len</span>(nums)):
+            path.append(nums[i])
+            backtrack(i + <span class="number">1</span>, path)
+            path.pop()                   <span class="comment"># ← undo choice (backtrack)</span>
+    backtrack(<span class="number">0</span>, [])
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Permutations (LC 46) ──</span>
+<span class="keyword">def</span> <span class="function">permute</span>(nums):
+    res = []
+    <span class="keyword">def</span> <span class="function">backtrack</span>(path):
+        <span class="keyword">if</span> <span class="function">len</span>(path) == <span class="function">len</span>(nums):
+            res.append(path[:])
+            <span class="keyword">return</span>
+        <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+            <span class="keyword">if</span> n <span class="keyword">not</span> <span class="keyword">in</span> path:            <span class="comment"># ← O(n) but clean for interviews</span>
+                path.append(n)
+                backtrack(path)
+                path.pop()
+    backtrack([])
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Combination Sum (LC 39) ──</span>
+<span class="keyword">def</span> <span class="function">combinationSum</span>(candidates, target):
+    res = []
+    <span class="keyword">def</span> <span class="function">backtrack</span>(start, path, total):
+        <span class="keyword">if</span> total == target:
+            res.append(path[:])
+            <span class="keyword">return</span>
+        <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(start, <span class="function">len</span>(candidates)):
+            <span class="keyword">if</span> total + candidates[i] &gt; target:
+                <span class="keyword">break</span>                    <span class="comment"># ← prune (sort first!)</span>
+            path.append(candidates[i])
+            backtrack(i, path, total + candidates[i])  <span class="comment"># i not i+1 (reuse)</span>
+            path.pop()
+    candidates.sort()                    <span class="comment"># ← sort enables pruning</span>
+    backtrack(<span class="number">0</span>, [], <span class="number">0</span>)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • path[:]            — shallow copy of current path</span>
+<span class="comment"># • path.append / pop  — mutate-then-undo pattern</span>
+<span class="comment"># • sort + break       — prune search space</span>
+<span class="comment"># • n not in path      — membership test in list</span></pre>
+</div>
+</div>
+<p class="note" style="margin: 0 0 25px 0;">
+                    💡 <strong>Library shortcut:</strong> <code>itertools.combinations(arr, r)</code>, <code>itertools.permutations(arr)</code>, and <code>itertools.product(arr, repeat=n)</code> generate these exhaustively without the manual template — fine for vanilla "produce all subsets/permutations" prompts. Keep the manual template ready for variants with constraints (early pruning, custom state, "stop at first match"). Full menu: <a href="python-builtins.html#builtins-itertools" style="color:#4fc3f7;">Python Builtins → itertools</a>.
+                </p>
+<h3 id="algo-intervals">9️⃣ Intervals</h3>
+<p style="color: #888; margin-bottom: 15px;">Sort + merge/compare overlapping ranges. Used in: <em>Merge Intervals, Insert Interval, Non-Overlapping Intervals, Meeting Rooms</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Merge Intervals (LC 56) ──</span>
+<span class="keyword">def</span> <span class="function">merge</span>(intervals):
+    intervals.sort()                     <span class="comment"># ← sorts by start (then end)</span>
+    merged = [intervals[<span class="number">0</span>]]
+    <span class="keyword">for</span> start, end <span class="keyword">in</span> intervals[<span class="number">1</span>:]:    <span class="comment"># ← tuple unpacking</span>
+        <span class="keyword">if</span> start &lt;= merged[-<span class="number">1</span>][<span class="number">1</span>]:
+            merged[-<span class="number">1</span>][<span class="number">1</span>] = <span class="function">max</span>(merged[-<span class="number">1</span>][<span class="number">1</span>], end)
+        <span class="keyword">else</span>:
+            merged.append([start, end])
+    <span class="keyword">return</span> merged
+
+<span class="comment"># ── Meeting Rooms II (sweep line) ──</span>
+<span class="comment"># Trick: separate start/end events and sort</span>
+events = []
+<span class="keyword">for</span> s, e <span class="keyword">in</span> intervals:
+    events.append((s, <span class="number">1</span>))               <span class="comment"># meeting starts</span>
+    events.append((e, -<span class="number">1</span>))              <span class="comment"># meeting ends</span>
+events.sort()
+max_rooms = cur = <span class="number">0</span>
+<span class="keyword">for</span> _, delta <span class="keyword">in</span> events:
+    cur += delta
+    max_rooms = <span class="function">max</span>(max_rooms, cur)
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • intervals.sort()    — sorts tuples lexicographically</span>
+<span class="comment"># • for s, e in ...     — tuple unpacking in loops</span>
+<span class="comment"># • merged[-1]          — peek last element of result</span></pre>
+</div>
+</div>
+<h3 id="algo-dp">🔟 Dynamic Programming</h3>
+<p style="color: #888; margin-bottom: 15px;">Optimal substructure + overlapping subproblems. Used in: <em>Climbing Stairs, House Robber, Coin Change, LIS, Longest Common Subsequence, Knapsack, Edit Distance, Word Break</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Top-Down with @cache (Python 3.9+) ──</span>
+<span class="keyword">from</span> functools <span class="keyword">import</span> cache
+<span class="keyword">def</span> <span class="function">climbStairs</span>(n):
+    @cache                               <span class="comment"># ← automatic memoization!</span>
+    <span class="keyword">def</span> <span class="function">dp</span>(i):
+        <span class="keyword">if</span> i &lt;= <span class="number">1</span>: <span class="keyword">return</span> <span class="number">1</span>
+        <span class="keyword">return</span> dp(i-<span class="number">1</span>) + dp(i-<span class="number">2</span>)
+    <span class="keyword">return</span> dp(n)
+
+<span class="comment"># ── For Python &lt; 3.9, use @lru_cache(maxsize=None) ──</span>
+<span class="keyword">from</span> functools <span class="keyword">import</span> lru_cache
+@lru_cache(maxsize=<span class="keyword">None</span>)
+<span class="keyword">def</span> <span class="function">dp</span>(i, j): ...
+
+<span class="comment"># ── Bottom-Up: Coin Change (LC 322) ──</span>
+<span class="keyword">def</span> <span class="function">coinChange</span>(coins, amount):
+    dp = [<span class="function">float</span>(<span class="string">'inf'</span>)] * (amount + <span class="number">1</span>)
+    dp[<span class="number">0</span>] = <span class="number">0</span>
+    <span class="keyword">for</span> a <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, amount + <span class="number">1</span>):
+        <span class="keyword">for</span> c <span class="keyword">in</span> coins:
+            <span class="keyword">if</span> c &lt;= a:
+                dp[a] = <span class="function">min</span>(dp[a], dp[a - c] + <span class="number">1</span>)
+    <span class="keyword">return</span> dp[amount] <span class="keyword">if</span> dp[amount] != <span class="function">float</span>(<span class="string">'inf'</span>) <span class="keyword">else</span> -<span class="number">1</span>
+
+<span class="comment"># ── House Robber (LC 198) — space-optimized ──</span>
+<span class="keyword">def</span> <span class="function">rob</span>(nums):
+    prev, curr = <span class="number">0</span>, <span class="number">0</span>
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+        prev, curr = curr, <span class="function">max</span>(curr, prev + n)  <span class="comment"># ← parallel assign!</span>
+    <span class="keyword">return</span> curr
+
+<span class="comment"># ── LIS (LC 300) — patience sort with bisect ──</span>
+<span class="keyword">from</span> bisect <span class="keyword">import</span> bisect_left
+<span class="keyword">def</span> <span class="function">lengthOfLIS</span>(nums):
+    tails = []
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums:
+        i = bisect_left(tails, n)
+        <span class="keyword">if</span> i == <span class="function">len</span>(tails):
+            tails.append(n)
+        <span class="keyword">else</span>:
+            tails[i] = n                 <span class="comment"># ← O(n log n)!</span>
+    <span class="keyword">return</span> <span class="function">len</span>(tails)
+
+<span class="comment"># ── 2D DP: LCS (LC 1143) ──</span>
+<span class="keyword">def</span> <span class="function">longestCommonSubsequence</span>(s1, s2):
+    dp = [[<span class="number">0</span>] * (<span class="function">len</span>(s2)+<span class="number">1</span>) <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="function">range</span>(<span class="function">len</span>(s1)+<span class="number">1</span>)]
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, <span class="function">len</span>(s1)+<span class="number">1</span>):
+        <span class="keyword">for</span> j <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span>, <span class="function">len</span>(s2)+<span class="number">1</span>):
+            <span class="keyword">if</span> s1[i-<span class="number">1</span>] == s2[j-<span class="number">1</span>]:
+                dp[i][j] = dp[i-<span class="number">1</span>][j-<span class="number">1</span>] + <span class="number">1</span>
+            <span class="keyword">else</span>:
+                dp[i][j] = <span class="function">max</span>(dp[i-<span class="number">1</span>][j], dp[i][j-<span class="number">1</span>])
+    <span class="keyword">return</span> dp[-<span class="number">1</span>][-<span class="number">1</span>]                    <span class="comment"># ← dp[-1][-1] = bottom-right</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • @cache / @lru_cache  — FREE memoization decorator</span>
+<span class="comment"># • float('inf')         — clean infinity for min comparisons</span>
+<span class="comment"># • prev, curr = curr, max(...)  — O(1) space DP</span>
+<span class="comment"># • bisect_left          — O(n log n) LIS</span>
+<span class="comment"># • dp[-1][-1]           — negative indexing for last element</span></pre>
+</div>
+</div>
+<h3 id="algo-graph">1️⃣1️⃣ Graph / Topological Sort</h3>
+<p style="color: #888; margin-bottom: 15px;">Adjacency list traversal, dependency ordering. Used in: <em>Course Schedule, Clone Graph, Pacific Atlantic Water Flow, Alien Dictionary</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Build adjacency list ──</span>
+graph = defaultdict(<span class="function">list</span>)              <span class="comment"># ← auto-creates lists</span>
+<span class="keyword">for</span> u, v <span class="keyword">in</span> edges:
+    graph[u].append(v)
+    graph[v].append(u)                   <span class="comment"># ← if undirected</span>
+
+<span class="comment"># ── Topological Sort — BFS / Kahn's (LC 207) ──</span>
+<span class="keyword">def</span> <span class="function">canFinish</span>(numCourses, prerequisites):
+    graph = defaultdict(<span class="function">list</span>)
+    indegree = [<span class="number">0</span>] * numCourses
+    <span class="keyword">for</span> course, pre <span class="keyword">in</span> prerequisites:
+        graph[pre].append(course)
+        indegree[course] += <span class="number">1</span>
+    q = deque(i <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(numCourses) <span class="keyword">if</span> indegree[i] == <span class="number">0</span>)
+    taken = <span class="number">0</span>                            <span class="comment"># ← generator in deque!</span>
+    <span class="keyword">while</span> q:
+        node = q.popleft()
+        taken += <span class="number">1</span>
+        <span class="keyword">for</span> nei <span class="keyword">in</span> graph[node]:
+            indegree[nei] -= <span class="number">1</span>
+            <span class="keyword">if</span> indegree[nei] == <span class="number">0</span>:
+                q.append(nei)
+    <span class="keyword">return</span> taken == numCourses
+
+<span class="comment"># ── Topological Sort — DFS cycle detection ──</span>
+<span class="keyword">def</span> <span class="function">canFinish_dfs</span>(numCourses, prerequisites):
+    graph = defaultdict(<span class="function">list</span>)
+    <span class="keyword">for</span> c, p <span class="keyword">in</span> prerequisites: graph[p].append(c)
+    WHITE, GRAY, BLACK = <span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>       <span class="comment"># ← state enum</span>
+    color = [WHITE] * numCourses
+    <span class="keyword">def</span> <span class="function">dfs</span>(node):
+        color[node] = GRAY
+        <span class="keyword">for</span> nei <span class="keyword">in</span> graph[node]:
+            <span class="keyword">if</span> color[nei] == GRAY: <span class="keyword">return</span> <span class="keyword">False</span>  <span class="comment"># cycle!</span>
+            <span class="keyword">if</span> color[nei] == WHITE <span class="keyword">and</span> <span class="keyword">not</span> dfs(nei): <span class="keyword">return</span> <span class="keyword">False</span>
+        color[node] = BLACK
+        <span class="keyword">return</span> <span class="keyword">True</span>
+    <span class="keyword">return</span> <span class="function">all</span>(dfs(i) <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(numCourses) <span class="keyword">if</span> color[i] == WHITE)
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • defaultdict(list)   — no KeyError, auto-creates adj list</span>
+<span class="comment"># • deque(generator)    — initialize queue with generator</span>
+<span class="comment"># • all(... for ...)    — short-circuit over all nodes</span>
+<span class="comment"># • WHITE, GRAY, BLACK  — multiple assignment for states</span></pre>
+</div>
+</div>
+<h3 id="algo-trie">1️⃣2️⃣ Trie (Prefix Tree)</h3>
+<p style="color: #888; margin-bottom: 15px;">Efficient prefix/word lookup. Used in: <em>Implement Trie, Word Search II, Design Add and Search Words</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Clean Trie using nested dicts ──</span>
+<span class="keyword">class</span> <span class="type">Trie</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self):
+        self.root = {}
+
+    <span class="keyword">def</span> <span class="function">insert</span>(self, word):
+        node = self.root
+        <span class="keyword">for</span> c <span class="keyword">in</span> word:
+            node = node.setdefault(c, {}) <span class="comment"># ← create if missing!</span>
+        node[<span class="string">'#'</span>] = <span class="keyword">True</span>                  <span class="comment"># ← end-of-word marker</span>
+
+    <span class="keyword">def</span> <span class="function">search</span>(self, word):
+        node = self.root
+        <span class="keyword">for</span> c <span class="keyword">in</span> word:
+            <span class="keyword">if</span> c <span class="keyword">not</span> <span class="keyword">in</span> node: <span class="keyword">return</span> <span class="keyword">False</span>
+            node = node[c]
+        <span class="keyword">return</span> <span class="string">'#'</span> <span class="keyword">in</span> node
+
+    <span class="keyword">def</span> <span class="function">startsWith</span>(self, prefix):
+        node = self.root
+        <span class="keyword">for</span> c <span class="keyword">in</span> prefix:
+            <span class="keyword">if</span> c <span class="keyword">not</span> <span class="keyword">in</span> node: <span class="keyword">return</span> <span class="keyword">False</span>
+            node = node[c]
+        <span class="keyword">return</span> <span class="keyword">True</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • dict.setdefault(k, {})  — get-or-create in one call</span>
+<span class="comment"># • nested dict as trie     — no need for TrieNode class</span>
+<span class="comment"># • '#' as end marker       — any sentinel works</span></pre>
+</div>
+</div>
+<h3 id="algo-union-find">1️⃣3️⃣ Union Find (Disjoint Set)</h3>
+<p style="color: #888; margin-bottom: 15px;">Track connected components efficiently. Used in: <em>Number of Connected Components, Redundant Connection, Accounts Merge, Number of Provinces</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Template: Union Find with path compression + rank ──</span>
+<span class="keyword">class</span> <span class="type">UnionFind</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, n):
+        self.par = <span class="function">list</span>(<span class="function">range</span>(n))       <span class="comment"># ← parent[i] = i initially</span>
+        self.rank = [<span class="number">0</span>] * n
+
+    <span class="keyword">def</span> <span class="function">find</span>(self, x):
+        <span class="keyword">if</span> self.par[x] != x:
+            self.par[x] = self.find(self.par[x])  <span class="comment"># ← path compression</span>
+        <span class="keyword">return</span> self.par[x]
+
+    <span class="keyword">def</span> <span class="function">union</span>(self, x, y):
+        px, py = self.find(x), self.find(y)
+        <span class="keyword">if</span> px == py: <span class="keyword">return</span> <span class="keyword">False</span>         <span class="comment"># already connected</span>
+        <span class="keyword">if</span> self.rank[px] &lt; self.rank[py]:
+            px, py = py, px              <span class="comment"># ← swap trick</span>
+        self.par[py] = px
+        <span class="keyword">if</span> self.rank[px] == self.rank[py]:
+            self.rank[px] += <span class="number">1</span>
+        <span class="keyword">return</span> <span class="keyword">True</span>
+
+<span class="comment"># ── Usage: Number of Connected Components ──</span>
+uf = UnionFind(n)
+<span class="keyword">for</span> u, v <span class="keyword">in</span> edges:
+    uf.union(u, v)
+components = <span class="function">len</span>(<span class="function">set</span>(uf.find(i) <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n)))  <span class="comment"># ← set comp!</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • list(range(n))       — initialize parent array</span>
+<span class="comment"># • recursive find + reassign — path compression</span>
+<span class="comment"># • set(... for ...)     — count unique roots</span></pre>
+</div>
+</div>
+<h3 id="algo-bit-manip">1️⃣4️⃣ Bit Manipulation</h3>
+<p style="color: #888; margin-bottom: 15px;">XOR, AND, shift tricks. Used in: <em>Single Number, Counting Bits, Reverse Bits, Missing Number, Sum of Two Integers</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Single Number (LC 136) — XOR all elements ──</span>
+<span class="keyword">from</span> functools <span class="keyword">import</span> reduce
+<span class="keyword">from</span> operator <span class="keyword">import</span> xor
+result = reduce(xor, nums)              <span class="comment"># ← XOR cancels pairs</span>
+
+<span class="comment"># ── Counting Bits (LC 338) ──</span>
+[bin(i).count(<span class="string">'1'</span>) <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n+<span class="number">1</span>)]  <span class="comment"># ← bin() + count!</span>
+
+<span class="comment"># ── Missing Number (LC 268) ──</span>
+<span class="keyword">def</span> <span class="function">missingNumber</span>(nums):
+    <span class="keyword">return</span> <span class="function">len</span>(nums) * (<span class="function">len</span>(nums)+<span class="number">1</span>)//<span class="number">2</span> - <span class="function">sum</span>(nums)  <span class="comment"># ← math!</span>
+    <span class="comment"># Or XOR: reduce(xor, nums + list(range(len(nums)+1)))</span>
+
+<span class="comment"># ── Common bit tricks ──</span>
+n &amp; (n - <span class="number">1</span>)                            <span class="comment"># clear lowest set bit</span>
+n &amp; (-n)                               <span class="comment"># isolate lowest set bit</span>
+n | (n + <span class="number">1</span>)                            <span class="comment"># set lowest clear bit</span>
+bin(n).count(<span class="string">'1'</span>)                      <span class="comment"># popcount (count 1s)</span>
+n &gt;&gt; k &amp; <span class="number">1</span>                             <span class="comment"># check k-th bit</span>
+n ^ (<span class="number">1</span> &lt;&lt; k)                           <span class="comment"># toggle k-th bit</span>
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • reduce(xor, nums)    — XOR all in one line</span>
+<span class="comment"># • bin(n).count('1')    — popcount (no manual loop)</span>
+<span class="comment"># • Python handles negative numbers &amp; big ints natively</span></pre>
+</div>
+</div>
+<div class="tips-box">
+<h4>⚙️ Bit Tricks for Tight Loops — applied patterns</h4>
+<p style="color: #888; margin-bottom: 10px;">
+                        The one-liners above are the vocabulary. These are the <em>sentences</em> — three patterns that turn bit tricks into algorithms: Kernighan popcount, Fenwick lowbit, and bitmask-DP state.
+                    </p>
+<pre style="background: #1a1a1a; padding: 12px; border-radius: 6px; margin: 10px 0; color: #e0e0e0;"><span class="comment"># ── 1) Kernighan's algorithm — popcount in O(set bits) ──</span>
+<span class="comment"># Faster than bin(n).count('1') when bits are sparse, and the</span>
+<span class="comment"># interview-favorite "count 1 bits without bin()" answer.</span>
+<span class="keyword">def</span> <span class="function">popcount</span>(n):
+    count = <span class="number">0</span>
+    <span class="keyword">while</span> n:
+        n &amp;= n - <span class="number">1</span>                       <span class="comment"># ← drops the lowest set bit</span>
+        count += <span class="number">1</span>
+    <span class="keyword">return</span> count
+
+<span class="comment"># ── 2) Fenwick / Binary Indexed Tree — i &amp; -i is the engine ──</span>
+<span class="comment"># Used in: Range Sum Query Mutable, Count of Smaller Numbers After Self.</span>
+<span class="keyword">class</span> <span class="type">BIT</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, n):
+        self.tree = [<span class="number">0</span>] * (n + <span class="number">1</span>)
+    <span class="keyword">def</span> <span class="function">update</span>(self, i, delta):
+        <span class="keyword">while</span> i &lt; <span class="function">len</span>(self.tree):
+            self.tree[i] += delta
+            i += i &amp; -i                  <span class="comment"># ← jump to next responsible node</span>
+    <span class="keyword">def</span> <span class="function">query</span>(self, i):                  <span class="comment"># prefix sum [1..i]</span>
+        s = <span class="number">0</span>
+        <span class="keyword">while</span> i &gt; <span class="number">0</span>:
+            s += self.tree[i]
+            i -= i &amp; -i                  <span class="comment"># ← peel off lowest set bit</span>
+        <span class="keyword">return</span> s
+
+<span class="comment"># ── 3) Bitmask DP — encode a subset as an int ──</span>
+<span class="comment"># Used in: Travelling Salesman, Partition to K Equal Subsets,</span>
+<span class="comment"># Shortest Path Visiting All Nodes, Stickers to Spell Word.</span>
+full = (<span class="number">1</span> &lt;&lt; n) - <span class="number">1</span>                     <span class="comment"># mask with all n bits set</span>
+<span class="keyword">for</span> mask <span class="keyword">in</span> <span class="function">range</span>(<span class="number">1</span> &lt;&lt; n):                <span class="comment"># every subset of {0..n-1}</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(n):
+        <span class="keyword">if</span> mask &amp; (<span class="number">1</span> &lt;&lt; i):              <span class="comment"># is i in this subset?</span>
+            prev = mask ^ (<span class="number">1</span> &lt;&lt; i)        <span class="comment"># mask without i</span>
+            dp[mask] = <span class="function">min</span>(dp[mask], dp[prev] + cost[prev][i])
+
+<span class="comment"># Enumerate non-empty subsets of `mask` (used in TSP variants):</span>
+sub = mask
+<span class="keyword">while</span> sub:
+    <span class="comment"># ... use sub ...</span>
+    sub = (sub - <span class="number">1</span>) &amp; mask              <span class="comment"># ← classic subset trick</span>
+
+<span class="comment"># ── 4) Fixed-width binary strings ──</span>
+<span class="function">bin</span>(<span class="number">5</span>)[<span class="number">2</span>:]                              <span class="comment"># '101'  (strip the '0b' prefix)</span>
+<span class="function">bin</span>(<span class="number">5</span>)[<span class="number">2</span>:].zfill(<span class="number">8</span>)                     <span class="comment"># '00000101'  zero-padded</span>
+<span class="function">format</span>(<span class="number">5</span>, <span class="string">'08b'</span>)                        <span class="comment"># '00000101'  one-shot</span>
+<span class="function">int</span>(<span class="string">'00000101'</span>, <span class="number">2</span>)                     <span class="comment"># 5  parse binary string</span></pre>
+<h4 style="margin-top: 14px;">🎯 When each pays off</h4>
+<ul>
+<li><strong>Kernighan</strong> beats <code>bin(n).count('1')</code> only inside hot loops on sparse <code>n</code> — for one-shot popcount, just use <code>bin(...)</code></li>
+<li><strong>Fenwick</strong> lowbit pattern memorize: <code>i += i &amp; -i</code> climbs the tree (update), <code>i -= i &amp; -i</code> walks toward root (query)</li>
+<li><strong>Bitmask DP</strong> works when <code>n ≤ 20</code> — <code>2^20 = ~1M</code> states still fits memory; <code>2^22+</code> usually doesn't</li>
+<li><strong><code>format(n, '0{w}b')</code></strong> is cleaner than <code>bin(n)[2:].zfill(w)</code> for fixed-width — same result, no string math</li>
+</ul>
+</div>
+<h3 id="algo-greedy">1️⃣5️⃣ Greedy / Kadane's Algorithm</h3>
+<p style="color: #888; margin-bottom: 15px;">Locally optimal choices, max subarray. Used in: <em>Maximum Subarray, Jump Game, Gas Station, Hand of Straights, Partition Labels</em></p>
+<div class="code-block" style="margin-bottom: 25px;">
+<div class="code-header python">🐍 Python Shortcuts</div>
+<div class="code-content">
+<pre><span class="comment"># ── Maximum Subarray / Kadane's (LC 53) ──</span>
+<span class="keyword">def</span> <span class="function">maxSubArray</span>(nums):
+    cur = res = nums[<span class="number">0</span>]
+    <span class="keyword">for</span> n <span class="keyword">in</span> nums[<span class="number">1</span>:]:
+        cur = <span class="function">max</span>(n, cur + n)            <span class="comment"># ← restart or extend?</span>
+        res = <span class="function">max</span>(res, cur)
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Jump Game (LC 55) ──</span>
+<span class="keyword">def</span> <span class="function">canJump</span>(nums):
+    reach = <span class="number">0</span>
+    <span class="keyword">for</span> i, n <span class="keyword">in</span> <span class="function">enumerate</span>(nums):
+        <span class="keyword">if</span> i &gt; reach: <span class="keyword">return</span> <span class="keyword">False</span>
+        reach = <span class="function">max</span>(reach, i + n)
+    <span class="keyword">return</span> <span class="keyword">True</span>
+
+<span class="comment"># ── Partition Labels (LC 763) ──</span>
+<span class="keyword">def</span> <span class="function">partitionLabels</span>(s):
+    last = {c: i <span class="keyword">for</span> i, c <span class="keyword">in</span> <span class="function">enumerate</span>(s)}  <span class="comment"># ← dict comp!</span>
+    start = end = <span class="number">0</span>
+    res = []
+    <span class="keyword">for</span> i, c <span class="keyword">in</span> <span class="function">enumerate</span>(s):
+        end = <span class="function">max</span>(end, last[c])
+        <span class="keyword">if</span> i == end:
+            res.append(end - start + <span class="number">1</span>)
+            start = i + <span class="number">1</span>
+    <span class="keyword">return</span> res
+
+<span class="comment"># ── Python tricks used ──</span>
+<span class="comment"># • {c: i for i, c in enumerate(s)}  — last-occurrence map</span>
+<span class="comment"># • max(n, cur + n)     — Kadane's in one expression</span></pre>
+</div>
+</div>
+<h3 id="algo-shortcuts">📚 1️⃣6️⃣ Python Shortcuts Master Index</h3>
+<table class="comparison-table" style="margin-bottom: 10px;">
+<thead>
+<tr>
+<th>Shortcut</th>
+<th>What it does</th>
+<th>Used in patterns</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><code>Counter(iterable)</code></td><td>Instant frequency map</td><td>Sliding Window, Heap, Anagram</td></tr>
+<tr><td><code>defaultdict(int/list)</code></td><td>Auto-create missing keys</td><td>Graph, Sliding Window, BFS</td></tr>
+<tr><td><code>@cache / @lru_cache</code></td><td>Free memoization</td><td>DP (top-down)</td></tr>
+<tr><td><code>bisect_left / insort</code></td><td>Binary search on sorted list</td><td>Binary Search, LIS, Intervals</td></tr>
+<tr><td><code>heapq.nlargest(k,...)</code></td><td>Top-K without full sort</td><td>Heap, Top-K</td></tr>
+<tr><td><code>-val</code> with <code>heapq</code></td><td>Max-heap via negation</td><td>Two Heaps, Top-K</td></tr>
+<tr><td><code>deque / popleft()</code></td><td>O(1) queue operations</td><td>BFS, Sliding Window</td></tr>
+<tr><td><code>enumerate(iterable)</code></td><td>Index + value in one loop</td><td>Two Pointers, Sliding Window</td></tr>
+<tr><td><code>a, b = b, a</code></td><td>Parallel swap / assign</td><td>Linked List, DP, Two Pointers</td></tr>
+<tr><td><code>float('inf')</code></td><td>Infinity for comparisons</td><td>DP, Binary Search, Sliding Window</td></tr>
+<tr><td><code>nonlocal var</code></td><td>Modify enclosing scope var</td><td>DFS/Tree (diameter, etc.)</td></tr>
+<tr><td><code>s[::-1]</code></td><td>Reverse string/list</td><td>Two Pointers, Palindrome</td></tr>
+<tr><td><code>dict.setdefault(k,{})</code></td><td>Get-or-create in one call</td><td>Trie</td></tr>
+<tr><td><code>reduce(xor, nums)</code></td><td>XOR all elements</td><td>Bit Manipulation</td></tr>
+<tr><td><code>bin(n).count('1')</code></td><td>Count set bits</td><td>Bit Manipulation</td></tr>
+<tr><td><code>accumulate(nums)</code></td><td>Running prefix sums</td><td>Prefix Sum</td></tr>
+<tr><td><code>path[:] / list(path)</code></td><td>Snapshot copy for backtracking</td><td>Backtracking</td></tr>
+<tr><td><code>0 &lt;= r &lt; rows</code></td><td>Chained bound check</td><td>BFS / DFS on grids</td></tr>
+<tr><td><code>(val, i, obj)</code> in heap</td><td>Tuple tie-breaking</td><td>Merge K Lists, Dijkstra</td></tr>
+<tr><td><code>all() / any()</code></td><td>Short-circuit boolean check</td><td>Graph, Validation</td></tr>
+<tr><td><code>math.ceil(a/b)</code> or <code>-(-a//b)</code></td><td>Ceiling division</td><td>Binary Search on answer</td></tr>
+</tbody>
+</table>
+</div>
+<nav class="page-nav">
+<a class="prev" href="classes.html">← Classes, Nodes &amp; OOP</a>
+<a class="next" href="power-features.html">Python Power Features →</a>
+</nav>
+</div>
+</main>
+<script defer="" src="guide.js"></script>
+</body>
+</html>
