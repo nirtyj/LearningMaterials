@@ -716,11 +716,11 @@ def analyze_records(records):
 
     a = {
         "count_by_city" : Counter(city for name, age, city in records),
-        "max_age_by_name": max({name: age for name, age, city in records}, key 
-        "names_in_ny": 0,
-        "oldest" : 0
+        "max_age_by_name": {name : max(age for n, age, _ in records if n == name ) for name, _, _ in records},
+        "names_in_ny": sorted({name for name, _, c in records if c == "ny"}),
+        "oldest" : next((name, age, city) for name, age, city in records if age == max(a for n, a, c in records))
     }
-
+    a["oldest"] = max(records, key = lambda x: x[1])
     return a
 
 
