@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Python Collections — Methods by Collection</title>
+<title>Python Collections — Add · Update · Remove</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 32px 96px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 48px 32px 96px; }
   @media (max-width: 700px) { .wrap { padding: 32px 16px 64px; } }
 
   header.top {
@@ -88,6 +88,100 @@
   }
   .vars b { color: var(--ink); font-weight: 700; }
 
+  /* top comparison matrix */
+  .matrix-section { margin: 36px 0 0; }
+  .matrix-section h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-variation-settings: "opsz" 144;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+  }
+  .matrix-intro {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    font-style: italic;
+    margin: 0 0 14px;
+  }
+  .matrix-scroll {
+    overflow-x: auto;
+    margin: 0 -8px;
+    padding: 0 8px 6px;
+  }
+  table.matrix {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    min-width: 960px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  table.matrix thead th {
+    background: #1A1610;
+    color: #C9A968;
+    text-align: left;
+    padding: 9px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    border-bottom: 1px solid #2A241A;
+  }
+  table.matrix thead th:first-child { width: 14%; }
+  table.matrix tbody td {
+    padding: 10px 12px;
+    border-top: 1px solid var(--rule-soft);
+    vertical-align: top;
+    font-size: 13px;
+  }
+  table.matrix tbody td:first-child {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  table.matrix tbody td:first-child .var {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 500;
+    margin-left: 6px;
+  }
+  table.matrix code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink);
+    background: transparent;
+  }
+  table.matrix td .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin: 2px 0;
+  }
+  table.matrix tbody tr:nth-child(even) td { background: rgba(217, 210, 195, 0.20); }
+  table.matrix tbody tr:hover td { background: rgba(160, 52, 30, 0.06); }
+  .imm {
+    color: var(--ink-soft);
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+    font-size: 13.5px;
+  }
+  .note {
+    color: var(--ink-soft);
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+    font-size: 12.5px;
+  }
+
   /* table of contents */
   nav.toc {
     margin: 28px 0 0;
@@ -114,7 +208,7 @@
   }
   nav.toc a:hover { border-bottom-color: var(--accent); color: var(--accent); }
 
-  /* section */
+  /* per-collection section */
   section.col {
     margin: 56px 0 0;
     padding-top: 16px;
@@ -136,10 +230,9 @@
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.16em;
     color: var(--ink-soft);
     font-weight: 500;
-    letter-spacing: 0.16em;
   }
   section.col h2 .import {
     font-family: 'JetBrains Mono', monospace;
@@ -150,11 +243,32 @@
   section.col p.intro {
     color: var(--ink-soft);
     font-size: 15px;
-    margin: 0 0 14px;
+    margin: 0 0 12px;
   }
   section.col p.intro b { color: var(--ink); font-weight: 700; font-style: normal; }
 
-  table {
+  .callout {
+    margin: 10px 0 14px;
+    padding: 10px 14px;
+    background: rgba(160, 52, 30, 0.06);
+    border-left: 3px solid var(--accent);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .callout b { color: var(--accent); font-weight: 700; }
+  .callout code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+  .callout + .callout { margin-top: -4px; }
+
+  /* per-collection CRUD tables */
+  table.crud {
     border-collapse: separate;
     border-spacing: 0;
     width: 100%;
@@ -164,7 +278,7 @@
     overflow: hidden;
     margin-top: 4px;
   }
-  thead th {
+  table.crud thead th {
     background: #1A1610;
     color: #C9A968;
     text-align: left;
@@ -175,26 +289,38 @@
     letter-spacing: 0.16em;
     font-weight: 700;
   }
-  thead th:nth-child(1) { width: 38%; }
-  thead th:nth-child(2) { width: 47%; }
-  thead th:nth-child(3) { width: 15%; }
+  table.crud thead th:nth-child(1) { width: 16%; }
+  table.crud thead th:nth-child(2) { width: 38%; }
+  table.crud thead th:nth-child(3) { width: 32%; }
+  table.crud thead th:nth-child(4) { width: 14%; }
 
-  tbody td {
+  table.crud tbody td {
     padding: 8px 14px;
     border-top: 1px solid var(--rule-soft);
     vertical-align: top;
     font-size: 14px;
     line-height: 1.5;
   }
-  tbody td:first-child {
+  table.crud tbody td.op {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    white-space: nowrap;
+    background: rgba(160, 52, 30, 0.04);
+    border-right: 1px solid var(--rule-soft);
+  }
+  table.crud tbody td.method {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12.5px;
     color: var(--ink);
-    white-space: nowrap;
   }
-  tbody td:nth-child(2) { color: var(--ink-soft); }
-  tbody tr:nth-child(even) td { background: rgba(217, 210, 195, 0.20); }
-  tbody tr:hover td { background: rgba(160, 52, 30, 0.06); }
+  table.crud tbody td.desc { color: var(--ink-soft); }
+  table.crud tbody tr.row-end td:not(.op) { border-bottom: 0; }
+  table.crud tbody tr.group-start td:not(.op) { border-top: 1px solid var(--rule); }
+  table.crud tbody tr:hover td:not(.op) { background: rgba(160, 52, 30, 0.06); }
 
   .O {
     display: inline-block;
@@ -204,6 +330,7 @@
     font-size: 10.5px;
     font-weight: 500;
     letter-spacing: 0;
+    white-space: nowrap;
   }
   .O1    { background: var(--o1-bg);    color: var(--o1-fg); }
   .Olog  { background: var(--olog-bg);  color: var(--olog-fg); }
@@ -232,7 +359,7 @@
 <header class="top">
   <div class="sub">Python · stdlib + sortedcontainers</div>
   <h1>Methods by <span class="accent">collection</span></h1>
-  <div class="tag">One section per container — signature, what it does, complexity.</div>
+  <div class="tag">Add · update · remove — how each container does the common stuff.</div>
 
   <div class="legend">
     <span class="item"><span class="O O1">O(1)</span> constant</span>
@@ -242,437 +369,476 @@
   </div>
 
   <div class="vars">
-    <b>imports</b> &nbsp; <code>from collections import Counter, defaultdict, deque, OrderedDict</code><br>
-    <code>import heapq, bisect</code> &nbsp; · &nbsp; <code>from sortedcontainers import SortedList, SortedDict, SortedSet</code><br>
-    <b>vars</b> &nbsp; <b>a</b>=list · <b>t</b>=tuple · <b>st</b>=str · <b>r</b>=range · <b>d</b>=dict · <b>dd</b>=defaultdict · <b>od</b>=OrderedDict · <b>c</b>=Counter · <b>s</b>=set · <b>fs</b>=frozenset · <b>dq</b>=deque · <b>h</b>=heap-list · <b>sl</b>=SortedList · <b>sd</b>=SortedDict · <b>ss</b>=SortedSet
+    <b>imports</b> &nbsp; <code>from collections import defaultdict, deque, OrderedDict</code> &nbsp; · &nbsp; <code>import heapq</code> &nbsp; · &nbsp; <code>from sortedcontainers import SortedList, SortedDict, SortedSet</code><br>
+    <b>vars</b> &nbsp; <b>a</b>=list · <b>t</b>=tuple · <b>st</b>=str · <b>d</b>=dict · <b>dd</b>=defaultdict · <b>od</b>=OrderedDict · <b>s</b>=set · <b>fs</b>=frozenset · <b>dq</b>=deque · <b>h</b>=heap-list · <b>sl</b>=SortedList · <b>sd</b>=SortedDict · <b>ss</b>=SortedSet
   </div>
-
-  <nav class="toc">
-    <div class="label">jump to</div>
-    <a href="#list">list</a>
-    <a href="#tuple">tuple</a>
-    <a href="#str">str</a>
-    <a href="#range">range</a>
-    <a href="#dict">dict</a>
-    <a href="#defaultdict">defaultdict</a>
-    <a href="#ordereddict">OrderedDict</a>
-    <a href="#counter">Counter</a>
-    <a href="#set">set</a>
-    <a href="#frozenset">frozenset</a>
-    <a href="#deque">deque</a>
-    <a href="#heapq">heapq</a>
-    <a href="#sortedlist">SortedList</a>
-    <a href="#sorteddict">SortedDict</a>
-    <a href="#sortedset">SortedSet</a>
-  </nav>
 </header>
+
+<!-- ============================================================ matrix -->
+<section class="matrix-section">
+  <h2>At a glance — verb by collection</h2>
+  <p class="matrix-intro">Same verb, different syntax — and sometimes different meaning. Scan a column to see how every collection does one job.</p>
+  <div class="matrix-scroll">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Collection</th>
+          <th>Add (insert new)</th>
+          <th>Update / edit existing</th>
+          <th>Remove one</th>
+          <th>Clear all</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>list <span class="var">a</span></td>
+          <td><div class="row"><code>a.append(x)</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>a[i] = x</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>a.pop()</code> <span class="O O1">O(1)</span></div><div class="row"><code>a.remove(x)</code> <span class="O On">O(n)</span></div></td>
+          <td><div class="row"><code>a.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>tuple <span class="var">t</span></td>
+          <td><span class="imm">— immutable —</span><br><span class="note">rebuild: <code>t + (x,)</code></span></td>
+          <td><span class="imm">— immutable —</span><br><span class="note">rebuild: <code>t[:i] + (x,) + t[i+1:]</code></span></td>
+          <td><span class="imm">— immutable —</span><br><span class="note">rebuild: <code>t[:i] + t[i+1:]</code></span></td>
+          <td><span class="imm"><code>()</code></span></td>
+        </tr>
+        <tr>
+          <td>str <span class="var">st</span></td>
+          <td><span class="imm">— immutable —</span><br><span class="note"><code>st + "x"</code> &nbsp;·&nbsp; <code>"".join(parts)</code></span></td>
+          <td><span class="imm">— immutable —</span><br><span class="note"><code>st[:i] + c + st[i+1:]</code> &nbsp;·&nbsp; <code>st.replace(old, new)</code></span></td>
+          <td><span class="imm">— immutable —</span><br><span class="note"><code>st.replace(c, "", 1)</code></span></td>
+          <td><span class="imm"><code>""</code></span></td>
+        </tr>
+        <tr>
+          <td>dict <span class="var">d</span></td>
+          <td><div class="row"><code>d[k] = v</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>d[k] = v</code> <span class="O O1">O(1)</span></div><div class="row"><code>d.update(other)</code> <span class="O On">O(k)</span></div></td>
+          <td><div class="row"><code>del d[k]</code> <span class="O O1">O(1)</span></div><div class="row"><code>d.pop(k)</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>d.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>defaultdict <span class="var">dd</span></td>
+          <td><div class="row"><code>dd[k] += 1</code> <span class="O O1">O(1)</span></div><div class="row"><code>dd[k].append(x)</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>dd[k] = v</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>del dd[k]</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>dd.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>OrderedDict <span class="var">od</span></td>
+          <td><div class="row"><code>od[k] = v</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>od[k] = v</code> <span class="O O1">O(1)</span></div><div class="row"><code>od.move_to_end(k)</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>od.popitem(last=True)</code> <span class="O O1">O(1)</span></div><div class="row"><code>od.popitem(last=False)</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>od.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>set <span class="var">s</span></td>
+          <td><div class="row"><code>s.add(x)</code> <span class="O O1">O(1)</span></div></td>
+          <td><span class="note">no in-place edit — <code>remove</code> then <code>add</code></span><br><span class="note"><code>s.update(it)</code> = <b>union</b>, not edit</span></td>
+          <td><div class="row"><code>s.discard(x)</code> <span class="O O1">O(1)</span></div><div class="row"><code>s.remove(x)</code> <span class="note">raises</span></div></td>
+          <td><div class="row"><code>s.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>frozenset <span class="var">fs</span></td>
+          <td><span class="imm">— immutable —</span><br><span class="note"><code>fs | {x}</code> returns new</span></td>
+          <td><span class="imm">— immutable —</span></td>
+          <td><span class="imm">— immutable —</span><br><span class="note"><code>fs - {x}</code> returns new</span></td>
+          <td><span class="imm"><code>frozenset()</code></span></td>
+        </tr>
+        <tr>
+          <td>deque <span class="var">dq</span></td>
+          <td><div class="row"><code>dq.append(x)</code> <span class="O O1">O(1)</span></div><div class="row"><code>dq.appendleft(x)</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>dq[i] = x</code> <span class="O On">O(n)</span></div><span class="note">only ends are O(1)</span></td>
+          <td><div class="row"><code>dq.pop()</code> <span class="O O1">O(1)</span></div><div class="row"><code>dq.popleft()</code> <span class="O O1">O(1)</span></div></td>
+          <td><div class="row"><code>dq.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>heapq <span class="var">h</span></td>
+          <td><div class="row"><code>heappush(h, x)</code> <span class="O Olog">O(log n)</span></div></td>
+          <td><span class="note">no direct edit</span><br><div class="row"><code>heapreplace(h, x)</code> <span class="O Olog">O(log n)</span></div><span class="note">pop smallest, then push x</span></td>
+          <td><div class="row"><code>heappop(h)</code> <span class="O Olog">O(log n)</span></div><span class="note">only the smallest — no arbitrary remove</span></td>
+          <td><div class="row"><code>h.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>SortedList <span class="var">sl</span></td>
+          <td><div class="row"><code>sl.add(x)</code> <span class="O Olog">O(log n)</span></div></td>
+          <td><span class="note">no in-place — <code>discard</code> then <code>add</code></span></td>
+          <td><div class="row"><code>sl.discard(x)</code> <span class="O Olog">O(log n)</span></div><div class="row"><code>sl.remove(x)</code> <span class="note">raises</span></div></td>
+          <td><div class="row"><code>sl.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>SortedSet <span class="var">ss</span></td>
+          <td><div class="row"><code>ss.add(x)</code> <span class="O Olog">O(log n)</span></div></td>
+          <td><span class="note">no in-place — <code>discard</code> then <code>add</code></span></td>
+          <td><div class="row"><code>ss.discard(x)</code> <span class="O Olog">O(log n)</span></div></td>
+          <td><div class="row"><code>ss.clear()</code></div></td>
+        </tr>
+        <tr>
+          <td>SortedDict <span class="var">sd</span></td>
+          <td><div class="row"><code>sd[k] = v</code> <span class="O Olog">O(log n)</span></div></td>
+          <td><div class="row"><code>sd[k] = v</code> <span class="O Olog">O(log n)</span></div></td>
+          <td><div class="row"><code>del sd[k]</code> <span class="O Olog">O(log n)</span></div><div class="row"><code>sd.popitem(last=False)</code> <span class="O Olog">O(log n)</span></div></td>
+          <td><div class="row"><code>sd.clear()</code></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<nav class="toc">
+  <div class="label">jump to</div>
+  <a href="#list">list</a>
+  <a href="#tuple">tuple</a>
+  <a href="#str">str</a>
+  <a href="#dict">dict / defaultdict</a>
+  <a href="#ordereddict">OrderedDict</a>
+  <a href="#set">set / frozenset</a>
+  <a href="#deque">deque</a>
+  <a href="#heapq">heapq</a>
+  <a href="#sortedlist">SortedList / SortedSet</a>
+  <a href="#sorteddict">SortedDict</a>
+  <a href="#tricks">tricks</a>
+</nav>
 
 <!-- ============================================================ list -->
 <section class="col" id="list">
   <h2>list <span class="var">a</span></h2>
-  <p class="intro"><b>Mutable</b>, ordered, indexable. Python's default sequence. Doubles as a stack via <code>append</code>/<code>pop</code>.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <p class="intro"><b>Mutable</b>, ordered, indexable. Python's default sequence.</p>
+
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>[]</td><td>empty list literal</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>[1, 2, 3]</td><td>list literal</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>list(it)</td><td>build from any iterable</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>[x for x in it]</td><td>list comprehension</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>len(a)</td><td>number of elements</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>a[i]</td><td>index (negative ok)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>a[i] = x</td><td>set element at index</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>a[i:j]</td><td>slice copy</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a[i:j] = it</td><td>slice assignment</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a[::-1]</td><td>reversed copy</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>x in a</td><td>membership test</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a + b</td><td>concatenate, returns new list</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a * n</td><td>repeat, returns new list</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a.append(x)</td><td>add one element to the end</td><td><span class="O O1">O(1)</span><span class="Oamortized">amortized</span></td></tr>
-      <tr><td>a.extend(it)</td><td>append every element of iterable</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>a.insert(i, x)</td><td>insert x at index i (shifts right)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a.pop()</td><td>remove and return last</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>a.pop(i)</td><td>remove and return at index i</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a.remove(x)</td><td>remove first occurrence of x</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>del a[i]</td><td>delete element at index</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a.index(x)</td><td>first index of x (raises if missing)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a.count(x)</td><td>occurrences of x</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a.sort()</td><td>sort in place (TimSort)</td><td><span class="O Onlog">O(n log n)</span></td></tr>
-      <tr><td>a.reverse()</td><td>reverse in place, returns None</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a.copy()</td><td>shallow copy</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a.clear()</td><td>empty the list</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>sorted(a)</td><td>new sorted list (doesn't mutate)</td><td><span class="O Onlog">O(n log n)</span></td></tr>
-      <tr><td>reversed(a)</td><td>reverse iterator (lazy)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>min(a) / max(a)</td><td>smallest / largest element</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>sum(a)</td><td>sum of elements</td><td><span class="O On">O(n)</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="2">Create / Read</td><td class="method">[] · [1, 2, 3] · list(it)</td><td class="desc">empty · literal · from iterable</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">a[i] · x in a · len(a)</td><td class="desc">index · membership · length</td><td><span class="O O1">O(1)</span> / <span class="O On">O(n)</span> / <span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="3">Add</td><td class="method">a.append(x)</td><td class="desc">push to end</td><td><span class="O O1">O(1)</span><span class="Oamortized">amortized</span></td></tr>
+      <tr><td class="method">a.insert(i, x)</td><td class="desc">insert at index (shifts the rest right)</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">a.extend(it)</td><td class="desc">append every element of iterable</td><td><span class="O On">O(k)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Update / Edit</td><td class="method">a[i] = x</td><td class="desc">set element at index</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">a[i:j] = it</td><td class="desc">replace a slice with iterable</td><td><span class="O On">O(n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="5">Remove / Clear</td><td class="method">a.pop()</td><td class="desc">remove &amp; return last</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">a.pop(i)</td><td class="desc">remove &amp; return at index</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">a.remove(x)</td><td class="desc">remove first occurrence of x (raises if missing)</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">del a[i]</td><td class="desc">delete at index (no return)</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">a.clear()</td><td class="desc">empty the list</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>watch out</b> &nbsp; <code>a.pop()</code> from the END is O(1). <code>a.pop(0)</code> or <code>a.insert(0, x)</code> are O(n) — use <code>deque</code> if you need both ends.
+  </div>
 </section>
 
 <!-- ============================================================ tuple -->
 <section class="col" id="tuple">
   <h2>tuple <span class="var">t</span></h2>
-  <p class="intro"><b>Immutable</b>, ordered. Same indexing/slicing grammar as list. Hashable when its elements are hashable — usable as dict keys.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <p class="intro"><b>Immutable</b>, ordered. Hashable when its elements are hashable — usable as a dict key.</p>
+
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>()</td><td>empty tuple</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>(1,)</td><td>single-element tuple (note the comma)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>(1, 2, 3)</td><td>tuple literal</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>tuple(it)</td><td>build from any iterable</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>len(t)</td><td>number of elements</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>t[i]</td><td>index</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>t[i:j]</td><td>slice copy</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>x in t</td><td>membership test</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>t + u</td><td>concatenate, returns new tuple</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>t * n</td><td>repeat, returns new tuple</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>t.index(x)</td><td>first index of x</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>t.count(x)</td><td>occurrences of x</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>a, b = t</td><td>unpacking</td><td><span class="O On">O(n)</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="2">Create / Read</td><td class="method">() · (1,) · (1, 2, 3) · tuple(it)</td><td class="desc">empty · single (note the comma!) · literal · from iterable</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">t[i] · x in t · len(t)</td><td class="desc">index · membership · length</td><td><span class="O O1">O(1)</span> / <span class="O On">O(n)</span> / <span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Add (rebuild)</td><td class="method">t + (x,)</td><td class="desc">new tuple with x appended</td><td><span class="O On">O(n)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Update (rebuild)</td><td class="method">t[:i] + (x,) + t[i+1:]</td><td class="desc">new tuple with element at i replaced</td><td><span class="O On">O(n)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Remove (rebuild)</td><td class="method">t[:i] + t[i+1:]</td><td class="desc">new tuple with element at i dropped</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>immutable</b> &nbsp; tuples have <i>no</i> <code>.append</code>, <code>.remove</code>, etc. Every "change" produces a <i>new</i> tuple.
+  </div>
 </section>
 
 <!-- ============================================================ str -->
 <section class="col" id="str">
   <h2>str <span class="var">st</span></h2>
-  <p class="intro"><b>Immutable</b> sequence of single-character strings. Every "modify" operation returns a new string.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <p class="intro"><b>Immutable</b> sequence of single-character strings. Every "modify" returns a <i>new</i> string.</p>
+
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>""</td><td>empty string</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>"abc"</td><td>literal</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>str(x)</td><td>convert anything to string</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>len(st)</td><td>character count</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>st[i]</td><td>character at index</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>st[i:j]</td><td>slice (returns new string)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st[::-1]</td><td>reversed string</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st + u</td><td>concatenate</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st * n</td><td>repeat</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>x in st</td><td>substring search</td><td><span class="O On">O(n·m)</span></td></tr>
-      <tr><td>st.split(sep)</td><td>split into list (default: whitespace)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.rsplit(sep, maxsplit)</td><td>split from the right</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.splitlines()</td><td>split on line endings</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>sep.join(it)</td><td>join iterable of strings</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.strip(chars)</td><td>strip from both ends</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.lstrip / rstrip</td><td>strip from one end</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.lower() / upper()</td><td>case conversion</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.title() / swapcase()</td><td>title / swap case</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.startswith(p) / endswith(p)</td><td>prefix / suffix check</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>st.find(sub)</td><td>first index of sub, or -1</td><td><span class="O On">O(n·m)</span></td></tr>
-      <tr><td>st.rfind(sub)</td><td>last index of sub, or -1</td><td><span class="O On">O(n·m)</span></td></tr>
-      <tr><td>st.index(sub)</td><td>like find but raises if missing</td><td><span class="O On">O(n·m)</span></td></tr>
-      <tr><td>st.replace(old, new)</td><td>replace all occurrences</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.count(sub)</td><td>non-overlapping count</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.format(...) / f"…"</td><td>format interpolation</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.zfill(n)</td><td>left-pad with '0' to width n</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.ljust / rjust / center</td><td>pad to width</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.isalpha() / isdigit()</td><td>only letters / digits?</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>st.isalnum() / isspace()</td><td>alphanumeric / whitespace?</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>ord(c)</td><td>char → int code point</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>chr(i)</td><td>int code point → char</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>sorted(st)</td><td>list of chars sorted</td><td><span class="O Onlog">O(n log n)</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="2">Create / Read</td><td class="method">"" · "abc" · str(x)</td><td class="desc">empty · literal · convert any object</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">st[i] · st[i:j] · sub in st · len(st)</td><td class="desc">char · slice · substring · length</td><td><span class="O On">O(n·m)</span> for substring</td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Add (rebuild)</td><td class="method">st + "x"</td><td class="desc">concatenate, returns new string</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">"".join(parts)</td><td class="desc">build from list of fragments (fast)</td><td><span class="O On">O(n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Update (rebuild)</td><td class="method">st[:i] + c + st[i+1:]</td><td class="desc">replace single char at index i</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">st.replace(old, new)</td><td class="desc">replace all occurrences of substring</td><td><span class="O On">O(n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Remove (rebuild)</td><td class="method">st.replace(c, "", 1)</td><td class="desc">drop first occurrence of c</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">st.strip() · st.lstrip() · st.rstrip()</td><td class="desc">trim whitespace (or chars) from ends</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>building strings</b> &nbsp; in a loop, never use <code>st += x</code> — it's O(n²). Build a list and call <code>"".join(parts)</code> once at the end.
+  </div>
 </section>
 
-<!-- ============================================================ range -->
-<section class="col" id="range">
-  <h2>range <span class="var">r</span></h2>
-  <p class="intro"><b>Immutable</b> lazy integer sequence. Doesn't store the values — just <code>start</code>, <code>stop</code>, <code>step</code>. Memory-cheap and supports indexing.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
-    <tbody>
-      <tr><td>range(stop)</td><td>0, 1, …, stop-1</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>range(start, stop)</td><td>start, …, stop-1</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>range(start, stop, step)</td><td>arithmetic progression</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>len(r)</td><td>element count</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>r[i]</td><td>indexed access (math, not lookup)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>r[i:j]</td><td>sub-range (still lazy)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>x in r</td><td>arithmetic membership test</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>r.start / r.stop / r.step</td><td>read the parameters</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>r.index(x)</td><td>position of x</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>r.count(x)</td><td>0 or 1 (no duplicates)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>list(r)</td><td>materialize into a list</td><td><span class="O On">O(n)</span></td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- ============================================================ dict -->
+<!-- ============================================================ dict / defaultdict -->
 <section class="col" id="dict">
-  <h2>dict <span class="var">d</span></h2>
-  <p class="intro"><b>Mutable</b> hash map. Preserves insertion order (since 3.7). Keys must be hashable.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
-    <tbody>
-      <tr><td>{}</td><td>empty dict</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>{"a": 1, "b": 2}</td><td>dict literal</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>dict(it)</td><td>from iterable of (k, v) pairs</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>dict(zip(keys, vals))</td><td>build from two parallel iterables</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>{k: v for ...}</td><td>dict comprehension</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>len(d)</td><td>number of keys</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>d[k]</td><td>lookup, raises KeyError if missing</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>d[k] = v</td><td>set / overwrite</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>d.get(k, default)</td><td>safe lookup, default if missing</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>d.setdefault(k, default)</td><td>get-or-insert</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>k in d</td><td>membership test on keys</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>del d[k]</td><td>remove key (raises if missing)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>d.pop(k, default)</td><td>remove and return value</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>d.popitem()</td><td>remove and return last (k, v)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>d.clear()</td><td>empty the dict</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>d.keys() / values() / items()</td><td>views over keys / values / pairs</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>d.update(other)</td><td>merge other dict / iterable of pairs</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>d.copy()</td><td>shallow copy</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>d | d2</td><td>merge into new dict (3.9+)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>d |= d2</td><td>merge in place (3.9+)</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>dict.fromkeys(it, val)</td><td>new dict with all keys → same val</td><td><span class="O On">O(n)</span></td></tr>
-    </tbody>
-  </table>
-</section>
+  <h2>dict <span class="var">d</span> &nbsp;/&nbsp; defaultdict <span class="var">dd</span> <span class="import">from collections import defaultdict</span></h2>
+  <p class="intro"><b>Mutable</b> hash map. Preserves insertion order (3.7+). Keys must be hashable.</p>
 
-<!-- ============================================================ defaultdict -->
-<section class="col" id="defaultdict">
-  <h2>defaultdict <span class="var">dd</span> <span class="import">from collections import defaultdict</span></h2>
-  <p class="intro"><b>Mutable</b> dict subclass. Missing-key reads auto-create a default value via a factory. Use for one-line grouping / counting.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>defaultdict(int)</td><td>missing key → 0 (good for counting)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>defaultdict(list)</td><td>missing key → [] (good for grouping)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>defaultdict(set)</td><td>missing key → set()</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>defaultdict(lambda: x)</td><td>any custom default</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>defaultdict(factory, mapping)</td><td>copy from a mapping with a factory</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>dd[k]</td><td>read; auto-creates if missing</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>dd.default_factory</td><td>the factory itself (set to None to disable)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>… all dict methods</td><td>defaultdict IS a dict</td><td><span class="na">see dict</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="3">Create / Read</td><td class="method">{} · {"a": 1} · dict(it) · dict(zip(ks, vs))</td><td class="desc">empty · literal · from pairs · from parallel iterables</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">d[k] · d.get(k, default)</td><td class="desc">lookup (raises KeyError) · safe lookup</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">k in d · len(d) · d.keys() · d.values() · d.items()</td><td class="desc">membership · count · views</td><td><span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Add</td><td class="method">d[k] = v</td><td class="desc">set / overwrite (same syntax adds OR updates)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">d.setdefault(k, default)</td><td class="desc">insert only if k missing; return the value either way</td><td><span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="3">Update / Edit</td><td class="method">d[k] = v</td><td class="desc">overwrite value at k</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">d.update(other)</td><td class="desc">merge another dict / iterable of pairs</td><td><span class="O On">O(k)</span></td></tr>
+      <tr><td class="method">d |= d2</td><td class="desc">in-place merge (3.9+)</td><td><span class="O On">O(k)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="4">Remove / Clear</td><td class="method">del d[k]</td><td class="desc">remove key (raises if missing)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">d.pop(k, default)</td><td class="desc">remove &amp; return value (default if missing)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">d.popitem()</td><td class="desc">remove &amp; return last (k, v) — LIFO</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">d.clear()</td><td class="desc">empty the dict</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>add or update?</b> &nbsp; <code>d[k] = v</code> is <i>the same syntax</i> for both. If <code>k</code> is new it adds; if <code>k</code> exists it overwrites. Python doesn't distinguish.
+  </div>
+
+  <div class="callout">
+    <b>defaultdict differs</b> &nbsp; reading a <i>missing</i> key auto-creates the default and returns it — no <code>KeyError</code>. Factory examples: <code>defaultdict(int)</code> → 0 (counting), <code>defaultdict(list)</code> → [] (grouping), <code>defaultdict(set)</code> → set(). So <code>dd[k] += 1</code> and <code>dd[k].append(x)</code> work even on first touch. Everything else: identical to dict.
+  </div>
 </section>
 
 <!-- ============================================================ OrderedDict -->
 <section class="col" id="ordereddict">
   <h2>OrderedDict <span class="var">od</span> <span class="import">from collections import OrderedDict</span></h2>
-  <p class="intro"><b>Mutable</b> dict subclass with extra reorder operations. Plain <code>dict</code> already preserves insertion order in 3.7+, but <code>OrderedDict</code> still wins for LRU-style end-shuffling.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <p class="intro"><b>Mutable</b> dict subclass with end-shuffling. Plain <code>dict</code> already preserves insertion order in 3.7+; reach for <code>OrderedDict</code> when you need <code>move_to_end</code> or LIFO/FIFO <code>popitem</code> — typical for LRU caches.</p>
+
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>OrderedDict()</td><td>empty ordered dict</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>OrderedDict(it)</td><td>from iterable of pairs</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>od.move_to_end(k)</td><td>move key k to the right end</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>od.move_to_end(k, last=False)</td><td>move key k to the left end</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>od.popitem(last=True)</td><td>pop right (default) or left</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>od == od2</td><td>order-sensitive equality</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>… all dict methods</td><td>OrderedDict IS a dict</td><td><span class="na">see dict</span></td></tr>
+      <tr class="group-start"><td class="op">Create / Read</td><td class="method">OrderedDict() · OrderedDict(pairs)</td><td class="desc">empty · from iterable of pairs &nbsp; <span class="na">reads: see dict</span></td><td><span class="O On">O(n)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Add</td><td class="method">od[k] = v</td><td class="desc">insert at the right end</td><td><span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="3">Update / Edit</td><td class="method">od[k] = v</td><td class="desc">overwrite (does NOT change position)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">od.move_to_end(k)</td><td class="desc">move key k to the right end (most recent)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">od.move_to_end(k, last=False)</td><td class="desc">move key k to the left end (oldest)</td><td><span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="3">Remove / Clear</td><td class="method">od.popitem(last=True)</td><td class="desc">pop the right (most recent)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">od.popitem(last=False)</td><td class="desc">pop the left (oldest)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">del od[k] · od.pop(k)</td><td class="desc">remove a specific key</td><td><span class="O O1">O(1)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>position vs value</b> &nbsp; <code>od[k] = v</code> on an <i>existing</i> key only overwrites the value — it doesn't move k. To "mark as recently used", do <code>od[k] = v; od.move_to_end(k)</code>.
+  </div>
 </section>
 
-<!-- ============================================================ Counter -->
-<section class="col" id="counter">
-  <h2>Counter <span class="var">c</span> <span class="import">from collections import Counter</span></h2>
-  <p class="intro"><b>Mutable</b> dict subclass for counting. Missing-key reads return 0 (no KeyError). Supports multiset arithmetic.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
-    <tbody>
-      <tr><td>Counter()</td><td>empty counter</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>Counter(it)</td><td>count occurrences in iterable</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>Counter(mapping)</td><td>copy counts from a dict-like</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>Counter(a=2, b=1)</td><td>kwargs form</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>c[k]</td><td>count for k (0 if missing, no KeyError)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>c[k] += 1</td><td>increment count</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>c.most_common(n)</td><td>top n (key, count) pairs</td><td><span class="O Onlog">O(n log k)</span></td></tr>
-      <tr><td>c.elements()</td><td>iterator yielding each key count times</td><td><span class="O On">O(total)</span></td></tr>
-      <tr><td>c.update(it_or_mapping)</td><td>ADD counts (not replace)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>c.subtract(other)</td><td>subtract counts (can go negative)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>+c</td><td>drop zero and negative counts</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>c1 + c2</td><td>add counts (drops ≤ 0)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>c1 - c2</td><td>subtract counts (drops ≤ 0)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>c1 & c2</td><td>min of each key (intersection)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>c1 | c2</td><td>max of each key (union)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>c.total()</td><td>sum of all counts (3.10+)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>… all dict methods</td><td>Counter IS a dict</td><td><span class="na">see dict</span></td></tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- ============================================================ set -->
+<!-- ============================================================ set / frozenset -->
 <section class="col" id="set">
-  <h2>set <span class="var">s</span></h2>
-  <p class="intro"><b>Mutable</b>, unordered, unique elements. O(1) average membership. Elements must be hashable.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
-    <tbody>
-      <tr><td>set()</td><td>empty set (NOT {})</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>{1, 2, 3}</td><td>set literal</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>set(it)</td><td>build from any iterable</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>{x for x in it}</td><td>set comprehension</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>len(s)</td><td>number of elements</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>x in s</td><td>membership test (fast!)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>s.add(x)</td><td>insert one element</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>s.discard(x)</td><td>remove if present (no error)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>s.remove(x)</td><td>remove (raises KeyError if missing)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>s.pop()</td><td>remove and return arbitrary element</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>s.clear()</td><td>empty the set</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>s.update(it)</td><td>in-place union with iterable</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>s.copy()</td><td>shallow copy</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>s | s2</td><td>union (new set)</td><td><span class="O On">O(n+m)</span></td></tr>
-      <tr><td>s &amp; s2</td><td>intersection (new set)</td><td><span class="O On">O(min)</span></td></tr>
-      <tr><td>s - s2</td><td>difference (new set)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>s ^ s2</td><td>symmetric difference (new set)</td><td><span class="O On">O(n+m)</span></td></tr>
-      <tr><td>s |= / &amp;= / -= / ^=</td><td>in-place variants of above</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>s.issubset(s2) / s &lt;= s2</td><td>every element of s is in s2</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>s.issuperset(s2) / s &gt;= s2</td><td>every element of s2 is in s</td><td><span class="O On">O(m)</span></td></tr>
-      <tr><td>s.isdisjoint(s2)</td><td>no common elements</td><td><span class="O On">O(min)</span></td></tr>
-    </tbody>
-  </table>
-</section>
+  <h2>set <span class="var">s</span> &nbsp;/&nbsp; frozenset <span class="var">fs</span></h2>
+  <p class="intro"><b>Mutable</b> (set) or <b>Immutable</b> (frozenset), unordered, unique. O(1) average membership. Elements must be hashable.</p>
 
-<!-- ============================================================ frozenset -->
-<section class="col" id="frozenset">
-  <h2>frozenset <span class="var">fs</span></h2>
-  <p class="intro"><b>Immutable</b> set. Hashable — usable as a dict key or inside another set. Same read-only operators as set.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>frozenset()</td><td>empty frozenset</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>frozenset(it)</td><td>build from any iterable</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>len(fs)</td><td>number of elements</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>x in fs</td><td>membership test</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>fs | / &amp; / - / ^ other</td><td>set algebra (returns frozenset)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>fs.issubset / issuperset / isdisjoint</td><td>relation tests</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>fs.copy()</td><td>returns self (immutable)</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>hash(fs)</td><td>hashable: use as dict key</td><td><span class="O On">O(n)</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="2">Create / Read</td><td class="method">set() · {1, 2, 3} · set(it) · {x for x in it}</td><td class="desc">empty (NOT {}!) · literal · from iterable · comprehension</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">x in s · len(s)</td><td class="desc">fast membership · count</td><td><span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="3">Add</td><td class="method">s.add(x)</td><td class="desc">insert one element (no-op if already there)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">s.update(it)</td><td class="desc">in-place <b>union</b> with iterable — adds every element</td><td><span class="O On">O(k)</span></td></tr>
+      <tr><td class="method">s |= s2</td><td class="desc">same: in-place union</td><td><span class="O On">O(k)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Update / Edit</td><td class="method"><span class="na">— none —</span></td><td class="desc">sets have no notion of "edit one element"; do <code>s.discard(old); s.add(new)</code></td><td><span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="4">Remove / Clear</td><td class="method">s.discard(x)</td><td class="desc">remove if present (silent if not)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">s.remove(x)</td><td class="desc">remove (raises KeyError if missing)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">s.pop()</td><td class="desc">remove &amp; return an arbitrary element</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">s.clear()</td><td class="desc">empty the set</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>".update" can mislead</b> &nbsp; on a set, <code>s.update(it)</code> means <i>union</i> (add every element of <code>it</code>). On a dict it means <i>merge</i> (overwrite by key). On a Counter, <i>add counts</i>. Same method name, three different semantics.
+  </div>
+
+  <div class="callout">
+    <b>frozenset differs</b> &nbsp; immutable — no <code>.add</code>, <code>.discard</code>, <code>.remove</code>, <code>.pop</code>, <code>.update</code>, <code>.clear</code>. Same reads (<code>in</code>, <code>len</code>, <code>|</code> <code>&amp;</code> <code>-</code> <code>^</code>). Hashable — usable as a dict key or inside another set.
+  </div>
 </section>
 
 <!-- ============================================================ deque -->
 <section class="col" id="deque">
   <h2>deque <span class="var">dq</span> <span class="import">from collections import deque</span></h2>
-  <p class="intro"><b>Mutable</b> double-ended queue. O(1) append/pop on both ends. Use instead of <code>list</code> when you need FIFO or sliding windows.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <p class="intro"><b>Mutable</b> double-ended queue. O(1) push/pop on both ends. Reach for it instead of <code>list</code> when you need FIFO, sliding windows, or fast prepend.</p>
+
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>deque()</td><td>empty deque</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>deque(it)</td><td>build from any iterable</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>deque(it, maxlen=N)</td><td>bounded; oldest auto-evicts when full</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>len(dq)</td><td>number of elements</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>dq[0] / dq[-1]</td><td>peek front / back</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>dq[i]</td><td>access by index (middle is slow)</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>x in dq</td><td>linear scan</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>dq.append(x)</td><td>push right</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>dq.appendleft(x)</td><td>push left</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>dq.pop()</td><td>pop right</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>dq.popleft()</td><td>pop left</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>dq.extend(it)</td><td>extend right</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>dq.extendleft(it)</td><td>extend left (REVERSED order)</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>dq.rotate(n)</td><td>rotate right by n (negative = left)</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>dq.reverse()</td><td>reverse in place</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>dq.clear()</td><td>empty the deque</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>dq.count(x)</td><td>occurrences of x</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>dq.copy()</td><td>shallow copy</td><td><span class="O On">O(n)</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="2">Create / Read</td><td class="method">deque() · deque(it) · deque(it, maxlen=N)</td><td class="desc">empty · from iterable · bounded (oldest auto-evicts)</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">dq[0] · dq[-1] · len(dq)</td><td class="desc">peek front · peek back · length &nbsp; <span class="note">middle <code>dq[i]</code> is O(n)</span></td><td><span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="4">Add</td><td class="method">dq.append(x)</td><td class="desc">push to the right</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">dq.appendleft(x)</td><td class="desc">push to the left</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">dq.extend(it)</td><td class="desc">push iterable on the right</td><td><span class="O On">O(k)</span></td></tr>
+      <tr><td class="method">dq.extendleft(it)</td><td class="desc">push iterable on the left (reversed order!)</td><td><span class="O On">O(k)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Update / Edit</td><td class="method">dq[i] = x</td><td class="desc">set element at index — middle is O(n)</td><td><span class="O On">O(n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="4">Remove / Clear</td><td class="method">dq.pop()</td><td class="desc">pop the right</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">dq.popleft()</td><td class="desc">pop the left (FIFO!)</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">dq.rotate(n)</td><td class="desc">rotate right by n (negative = left)</td><td><span class="O On">O(k)</span></td></tr>
+      <tr><td class="method">dq.clear()</td><td class="desc">empty the deque</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>deque vs list</b> &nbsp; <code>list.pop(0)</code> and <code>list.insert(0, x)</code> are O(n). <code>deque.popleft()</code> and <code>deque.appendleft(x)</code> are O(1). For BFS, sliding windows, and FIFO queues — always reach for <code>deque</code>.
+  </div>
 </section>
 
 <!-- ============================================================ heapq -->
 <section class="col" id="heapq">
   <h2>heapq <span class="var">h</span> <span class="import">import heapq</span></h2>
-  <p class="intro"><b>Module</b>, not a type. Operates on a regular <code>list</code> maintained in heap order. Min-heap only — for max-heap, push negated values.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <p class="intro"><b>Module</b>, not a type. Operates on a regular <code>list</code> kept in heap order. <b>Min-heap only</b> — for a max-heap, push negated values.</p>
+
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>h = []</td><td>empty heap</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>heapq.heapify(h)</td><td>turn list into heap in place</td><td><span class="O On">O(n)</span></td></tr>
-      <tr><td>heapq.heappush(h, x)</td><td>push x</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>heapq.heappop(h)</td><td>pop smallest</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>h[0]</td><td>peek smallest</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>heapq.heappushpop(h, x)</td><td>push x, then pop smallest (one op)</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>heapq.heapreplace(h, x)</td><td>pop smallest, then push x</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>heapq.nlargest(k, it)</td><td>k largest items, descending</td><td><span class="O Onlog">O(n log k)</span></td></tr>
-      <tr><td>heapq.nsmallest(k, it)</td><td>k smallest items, ascending</td><td><span class="O Onlog">O(n log k)</span></td></tr>
-      <tr><td>heapq.merge(*iters)</td><td>merge pre-sorted iterables lazily</td><td><span class="O Onlog">O(n log k)</span></td></tr>
-      <tr><td>heappush(h, (priority, x))</td><td>tuple priorities; smallest first</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>heappush(h, -x)</td><td>max-heap trick (negate)</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="3">Create / Read</td><td class="method">h = []</td><td class="desc">empty heap is just an empty list</td><td><span class="O O1">O(1)</span></td></tr>
+      <tr><td class="method">heapq.heapify(h)</td><td class="desc">turn an existing list into a heap (in place)</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">h[0]</td><td class="desc">peek the smallest (without removing)</td><td><span class="O O1">O(1)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Add</td><td class="method">heapq.heappush(h, x)</td><td class="desc">push x preserving heap order</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">heapq.heappushpop(h, x)</td><td class="desc">push x, then pop the smallest (single op)</td><td><span class="O Olog">O(log n)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Update / Edit</td><td class="method">heapq.heapreplace(h, x)</td><td class="desc">pop the smallest, then push x (efficient swap)</td><td><span class="O Olog">O(log n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Remove / Clear</td><td class="method">heapq.heappop(h)</td><td class="desc">pop &amp; return the smallest</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">h.clear()</td><td class="desc">empty the heap (it's still just a list)</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>max-heap trick</b> &nbsp; push <code>-x</code> instead of <code>x</code>, negate again on pop. For object priorities: push tuples <code>(priority, item)</code>; smallest priority comes out first.
+  </div>
+
+  <div class="callout">
+    <b>no arbitrary remove</b> &nbsp; <code>heapq</code> can only remove the smallest in O(log n). Removing some specific element x is O(n) — you'd <code>list.remove(x)</code> then <code>heapify</code>. If you need O(log n) arbitrary remove, use <code>SortedList</code>.
+  </div>
 </section>
 
-<!-- ============================================================ SortedList -->
+<!-- ============================================================ SortedList / SortedSet -->
 <section class="col" id="sortedlist">
-  <h2>SortedList <span class="var">sl</span> <span class="import">from sortedcontainers import SortedList</span></h2>
-  <p class="intro"><b>Mutable</b>, always sorted. 3rd-party (not stdlib). O(log n) insert + indexed access — bridges the gap between list and bisect.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <h2>SortedList <span class="var">sl</span> &nbsp;/&nbsp; SortedSet <span class="var">ss</span> <span class="import">from sortedcontainers import SortedList, SortedSet</span></h2>
+  <p class="intro"><b>Mutable</b>, always sorted. 3rd-party (not stdlib). O(log n) insert <i>and</i> indexed access — bridges the gap between <code>list</code> and <code>bisect</code>. Use for sliding medians, range queries, and "kth smallest" problems.</p>
+
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>SortedList()</td><td>empty</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>SortedList(it)</td><td>build from iterable</td><td><span class="O Onlog">O(n log n)</span></td></tr>
-      <tr><td>len(sl)</td><td>number of elements</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>sl[i]</td><td>indexed access (sorted order)</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl[i:j]</td><td>slice copy</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>x in sl</td><td>membership test (binary search)</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.add(x)</td><td>insert keeping sorted order</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.update(it)</td><td>insert many</td><td><span class="O Onlog">O(k log n)</span></td></tr>
-      <tr><td>sl.remove(x)</td><td>remove first occurrence</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.discard(x)</td><td>remove if present (no error)</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.pop(i=-1)</td><td>remove and return element at index</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.bisect_left(x)</td><td>leftmost insertion index</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.bisect_right(x)</td><td>rightmost insertion index</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.index(x)</td><td>first index of x</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.count(x)</td><td>occurrences of x</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sl.irange(lo, hi)</td><td>iterate values in [lo, hi]</td><td><span class="O Olog">O(log n + k)</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="3">Create / Read</td><td class="method">SortedList() · SortedList(it)</td><td class="desc">empty · from iterable (sorts on build)</td><td><span class="O Onlog">O(n log n)</span></td></tr>
+      <tr><td class="method">sl[i] · sl[i:j] · x in sl · len(sl)</td><td class="desc">indexed (sorted order) · slice · membership · length</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sl.bisect_left(x) · sl.bisect_right(x)</td><td class="desc">where would x go? (left/right insertion index)</td><td><span class="O Olog">O(log n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Add</td><td class="method">sl.add(x)</td><td class="desc">insert keeping sorted order</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sl.update(it)</td><td class="desc">insert many; same as repeated add</td><td><span class="O Onlog">O(k log n)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Update / Edit</td><td class="method"><span class="na">— none —</span></td><td class="desc">sorted means position is determined by value — do <code>sl.discard(old); sl.add(new)</code></td><td><span class="O Olog">O(log n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="4">Remove / Clear</td><td class="method">sl.discard(x)</td><td class="desc">remove if present (silent if not)</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sl.remove(x)</td><td class="desc">remove (raises if missing)</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sl.pop(i=-1)</td><td class="desc">remove &amp; return at index (default: last/largest)</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sl.clear()</td><td class="desc">empty</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>SortedSet differs</b> &nbsp; identical API (<code>add</code>, <code>discard</code>, <code>remove</code>, <code>pop(i)</code>, <code>bisect_*</code>), <i>plus</i> uniqueness is enforced and it supports set algebra (<code>|</code>, <code>&amp;</code>, <code>-</code>, <code>^</code>). Use <code>SortedSet</code> when duplicates are wrong; <code>SortedList</code> when you want a multiset.
+  </div>
 </section>
 
 <!-- ============================================================ SortedDict -->
 <section class="col" id="sorteddict">
   <h2>SortedDict <span class="var">sd</span> <span class="import">from sortedcontainers import SortedDict</span></h2>
-  <p class="intro"><b>Mutable</b> dict whose keys are kept sorted. Same dict API plus order-aware extras.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+  <p class="intro"><b>Mutable</b> dict whose keys are kept sorted. Full dict API <i>plus</i> order-aware extras (<code>peekitem</code>, <code>bisect_*</code>, <code>irange</code>). Use when you need "min/max key", "predecessor/successor", or range scans.</p>
+
+  <table class="crud">
+    <thead><tr><th>Op</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>SortedDict()</td><td>empty</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>SortedDict(it)</td><td>build from pairs</td><td><span class="O Onlog">O(n log n)</span></td></tr>
-      <tr><td>sd[k] / sd[k] = v</td><td>lookup / set</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>k in sd</td><td>membership on keys</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sd.keys() / values() / items()</td><td>views in SORTED order</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>sd.peekitem(i)</td><td>(k, v) at sorted position i</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sd.popitem(last=True)</td><td>pop right (max) or left (min)</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sd.bisect_left(k)</td><td>leftmost insertion index for k</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sd.bisect_right(k)</td><td>rightmost insertion index for k</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>sd.irange(lo, hi)</td><td>iterate keys in [lo, hi]</td><td><span class="O Olog">O(log n + k)</span></td></tr>
-      <tr><td>… all dict methods</td><td>SortedDict IS a dict</td><td><span class="na">see dict</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="3">Create / Read</td><td class="method">SortedDict() · SortedDict(pairs)</td><td class="desc">empty · from iterable of (k, v)</td><td><span class="O Onlog">O(n log n)</span></td></tr>
+      <tr><td class="method">sd[k] · k in sd · len(sd)</td><td class="desc">lookup · membership · count</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sd.peekitem(i) · sd.bisect_left(k) · sd.irange(lo, hi)</td><td class="desc">(k, v) at sorted index i · insertion index · iterate range</td><td><span class="O Olog">O(log n)</span></td></tr>
+
+      <tr class="group-start"><td class="op">Add</td><td class="method">sd[k] = v</td><td class="desc">insert at the right sorted position</td><td><span class="O Olog">O(log n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="2">Update / Edit</td><td class="method">sd[k] = v</td><td class="desc">overwrite value at k (same syntax adds OR updates)</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sd.update(other)</td><td class="desc">merge another dict / iterable of pairs</td><td><span class="O Onlog">O(k log n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="4">Remove / Clear</td><td class="method">del sd[k] · sd.pop(k)</td><td class="desc">remove a specific key</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sd.popitem(last=True)</td><td class="desc">pop the largest key</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sd.popitem(last=False)</td><td class="desc">pop the smallest key</td><td><span class="O Olog">O(log n)</span></td></tr>
+      <tr><td class="method">sd.clear()</td><td class="desc">empty</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>min / max key</b> &nbsp; <code>sd.peekitem(0)</code> is the smallest, <code>sd.peekitem(-1)</code> is the largest — both O(log n). On a plain dict you'd need <code>min(d)</code> which is O(n).
+  </div>
 </section>
 
-<!-- ============================================================ SortedSet -->
-<section class="col" id="sortedset">
-  <h2>SortedSet <span class="var">ss</span> <span class="import">from sortedcontainers import SortedSet</span></h2>
-  <p class="intro"><b>Mutable</b> set whose elements are kept sorted. Indexable like a list and supports all set operators.</p>
-  <table>
-    <thead><tr><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
+<!-- ============================================================ tricks -->
+<section class="col" id="tricks">
+  <h2>N-ary tricks <span class="var">multi-arg idioms</span></h2>
+  <p class="intro">Patterns that don't belong to one collection — variadic methods, class-level constructors, and N-iterable unpacking.</p>
+
+  <div class="callout">
+    <b>the trick</b> &nbsp; <code>set.intersection(*sets)</code> works because Python methods are just functions whose first arg is <code>self</code>. So <code>s1.intersection(s2, s3)</code> and <code>set.intersection(s1, s2, s3)</code> are identical — the second form is cleaner when you have a list and want <code>*</code> unpacking.
+  </div>
+
+  <table class="crud">
+    <thead><tr><th>Group</th><th>Method</th><th>What it does</th><th>Big-O</th></tr></thead>
     <tbody>
-      <tr><td>SortedSet()</td><td>empty</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>SortedSet(it)</td><td>build from iterable</td><td><span class="O Onlog">O(n log n)</span></td></tr>
-      <tr><td>len(ss)</td><td>number of elements</td><td><span class="O O1">O(1)</span></td></tr>
-      <tr><td>ss[i]</td><td>indexed access (sorted order)</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>ss[i:j]</td><td>slice as a new SortedSet</td><td><span class="O On">O(k)</span></td></tr>
-      <tr><td>x in ss</td><td>membership test (binary search)</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>ss.add(x)</td><td>insert keeping sorted, unique</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>ss.discard(x)</td><td>remove if present</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>ss.remove(x)</td><td>remove (raises if missing)</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>ss.pop(i=-1)</td><td>remove and return element at index</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>ss.update(it)</td><td>insert many</td><td><span class="O Onlog">O(k log n)</span></td></tr>
-      <tr><td>ss.bisect_left(x)</td><td>leftmost insertion index</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>ss.bisect_right(x)</td><td>rightmost insertion index</td><td><span class="O Olog">O(log n)</span></td></tr>
-      <tr><td>ss | &amp; - ^ other</td><td>set algebra (returns SortedSet)</td><td><span class="O Onlog">O(n log n)</span></td></tr>
+      <tr class="group-start"><td class="op" rowspan="5">Variadic sets</td><td class="method">set.intersection(*sets)</td><td class="desc">N-ary intersect — elements common to all</td><td><span class="O On">O(n·min)</span></td></tr>
+      <tr><td class="method">set.union(*sets)</td><td class="desc">N-ary union — elements from any set</td><td><span class="O On">O(sum)</span></td></tr>
+      <tr><td class="method">set.difference(*sets)</td><td class="desc">chained left-to-right: s0 − s1 − s2 − …</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">set.symmetric_difference(*sets)</td><td class="desc">pairwise symmetric diff</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">set.intersection_update(*sets)</td><td class="desc">in-place version (also: <code>_update</code> on union/difference/symmetric_difference)</td><td><span class="O On">O(n·min)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="4">Classmethod constructors</td><td class="method">dict.fromkeys(it, default)</td><td class="desc">new dict with every key → default</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">int.from_bytes(b, "big")</td><td class="desc">bytes → int (endian-aware)</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">bytes.fromhex("48656c")</td><td class="desc">hex string → bytes</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">str.maketrans(a, b)</td><td class="desc">build translation table for <code>st.translate(...)</code></td><td><span class="O On">O(n)</span></td></tr>
+
+      <tr class="group-start"><td class="op" rowspan="9">Variadic functions</td><td class="method">zip(*matrix)</td><td class="desc">transpose rows ↔ columns</td><td><span class="O On">O(r·c)</span></td></tr>
+      <tr><td class="method">max(a, b, c, key=...) · min(...)</td><td class="desc">N-ary, accepts a key function</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">heapq.merge(*sorted_iters)</td><td class="desc">merge N pre-sorted streams lazily</td><td><span class="O Onlog">O(n log k)</span></td></tr>
+      <tr><td class="method">heapq.nlargest(k, it, key=...) · nsmallest(...)</td><td class="desc">top / bottom k from any iterable</td><td><span class="O Onlog">O(n log k)</span></td></tr>
+      <tr><td class="method">itertools.chain(*iters)</td><td class="desc">concatenate iterables lazily</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">itertools.chain.from_iterable(lol)</td><td class="desc">flatten one level — for a list of lists</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">functools.reduce(op.and_, sets)</td><td class="desc">explicit fold — same result as <code>set.intersection(*sets)</code></td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">dict(zip(keys, vals))</td><td class="desc">build dict from two parallel iterables</td><td><span class="O On">O(n)</span></td></tr>
+      <tr><td class="method">{**d1, **d2} · d1 | d2</td><td class="desc">merge dicts (<code>|</code> is 3.9+)</td><td><span class="O On">O(n)</span></td></tr>
     </tbody>
   </table>
+
+  <div class="callout">
+    <b>fold vs N-ary</b> &nbsp; <code>set.intersection(*sets)</code> and <code>functools.reduce(operator.and_, sets)</code> do the same thing. Reach for the first when the method exists; <code>reduce</code> when chaining a custom binary op.
+  </div>
 </section>
 
 <footer>
-  Python collections cheatsheet · <a href="python_collections_cheatsheet.html">full operation matrix</a> · <a href="cheatsheet-by-operation.html">methods by operation</a> · <a href="index.html">home</a>
+  Python collections — by common operation · <a href="python_collections_cheatsheet.html">full operation matrix</a> · <a href="cheatsheet-by-operation.html">methods by operation</a> · <a href="index.html">home</a>
 </footer>
 
 </div>

@@ -113,9 +113,11 @@ def add_discard_remove(s):
     s.add, s.discard.
     """
 
-    # YOUR CODE HERE
+    s.add(100)
+    s.discard(999)
+    s.discard(1)
 
-    return NOT_IMPLEMENTED
+    return sorted(s)
 
 
 # ============================================================
@@ -136,10 +138,7 @@ def has_value(s, target):
     `in` on a set is O(1) average; on a list it is O(n). That is why
     this exercise takes a set.
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return target in s
 
 
 # ============================================================
@@ -161,10 +160,7 @@ def union(a, b):
     Try to use:
     a | b
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted(a | b)
 
 
 # ============================================================
@@ -186,10 +182,7 @@ def intersection(a, b):
     Try to use:
     a & b
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted(a & b)
 
 
 # ============================================================
@@ -212,10 +205,7 @@ def difference(a, b):
     Try to use:
     a - b
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted(a - b)
 
 
 # ============================================================
@@ -238,10 +228,7 @@ def sym_difference(a, b):
     Try to use:
     a ^ b
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted(a ^ b)
 
 
 # ============================================================
@@ -267,10 +254,7 @@ def relation(a, b):
     Try to use:
     a <= b, a >= b, a.isdisjoint(b)
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return a <= b, a >=b, a.isdisjoint(b)
 
 
 # ============================================================
@@ -299,10 +283,7 @@ def dedupe_preserve_order(items):
     A plain set() does not preserve order. That is why this exercise
     takes a list, not a set.
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return list(dict.fromkeys(items))
 
 
 # ============================================================
@@ -328,8 +309,8 @@ def find_duplicates(items):
     """
 
     # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    from collections import Counter
+    return sorted(a for a, b in Counter(items).items() if b>1)
 
 
 # ============================================================
@@ -356,10 +337,13 @@ def two_sum_exists(nums, target):
     Walk nums once, keep a "seen" set of values you have looked at,
     and check (target - current) in seen.
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    seen = set()
+    for i in nums:
+        if target - i in seen:
+            return True
+        else:
+            seen.add(i)
+    return False
 
 
 # ============================================================
@@ -383,10 +367,7 @@ def same_elements(a, b):
     a = [1, 2, 3], b = [1, 2]
     Return: False
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return set(a) == set(b) 
 
 
 # ============================================================
@@ -419,10 +400,14 @@ def group_by_unique_letters(words):
         frozenset({"a", "b"}):       ["ab", "ba"],
     }
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    top = {}
+    for word in words:
+        s = frozenset(word)
+        top.setdefault(s, []).append(word)
+    
+    for a, b in top.items():
+        top[a].sort()
+    return top
 
 
 # ============================================================
@@ -447,10 +432,8 @@ def absorb(a, b):
     Try to use:
     a.update(b)   or   a |= set(b)
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    a.update(b)
+    return sorted(a)
 
 
 # ============================================================
@@ -475,10 +458,11 @@ def pop_until_empty(s):
     Note:
     set.pop() removes and returns an arbitrary element.
     """
+    a = []
+    while s:
+        a.append(s.pop())
 
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted(a)
 
 
 # ============================================================
@@ -502,10 +486,7 @@ def unique_char_count(s):
     Try to use:
     len(set(s))
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return len(set(s))
 
 
 # ============================================================
@@ -533,10 +514,7 @@ def common_in_all(sets):
     Try to use:
     set.intersection(*sets)
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted(set.intersection(*sets))
 
 
 # ============================================================
@@ -557,10 +535,7 @@ def missing_number(nums, n):
     Try to use:
     set(range(n + 1)) - set(nums)
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return (set(range(n +1)) - set(nums)).pop()
 
 
 # ============================================================
@@ -585,10 +560,7 @@ def even_squares(nums):
     Try to use:
     {x * x for x in nums if x % 2 == 0}
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return sorted({x*x for x in nums if x % 2 == 0})
 
 
 # ============================================================
@@ -624,10 +596,14 @@ def compare_lists(a, b):
         "count_unique": 5,
     }
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    ans = {
+        "only_a": sorted(set(a) - set(b)),
+        "only_b": sorted(set(b) - set(a)),
+        "both":  sorted(set(a) & set(b)),
+        "either": sorted (set(a) | set(b)),
+        "count_unique": len(set(a) | set(b)),
+    }
+    return ans
 
 
 # ============================================================
