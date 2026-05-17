@@ -83,10 +83,12 @@ def basic_deque_ops():
     Example return:
     [1, 2, 3]
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    dq = deque([1, 2, 3])
+    dq.append(4)
+    dq.appendleft(0)
+    dq.popleft()
+    dq.pop()
+    return list(dq)
 
 
 # ============================================================
@@ -104,10 +106,8 @@ def roundtrip(items):
     items = [10, 20, 30]
     Return: [10, 20, 30]
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    dq = deque(items)
+    return list(dq)
 
 
 # ============================================================
@@ -135,10 +135,8 @@ def rotate_deque(dq, n):
     Important:
     dq.rotate(n) returns None; do not write `return dq.rotate(n)`.
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    dq.rotate(n)
+    return list(dq)
 
 
 # ============================================================
@@ -163,9 +161,10 @@ def last_n(stream, n):
     deque(maxlen=n)
     """
 
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    dq = deque(maxlen = n)
+    for i in stream:
+        dq.append(i)
+    return list(dq)
 
 
 # ============================================================
@@ -186,10 +185,8 @@ def reverse_in_place(dq):
     Important:
     dq.reverse() returns None, so do not write `return dq.reverse()`.
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    dq.reverse()
+    return list(dq)
 
 
 # ============================================================
@@ -213,10 +210,10 @@ def peek_ends(dq):
     Try to use:
     dq[0] for the front, dq[-1] for the back.
     """
+    if not dq:
+        return None, None
 
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return dq[0], dq[-1]
 
 
 # ============================================================
@@ -238,10 +235,11 @@ def serve_tickets(tickets):
     Use deque.popleft so the queue is O(1).
     Do not use list.pop(0).
     """
-
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    dq = deque(tickets)
+    served = []
+    while dq:
+        served.append(dq.popleft())
+    return served
 
 
 # ============================================================
