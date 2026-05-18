@@ -271,10 +271,22 @@ def queue_via_two_stacks(ops):
     Two stacks: "in" and "out". When "out" is empty, drain "in" into "out".
     Do not use deque or list.pop(0).
     """
+    ins = []
+    out = []
+    ans = []
+    for a in ops:
+        oper = a[0]
+        if oper == "push":
+            v = a[1]
+            ins.append(v)
+        
+        if oper == "pop":
+            if not out:
+                while ins:
+                    out.append(ins.pop())
+            ans.append(out.pop())
 
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return ans
 
 
 # ============================================================
@@ -296,15 +308,40 @@ def hot_potato(names, k):
     Try to use:
     A deque. For each round: rotate left by k, then popleft.
     """
+    na = deque(names)
+    for i in range(k):
+        na.rotate(-1)
+        na.popleft()
 
-    # YOUR CODE HERE
-
-    return NOT_IMPLEMENTED
+    return na.popleft()
 
 
 # ============================================================
 # Exercise 10: Sliding Window Maximum
 # ============================================================
+
+def sliding_window_maxold(nums, k):
+    """
+    In words:
+
+    Return a list of the maximum value in every window of size k as it
+    slides from left to right across nums.
+
+    Example:
+    nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3
+    Return: [3, 3, 5, 5, 6, 7]
+
+    Try to use:
+    A monotonic decreasing deque of indices.
+    """
+    ans = []
+    win = deque(maxlen=k)
+    for i in nums:
+        win.append(i)
+        if len(win) == k:
+            ans.append(max(win))
+
+    return ans
 
 def sliding_window_max(nums, k):
     """
@@ -320,10 +357,22 @@ def sliding_window_max(nums, k):
     Try to use:
     A monotonic decreasing deque of indices.
     """
+    ans = []
+    dq = deque()
+    for i, n in enumerate(nums):
+        
+        if dq and dq[0] < i-k:
+            dq.popleft()
+        
+        while dq and nums[dq[-1]] < nums[i]:
+            dq.pop()
+        
+        dq.append(i)
 
-    # YOUR CODE HERE
+        if i >= k - i:
+            ans.append(nums[dq[0]])
 
-    return NOT_IMPLEMENTED
+    return ans
 
 
 # ============================================================
